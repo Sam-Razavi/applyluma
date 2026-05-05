@@ -4,28 +4,24 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
-class CVCreate(BaseModel):
-    title: str
-    content: str | None = None
-    file_url: str | None = None
-    is_default: bool = False
-
-
-class CVUpdate(BaseModel):
-    title: str | None = None
-    content: str | None = None
-    file_url: str | None = None
-    is_default: bool | None = None
-
-
-class CVPublic(BaseModel):
+class CVSummary(BaseModel):
+    """Returned in list responses — omits the large content field."""
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     user_id: uuid.UUID
     title: str
-    content: str | None
-    file_url: str | None
+    filename: str
     is_default: bool
     created_at: datetime
     updated_at: datetime
+
+
+class CVPublic(CVSummary):
+    """Returned in detail / upload responses — includes parsed text."""
+    content: str | None
+    file_url: str | None
+
+
+class CVUpdate(BaseModel):
+    title: str | None = None

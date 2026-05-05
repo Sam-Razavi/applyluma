@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import Boolean, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,8 +19,9 @@ class CV(Base, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     title: Mapped[str] = mapped_column(String(255))
+    filename: Mapped[str] = mapped_column(String(255))
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_url: Mapped[str | None] = mapped_column(String, nullable=True)
-    is_default: Mapped[bool] = mapped_column(default=False, server_default="false")
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     user: Mapped["User"] = relationship("User", back_populates="cvs")

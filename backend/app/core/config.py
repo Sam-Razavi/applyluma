@@ -19,5 +19,8 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
+    STORAGE_DIR: str = "/app/storage"
+    MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MB
+
 
 settings = Settings()
