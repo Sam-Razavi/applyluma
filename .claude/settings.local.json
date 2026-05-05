@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item *)",
+      "Bash(xargs grep -l \"^from\\\\|^import\")"
+    ]
+  }
+}

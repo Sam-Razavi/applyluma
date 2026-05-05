@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -7,6 +9,13 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def _bcrypt_input(password: str) -> str:
+    # SHA-256 → base64 gives a fixed 44-char ASCII string, always under bcrypt's 72-byte cap.
+    # Prevents silent truncation collisions while correctly handling arbitrary-length unicode.
+    digest = hashlib.sha256(password.encode("utf-8")).digest()
+    return base64.b64encode(digest).decode("ascii")
 
 
 def create_access_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
@@ -20,9 +29,9 @@ def create_access_token(subject: str | Any, expires_delta: timedelta | None = No
     )
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(_bcrypt_input(password))
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(_bcrypt_input(plain_password), hashed_password)
