@@ -27,9 +27,26 @@ async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # Reject refresh tokens being used as access tokens
+        if payload.get("type") != "access":
+            raise credentials_exception
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
     return user_id
+
+
+async def get_current_user(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    from app.crud.user import get_by_id  # local import avoids circular at module load
+
+    user = get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+    return user
