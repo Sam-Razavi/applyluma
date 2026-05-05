@@ -22,5 +22,7 @@ class Settings(BaseSettings):
     STORAGE_DIR: str = "/app/storage"
     MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MB
 
+    OPENAI_API_KEY: str = ""
+
 
 settings = Settings()

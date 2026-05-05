@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "PowerShell(New-Item *)",
-      "Bash(xargs grep -l \"^from\\\\|^import\")"
+      "Bash(xargs grep -l \"^from\\\\|^import\")",
+      "Skill(claude-api)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Project\\\\Job-App\\\\applyluma\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(New-Item -ItemType File -Path \"C:\\\\Project\\\\Job-App\\\\applyluma\\\\backend\\\\app\\\\services\\\\ai_service.py\" -Force)",
+      "Bash(Out-Null)",
+      "Bash(Write-Host \"created\")"
     ]
   }
 }
