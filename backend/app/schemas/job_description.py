@@ -11,21 +11,20 @@ class JobDescriptionCreate(BaseModel):
     url: str | None = None
 
 
-class JobDescriptionUpdate(BaseModel):
-    company_name: str | None = None
-    job_title: str | None = None
-    description: str | None = None
-    url: str | None = None
-
-
-class JobDescriptionPublic(BaseModel):
+class JobDescriptionSummary(BaseModel):
+    """List view — excludes the full description text."""
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     user_id: uuid.UUID
     company_name: str
     job_title: str
-    description: str
     url: str | None
+    keywords: list[str]
     created_at: datetime
     updated_at: datetime
+
+
+class JobDescriptionPublic(JobDescriptionSummary):
+    """Detail view — includes full description text."""
+    description: str
