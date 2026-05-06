@@ -1,5 +1,5 @@
 import client from '../api/client'
-import type { TokenPair, User, CV, JobDescription } from '../types'
+import type { TokenPair, User, CV, JobDescription, AIAnalysis } from '../types'
 
 export interface LoginRequest {
   email: string
@@ -76,4 +76,14 @@ export const jobApi = {
 
   remove: (jdId: string): Promise<void> =>
     client.delete(`/api/v1/job-descriptions/${jdId}`).then(() => undefined),
+}
+
+export const aiApi = {
+  tailorCV: (cvId: string, jobDescriptionId: string): Promise<AIAnalysis> =>
+    client
+      .post<AIAnalysis>('/api/v1/ai/tailor-cv', {
+        cv_id: cvId,
+        job_description_id: jobDescriptionId,
+      })
+      .then((r) => r.data),
 }

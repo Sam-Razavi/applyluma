@@ -48,3 +48,11 @@ export interface JobDescription {
   created_at: string
   updated_at: string
 }
+
+export interface AIAnalysis {
+  match_score: number
+  strengths: string[]
+  gaps: string[]
+  recommendations: string[]
+  full_analysis: string
+}

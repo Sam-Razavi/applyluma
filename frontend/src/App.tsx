@@ -8,6 +8,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import CVs from './pages/CVs'
 import Jobs from './pages/Jobs'
+import AITailor from './pages/AITailor'
 import NotFound from './pages/NotFound'
 import { useAuthStore } from './stores'
 
@@ -37,7 +38,7 @@ export default function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="cvs" element={<CVs />} />
           <Route path="jobs" element={<Jobs />} />
-          <Route path="ai-tailor" element={<ComingSoon label="AI Tailor" />} />
+          <Route path="ai-tailor" element={<AITailor />} />
         </Route>
       </Route>
 
@@ -46,12 +47,3 @@ export default function App() {
   )
 }
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <p className="text-4xl mb-4">🚧</p>
-      <h2 className="text-xl font-semibold text-gray-900">{label}</h2>
-      <p className="mt-2 text-sm text-gray-500">This page is coming in the next phase.</p>
-    </div>
-  )
-}
