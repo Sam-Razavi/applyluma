@@ -8,7 +8,10 @@
       "Bash(Select-Object Name)",
       "Bash(New-Item -ItemType File -Path \"C:\\\\Project\\\\Job-App\\\\applyluma\\\\backend\\\\app\\\\services\\\\ai_service.py\" -Force)",
       "Bash(Out-Null)",
-      "Bash(Write-Host \"created\")"
+      "Bash(Write-Host \"created\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Project\\\\Job-App\\\\applyluma\\\\frontend\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)"
     ]
   }
 }
