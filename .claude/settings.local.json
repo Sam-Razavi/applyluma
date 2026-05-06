@@ -15,7 +15,8 @@
       "Bash(npm install *)",
       "PowerShell($pkg = Get-Content \"C:\\\\Project\\\\Job-App\\\\applyluma\\\\frontend\\\\node_modules\\\\lucide-react\\\\package.json\" -Raw | ConvertFrom-Json; $pkg.exports | ConvertTo-Json -Depth 5)",
       "Bash(npx tsc *)",
-      "Bash(dir \"C:\\\\Project\\\\Job-App\\\\applyluma\\\\backend\\\\app\")"
+      "Bash(dir \"C:\\\\Project\\\\Job-App\\\\applyluma\\\\backend\\\\app\")",
+      "Bash(Get-ChildItem -Recurse -Path frontend/src -File)"
     ]
   }
 }

@@ -1,6 +1,45 @@
 import client from '../api/client'
 import type { TokenPair, User, CV, JobDescription, AIAnalysis } from '../types'
 
+// ── Analytics types ───────────────────────────────────────────────────────────
+
+export interface AnalyticsOverview {
+  total_jobs: number
+  remote_percentage: number
+  avg_salary_min: number | null
+  avg_salary_max: number | null
+  top_skill: string | null
+  last_updated: string | null
+}
+
+export interface CompanyStat {
+  company: string
+  job_count: number
+}
+
+export interface SkillStat {
+  skill: string
+  mention_count: number
+  trend: 'up' | 'down' | 'stable'
+}
+
+export interface DailyJobCount {
+  date: string
+  job_count: number
+}
+
+export interface RecentJob {
+  id: string
+  title: string
+  company: string
+  location: string | null
+  url: string
+  remote_allowed: boolean
+  employment_type: string | null
+  extracted_skills: string[] | null
+  scraped_at: string
+}
+
 export interface LoginRequest {
   email: string
   password: string
@@ -85,5 +124,32 @@ export const aiApi = {
         cv_id: cvId,
         job_description_id: jobDescriptionId,
       })
+      .then((r) => r.data),
+}
+
+// ── Analytics API ─────────────────────────────────────────────────────────────
+
+export const analyticsApi = {
+  overview: (): Promise<AnalyticsOverview> =>
+    client.get<AnalyticsOverview>('/api/v1/analytics/overview').then((r) => r.data),
+
+  topCompanies: (limit = 10): Promise<CompanyStat[]> =>
+    client
+      .get<CompanyStat[]>('/api/v1/analytics/top-companies', { params: { limit } })
+      .then((r) => r.data),
+
+  topSkills: (limit = 10): Promise<SkillStat[]> =>
+    client
+      .get<SkillStat[]>('/api/v1/analytics/top-skills', { params: { limit } })
+      .then((r) => r.data),
+
+  jobsOverTime: (days = 30): Promise<DailyJobCount[]> =>
+    client
+      .get<DailyJobCount[]>('/api/v1/analytics/jobs-over-time', { params: { days } })
+      .then((r) => r.data),
+
+  recentJobs: (limit = 20): Promise<RecentJob[]> =>
+    client
+      .get<RecentJob[]>('/api/v1/analytics/recent-jobs', { params: { limit } })
       .then((r) => r.data),
 }

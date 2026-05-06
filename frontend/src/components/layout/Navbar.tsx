@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { to: '/cvs', label: 'My CVs' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/ai-tailor', label: 'AI Tailor' },
+  { to: '/analytics', label: 'Analytics' },
 ]
 
 export default function Navbar() {

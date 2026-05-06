@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard'
 import CVs from './pages/CVs'
 import Jobs from './pages/Jobs'
 import AITailor from './pages/AITailor'
+import Analytics from './pages/Analytics'
 import NotFound from './pages/NotFound'
 import { useAuthStore } from './stores'
 
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="cvs" element={<CVs />} />
           <Route path="jobs" element={<Jobs />} />
           <Route path="ai-tailor" element={<AITailor />} />
+          <Route path="analytics" element={<Analytics />} />
         </Route>
       </Route>
 
