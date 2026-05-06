@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from airflow import DAG
+from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
@@ -301,5 +302,21 @@ with DAG(
         python_callable=calculate_daily_metrics,
     )
 
+    t_dbt = BashOperator(
+        task_id="run_dbt_models",
+        bash_command=(
+            "cd /opt/airflow/dbt && "
+            "dbt run --profiles-dir . --target dev --models marts 2>&1"
+        ),
+        env={
+            "DBT_DB_HOST": "postgres",
+            "DBT_DB_PORT": "5432",
+            "POSTGRES_USER":     os.environ.get("POSTGRES_USER",     "applyluma"),
+            "POSTGRES_PASSWORD": os.environ.get("POSTGRES_PASSWORD", "applyluma"),
+            "POSTGRES_DB":       os.environ.get("POSTGRES_DB",       "applyluma"),
+            "PATH": "/home/airflow/.local/bin:/usr/local/bin:/usr/bin:/bin",
+        },
+    )
+
     # Both scrapers run in parallel, then the rest is sequential
-    [t_scrape_remotive, t_scrape_muse] >> t_dedup >> t_skills >> t_metrics
+    [t_scrape_remotive, t_scrape_muse] >> t_dedup >> t_skills >> t_metrics >> t_dbt

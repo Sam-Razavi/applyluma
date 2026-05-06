@@ -1,0 +1,36 @@
+version: 2
+
+sources:
+  - name: applyluma_raw
+    description: "Raw job data landed by the Airflow scraping DAG"
+    schema: public
+    loaded_at_field: scraped_at
+    freshness:
+      warn_after:  {count: 25, period: hour}
+      error_after: {count: 49, period: hour}
+    tables:
+      - name: raw_job_postings
+        description: "Raw job postings scraped from Remotive and The Muse"
+        columns:
+          - name: id
+            description: "UUID primary key"
+            tests: [unique, not_null]
+          - name: source
+            description: "Source job board identifier"
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['remotive', 'the_muse']
+          - name: job_id_external
+            description: "Job ID assigned by the source platform"
+            tests: [not_null]
+          - name: title
+            tests: [not_null]
+          - name: company
+            tests: [not_null]
+          - name: description
+            tests: [not_null]
+          - name: url
+            tests: [not_null]
+          - name: scraped_at
+            tests: [not_null]

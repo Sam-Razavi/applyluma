@@ -16,10 +16,16 @@ x-airflow-common:
     AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
     # Passed through so DAG tasks can write to the application DB
     DATABASE_URL: postgresql://${POSTGRES_USER:-applyluma}:${POSTGRES_PASSWORD:-applyluma}@postgres:5432/${POSTGRES_DB:-applyluma}
+    # dbt connection env vars (consumed by profiles.yml)
+    DBT_DB_HOST: postgres
+    DBT_DB_PORT: "5432"
+    # Install dbt-postgres into the Airflow image at startup
+    _PIP_ADDITIONAL_REQUIREMENTS: "dbt-postgres>=1.7.0,<2.0.0"
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
     - ./airflow/config/airflow.cfg:/opt/airflow/airflow.cfg:ro
+    - ./dbt:/opt/airflow/dbt
     - airflow_logs:/opt/airflow/logs
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
@@ -163,6 +169,28 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+
+  # ── dbt ─────────────────────────────────────────────────────────────────────
+  # One-shot runner: `docker compose run --rm dbt run`
+  # The service is not started automatically (no depends_on from other services).
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.6.0
+    volumes:
+      - ./dbt:/usr/app/dbt
+    working_dir: /usr/app/dbt
+    environment:
+      DBT_DB_HOST: postgres
+      DBT_DB_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-applyluma}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-applyluma}
+      POSTGRES_DB: ${POSTGRES_DB:-applyluma}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - dbt
+    entrypoint: ["dbt"]
+    command: ["run", "--profiles-dir", "."]
 
 volumes:
   postgres_data:

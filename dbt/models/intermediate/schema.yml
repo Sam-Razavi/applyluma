@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: int_jobs_deduplicated
+    description: >
+      Staging jobs with Airflow-flagged duplicates removed plus a second-pass
+      dedup: same company + normalised title keeps only the most-recent record.
+    columns:
+      - name: job_id
+        tests: [unique, not_null]
+      - name: normalised_title
+        description: "Title lower-cased with seniority qualifiers stripped"
+        tests: [not_null]
+
+  - name: int_jobs_with_skills
+    description: >
+      Deduplicated jobs enriched with skill_array (text[]) parsed from the job
+      description using the extract_skills macro, plus a skill_count integer.
+    columns:
+      - name: job_id
+        tests: [unique, not_null]
+      - name: skill_array
+        description: "PostgreSQL text[] of detected skills; NULL when none found"
+      - name: skill_count
+        description: "Length of skill_array; 0 when no skills detected"
+        tests: [not_null]

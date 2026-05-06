@@ -1,0 +1,76 @@
+version: 2
+
+models:
+  - name: dim_companies
+    description: "One row per unique company with aggregated posting stats"
+    columns:
+      - name: company_id
+        description: "MD5 surrogate key on lower(company_name)"
+        tests: [unique, not_null]
+      - name: company_name
+        tests: [unique, not_null]
+      - name: total_jobs_posted
+        tests: [not_null]
+      - name: remote_percentage
+        tests: [not_null]
+      - name: first_seen_date
+        tests: [not_null]
+      - name: last_seen_date
+        tests: [not_null]
+
+  - name: dim_skills
+    description: "One row per unique detected skill with trend and salary data"
+    columns:
+      - name: skill_id
+        description: "MD5 surrogate key on skill name"
+        tests: [unique, not_null]
+      - name: skill_name
+        tests: [unique, not_null]
+      - name: total_job_mentions
+        tests: [not_null]
+      - name: trending_score_pct
+        description: "Week-over-week change %; 100 when last_week = 0"
+
+  - name: fct_job_postings
+    description: >
+      Incremental fact table. One row per unique deduplicated job posting.
+      Joins to dim_companies via company_id.
+    columns:
+      - name: job_id
+        tests: [unique, not_null]
+      - name: job_source
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['remotive', 'the_muse']
+      - name: company_id
+        tests:
+          - relationships:
+              to: ref('dim_companies')
+              field: company_id
+      - name: company_name
+        tests: [not_null]
+      - name: skill_count
+        tests: [not_null]
+      - name: remote_allowed
+        tests: [not_null]
+      - name: scrape_date
+        tests: [not_null]
+      - name: is_senior_role
+        tests: [not_null]
+      - name: is_junior_role
+        tests: [not_null]
+      - name: is_management_role
+        tests: [not_null]
+
+  - name: fct_daily_metrics
+    description: "Daily aggregated job-market metrics; one row per scrape_date"
+    columns:
+      - name: metric_date
+        tests: [unique, not_null]
+      - name: total_jobs
+        tests: [not_null]
+      - name: remote_percentage
+        tests: [not_null]
+      - name: avg_skills_per_job
+        tests: [not_null]
