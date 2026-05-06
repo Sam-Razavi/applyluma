@@ -23,3 +23,28 @@ export interface PaginatedResponse<T> {
   page: number
   size: number
 }
+
+export interface CV {
+  id: string
+  user_id: string
+  title: string
+  filename: string
+  content: string | null
+  file_url: string | null
+  file_size: number | null
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface JobDescription {
+  id: string
+  user_id: string
+  company_name: string
+  job_title: string
+  description: string
+  url: string | null
+  keywords: string[]
+  created_at: string
+  updated_at: string
+}

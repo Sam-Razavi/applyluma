@@ -6,6 +6,8 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import CVs from './pages/CVs'
+import Jobs from './pages/Jobs'
 import NotFound from './pages/NotFound'
 import { useAuthStore } from './stores'
 
@@ -33,8 +35,8 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="cvs" element={<ComingSoon label="My CVs" />} />
-          <Route path="jobs" element={<ComingSoon label="Job Listings" />} />
+          <Route path="cvs" element={<CVs />} />
+          <Route path="jobs" element={<Jobs />} />
           <Route path="ai-tailor" element={<ComingSoon label="AI Tailor" />} />
         </Route>
       </Route>
