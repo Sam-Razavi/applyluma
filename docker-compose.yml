@@ -7,12 +7,17 @@ x-airflow-common:
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-applyluma}:${POSTGRES_PASSWORD:-applyluma}@postgres:5432/${POSTGRES_DB:-applyluma}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-applyluma}:${POSTGRES_PASSWORD:-applyluma}@postgres:5432/airflow_db
     AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg=}
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-applyluma-airflow-dev-secret-change-in-prod}
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__PARALLELISM: '4'
+    AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: '4'
+    AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: '1'
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-applyluma-airflow-dev-secret-change-in-prod}
+    AIRFLOW__WEBSERVER__WORKERS: '2'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: '30'
     AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
     # Passed through so DAG tasks can write to the application DB
     DATABASE_URL: postgresql://${POSTGRES_USER:-applyluma}:${POSTGRES_PASSWORD:-applyluma}@postgres:5432/${POSTGRES_DB:-applyluma}
@@ -24,7 +29,9 @@ x-airflow-common:
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
-    - ./airflow/config/airflow.cfg:/opt/airflow/airflow.cfg:ro
+    # airflow.cfg is NOT mounted — all settings are configured via AIRFLOW__* env vars
+    # above (the recommended approach for Docker). See airflow/config/airflow.cfg for
+    # human-readable reference only.
     - ./dbt:/opt/airflow/dbt
     - airflow_logs:/opt/airflow/logs
   user: "${AIRFLOW_UID:-50000}:0"
@@ -39,6 +46,7 @@ services:
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/create-airflow-db.sh:/docker-entrypoint-initdb.d/create-airflow-db.sh:ro
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-applyluma}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-applyluma}
