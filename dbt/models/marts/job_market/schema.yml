@@ -74,3 +74,38 @@ models:
         tests: [not_null]
       - name: avg_skills_per_job
         tests: [not_null]
+
+  - name: agg_salary_insights
+    description: >
+      Salary percentiles (p25/p50/p75/p90) broken out across four dimensions:
+      skill, location, company, and employment_type. Only postings with both
+      salary_min and salary_max populated are included. Rows with fewer than
+      the minimum sample size (5 for skill/location, 3 for company/employment_type)
+      are excluded to keep percentiles statistically meaningful.
+    columns:
+      - name: breakdown_type
+        description: "Dimension name: skill | location | company | employment_type"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['skill', 'location', 'company', 'employment_type']
+      - name: breakdown_value
+        description: "The specific skill name, location string, company, or employment type"
+        tests: [not_null]
+      - name: job_count
+        description: "Number of distinct job postings with salary data in this segment"
+        tests: [not_null]
+      - name: p25_salary
+        description: "25th percentile of salary_midpoint"
+      - name: p50_salary
+        description: "Median salary_midpoint"
+      - name: p75_salary
+        description: "75th percentile of salary_midpoint"
+      - name: p90_salary
+        description: "90th percentile of salary_midpoint"
+      - name: avg_salary
+        description: "Mean salary_midpoint"
+      - name: min_salary_floor
+        description: "Lowest salary_min across the segment"
+      - name: max_salary_ceiling
+        description: "Highest salary_max across the segment"
