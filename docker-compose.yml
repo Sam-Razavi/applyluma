@@ -33,6 +33,7 @@ x-airflow-common:
     # above (the recommended approach for Docker). See airflow/config/airflow.cfg for
     # human-readable reference only.
     - ./dbt:/opt/airflow/dbt
+    - ./docker/airflow-init-connection.sh:/opt/airflow/scripts/airflow-init-connection.sh:ro
     - airflow_logs:/opt/airflow/logs
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
@@ -134,6 +135,8 @@ services:
       - -c
       - |
         airflow db upgrade
+        install -m 755 /opt/airflow/scripts/airflow-init-connection.sh /tmp/airflow-init-connection.sh
+        /tmp/airflow-init-connection.sh
         airflow users create \
           --username "${AIRFLOW_ADMIN_USER:-admin}" \
           --password "${AIRFLOW_ADMIN_PASSWORD:-admin}" \
