@@ -1,12 +1,18 @@
+from datetime import datetime
+
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.routing import APIRoute
+from jose import JWTError, jwt
 
+from app.api.v1.endpoints.analytics import router as analytics_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.cvs import router as cvs_router
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.dependencies import get_redis_client
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -24,6 +30,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def analytics_rate_limit(request: Request, call_next):
+    if request.url.path.startswith(("/api/v1/analytics", "/api/analytics")):
+        auth = request.headers.get("authorization", "")
+        if auth.lower().startswith("bearer "):
+            try:
+                payload = jwt.decode(auth.split(" ", 1)[1], settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+                if payload.get("type") == "access" and payload.get("sub"):
+                    redis_client = get_redis_client()
+                    key = f"rate_limit:analytics:{payload['sub']}:{int(datetime.utcnow().timestamp() // 60)}"
+                    count = redis_client.incr(key)
+                    if count == 1:
+                        redis_client.expire(key, 60)
+                    if count > settings.RATE_LIMIT_PER_MINUTE:
+                        return JSONResponse(
+                            status_code=429,
+                            content={
+                                "success": False,
+                                "data": None,
+                                "metadata": None,
+                                "error": {
+                                    "code": "RATE_LIMITED",
+                                    "message": "Rate limit exceeded",
+                                    "details": {"limit_per_minute": settings.RATE_LIMIT_PER_MINUTE},
+                                },
+                            },
+                        )
+            except JWTError:
+                pass
+    return await call_next(request)
+
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
@@ -33,6 +71,7 @@ compat_router = APIRouter(include_in_schema=False)
 # canonical API remains /api/v1/*, but these routes keep older clients and
 # health-check scripts working without duplicating endpoint implementations.
 compat_router.include_router(auth_router, prefix="/api")
+compat_router.include_router(analytics_router, prefix="/api")
 
 
 def _include_prefixed_route_aliases(

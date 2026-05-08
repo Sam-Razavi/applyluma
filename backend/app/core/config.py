@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql://applyluma:applyluma@localhost:5432/applyluma"
     REDIS_URL: str = "redis://localhost:6379/0"
+    RATE_LIMIT_PER_MINUTE: int = 100
+    ANALYTICS_CACHE_TTL_HOURS: int = 1
 
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"

@@ -1,5 +1,6 @@
 from collections.abc import Generator
 
+import redis
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -36,6 +37,10 @@ async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
     except JWTError:
         raise credentials_exception
     return user_id
+
+
+def get_redis_client() -> redis.Redis:
+    return redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
 async def get_current_user(
