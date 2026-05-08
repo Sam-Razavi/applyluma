@@ -18,7 +18,8 @@
       "Bash(dir \"C:\\\\Project\\\\Job-App\\\\applyluma\\\\backend\\\\app\")",
       "Bash(Get-ChildItem -Recurse -Path frontend/src -File)",
       "Bash(docker-compose restart *)",
-      "Bash(docker-compose exec *)"
+      "Bash(docker-compose exec *)",
+      "Bash(git checkout *)"
     ]
   }
 }
