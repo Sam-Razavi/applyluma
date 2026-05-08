@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user_id, get_db, get_redis_client
+from app.core.dependencies import get_db, get_redis_client
 from app.db.queries.analytics_queries import (
     ANALYTICS_CACHE_TTL_SECONDS,
     build_cache_key,
@@ -23,7 +23,6 @@ router = APIRouter()
 
 @router.get("/location-trends", response_model=AnalyticsResponse[list[LocationTrend]])
 def get_location_trends(
-    _: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
     redis_client=Depends(get_redis_client),
 ) -> AnalyticsResponse[list[LocationTrend]] | JSONResponse:

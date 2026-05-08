@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
+import sys
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import httpx
 import pytest
@@ -153,6 +157,8 @@ ENDPOINTS = [
     EndpointCase("/api/v1/analytics/salary-by-skill", "/api/v1/analytics/salary-by-skill?limit=0", "analytics:salary_by_skill", []),
     EndpointCase(f"/api/v1/analytics/comparison?resume_id={RESUME_ID}", "/api/v1/analytics/comparison?resume_id=bad", "analytics:comparison", {"resume_id": RESUME_ID, "resume_title": "Backend CV", "resume_skill_count": 0, "matched_skills": [], "missing_high_demand_skills": [], "skill_details": [], "market_salary_benchmark": None, "skills_market_coverage_pct": 0, "overall_market_alignment_score": 0}),
 ]
+PUBLIC_ENDPOINTS = [case for case in ENDPOINTS if "/comparison" not in case.path]
+COMPARISON_ENDPOINT = next(case for case in ENDPOINTS if "/comparison" in case.path)
 
 
 @pytest.fixture(autouse=True)
@@ -166,17 +172,24 @@ async def current_user_override() -> str:
     return USER_ID
 
 
-async def request(path: str, db: FakeDb, redis_client: FakeRedis | None = None) -> httpx.Response:
-    app.dependency_overrides[get_current_user_id] = current_user_override
+async def request(
+    path: str,
+    db: FakeDb,
+    redis_client: FakeRedis | None = None,
+    authenticated: bool = False,
+) -> httpx.Response:
+    if authenticated:
+        app.dependency_overrides[get_current_user_id] = current_user_override
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_redis_client] = lambda: redis_client or FakeRedis()
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-        return await client.get(path, headers={"Authorization": "Bearer invalid-test-token"})
+        headers = {"Authorization": "Bearer invalid-test-token"} if authenticated else {}
+        return await client.get(path, headers=headers)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("case", ENDPOINTS)
-async def test_analytics_endpoint_happy_path(case: EndpointCase) -> None:
+@pytest.mark.parametrize("case", PUBLIC_ENDPOINTS)
+async def test_public_analytics_endpoint_happy_path_without_auth(case: EndpointCase) -> None:
     response = await request(case.path, FakeDb())
     assert response.status_code == 200
     body = response.json()
@@ -186,8 +199,8 @@ async def test_analytics_endpoint_happy_path(case: EndpointCase) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("case", ENDPOINTS)
-async def test_analytics_endpoint_validation(case: EndpointCase) -> None:
+@pytest.mark.parametrize("case", PUBLIC_ENDPOINTS)
+async def test_public_analytics_endpoint_validation_without_auth(case: EndpointCase) -> None:
     if case.invalid_path == case.path:
         pytest.skip("endpoint has no query params to validate")
     response = await request(case.invalid_path, FakeDb())
@@ -196,16 +209,16 @@ async def test_analytics_endpoint_validation(case: EndpointCase) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("case", ENDPOINTS)
-async def test_analytics_endpoint_empty_result(case: EndpointCase) -> None:
+@pytest.mark.parametrize("case", PUBLIC_ENDPOINTS)
+async def test_public_analytics_endpoint_empty_result_without_auth(case: EndpointCase) -> None:
     response = await request(case.path, FakeDb(mode="empty"))
     assert response.status_code == 200
     assert response.json()["success"] is True
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("case", ENDPOINTS)
-async def test_analytics_endpoint_cache_hit(case: EndpointCase) -> None:
+@pytest.mark.parametrize("case", PUBLIC_ENDPOINTS)
+async def test_public_analytics_endpoint_cache_hit_without_auth(case: EndpointCase) -> None:
     redis_client = FakeRedis({f"{case.cache_prefix}:cached": json.dumps(case.cached_data)})
     original_get = redis_client.get
     redis_client.get = lambda key: original_get(f"{case.cache_prefix}:cached") if key.startswith(case.cache_prefix) else None  # type: ignore[method-assign]
@@ -216,8 +229,56 @@ async def test_analytics_endpoint_cache_hit(case: EndpointCase) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("case", ENDPOINTS)
-async def test_analytics_endpoint_db_error(case: EndpointCase) -> None:
+@pytest.mark.parametrize("case", PUBLIC_ENDPOINTS)
+async def test_public_analytics_endpoint_db_error_without_auth(case: EndpointCase) -> None:
     response = await request(case.path, FakeDb(mode="error"))
+    assert response.status_code == 500
+    assert response.json()["error"]["code"] == "INTERNAL_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_comparison_requires_authentication() -> None:
+    response = await request(COMPARISON_ENDPOINT.path, FakeDb())
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_comparison_happy_path_with_authentication() -> None:
+    response = await request(COMPARISON_ENDPOINT.path, FakeDb(), authenticated=True)
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_comparison_validation_with_authentication() -> None:
+    response = await request(COMPARISON_ENDPOINT.invalid_path, FakeDb(), authenticated=True)
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_PARAMS"
+
+
+@pytest.mark.asyncio
+async def test_comparison_cache_hit_with_authentication() -> None:
+    redis_client = FakeRedis({
+        f"{COMPARISON_ENDPOINT.cache_prefix}:cached": json.dumps(COMPARISON_ENDPOINT.cached_data)
+    })
+    original_get = redis_client.get
+    redis_client.get = (
+        lambda key: original_get(f"{COMPARISON_ENDPOINT.cache_prefix}:cached")
+        if key.startswith(COMPARISON_ENDPOINT.cache_prefix)
+        else None
+    )  # type: ignore[method-assign]
+    response = await request(
+        COMPARISON_ENDPOINT.path,
+        FakeDb(),
+        redis_client,
+        authenticated=True,
+    )
+    assert response.status_code == 200
+    assert redis_client.set_count == 0
+
+
+@pytest.mark.asyncio
+async def test_comparison_db_error_with_authentication() -> None:
+    response = await request(COMPARISON_ENDPOINT.path, FakeDb(mode="error"), authenticated=True)
     assert response.status_code == 500
     assert response.json()["error"]["code"] == "INTERNAL_ERROR"
