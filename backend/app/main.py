@@ -35,31 +35,38 @@ app.add_middleware(
 async def analytics_rate_limit(request: Request, call_next):
     if request.url.path.startswith(("/api/v1/analytics", "/api/analytics")):
         auth = request.headers.get("authorization", "")
+        identity = request.client.host if request.client else "unknown"
         if auth.lower().startswith("bearer "):
             try:
                 payload = jwt.decode(auth.split(" ", 1)[1], settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
                 if payload.get("type") == "access" and payload.get("sub"):
-                    redis_client = get_redis_client()
-                    key = f"rate_limit:analytics:{payload['sub']}:{int(datetime.utcnow().timestamp() // 60)}"
-                    count = redis_client.incr(key)
-                    if count == 1:
-                        redis_client.expire(key, 60)
-                    if count > settings.RATE_LIMIT_PER_MINUTE:
-                        return JSONResponse(
-                            status_code=429,
-                            content={
-                                "success": False,
-                                "data": None,
-                                "metadata": None,
-                                "error": {
-                                    "code": "RATE_LIMITED",
-                                    "message": "Rate limit exceeded",
-                                    "details": {"limit_per_minute": settings.RATE_LIMIT_PER_MINUTE},
-                                },
-                            },
-                        )
+                    identity = str(payload["sub"])
             except JWTError:
                 pass
+        try:
+            redis_client = get_redis_client()
+            key = f"rate_limit:analytics:{identity}:{int(datetime.utcnow().timestamp() // 60)}"
+            count = redis_client.incr(key)
+            if count == 1:
+                redis_client.expire(key, 60)
+            if count > settings.RATE_LIMIT_PER_MINUTE:
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "success": False,
+                        "data": None,
+                        "metadata": None,
+                        "error": {
+                            "code": "RATE_LIMITED",
+                            "message": "Rate limit exceeded",
+                            "details": {"limit_per_minute": settings.RATE_LIMIT_PER_MINUTE},
+                        },
+                    },
+                )
+        except Exception:
+            # Analytics endpoints are public; a Redis outage should not make
+            # read-only market data unavailable.
+            pass
     return await call_next(request)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

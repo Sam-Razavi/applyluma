@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user_id, get_db, get_redis_client
+from app.core.dependencies import get_db, get_redis_client
 from app.db.queries.analytics_queries import (
     ANALYTICS_CACHE_TTL_SECONDS,
     build_cache_key,
@@ -27,7 +27,6 @@ router = APIRouter()
 def get_skill_demand(
     limit: int = Query(20),
     min_growth_pct: float = Query(5.0),
-    _: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
     redis_client=Depends(get_redis_client),
 ) -> AnalyticsResponse[list[SkillDemand]] | JSONResponse:
