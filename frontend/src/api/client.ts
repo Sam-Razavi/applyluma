@@ -1,8 +1,11 @@
 import axios, { type AxiosError } from 'axios'
 import { useAuthStore } from '../stores'
+import config from '../config/environment'
+
+const API_URL = config.apiUrl
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
+  baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 

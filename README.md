@@ -10,6 +10,44 @@ ApplyLuma helps job seekers optimize their applications through:
 - Application tracking and analytics
 - Market insights and skills gap analysis
 
+## Live Demo
+
+**Production:** https://applyluma.com<br>
+**API Docs:** https://applyluma-backend.up.railway.app/docs
+
+## Deployment
+
+### Production Stack
+- **Frontend:** Vercel (auto-deploy from `main` branch)
+- **Backend:** Railway (FastAPI + PostgreSQL + Redis)
+- **Data Pipeline:** Airflow (self-hosted on always-on PC)
+- **Domain:** applyluma.com (Namecheap DNS)
+
+### Deployment Guides
+See the `/deployment` folder for step-by-step instructions:
+- [Railway Backend Setup](deployment/RAILWAY_SETUP.md)
+- [Vercel Frontend Setup](deployment/VERCEL_SETUP.md)
+- [DNS Configuration](deployment/DNS_SETUP.md)
+- [Airflow Remote Connection](deployment/AIRFLOW_REMOTE.md)
+- [Testing Checklist](deployment/TESTING_CHECKLIST.md)
+
+### Environment Variables
+See `.env.production.example` files in `backend/` and `frontend/` for required configuration.
+
+## Git Workflow
+
+We use a two-branch strategy:
+- **`main`** - Production-ready code (auto-deploys to Railway/Vercel)
+- **`dev`** - Development branch (all changes go here first)
+
+**Making Changes:**
+1. Create feature branch from `dev`: `git checkout -b feature/my-feature dev`
+2. Make changes and test locally
+3. Merge to `dev`: `git checkout dev && git merge feature/my-feature`
+4. Test on dev environment
+5. Merge to `main` when ready: `git checkout main && git merge dev`
+6. Production auto-deploys.
+
 ## Tech Stack
 
 ### Backend
