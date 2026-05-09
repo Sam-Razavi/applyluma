@@ -80,6 +80,208 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Failed to load data'
 }
 
+interface AnalyticsSnapshot {
+  marketHealth: JobMarketHealth | null
+  trendingSkills: SkillTrend[]
+  salaryInsights: SalaryInsightItem[]
+  hiringPatterns: HiringPatternPoint[]
+  companyInsights: CompanyInsight[]
+  skillDemand: SkillDemand[]
+  locationTrends: LocationTrend[]
+  industryBreakdown: IndustryBreakdown[]
+  experienceLevels: ExperienceLevelBreakdown[]
+  jobTypeMix: JobTypeMixItem[]
+  salaryBySkill: SalaryBySkill[]
+  cvs: CV[]
+  selectedResumeId: string
+  resumeComparison: ResumeComparison | null
+  errors: Record<LoadKey, string | null>
+}
+
+interface ResumeSnapshot {
+  cvs: CV[]
+  selectedResumeId: string
+  resumeComparison: ResumeComparison | null
+  error: string | null
+}
+
+const INITIAL_ANALYTICS_DEDUPE_MS = 10_000
+
+let initialAnalyticsLoad:
+  | {
+      createdAt: number
+      promise: Promise<AnalyticsSnapshot>
+    }
+  | null = null
+
+let initialResumeLoad:
+  | {
+      tokenKey: string
+      createdAt: number
+      promise: Promise<ResumeSnapshot>
+    }
+  | null = null
+
+function emptyAnalyticsSnapshot(): AnalyticsSnapshot {
+  return {
+    marketHealth: null,
+    trendingSkills: [],
+    salaryInsights: [],
+    hiringPatterns: [],
+    companyInsights: [],
+    skillDemand: [],
+    locationTrends: [],
+    industryBreakdown: [],
+    experienceLevels: [],
+    jobTypeMix: [],
+    salaryBySkill: [],
+    cvs: [],
+    selectedResumeId: '',
+    resumeComparison: null,
+    errors: { ...initialErrors },
+  }
+}
+
+function applySettledResult<T>(
+  result: PromiseSettledResult<T>,
+  key: LoadKey,
+  snapshot: AnalyticsSnapshot,
+  applyValue: (value: T) => void,
+) {
+  if (result.status === 'fulfilled') {
+    applyValue(result.value)
+    snapshot.errors[key] = null
+    return
+  }
+
+  snapshot.errors[key] = getErrorMessage(result.reason)
+}
+
+async function fetchInitialAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
+  const snapshot = emptyAnalyticsSnapshot()
+
+  const [
+    marketHealthResult,
+    trendingSkillsResult,
+    salaryInsightsResult,
+    hiringPatternsResult,
+    companyInsightsResult,
+    skillDemandResult,
+    locationTrendsResult,
+    industryBreakdownResult,
+    experienceLevelsResult,
+    jobTypeMixResult,
+    salaryBySkillResult,
+  ] = await Promise.allSettled([
+    analyticsApi.jobMarketHealth(),
+    analyticsApi.trendingSkills(20, 1),
+    analyticsApi.salaryInsights(),
+    analyticsApi.hiringPatterns(30, 'daily'),
+    analyticsApi.companyInsights(20),
+    analyticsApi.skillDemand(20, 0),
+    analyticsApi.locationTrends(),
+    analyticsApi.industryBreakdown(),
+    analyticsApi.experienceLevels(),
+    analyticsApi.jobTypeMix(),
+    analyticsApi.salaryBySkill(20),
+  ])
+
+  applySettledResult(marketHealthResult, 'marketHealth', snapshot, (value) => {
+    snapshot.marketHealth = value
+  })
+  applySettledResult(trendingSkillsResult, 'trendingSkills', snapshot, (value) => {
+    snapshot.trendingSkills = value
+  })
+  applySettledResult(salaryInsightsResult, 'salaryInsights', snapshot, (value) => {
+    snapshot.salaryInsights = value
+  })
+  applySettledResult(hiringPatternsResult, 'hiringPatterns', snapshot, (value) => {
+    snapshot.hiringPatterns = value
+  })
+  applySettledResult(companyInsightsResult, 'companyInsights', snapshot, (value) => {
+    snapshot.companyInsights = value
+  })
+  applySettledResult(skillDemandResult, 'skillDemand', snapshot, (value) => {
+    snapshot.skillDemand = value
+  })
+  applySettledResult(locationTrendsResult, 'locationTrends', snapshot, (value) => {
+    snapshot.locationTrends = value
+  })
+  applySettledResult(industryBreakdownResult, 'industryBreakdown', snapshot, (value) => {
+    snapshot.industryBreakdown = value
+  })
+  applySettledResult(experienceLevelsResult, 'experienceLevels', snapshot, (value) => {
+    snapshot.experienceLevels = value
+  })
+  applySettledResult(jobTypeMixResult, 'jobTypeMix', snapshot, (value) => {
+    snapshot.jobTypeMix = value
+  })
+  applySettledResult(salaryBySkillResult, 'salaryBySkill', snapshot, (value) => {
+    snapshot.salaryBySkill = value
+  })
+
+  return snapshot
+}
+
+function getInitialAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
+  const now = Date.now()
+
+  if (
+    initialAnalyticsLoad &&
+    now - initialAnalyticsLoad.createdAt < INITIAL_ANALYTICS_DEDUPE_MS
+  ) {
+    return initialAnalyticsLoad.promise
+  }
+
+  initialAnalyticsLoad = {
+    createdAt: now,
+    promise: fetchInitialAnalyticsSnapshot(),
+  }
+
+  return initialAnalyticsLoad.promise
+}
+
+async function fetchInitialResumeSnapshot(): Promise<ResumeSnapshot> {
+  try {
+    const nextCvs = await cvApi.list()
+    const targetResumeId = nextCvs.find((cv) => cv.is_default)?.id ?? nextCvs[0]?.id ?? ''
+
+    return {
+      cvs: nextCvs,
+      selectedResumeId: targetResumeId,
+      resumeComparison: targetResumeId ? await analyticsApi.comparison(targetResumeId) : null,
+      error: null,
+    }
+  } catch (error) {
+    return {
+      cvs: [],
+      selectedResumeId: '',
+      resumeComparison: null,
+      error: getErrorMessage(error),
+    }
+  }
+}
+
+function getInitialResumeSnapshot(token: string): Promise<ResumeSnapshot> {
+  const now = Date.now()
+
+  if (
+    initialResumeLoad &&
+    initialResumeLoad.tokenKey === token &&
+    now - initialResumeLoad.createdAt < INITIAL_ANALYTICS_DEDUPE_MS
+  ) {
+    return initialResumeLoad.promise
+  }
+
+  initialResumeLoad = {
+    tokenKey: token,
+    createdAt: now,
+    promise: fetchInitialResumeSnapshot(),
+  }
+
+  return initialResumeLoad.promise
+}
+
 export default function Analytics() {
   const { token } = useAuthStore()
 
@@ -307,10 +509,95 @@ export default function Analytics() {
     loadTrendingSkills,
   ])
 
+  const applyAnalyticsSnapshot = useCallback((snapshot: AnalyticsSnapshot) => {
+    setMarketHealth(snapshot.marketHealth)
+    setTrendingSkills(snapshot.trendingSkills)
+    setSalaryInsights(snapshot.salaryInsights)
+    setHiringPatterns(snapshot.hiringPatterns)
+    setCompanyInsights(snapshot.companyInsights)
+    setSkillDemand(snapshot.skillDemand)
+    setLocationTrends(snapshot.locationTrends)
+    setIndustryBreakdown(snapshot.industryBreakdown)
+    setExperienceLevels(snapshot.experienceLevels)
+    setJobTypeMix(snapshot.jobTypeMix)
+    setSalaryBySkill(snapshot.salaryBySkill)
+    setErrors((prev) => ({ ...snapshot.errors, resumeComparison: prev.resumeComparison }))
+    setLoading((prev) =>
+      LOAD_KEYS.reduce(
+        (state, key) => ({ ...state, [key]: key === 'resumeComparison' ? prev.resumeComparison : false }),
+        {} as Record<LoadKey, boolean>,
+      ),
+    )
+    setLastRefresh(new Date())
+  }, [])
+
   useEffect(() => {
     document.title = 'Market Intelligence | ApplyLuma'
-    void loadAllData()
-  }, [loadAllData])
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    void getInitialAnalyticsSnapshot()
+      .then((snapshot) => {
+        if (isMounted) {
+          applyAnalyticsSnapshot(snapshot)
+        }
+      })
+      .catch((error) => {
+        if (!isMounted) return
+
+        console.error('Failed to load analytics:', error)
+        setErrors(
+          LOAD_KEYS.reduce(
+            (state, key) => ({ ...state, [key]: getErrorMessage(error) }),
+            {} as Record<LoadKey, string | null>,
+          ),
+        )
+        setLoading(
+          LOAD_KEYS.reduce(
+            (state, key) => ({ ...state, [key]: false }),
+            {} as Record<LoadKey, boolean>,
+          ),
+        )
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [applyAnalyticsSnapshot])
+
+  useEffect(() => {
+    let isMounted = true
+
+    if (!token) {
+      setEndpointLoading('resumeComparison', false)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    setEndpointLoading('resumeComparison', true)
+
+    void getInitialResumeSnapshot(token)
+      .then((snapshot) => {
+        if (!isMounted) return
+
+        setCvs(snapshot.cvs)
+        setSelectedResumeId(snapshot.selectedResumeId)
+        setResumeComparison(snapshot.resumeComparison)
+        setEndpointError('resumeComparison', snapshot.error)
+      })
+      .finally(() => {
+        if (isMounted) {
+          setEndpointLoading('resumeComparison', false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [setEndpointError, setEndpointLoading, token])
 
   const handleResumeChange = (resumeId: string) => {
     setSelectedResumeId(resumeId)

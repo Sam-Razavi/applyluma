@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { ResponsiveContainer, Tooltip, Treemap } from 'recharts'
-import { CHART_COLORS, CHART_TOOLTIP_STYLE } from '../../../styles/analytics-colors'
+import { CHART_TOOLTIP_STYLE, LOCATION_COLORS } from '../../../styles/analytics-colors'
 import { formatCompactCurrency, formatNumber, formatPercentage } from '../../../utils/formatters'
 import type { LocationTrend } from '../../../types'
 
@@ -48,7 +48,7 @@ export default function LocationTrendsChart({ data }: Props) {
         size: location.job_count,
         salary: location.avg_salary_midpoint,
         remote: location.remote_percentage,
-        fill: CHART_COLORS[index % CHART_COLORS.length],
+        fill: LOCATION_COLORS[index % LOCATION_COLORS.length],
       })),
     [data],
   )

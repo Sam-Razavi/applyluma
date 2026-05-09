@@ -8,8 +8,13 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
-  console.log(`[HTTP] ${config.method?.toUpperCase()} ${config.url} — token in store: ${token ? '✅ present' : '❌ null'}`)
-  if (token) {
+  const url = config.url ?? ''
+  const isPublicAnalyticsEndpoint =
+    (url.startsWith('/api/v1/analytics/') || url.startsWith('/api/analytics/')) &&
+    !url.includes('/comparison')
+
+  console.log(`[HTTP] ${config.method?.toUpperCase()} ${config.url} - token in store: ${token ? 'present' : 'null'}`)
+  if (token && !isPublicAnalyticsEndpoint) {
     config.headers.Authorization = `Bearer ${token}`
     console.log('[HTTP] Authorization header set: Bearer', token.slice(0, 20) + '...')
   }

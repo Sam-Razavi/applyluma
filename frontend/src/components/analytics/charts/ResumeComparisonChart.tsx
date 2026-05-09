@@ -60,7 +60,7 @@ export default function ResumeComparisonChart({ data }: Props) {
           <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12 }} />
           <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 11 }} />
           <Radar name="Market Demand" dataKey="marketDemand" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} />
-          <Radar name="Your Resume" dataKey="yourResume" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.2} strokeWidth={2} />
+          <Radar name="Your Resume" dataKey="yourResume" stroke="#10b981" fill="#10b981" fillOpacity={0.3} strokeWidth={2} />
           <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} iconType="circle" />
           <Tooltip
             formatter={(value) => [`${value}%`, '']}
