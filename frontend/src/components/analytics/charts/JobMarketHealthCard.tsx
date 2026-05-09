@@ -29,7 +29,7 @@ export default function JobMarketHealthCard({ data, loading, error }: Props) {
   const metrics = [
     { icon: UserGroupIcon, label: 'Senior Roles', value: formatPercentage(data.senior_role_pct, 0), color: 'text-blue-700 bg-blue-50' },
     { icon: TrophyIcon, label: 'Mid-Level', value: formatPercentage(data.mid_role_pct, 0), color: 'text-violet-700 bg-violet-50' },
-    { icon: ArrowTrendingUpIcon, label: 'Junior Roles', value: formatPercentage(data.junior_role_pct, 0), color: 'text-cyan-700 bg-cyan-50' },
+    { icon: ArrowTrendingUpIcon, label: 'Junior Roles', value: formatPercentage(data.junior_role_pct, 0), color: 'text-green-600 bg-green-50' },
     { icon: AcademicCapIcon, label: 'Avg Skills/Job', value: data.avg_skills_per_job.toFixed(1), color: 'text-amber-700 bg-amber-50' },
   ]
 

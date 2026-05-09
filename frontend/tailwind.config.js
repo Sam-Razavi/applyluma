@@ -24,7 +24,7 @@ export default {
         success: {
           50: '#f0fdf4',
           500: '#10b981',
-          600: '#059669',
+          600: '#10b981',
         },
         warning: {
           50: '#fffbeb',
@@ -34,7 +34,7 @@ export default {
         danger: {
           50: '#fef2f2',
           500: '#ef4444',
-          600: '#dc2626',
+          600: '#ef4444',
         },
       },
     },

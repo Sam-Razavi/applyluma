@@ -14,7 +14,7 @@ export default function SalaryBySkillChart({ data }: Props) {
       [...data]
         .filter((skill) => skill.avg_salary != null)
         .sort((a, b) => (b.avg_salary ?? 0) - (a.avg_salary ?? 0))
-        .slice(0, 12)
+        .slice(0, 15)
         .map((skill) => ({
           name: skill.skill,
           salary: skill.avg_salary ?? 0,
@@ -25,8 +25,8 @@ export default function SalaryBySkillChart({ data }: Props) {
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 40, left: 120, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={450}>
+        <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 40, left: 140, bottom: 5 }}>
           <XAxis type="number" tickFormatter={(value) => formatCompactCurrency(Number(value))} tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
           <YAxis type="category" dataKey="name" width={110} tick={CHART_DARK_AXIS_TICK} axisLine={false} tickLine={false} />
           <Tooltip

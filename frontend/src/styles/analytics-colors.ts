@@ -1,4 +1,5 @@
 export const ANALYTICS_COLORS = {
+  // Primary Brand (Indigo)
   primary: {
     50: '#eef2ff',
     100: '#e0e7ff',
@@ -6,29 +7,40 @@ export const ANALYTICS_COLORS = {
     600: '#4f46e5',
     700: '#4338ca',
   },
+
+  // Chart Colors (for data visualization variety)
   chart: {
     blue: '#3b82f6',
     purple: '#8b5cf6',
     cyan: '#06b6d4',
     pink: '#ec4899',
     teal: '#14b8a6',
+    amber: '#f59e0b',
+    green: '#10b981',
+    red: '#ef4444',
+    indigo: '#6366f1',
   },
-  success: {
-    50: '#f0fdf4',
-    500: '#10b981',
-    600: '#059669',
-    700: '#047857',
+
+  // Chart Palette Array (for multi-series charts)
+  chartPalette: [
+    '#3b82f6',
+    '#8b5cf6',
+    '#06b6d4',
+    '#ec4899',
+    '#14b8a6',
+    '#f59e0b',
+    '#10b981',
+    '#ef4444',
+  ],
+
+  // Semantic Colors (for trends and states)
+  semantic: {
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
   },
-  warning: {
-    50: '#fffbeb',
-    500: '#f59e0b',
-    600: '#d97706',
-  },
-  danger: {
-    50: '#fef2f2',
-    500: '#ef4444',
-    600: '#dc2626',
-  },
+
+  // Neutral Grays
   gray: {
     50: '#f9fafb',
     100: '#f3f4f6',
@@ -43,15 +55,17 @@ export const ANALYTICS_COLORS = {
   },
 } as const
 
-export const CHART_COLORS = [
+export const CHART_COLORS = ANALYTICS_COLORS.chartPalette
+
+export const LOCATION_COLORS = [
+  '#6366f1',
   '#3b82f6',
   '#8b5cf6',
   '#06b6d4',
-  '#ec4899',
   '#14b8a6',
-  '#6366f1',
+  '#10b981',
   '#f59e0b',
-  '#ef4444',
+  '#ec4899',
 ]
 
 export const CHART_TOOLTIP_STYLE = {

@@ -34,7 +34,7 @@ export default function CompanyInsightsChart({ data }: Props) {
             contentStyle={CHART_TOOLTIP_STYLE}
             cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
           />
-          <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
       <p id="company-insights-desc" className="sr-only">

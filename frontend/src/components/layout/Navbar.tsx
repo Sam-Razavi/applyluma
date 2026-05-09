@@ -18,6 +18,8 @@ export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const mobileMenuRef = useRef<HTMLElement>(null)
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -32,6 +34,38 @@ export default function Navbar() {
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    function onEscape(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return
+
+      setMobileMenuOpen(false)
+      mobileMenuButtonRef.current?.focus()
+    }
+
+    document.addEventListener('keydown', onEscape)
+    return () => document.removeEventListener('keydown', onEscape)
+  }, [mobileMenuOpen])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    function onClickOutside(e: MouseEvent) {
+      const target = e.target as Node
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(target) &&
+        !mobileMenuButtonRef.current?.contains(target)
+      ) {
+        setMobileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [mobileMenuOpen])
 
   function handleLogout() {
     logout()
@@ -120,6 +154,7 @@ export default function Navbar() {
           </div>
 
           <button
+            ref={mobileMenuButtonRef}
             type="button"
             onClick={() => setMobileMenuOpen((current) => !current)}
             className="inline-flex items-center justify-center rounded-lg p-2 text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 md:hidden"
@@ -136,7 +171,7 @@ export default function Navbar() {
       </div>
 
       {mobileMenuOpen && (
-        <nav className="border-t border-gray-200 bg-white md:hidden" aria-label="Mobile navigation">
+        <nav ref={mobileMenuRef} className="border-t border-gray-200 bg-white md:hidden" aria-label="Mobile navigation">
           <div className="space-y-1 px-4 py-3">
             {NAV_LINKS.map(({ to, label }) => (
               <NavLink
