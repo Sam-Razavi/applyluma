@@ -1,549 +1,539 @@
-import { useCallback, useEffect, useState } from 'react'
-import {
-  ArrowPathIcon,
-  ArrowTrendingDownIcon,
-  ArrowTrendingUpIcon,
-  BriefcaseIcon,
-  ChartBarIcon,
-  CodeBracketIcon,
-  CurrencyDollarIcon,
-  GlobeAltIcon,
-} from '@heroicons/react/24/outline'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import {
-  analyticsApi,
-  type AnalyticsOverview,
-  type CompanyStat,
-  type DailyJobCount,
-  type RecentJob,
-  type SkillStat,
-} from '../services/api'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
+import AnalyticsHeader from '../components/analytics/AnalyticsHeader'
+import ChartCard from '../components/analytics/ChartCard'
+import KPICard from '../components/analytics/KPICard'
+import { analyticsApi, cvApi } from '../services/api'
+import { useAuthStore } from '../stores'
+import type {
+  CompanyInsight,
+  CV,
+  ExperienceLevelBreakdown,
+  HiringPatternPoint,
+  IndustryBreakdown,
+  JobMarketHealth,
+  JobTypeMixItem,
+  LocationTrend,
+  ResumeComparison,
+  SalaryBySkill,
+  SalaryInsightItem,
+  SkillDemand,
+  SkillTrend,
+} from '../types'
 
-// ── Palette ───────────────────────────────────────────────────────────────────
+const TrendingSkillsChart = lazy(() => import('../components/analytics/charts/TrendingSkillsChart'))
+const SalaryInsightsChart = lazy(() => import('../components/analytics/charts/SalaryInsightsChart'))
+const HiringPatternsChart = lazy(() => import('../components/analytics/charts/HiringPatternsChart'))
+const CompanyInsightsChart = lazy(() => import('../components/analytics/charts/CompanyInsightsChart'))
+const JobMarketHealthCard = lazy(() => import('../components/analytics/charts/JobMarketHealthCard'))
+const SkillDemandChart = lazy(() => import('../components/analytics/charts/SkillDemandChart'))
+const LocationTrendsChart = lazy(() => import('../components/analytics/charts/LocationTrendsChart'))
+const IndustryBreakdownChart = lazy(() => import('../components/analytics/charts/IndustryBreakdownChart'))
+const ExperienceLevelsChart = lazy(() => import('../components/analytics/charts/ExperienceLevelsChart'))
+const JobTypeMixChart = lazy(() => import('../components/analytics/charts/JobTypeMixChart'))
+const SalaryBySkillChart = lazy(() => import('../components/analytics/charts/SalaryBySkillChart'))
+const ResumeComparisonChart = lazy(() => import('../components/analytics/charts/ResumeComparisonChart'))
 
-const C = {
-  indigo: '#6366f1',
-  emerald: '#10b981',
-  amber: '#f59e0b',
-  rose: '#f43f5e',
-  sky: '#0ea5e9',
-  violet: '#8b5cf6',
-}
+type LoadKey =
+  | 'marketHealth'
+  | 'trendingSkills'
+  | 'salaryInsights'
+  | 'hiringPatterns'
+  | 'companyInsights'
+  | 'skillDemand'
+  | 'locationTrends'
+  | 'industryBreakdown'
+  | 'experienceLevels'
+  | 'jobTypeMix'
+  | 'salaryBySkill'
+  | 'resumeComparison'
 
-const PIE_COLORS = [C.emerald, C.indigo, C.amber]
-
-const BAR_GRADIENT = [
-  '#818cf8', '#6366f1', '#4f46e5', '#4338ca', '#3730a3',
-  '#312e81', '#2e27a3', '#6366f1', '#818cf8', '#a5b4fc',
+const LOAD_KEYS: LoadKey[] = [
+  'marketHealth',
+  'trendingSkills',
+  'salaryInsights',
+  'hiringPatterns',
+  'companyInsights',
+  'skillDemand',
+  'locationTrends',
+  'industryBreakdown',
+  'experienceLevels',
+  'jobTypeMix',
+  'salaryBySkill',
+  'resumeComparison',
 ]
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
+const initialLoading = LOAD_KEYS.reduce(
+  (state, key) => ({ ...state, [key]: true }),
+  {} as Record<LoadKey, boolean>,
+)
 
-function fmt(n: number | null | undefined): string {
-  if (n == null) return '—'
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `$${Math.round(n / 1_000)}k`
-  return `$${n}`
+const initialErrors = LOAD_KEYS.reduce(
+  (state, key) => ({ ...state, [key]: null }),
+  {} as Record<LoadKey, string | null>,
+)
+
+function chartFallback() {
+  return <div className="h-64 animate-pulse rounded-lg bg-gray-100" aria-hidden="true" />
 }
 
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Failed to load data'
 }
-
-function fmtRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const h = Math.floor(diff / 3_600_000)
-  if (h < 1) return 'just now'
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  return `${d}d ago`
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function Spinner() {
-  return (
-    <div className="flex items-center justify-center py-24">
-      <div className="h-10 w-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
-    </div>
-  )
-}
-
-function ChartCard({
-  title,
-  children,
-  isEmpty,
-}: {
-  title: string
-  children: React.ReactNode
-  isEmpty?: boolean
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-      <h2 className="text-base font-semibold text-gray-900 mb-5">{title}</h2>
-      {isEmpty ? (
-        <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-          <ChartBarIcon className="h-8 w-8 mb-2" />
-          <p className="text-sm">No data yet</p>
-        </div>
-      ) : (
-        children
-      )}
-    </div>
-  )
-}
-
-interface MetricProps {
-  label: string
-  value: string
-  sub?: string
-  icon: React.ElementType
-  iconBg: string
-  iconColor: string
-}
-
-function MetricCard({ label, value, sub, icon: Icon, iconBg, iconColor }: MetricProps) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-start gap-4">
-      <div className={`${iconBg} rounded-xl p-3 flex-shrink-0`}>
-        <Icon className={`h-5 w-5 ${iconColor}`} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-gray-900 truncate">{value}</p>
-        {sub && <p className="mt-0.5 text-xs text-gray-500">{sub}</p>}
-      </div>
-    </div>
-  )
-}
-
-function TrendBadge({ trend }: { trend: string }) {
-  if (trend === 'up')
-    return (
-      <span className="inline-flex items-center gap-0.5 text-emerald-600 text-xs font-medium">
-        <ArrowTrendingUpIcon className="h-3.5 w-3.5" /> up
-      </span>
-    )
-  if (trend === 'down')
-    return (
-      <span className="inline-flex items-center gap-0.5 text-rose-500 text-xs font-medium">
-        <ArrowTrendingDownIcon className="h-3.5 w-3.5" /> down
-      </span>
-    )
-  return <span className="text-gray-400 text-xs">stable</span>
-}
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Analytics() {
-  const [overview, setOverview] = useState<AnalyticsOverview | null>(null)
-  const [companies, setCompanies] = useState<CompanyStat[]>([])
-  const [skills, setSkills] = useState<SkillStat[]>([])
-  const [jobsOverTime, setJobsOverTime] = useState<DailyJobCount[]>([])
-  const [recentJobs, setRecentJobs] = useState<RecentJob[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const { token } = useAuthStore()
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [ov, co, sk, jt, rj] = await Promise.all([
-        analyticsApi.overview(),
-        analyticsApi.topCompanies(10),
-        analyticsApi.topSkills(10),
-        analyticsApi.jobsOverTime(30),
-        analyticsApi.recentJobs(20),
-      ])
-      setOverview(ov)
-      setCompanies(co)
-      setSkills(sk)
-      setJobsOverTime(jt)
-      setRecentJobs(rj)
-      setLastRefresh(new Date())
-    } catch {
-      setError('Failed to load analytics data. Make sure the backend is running.')
-    } finally {
-      setLoading(false)
-    }
+  const [loading, setLoading] = useState<Record<LoadKey, boolean>>(initialLoading)
+  const [errors, setErrors] = useState<Record<LoadKey, string | null>>(initialErrors)
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+
+  const [marketHealth, setMarketHealth] = useState<JobMarketHealth | null>(null)
+  const [trendingSkills, setTrendingSkills] = useState<SkillTrend[]>([])
+  const [salaryInsights, setSalaryInsights] = useState<SalaryInsightItem[]>([])
+  const [hiringPatterns, setHiringPatterns] = useState<HiringPatternPoint[]>([])
+  const [companyInsights, setCompanyInsights] = useState<CompanyInsight[]>([])
+  const [skillDemand, setSkillDemand] = useState<SkillDemand[]>([])
+  const [locationTrends, setLocationTrends] = useState<LocationTrend[]>([])
+  const [industryBreakdown, setIndustryBreakdown] = useState<IndustryBreakdown[]>([])
+  const [experienceLevels, setExperienceLevels] = useState<ExperienceLevelBreakdown[]>([])
+  const [jobTypeMix, setJobTypeMix] = useState<JobTypeMixItem[]>([])
+  const [salaryBySkill, setSalaryBySkill] = useState<SalaryBySkill[]>([])
+  const [cvs, setCvs] = useState<CV[]>([])
+  const [selectedResumeId, setSelectedResumeId] = useState('')
+  const [resumeComparison, setResumeComparison] = useState<ResumeComparison | null>(null)
+
+  const setEndpointLoading = useCallback((key: LoadKey, value: boolean) => {
+    setLoading((prev) => ({ ...prev, [key]: value }))
   }, [])
 
+  const setEndpointError = useCallback((key: LoadKey, value: string | null) => {
+    setErrors((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const loadMarketHealth = useCallback(async () => {
+    setEndpointLoading('marketHealth', true)
+    try {
+      setMarketHealth(await analyticsApi.jobMarketHealth())
+      setEndpointError('marketHealth', null)
+    } catch (error) {
+      setEndpointError('marketHealth', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('marketHealth', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadTrendingSkills = useCallback(async () => {
+    setEndpointLoading('trendingSkills', true)
+    try {
+      setTrendingSkills(await analyticsApi.trendingSkills(20, 1))
+      setEndpointError('trendingSkills', null)
+    } catch (error) {
+      setEndpointError('trendingSkills', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('trendingSkills', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadSalaryInsights = useCallback(async () => {
+    setEndpointLoading('salaryInsights', true)
+    try {
+      setSalaryInsights(await analyticsApi.salaryInsights())
+      setEndpointError('salaryInsights', null)
+    } catch (error) {
+      setEndpointError('salaryInsights', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('salaryInsights', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadHiringPatterns = useCallback(async () => {
+    setEndpointLoading('hiringPatterns', true)
+    try {
+      setHiringPatterns(await analyticsApi.hiringPatterns(30, 'daily'))
+      setEndpointError('hiringPatterns', null)
+    } catch (error) {
+      setEndpointError('hiringPatterns', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('hiringPatterns', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadCompanyInsights = useCallback(async () => {
+    setEndpointLoading('companyInsights', true)
+    try {
+      setCompanyInsights(await analyticsApi.companyInsights(20))
+      setEndpointError('companyInsights', null)
+    } catch (error) {
+      setEndpointError('companyInsights', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('companyInsights', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadSkillDemand = useCallback(async () => {
+    setEndpointLoading('skillDemand', true)
+    try {
+      setSkillDemand(await analyticsApi.skillDemand(20, 0))
+      setEndpointError('skillDemand', null)
+    } catch (error) {
+      setEndpointError('skillDemand', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('skillDemand', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadLocationTrends = useCallback(async () => {
+    setEndpointLoading('locationTrends', true)
+    try {
+      setLocationTrends(await analyticsApi.locationTrends())
+      setEndpointError('locationTrends', null)
+    } catch (error) {
+      setEndpointError('locationTrends', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('locationTrends', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadIndustryBreakdown = useCallback(async () => {
+    setEndpointLoading('industryBreakdown', true)
+    try {
+      setIndustryBreakdown(await analyticsApi.industryBreakdown())
+      setEndpointError('industryBreakdown', null)
+    } catch (error) {
+      setEndpointError('industryBreakdown', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('industryBreakdown', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadExperienceLevels = useCallback(async () => {
+    setEndpointLoading('experienceLevels', true)
+    try {
+      setExperienceLevels(await analyticsApi.experienceLevels())
+      setEndpointError('experienceLevels', null)
+    } catch (error) {
+      setEndpointError('experienceLevels', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('experienceLevels', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadJobTypeMix = useCallback(async () => {
+    setEndpointLoading('jobTypeMix', true)
+    try {
+      setJobTypeMix(await analyticsApi.jobTypeMix())
+      setEndpointError('jobTypeMix', null)
+    } catch (error) {
+      setEndpointError('jobTypeMix', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('jobTypeMix', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadSalaryBySkill = useCallback(async () => {
+    setEndpointLoading('salaryBySkill', true)
+    try {
+      setSalaryBySkill(await analyticsApi.salaryBySkill(20))
+      setEndpointError('salaryBySkill', null)
+    } catch (error) {
+      setEndpointError('salaryBySkill', getErrorMessage(error))
+    } finally {
+      setEndpointLoading('salaryBySkill', false)
+    }
+  }, [setEndpointError, setEndpointLoading])
+
+  const loadResumeComparison = useCallback(
+    async (resumeId?: string) => {
+      if (!token) {
+        setEndpointLoading('resumeComparison', false)
+        return
+      }
+
+      setEndpointLoading('resumeComparison', true)
+      try {
+        const nextCvs = await cvApi.list()
+        setCvs(nextCvs)
+
+        let targetResumeId = resumeId ?? ''
+        if (!targetResumeId) {
+          targetResumeId = nextCvs.find((cv) => cv.is_default)?.id ?? nextCvs[0]?.id ?? ''
+          setSelectedResumeId(targetResumeId)
+        }
+
+        setResumeComparison(targetResumeId ? await analyticsApi.comparison(targetResumeId) : null)
+        setEndpointError('resumeComparison', null)
+      } catch (error) {
+        setEndpointError('resumeComparison', getErrorMessage(error))
+      } finally {
+        setEndpointLoading('resumeComparison', false)
+      }
+    },
+    [setEndpointError, setEndpointLoading, token],
+  )
+
+  const loadAllData = useCallback(async () => {
+    setRefreshing(true)
+
+    await Promise.allSettled([
+      loadMarketHealth(),
+      loadTrendingSkills(),
+      loadSalaryInsights(),
+      loadHiringPatterns(),
+      loadCompanyInsights(),
+      loadSkillDemand(),
+      loadLocationTrends(),
+      loadIndustryBreakdown(),
+      loadExperienceLevels(),
+      loadJobTypeMix(),
+      loadSalaryBySkill(),
+      loadResumeComparison(),
+    ])
+
+    setLastRefresh(new Date())
+    setRefreshing(false)
+  }, [
+    loadCompanyInsights,
+    loadExperienceLevels,
+    loadHiringPatterns,
+    loadIndustryBreakdown,
+    loadJobTypeMix,
+    loadLocationTrends,
+    loadMarketHealth,
+    loadResumeComparison,
+    loadSalaryBySkill,
+    loadSalaryInsights,
+    loadSkillDemand,
+    loadTrendingSkills,
+  ])
+
   useEffect(() => {
-    fetchAll()
-  }, [fetchAll])
+    document.title = 'Market Intelligence | ApplyLuma'
+    void loadAllData()
+  }, [loadAllData])
 
-  // ── Salary label ─────────────────────────────────────────────────────────
-  const salaryLabel =
-    overview?.avg_salary_min || overview?.avg_salary_max
-      ? `${fmt(overview.avg_salary_min)} – ${fmt(overview.avg_salary_max)}`
-      : 'No data'
+  const handleResumeChange = (resumeId: string) => {
+    setSelectedResumeId(resumeId)
+    setResumeComparison(null)
+    void loadResumeComparison(resumeId)
+  }
 
-  // ── Remote donut data ─────────────────────────────────────────────────────
-  const remote = overview?.remote_percentage ?? 0
-  const pieData = [
-    { name: 'Remote', value: Math.round(remote) },
-    { name: 'On-site', value: Math.round(100 - remote) },
-  ]
-
-  const hasData = overview && overview.total_jobs > 0
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="space-y-6">
+      <AnalyticsHeader onRefresh={loadAllData} refreshing={refreshing} lastRefresh={lastRefresh} />
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Job Market Analytics</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Aggregated from Remotive &amp; The Muse · updated{' '}
-            {lastRefresh.toLocaleTimeString()}
-          </p>
-        </div>
-        <button
-          onClick={fetchAll}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200
-                     text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors
-                     disabled:opacity-50 disabled:cursor-not-allowed self-start sm:self-auto"
-        >
-          <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <KPICard
+          title="Total Jobs"
+          value={marketHealth?.total_jobs}
+          icon="briefcase"
+          loading={loading.marketHealth}
+          error={errors.marketHealth}
+        />
+        <KPICard
+          title="Avg Salary"
+          value={marketHealth?.avg_salary_midpoint}
+          format="currency"
+          icon="dollar"
+          loading={loading.marketHealth}
+          error={errors.marketHealth}
+        />
+        <KPICard
+          title="Companies"
+          value={marketHealth?.unique_companies}
+          icon="building"
+          loading={loading.marketHealth}
+          error={errors.marketHealth}
+        />
+        <KPICard
+          title="Remote"
+          value={marketHealth?.remote_percentage}
+          format="percentage"
+          icon="home"
+          loading={loading.marketHealth}
+          error={errors.marketHealth}
+        />
+        <KPICard
+          title="Growth"
+          value={skillDemand[0]?.trending_score_pct ?? null}
+          format="percentage"
+          trend={skillDemand[0]?.trending_score_pct ?? null}
+          icon="trending-up"
+          loading={loading.skillDemand}
+          error={errors.skillDemand}
+        />
       </div>
 
-      {/* ── Loading ─────────────────────────────────────────────────────────── */}
-      {loading && <Spinner />}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <ChartCard
+          title="Trending Skills"
+          subtitle="Top in-demand skills by job count"
+          loading={loading.trendingSkills}
+          error={errors.trendingSkills}
+          empty={trendingSkills.length === 0}
+          onRetry={loadTrendingSkills}
+        >
+          <Suspense fallback={chartFallback()}>
+            <TrendingSkillsChart data={trendingSkills} />
+          </Suspense>
+        </ChartCard>
 
-      {/* ── Error ───────────────────────────────────────────────────────────── */}
-      {!loading && error && (
-        <div className="rounded-xl bg-rose-50 border border-rose-200 px-5 py-4 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+        <ChartCard
+          title="Salary Insights"
+          subtitle="Salary percentiles by market segment"
+          loading={loading.salaryInsights}
+          error={errors.salaryInsights}
+          empty={salaryInsights.length === 0}
+          onRetry={loadSalaryInsights}
+        >
+          <Suspense fallback={chartFallback()}>
+            <SalaryInsightsChart data={salaryInsights} />
+          </Suspense>
+        </ChartCard>
 
-      {/* ── Empty state ─────────────────────────────────────────────────────── */}
-      {!loading && !error && !hasData && (
-        <div className="bg-white rounded-2xl border border-gray-200 flex flex-col items-center py-24 text-center px-6">
-          <ChartBarIcon className="h-14 w-14 text-gray-300 mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">No job market data yet</h2>
-          <p className="text-gray-500 max-w-md">
-            The Airflow pipeline scrapes jobs daily at 2 AM UTC. Once it runs, your analytics
-            will appear here automatically.
-          </p>
-        </div>
-      )}
+        <ChartCard
+          title="Top Companies"
+          subtitle="Companies hiring most"
+          loading={loading.companyInsights}
+          error={errors.companyInsights}
+          empty={companyInsights.length === 0}
+          onRetry={loadCompanyInsights}
+        >
+          <Suspense fallback={chartFallback()}>
+            <CompanyInsightsChart data={companyInsights} />
+          </Suspense>
+        </ChartCard>
 
-      {/* ── Dashboard content ───────────────────────────────────────────────── */}
-      {!loading && !error && hasData && (
-        <>
-          {/* Metric cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard
-              label="Total Jobs Scraped"
-              value={overview!.total_jobs.toLocaleString()}
-              sub="non-duplicate postings"
-              icon={BriefcaseIcon}
-              iconBg="bg-indigo-50"
-              iconColor="text-indigo-600"
-            />
-            <MetricCard
-              label="Remote Jobs"
-              value={`${overview!.remote_percentage}%`}
-              sub="of all postings"
-              icon={GlobeAltIcon}
-              iconBg="bg-emerald-50"
-              iconColor="text-emerald-600"
-            />
-            <MetricCard
-              label="Avg Salary Range"
-              value={salaryLabel}
-              sub="across postings with salary"
-              icon={CurrencyDollarIcon}
-              iconBg="bg-amber-50"
-              iconColor="text-amber-600"
-            />
-            <MetricCard
-              label="Top Skill"
-              value={overview!.top_skill ?? '—'}
-              sub="most in-demand"
-              icon={CodeBracketIcon}
-              iconBg="bg-violet-50"
-              iconColor="text-violet-600"
-            />
-          </div>
+        <ChartCard
+          title="Hiring Patterns"
+          subtitle="Job postings over the last 30 days"
+          className="lg:col-span-2"
+          loading={loading.hiringPatterns}
+          error={errors.hiringPatterns}
+          empty={hiringPatterns.length === 0}
+          onRetry={loadHiringPatterns}
+        >
+          <Suspense fallback={chartFallback()}>
+            <HiringPatternsChart data={hiringPatterns} />
+          </Suspense>
+        </ChartCard>
 
-          {/* Charts row 1 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Suspense fallback={chartFallback()}>
+          <JobMarketHealthCard data={marketHealth} loading={loading.marketHealth} error={errors.marketHealth} />
+        </Suspense>
 
-            {/* Top Companies */}
-            <ChartCard title="Top 10 Companies" isEmpty={companies.length === 0}>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart
-                  layout="vertical"
-                  data={companies}
-                  margin={{ top: 0, right: 16, bottom: 0, left: 8 }}
+        <ChartCard
+          title="Skill Demand Growth"
+          subtitle="This week vs last week"
+          loading={loading.skillDemand}
+          error={errors.skillDemand}
+          empty={skillDemand.length === 0}
+          onRetry={loadSkillDemand}
+        >
+          <Suspense fallback={chartFallback()}>
+            <SkillDemandChart data={skillDemand} />
+          </Suspense>
+        </ChartCard>
+
+        <ChartCard
+          title="Location Trends"
+          subtitle="Geographic distribution"
+          loading={loading.locationTrends}
+          error={errors.locationTrends}
+          empty={locationTrends.length === 0}
+          onRetry={loadLocationTrends}
+        >
+          <Suspense fallback={chartFallback()}>
+            <LocationTrendsChart data={locationTrends} />
+          </Suspense>
+        </ChartCard>
+
+        <ChartCard
+          title="Industry Breakdown"
+          subtitle="Jobs by derived sector"
+          loading={loading.industryBreakdown}
+          error={errors.industryBreakdown}
+          empty={industryBreakdown.length === 0}
+          onRetry={loadIndustryBreakdown}
+        >
+          <Suspense fallback={chartFallback()}>
+            <IndustryBreakdownChart data={industryBreakdown} />
+          </Suspense>
+        </ChartCard>
+
+        <ChartCard
+          title="Experience Levels"
+          subtitle="Jobs by seniority"
+          loading={loading.experienceLevels}
+          error={errors.experienceLevels}
+          empty={experienceLevels.length === 0}
+          onRetry={loadExperienceLevels}
+        >
+          <Suspense fallback={chartFallback()}>
+            <ExperienceLevelsChart data={experienceLevels} />
+          </Suspense>
+        </ChartCard>
+
+        <ChartCard
+          title="Job Type Mix"
+          subtitle="Employment type and remote status"
+          loading={loading.jobTypeMix}
+          error={errors.jobTypeMix}
+          empty={jobTypeMix.length === 0}
+          onRetry={loadJobTypeMix}
+        >
+          <Suspense fallback={chartFallback()}>
+            <JobTypeMixChart data={jobTypeMix} />
+          </Suspense>
+        </ChartCard>
+
+        <ChartCard
+          title="Salary by Skill"
+          subtitle="Top paying skills"
+          loading={loading.salaryBySkill}
+          error={errors.salaryBySkill}
+          empty={salaryBySkill.length === 0}
+          onRetry={loadSalaryBySkill}
+        >
+          <Suspense fallback={chartFallback()}>
+            <SalaryBySkillChart data={salaryBySkill} />
+          </Suspense>
+        </ChartCard>
+
+        {token && (
+          <ChartCard
+            title="Your Resume vs Market"
+            subtitle="Skill alignment and market coverage"
+            className="lg:col-span-3"
+            loading={loading.resumeComparison}
+            error={errors.resumeComparison}
+            onRetry={() => loadResumeComparison(selectedResumeId)}
+          >
+            {cvs.length > 0 && (
+              <div className="mb-4 max-w-sm">
+                <label htmlFor="analytics-resume" className="mb-1 block text-xs font-medium text-gray-600">
+                  Resume
+                </label>
+                <select
+                  id="analytics-resume"
+                  value={selectedResumeId}
+                  onChange={(event) => handleResumeChange(event.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                  <YAxis
-                    type="category"
-                    dataKey="company"
-                    width={110}
-                    tick={{ fontSize: 11, fill: '#374151' }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: '#f5f3ff' }}
-                    contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-                    formatter={(v: any) => [v, 'Jobs']}
-                  />
-                  <Bar dataKey="job_count" radius={[0, 4, 4, 0]}>
-                    {companies.map((_, i) => (
-                      <Cell key={i} fill={BAR_GRADIENT[i % BAR_GRADIENT.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            {/* Top Skills */}
-            <ChartCard title="Top 10 Skills" isEmpty={skills.length === 0}>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart
-                  data={skills}
-                  margin={{ top: 0, right: 8, bottom: 40, left: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                  <XAxis
-                    dataKey="skill"
-                    tick={{ fontSize: 10, fill: '#374151' }}
-                    tickLine={false}
-                    axisLine={false}
-                    angle={-35}
-                    textAnchor="end"
-                    interval={0}
-                  />
-                  <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    cursor={{ fill: '#f5f3ff' }}
-                    contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-                    formatter={(v: any) => [v, 'Mentions']}
-                  />
-                  <Bar dataKey="mention_count" fill={C.indigo} radius={[4, 4, 0, 0]}>
-                    {skills.map((_, i) => (
-                      <Cell key={i} fill={i < 3 ? C.violet : C.indigo} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-              {/* Trend table under chart */}
-              <div className="mt-3 divide-y divide-gray-100">
-                {skills.slice(0, 5).map((s) => (
-                  <div key={s.skill} className="flex items-center justify-between py-1.5">
-                    <span className="text-xs text-gray-700 font-medium">{s.skill}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500">{s.mention_count} jobs</span>
-                      <TrendBadge trend={s.trend} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ChartCard>
-          </div>
-
-          {/* Charts row 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            {/* Jobs Over Time */}
-            <ChartCard title="Jobs Scraped — Last 30 Days" isEmpty={jobsOverTime.length === 0}>
-              <ResponsiveContainer width="100%" height={240}>
-                <LineChart
-                  data={jobsOverTime}
-                  margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={fmtDate}
-                    tick={{ fontSize: 10, fill: '#9ca3af' }}
-                    tickLine={false}
-                    axisLine={false}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-                    labelFormatter={(label: any) => fmtDate(String(label))}
-                    formatter={(v: any) => [v, 'Jobs']}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="job_count"
-                    stroke={C.indigo}
-                    strokeWidth={2}
-                    dot={{ fill: C.indigo, r: 3 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            {/* Remote Distribution */}
-            <ChartCard title="Remote vs On-site">
-              <div className="flex items-center justify-center gap-10">
-                <ResponsiveContainer width={180} height={180}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={80}
-                      paddingAngle={3}
-                      dataKey="value"
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      {pieData.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i]} stroke="none" />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-                      formatter={(v: any) => [`${v}%`, '']}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-4">
-                  {pieData.map((entry, i) => (
-                    <div key={entry.name} className="flex items-center gap-3">
-                      <span
-                        className="h-3 w-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: PIE_COLORS[i] }}
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{entry.name}</p>
-                        <p className="text-2xl font-bold" style={{ color: PIE_COLORS[i] }}>
-                          {entry.value}%
-                        </p>
-                      </div>
-                    </div>
+                  {cvs.map((cv) => (
+                    <option key={cv.id} value={cv.id}>
+                      {cv.title || cv.filename}
+                    </option>
                   ))}
-                </div>
-              </div>
-            </ChartCard>
-          </div>
-
-          {/* Recent Jobs Table */}
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-900">Recent Job Postings</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Latest {recentJobs.length} scraped listings</p>
-            </div>
-
-            {recentJobs.length === 0 ? (
-              <div className="flex flex-col items-center py-16 text-gray-400">
-                <BriefcaseIcon className="h-8 w-8 mb-2" />
-                <p className="text-sm">No recent jobs</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-100">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      {['Company', 'Title', 'Skills', 'Remote', 'Posted', 'Link'].map((h) => (
-                        <th
-                          key={h}
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {recentJobs.map((job) => {
-                      const skills = job.extracted_skills ?? []
-                      const shown = skills.slice(0, 3)
-                      const extra = skills.length - shown.length
-                      return (
-                        <tr key={job.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
-                            {job.company}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700 max-w-[200px] truncate">
-                            {job.title}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex flex-wrap gap-1">
-                              {shown.map((s) => (
-                                <span
-                                  key={s}
-                                  className="inline-block px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium"
-                                >
-                                  {s}
-                                </span>
-                              ))}
-                              {extra > 0 && (
-                                <span className="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs">
-                                  +{extra}
-                                </span>
-                              )}
-                              {skills.length === 0 && (
-                                <span className="text-xs text-gray-400">—</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                                job.remote_allowed
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-gray-100 text-gray-500'
-                              }`}
-                            >
-                              {job.remote_allowed ? 'Remote' : 'On-site'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                            {fmtRelative(job.scraped_at)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <a
-                              href={job.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-indigo-600 hover:text-indigo-800 text-xs font-medium"
-                            >
-                              View →
-                            </a>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                </select>
               </div>
             )}
-          </div>
-        </>
-      )}
+            <Suspense fallback={chartFallback()}>
+              <ResumeComparisonChart data={resumeComparison} />
+            </Suspense>
+          </ChartCard>
+        )}
+      </div>
     </div>
   )
 }
