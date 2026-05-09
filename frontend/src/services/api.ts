@@ -1,44 +1,26 @@
 import client from '../api/client'
-import type { TokenPair, User, CV, JobDescription, AIAnalysis } from '../types'
-
-// ── Analytics types ───────────────────────────────────────────────────────────
-
-export interface AnalyticsOverview {
-  total_jobs: number
-  remote_percentage: number
-  avg_salary_min: number | null
-  avg_salary_max: number | null
-  top_skill: string | null
-  last_updated: string | null
-}
-
-export interface CompanyStat {
-  company: string
-  job_count: number
-}
-
-export interface SkillStat {
-  skill: string
-  mention_count: number
-  trend: 'up' | 'down' | 'stable'
-}
-
-export interface DailyJobCount {
-  date: string
-  job_count: number
-}
-
-export interface RecentJob {
-  id: string
-  title: string
-  company: string
-  location: string | null
-  url: string
-  remote_allowed: boolean
-  employment_type: string | null
-  extracted_skills: string[] | null
-  scraped_at: string
-}
+import type {
+  AIAnalysis,
+  AnalyticsEnvelope,
+  CompanyInsight,
+  CV,
+  ExperienceLevel,
+  ExperienceLevelBreakdown,
+  Granularity,
+  HiringPatternPoint,
+  IndustryBreakdown,
+  JobDescription,
+  JobMarketHealth,
+  JobTypeMixItem,
+  LocationTrend,
+  ResumeComparison,
+  SalaryBySkill,
+  SalaryInsightItem,
+  SkillDemand,
+  SkillTrend,
+  TokenPair,
+  User,
+} from '../types'
 
 export interface LoginRequest {
   email: string
@@ -127,29 +109,90 @@ export const aiApi = {
       .then((r) => r.data),
 }
 
-// ── Analytics API ─────────────────────────────────────────────────────────────
+function unwrapAnalytics<T>(envelope: AnalyticsEnvelope<T>): T {
+  if (!envelope.success) {
+    throw new Error(envelope.error?.message ?? 'Analytics request failed')
+  }
+  if (envelope.data == null) {
+    throw new Error('No data returned from analytics endpoint')
+  }
+  return envelope.data
+}
 
 export const analyticsApi = {
-  overview: (): Promise<AnalyticsOverview> =>
-    client.get<AnalyticsOverview>('/api/v1/analytics/overview').then((r) => r.data),
-
-  topCompanies: (limit = 10): Promise<CompanyStat[]> =>
+  trendingSkills: (limit = 20, minJobs = 1): Promise<SkillTrend[]> =>
     client
-      .get<CompanyStat[]>('/api/v1/analytics/top-companies', { params: { limit } })
-      .then((r) => r.data),
+      .get<AnalyticsEnvelope<SkillTrend[]>>('/api/v1/analytics/trending-skills', {
+        params: { limit, min_jobs: minJobs },
+      })
+      .then((r) => unwrapAnalytics(r.data)),
 
-  topSkills: (limit = 10): Promise<SkillStat[]> =>
+  salaryInsights: (params?: {
+    location?: string
+    job_title?: string
+    experience_level?: ExperienceLevel
+  }): Promise<SalaryInsightItem[]> =>
     client
-      .get<SkillStat[]>('/api/v1/analytics/top-skills', { params: { limit } })
-      .then((r) => r.data),
+      .get<AnalyticsEnvelope<SalaryInsightItem[]>>('/api/v1/analytics/salary-insights', { params })
+      .then((r) => unwrapAnalytics(r.data)),
 
-  jobsOverTime: (days = 30): Promise<DailyJobCount[]> =>
+  hiringPatterns: (daysBack = 90, granularity: Granularity = 'daily'): Promise<HiringPatternPoint[]> =>
     client
-      .get<DailyJobCount[]>('/api/v1/analytics/jobs-over-time', { params: { days } })
-      .then((r) => r.data),
+      .get<AnalyticsEnvelope<HiringPatternPoint[]>>('/api/v1/analytics/hiring-patterns', {
+        params: { days_back: daysBack, granularity },
+      })
+      .then((r) => unwrapAnalytics(r.data)),
 
-  recentJobs: (limit = 20): Promise<RecentJob[]> =>
+  companyInsights: (limit = 20, location?: string): Promise<CompanyInsight[]> =>
     client
-      .get<RecentJob[]>('/api/v1/analytics/recent-jobs', { params: { limit } })
-      .then((r) => r.data),
+      .get<AnalyticsEnvelope<CompanyInsight[]>>('/api/v1/analytics/company-insights', {
+        params: { limit, location },
+      })
+      .then((r) => unwrapAnalytics(r.data)),
+
+  jobMarketHealth: (): Promise<JobMarketHealth> =>
+    client
+      .get<AnalyticsEnvelope<JobMarketHealth>>('/api/v1/analytics/job-market-health')
+      .then((r) => unwrapAnalytics(r.data)),
+
+  skillDemand: (limit = 20, minGrowthPct = 0): Promise<SkillDemand[]> =>
+    client
+      .get<AnalyticsEnvelope<SkillDemand[]>>('/api/v1/analytics/skill-demand', {
+        params: { limit, min_growth_pct: minGrowthPct },
+      })
+      .then((r) => unwrapAnalytics(r.data)),
+
+  locationTrends: (): Promise<LocationTrend[]> =>
+    client
+      .get<AnalyticsEnvelope<LocationTrend[]>>('/api/v1/analytics/location-trends')
+      .then((r) => unwrapAnalytics(r.data)),
+
+  industryBreakdown: (): Promise<IndustryBreakdown[]> =>
+    client
+      .get<AnalyticsEnvelope<IndustryBreakdown[]>>('/api/v1/analytics/industry-breakdown')
+      .then((r) => unwrapAnalytics(r.data)),
+
+  experienceLevels: (): Promise<ExperienceLevelBreakdown[]> =>
+    client
+      .get<AnalyticsEnvelope<ExperienceLevelBreakdown[]>>('/api/v1/analytics/experience-levels')
+      .then((r) => unwrapAnalytics(r.data)),
+
+  jobTypeMix: (): Promise<JobTypeMixItem[]> =>
+    client
+      .get<AnalyticsEnvelope<JobTypeMixItem[]>>('/api/v1/analytics/job-type-mix')
+      .then((r) => unwrapAnalytics(r.data)),
+
+  salaryBySkill: (limit = 20): Promise<SalaryBySkill[]> =>
+    client
+      .get<AnalyticsEnvelope<SalaryBySkill[]>>('/api/v1/analytics/salary-by-skill', {
+        params: { limit },
+      })
+      .then((r) => unwrapAnalytics(r.data)),
+
+  comparison: (resumeId: string): Promise<ResumeComparison> =>
+    client
+      .get<AnalyticsEnvelope<ResumeComparison>>('/api/v1/analytics/comparison', {
+        params: { resume_id: resumeId },
+      })
+      .then((r) => unwrapAnalytics(r.data)),
 }
