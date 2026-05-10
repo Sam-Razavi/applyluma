@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 POSTGRES_CONN_ID = "postgres_default"
 
 _DBT_ENV = {
-    "DBT_DB_HOST": "postgres",
-    "DBT_DB_PORT": "5432",
+    "DBT_DB_HOST": os.environ.get("DBT_DB_HOST", "postgres"),
+    "DBT_DB_PORT": os.environ.get("DBT_DB_PORT", "5432"),
     "POSTGRES_USER":     os.environ.get("POSTGRES_USER",     "applyluma"),
     "POSTGRES_PASSWORD": os.environ.get("POSTGRES_PASSWORD", "applyluma"),
     "POSTGRES_DB":       os.environ.get("POSTGRES_DB",       "applyluma"),
@@ -163,7 +163,7 @@ with DAG(
         task_id="run_dbt_staging",
         bash_command=(
             "cd /opt/airflow/dbt && "
-            "dbt run --profiles-dir . --target dev --select staging 2>&1"
+            "dbt run --profiles-dir . --target prod --select staging 2>&1"
         ),
         append_env=True,
         env=_DBT_ENV,
@@ -173,7 +173,7 @@ with DAG(
         task_id="run_dbt_marts",
         bash_command=(
             "cd /opt/airflow/dbt && "
-            "dbt run --profiles-dir . --target dev --select marts 2>&1"
+            "dbt run --profiles-dir . --target prod --select marts 2>&1"
         ),
         append_env=True,
         env=_DBT_ENV,
@@ -183,7 +183,7 @@ with DAG(
         task_id="run_dbt_tests",
         bash_command=(
             "cd /opt/airflow/dbt && "
-            "dbt test --profiles-dir . --target dev 2>&1"
+            "dbt test --profiles-dir . --target prod 2>&1"
         ),
         append_env=True,
         env=_DBT_ENV,

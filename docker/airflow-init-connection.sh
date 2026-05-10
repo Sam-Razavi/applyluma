@@ -12,8 +12,8 @@ CONN_PASSWORD="${AIRFLOW_POSTGRES_CONN_PASSWORD:-applyluma}"
 echo "Checking Airflow connection '${CONN_ID}'..."
 
 if airflow connections get "${CONN_ID}" >/dev/null 2>&1; then
-  echo "Airflow connection '${CONN_ID}' already exists. Skipping creation."
-  exit 0
+  echo "Airflow connection '${CONN_ID}' already exists. Recreating from current environment."
+  airflow connections delete "${CONN_ID}" || true
 fi
 
 echo "Creating Airflow connection '${CONN_ID}'..."

@@ -62,6 +62,37 @@ docker-compose up
 # - Airflow: http://localhost:8080
 ```
 
+### Running Airflow Against Railway PostgreSQL (Phase 8)
+
+To populate production analytics data:
+
+1. **Start Airflow with Railway connection:**
+```bash
+./docker/start-airflow-railway.sh
+```
+
+2. **Verify connection:**
+```bash
+./docker/verify-railway-connection.sh
+```
+
+3. **Trigger job scraping:**
+```bash
+docker-compose exec airflow-webserver airflow dags trigger scrape_jobs
+```
+
+4. **Run dbt transformations:**
+```bash
+docker-compose exec airflow-webserver airflow dags trigger transform_jobs
+```
+
+5. **Verify analytics endpoints work:**
+```bash
+curl https://applyluma-production.up.railway.app/api/v1/analytics/job-market-health
+```
+
+See `deployment/PHASE8_RAILWAY_SETUP.md` for full documentation.
+
 ### Manual Setup (without Docker)
 
 **Backend:**
