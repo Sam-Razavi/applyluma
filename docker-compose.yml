@@ -7,7 +7,10 @@ x-airflow-common:
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
+
+    # Airflow metadata DB stays local and separate from application data.
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-applyluma}:${POSTGRES_PASSWORD:-applyluma}@postgres:5432/airflow_db
+
     AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg=}
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
@@ -19,11 +22,24 @@ x-airflow-common:
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: '30'
     AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
-    # Passed through so DAG tasks can write to the application DB
-    DATABASE_URL: postgresql://${POSTGRES_USER:-applyluma}:${POSTGRES_PASSWORD:-applyluma}@postgres:5432/${POSTGRES_DB:-applyluma}
-    # dbt connection env vars (consumed by profiles.yml)
-    DBT_DB_HOST: postgres
-    DBT_DB_PORT: "5432"
+
+    # postgres_default connection for DAGs. Defaults are local; .env.railway
+    # points these at Railway PostgreSQL for production scraping.
+    AIRFLOW_POSTGRES_CONN_HOST: ${AIRFLOW_POSTGRES_CONN_HOST:-postgres}
+    AIRFLOW_POSTGRES_CONN_PORT: ${AIRFLOW_POSTGRES_CONN_PORT:-5432}
+    AIRFLOW_POSTGRES_CONN_LOGIN: ${AIRFLOW_POSTGRES_CONN_LOGIN:-applyluma}
+    AIRFLOW_POSTGRES_CONN_PASSWORD: ${AIRFLOW_POSTGRES_CONN_PASSWORD:-applyluma}
+    AIRFLOW_POSTGRES_CONN_SCHEMA: ${AIRFLOW_POSTGRES_CONN_SCHEMA:-applyluma}
+
+    # dbt connection env vars. Defaults are local; .env.railway points the prod
+    # dbt target at Railway PostgreSQL.
+    DBT_DB_HOST: ${DBT_DB_HOST:-postgres}
+    DBT_DB_PORT: ${DBT_DB_PORT:-5432}
+    POSTGRES_USER: ${POSTGRES_USER:-applyluma}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-applyluma}
+    POSTGRES_DB: ${POSTGRES_DB:-applyluma}
+    DATABASE_URL: postgresql://${POSTGRES_USER:-applyluma}:${POSTGRES_PASSWORD:-applyluma}@${DBT_DB_HOST:-postgres}:${DBT_DB_PORT:-5432}/${POSTGRES_DB:-applyluma}
+
     # Install dbt-postgres into the Airflow image at startup
     _PIP_ADDITIONAL_REQUIREMENTS: "dbt-postgres>=1.7.0,<2.0.0"
   volumes:
@@ -191,8 +207,8 @@ services:
       - ./dbt:/usr/app/dbt
     working_dir: /usr/app/dbt
     environment:
-      DBT_DB_HOST: postgres
-      DBT_DB_PORT: "5432"
+      DBT_DB_HOST: ${DBT_DB_HOST:-postgres}
+      DBT_DB_PORT: ${DBT_DB_PORT:-5432}
       POSTGRES_USER: ${POSTGRES_USER:-applyluma}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-applyluma}
       POSTGRES_DB: ${POSTGRES_DB:-applyluma}
