@@ -36,6 +36,11 @@ done
 
 echo "All required environment variables are set."
 echo
+echo "Database connections:"
+echo "  Airflow metadata DB: ${AIRFLOW_METADATA_USER:-applyluma}@postgres:5432/${AIRFLOW_METADATA_DB:-airflow_db} (local)"
+echo "  postgres_default:    ${AIRFLOW_POSTGRES_CONN_LOGIN}@${AIRFLOW_POSTGRES_CONN_HOST}:${AIRFLOW_POSTGRES_CONN_PORT}/${AIRFLOW_POSTGRES_CONN_SCHEMA} (Railway)"
+echo "  dbt prod target:     ${POSTGRES_USER}@${DBT_DB_HOST}:${DBT_DB_PORT}/${POSTGRES_DB} (Railway)"
+echo
 echo "Connection details:"
 echo "  Airflow postgres_default -> ${AIRFLOW_POSTGRES_CONN_HOST}:${AIRFLOW_POSTGRES_CONN_PORT}/${AIRFLOW_POSTGRES_CONN_SCHEMA}"
 echo "  dbt prod target          -> ${DBT_DB_HOST}:${DBT_DB_PORT}/${POSTGRES_DB}"
