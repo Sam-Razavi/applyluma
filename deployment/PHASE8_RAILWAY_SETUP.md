@@ -32,6 +32,29 @@ POSTGRES_PASSWORD=<railway-password>
 POSTGRES_DB=<railway-database>
 ```
 
+## Environment Variable Separation
+
+ApplyLuma uses two separate PostgreSQL databases:
+
+1. **Airflow Metadata** (always local)
+   - Database: `airflow_db` on the local Docker postgres container.
+   - Stores: DAG runs, task instances, scheduler state, and Airflow users.
+   - Credentials: `AIRFLOW_METADATA_USER` / `AIRFLOW_METADATA_PASSWORD`.
+   - Connection: `postgres:5432/airflow_db`.
+
+2. **Application Data** (Railway in production, local in development)
+   - Database: `railway` on Railway PostgreSQL, or `applyluma` locally.
+   - Stores: jobs, resumes, raw scrape data, and analytics tables.
+   - Credentials: `POSTGRES_USER` / `POSTGRES_PASSWORD`.
+   - Connection: Railway or local depending on which startup command is used.
+
+Why separate them:
+- Airflow metadata must stay local and should not be written to Railway.
+- Application analytics data must go to Railway so the production backend can
+  read it.
+- Reusing `POSTGRES_USER` and `POSTGRES_PASSWORD` for both databases causes
+  authentication conflicts when `.env.railway` is loaded.
+
 ## Files Modified
 
 - `.env.railway` - Railway credentials, created locally and not committed.
