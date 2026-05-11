@@ -9,6 +9,17 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+function redirectToLogin(reason: 'session-expired') {
+  const params = new URLSearchParams({ reason })
+  const currentPath = `${window.location.pathname}${window.location.search}`
+
+  if (window.location.pathname !== '/login') {
+    params.set('next', currentPath)
+  }
+
+  window.location.assign(`/login?${params.toString()}`)
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
   const url = config.url ?? ''
@@ -32,7 +43,7 @@ apiClient.interceptors.response.use(
     // before the catch block in the login form could display the error.
     if (error.response?.status === 401 && useAuthStore.getState().token) {
       useAuthStore.getState().logout()
-      window.location.href = '/login'
+      redirectToLogin('session-expired')
     }
     return Promise.reject(error)
   },
