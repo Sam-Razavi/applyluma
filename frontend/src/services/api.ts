@@ -80,6 +80,25 @@ export const cvApi = {
 
   remove: (cvId: string): Promise<void> =>
     client.delete(`/api/v1/cvs/${cvId}`).then(() => undefined),
+
+  download: async (cvId: string, filename: string): Promise<void> => {
+    const response = await client.get(`/api/v1/cvs/${cvId}/download`, { responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([response.data as BlobPart], { type: 'application/pdf' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  },
+
+  view: async (cvId: string): Promise<void> => {
+    const response = await client.get(`/api/v1/cvs/${cvId}/download`, { responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([response.data as BlobPart], { type: 'application/pdf' }))
+    window.open(url, '_blank')
+    setTimeout(() => URL.revokeObjectURL(url), 30000)
+  },
 }
 
 export const jobApi = {

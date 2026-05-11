@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  ArrowDownTrayIcon,
   ArrowPathIcon,
   CheckCircleIcon,
   DocumentTextIcon,
@@ -35,6 +36,7 @@ export default function AITailor() {
   const [preview, setPreview] = useState<TailorPreview | null>(null)
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set())
   const [savedCvId, setSavedCvId] = useState<string | null>(null)
+  const [savedTitle, setSavedTitle] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -118,6 +120,7 @@ export default function AITailor() {
         cvTitle,
       )
       setSavedCvId(result.cv_id)
+      setSavedTitle(result.title)
       setStep('done')
       toast.success('Tailored CV saved')
       tailorApi.getUsage().then(setUsage).catch(() => undefined)
@@ -135,6 +138,7 @@ export default function AITailor() {
     setPreview(null)
     setAcceptedIds(new Set())
     setSavedCvId(null)
+    setSavedTitle('')
   }
 
   const selectedCv = cvs.find((cv) => cv.id === selectedCvId)
@@ -189,7 +193,9 @@ export default function AITailor() {
         />
       )}
 
-      {step === 'done' && savedCvId && <DoneStep onReset={handleReset} />}
+      {step === 'done' && savedCvId && jobId && (
+        <DoneStep jobId={jobId} savedTitle={savedTitle} onReset={handleReset} />
+      )}
     </div>
   )
 }
@@ -465,7 +471,29 @@ function PreviewStep({
   )
 }
 
-function DoneStep({ onReset }: { onReset: () => void }) {
+function DoneStep({
+  jobId,
+  savedTitle,
+  onReset,
+}: {
+  jobId: string
+  savedTitle: string
+  onReset: () => void
+}) {
+  const [downloading, setDownloading] = useState(false)
+
+  async function handleDownload() {
+    setDownloading(true)
+    try {
+      const filename = savedTitle ? `${savedTitle}.pdf` : 'tailored-cv.pdf'
+      await tailorApi.download(jobId, filename)
+    } catch {
+      toast.error('Could not download the tailored CV')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-green-50">
@@ -476,11 +504,24 @@ function DoneStep({ onReset }: { onReset: () => void }) {
         Your tailored PDF was saved as a new CV. The original remains unchanged.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+        >
+          {downloading ? (
+            <ArrowPathIcon className="h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowDownTrayIcon className="h-4 w-4" />
+          )}
+          Download PDF
+        </button>
         <Link
           to="/cvs"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+          className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
         >
-          View CVs
+          View in My CVs
         </Link>
         <button
           type="button"

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -235,3 +236,27 @@ def save_tailored_cv(
         title=new_cv.title,
         file_url=new_cv.file_url,
     )
+
+
+@router.get("/{job_id}/download")
+def download_tailored_cv(
+    job_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> FileResponse:
+    job = crud_tailor.get_by_id(db, job_id, current_user.id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tailoring job not found")
+    if not job.output_cv_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No tailored CV saved yet. Call /save first.",
+        )
+    cv = crud_cv.get_by_id(db, job.output_cv_id, current_user.id)
+    if not cv or not cv.file_url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tailored CV file not found")
+    file_path = Path(settings.STORAGE_DIR) / cv.file_url
+    if not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")
+    download_name = cv.filename or f"{cv.title}.pdf"
+    return FileResponse(path=str(file_path), media_type="application/pdf", filename=download_name)
