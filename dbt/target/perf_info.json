@@ -1,0 +1,56 @@
+{
+    "path_count": 145,
+    "parsed_path_count": 145,
+    "static_analysis_path_count": 8,
+    "static_analysis_parsed_path_count": 6,
+    "is_partial_parse_enabled": true,
+    "is_static_analysis_enabled": true,
+    "read_files_elapsed": 2.2500300980000247,
+    "load_macros_elapsed": 12.997180098000172,
+    "parse_project_elapsed": 16.572758433000217,
+    "patch_sources_elapsed": 0.9630549530002099,
+    "process_manifest_elapsed": 0.5756729320000886,
+    "load_all_elapsed": 38.26185919699992,
+    "projects": [
+        {
+            "project_name": "applyluma_dw",
+            "elapsed": 16.3453995459995,
+            "parsers": [
+                {
+                    "parser": "model",
+                    "elapsed": 5.92074549300014,
+                    "parsed_path_count": 8
+                },
+                {
+                    "parser": "test",
+                    "elapsed": 2.1635101489996487,
+                    "parsed_path_count": 1
+                },
+                {
+                    "parser": "test",
+                    "elapsed": 8.12948487299991,
+                    "parsed_path_count": 4
+                }
+            ],
+            "parsed_path_count": 13
+        },
+        {
+            "project_name": "dbt_postgres",
+            "elapsed": 0.11523550699985208,
+            "parsers": [],
+            "parsed_path_count": 0
+        },
+        {
+            "project_name": "dbt",
+            "elapsed": 0.11047398999971847,
+            "parsers": [
+                {
+                    "parser": "doc",
+                    "elapsed": 0.014620175999880303,
+                    "parsed_path_count": 1
+                }
+            ],
+            "parsed_path_count": 1
+        }
+    ]
+}
