@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import Layout from './components/layout/Layout'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <VercelAnalytics />
+      <SpeedInsights />
     </>
   )
 }
