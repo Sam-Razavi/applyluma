@@ -1,1 +1,7 @@
 *.sh text eol=lf
+
+# Graphify generated artifacts should stay in Git for AI/codebase navigation,
+# but should not affect GitHub language statistics.
+graphify-out/graph.html linguist-generated=true
+graphify-out/graph.json linguist-generated=true
+graphify-out/.graphify_chunk_*.json linguist-generated=true
