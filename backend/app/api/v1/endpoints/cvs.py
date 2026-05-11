@@ -2,6 +2,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -131,6 +132,24 @@ def set_default_cv(
     if not cv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
     return crud_cv.set_default(db, cv)
+
+
+@router.get("/{cv_id}/download")
+def download_cv(
+    cv_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    cv = crud_cv.get_by_id(db, cv_id, current_user.id)
+    if not cv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+    if not cv.file_url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No file associated with this CV")
+    file_path = Path(settings.STORAGE_DIR) / cv.file_url
+    if not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")
+    download_name = cv.filename or f"{cv.title}.pdf"
+    return FileResponse(path=str(file_path), media_type="application/pdf", filename=download_name)
 
 
 @router.delete("/{cv_id}", status_code=status.HTTP_204_NO_CONTENT)

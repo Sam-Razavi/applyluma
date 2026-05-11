@@ -8,18 +8,22 @@ ApplyLuma repository.
 - ApplyLuma is an AI-powered job search and resume optimization platform.
 - Production frontend: https://applyluma.com
 - Production backend: https://applyluma-production.up.railway.app
-- Status: Phase 8 complete. The production application is 100% functional.
+- Status: Phase 9 complete. The production application is 100% functional.
 - All major features are working, including authentication, resume analysis, job
-  search, job description management, and the analytics dashboard.
+  search, job description management, the analytics dashboard, and AI CV Tailor.
 
 ## Current Phase
 
 - Phase 8: &#9989; COMPLETE
-- Phase 9: Ready to start
-- Analytics endpoints were returning 500 errors and are now fixed.
-- All analytics endpoints return 200 OK in production.
-- Analytics data is populated in Railway PostgreSQL and displayed in the
-  dashboard.
+- Phase 9: &#9989; COMPLETE
+- Phase 10: Ready to start
+- Phase 9 delivered the AI CV Tailor feature end-to-end:
+  - Celery worker tailors CV sections against a job description using OpenAI.
+  - Users review section diffs, accept/reject changes, and save a tailored PDF.
+  - Authenticated download endpoints serve PDFs for both uploaded and tailored CVs.
+  - Tailored CVs appear in the My CVs tab with working view and download buttons.
+  - Daily tailoring limits enforced per user role (user: 1, premium: 10, admin: unlimited).
+  - Alembic migrations for tailor_jobs table and user role column included.
 
 ## Git Workflow
 
@@ -117,9 +121,9 @@ Credentials:
 
 ## Next Steps
 
-- Start Phase 9 planning.
-- Candidate Phase 9 areas: AI features, application tracking, mobile polish, or
-  monitoring.
+- Start Phase 10 planning.
+- Candidate Phase 10 areas: application tracking, mobile polish, monitoring and
+  alerting, or premium subscription flow.
 - Continue using the `dev` -> `main` workflow.
 - Use feature branches for AI collaboration.
 

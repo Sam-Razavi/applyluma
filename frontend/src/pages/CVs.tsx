@@ -288,23 +288,20 @@ export default function CVs() {
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {cv.file_url && (
                     <>
-                      <a
-                        href={cv.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => cvApi.view(cv.id).catch(() => toast.error('Could not open CV'))}
                         className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                         title="View"
                       >
                         <EyeIcon className="h-4 w-4" />
-                      </a>
-                      <a
-                        href={cv.file_url}
-                        download={cv.filename}
+                      </button>
+                      <button
+                        onClick={() => cvApi.download(cv.id, cv.filename).catch(() => toast.error('Could not download CV'))}
                         className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                         title="Download"
                       >
                         <ArrowDownTrayIcon className="h-4 w-4" />
-                      </a>
+                      </button>
                     </>
                   )}
                   <button

@@ -44,4 +44,16 @@ export const tailorApi = {
 
   getHistory: (): Promise<TailorJob[]> =>
     client.get<TailorJob[]>('/api/v1/tailor/history').then((r) => r.data),
+
+  download: async (jobId: string, filename: string): Promise<void> => {
+    const response = await client.get(`/api/v1/tailor/${jobId}/download`, { responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([response.data as BlobPart], { type: 'application/pdf' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  },
 }

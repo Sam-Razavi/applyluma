@@ -7,22 +7,25 @@ AI-powered job search and resume optimization platform with production analytics
 - Production: https://applyluma.com
 - Backend API: https://applyluma-production.up.railway.app
 - API docs: https://applyluma-production.up.railway.app/docs
-- Current status: Phase 8 complete
-- Next phase: Phase 9 planning
+- Current status: Phase 9 complete
+- Next phase: Phase 10 planning
 
 ApplyLuma is live in production. All major features are working, including the
-analytics dashboard. The Phase 8 production data pipeline work is complete:
-analytics endpoints that previously returned 500 errors now return 200 OK with
-data from Railway PostgreSQL.
+analytics dashboard and the AI CV Tailor. Phase 9 delivered end-to-end CV
+tailoring: users select a CV and job description, an async Celery worker
+rewrites CV sections using OpenAI, users review section diffs, and the
+tailored PDF is saved and available for download.
 
 ## Overview
 
-ApplyLuma helps job seekers search jobs, manage resumes, analyze job
-descriptions, and compare their profile against market analytics.
+ApplyLuma helps job seekers search jobs, manage resumes, tailor CVs with AI,
+and compare their profile against market analytics.
 
 Core capabilities:
 - JWT authentication
 - Resume upload and AI resume analysis
+- AI CV Tailor: async section-by-section CV rewriting against a job description
+- Authenticated PDF download for all CVs (uploaded and tailored)
 - Job search through Adzuna
 - Job description management
 - Market analytics dashboard
@@ -50,8 +53,10 @@ Data:
 - Railway PostgreSQL for production analytics data
 
 AI and external APIs:
-- OpenAI API for resume analysis
+- OpenAI API for resume analysis and CV tailoring
 - Adzuna API for job search
+- Celery + Redis for async tailoring jobs
+- ReportLab for PDF generation
 
 ## Deployment
 
@@ -182,12 +187,12 @@ Completed:
 - Analytics dashboard
 - Production deployment
 - Production data pipeline
+- AI CV Tailor (Phase 9): async rewriting, section review, PDF save and download
+- Authenticated CV download for all CVs (uploaded and tailored)
 
 Ready for planning:
-- Phase 9 AI features
-- Application tracking improvements
-- Mobile polish
-- Monitoring and alerting
+- Phase 10: application tracking improvements, mobile polish, monitoring and
+  alerting, or premium subscription flow
 
 ## Project Structure
 
