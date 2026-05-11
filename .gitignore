@@ -85,6 +85,9 @@ phase7-test-screenshots/
 .codex/
 AGENTS.md
 
+# Local editor workspace state
+.obsidian/
+
 # Graphify - commit the graph, ignore local cache/state
 graphify-out/manifest.json
 graphify-out/cost.json
