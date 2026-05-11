@@ -6,7 +6,7 @@ celery_app = Celery(
     "applyluma",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.sample"],
+    include=["app.tasks.sample", "app.tasks.tailor"],
 )
 
 celery_app.conf.update(

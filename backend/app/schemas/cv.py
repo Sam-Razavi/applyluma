@@ -13,6 +13,9 @@ class CVSummary(BaseModel):
     title: str
     filename: str
     is_default: bool
+    is_tailored: bool
+    parent_cv_id: uuid.UUID | None
+    tailor_job_id: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
 
