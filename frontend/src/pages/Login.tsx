@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,11 +16,39 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
+const inputClass =
+  'w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition'
+
+const loginNotices: Record<string, { title: string; message: string }> = {
+  'session-expired': {
+    title: 'Session expired',
+    message: 'Please sign in again to continue where you left off.',
+  },
+  inactive: {
+    title: 'Signed out for inactivity',
+    message: 'We signed you out after a period of inactivity to keep your account safe.',
+  },
+}
+
+function getSafeNextPath(nextPath: string | null) {
+  if (!nextPath || !nextPath.startsWith('/') || nextPath.startsWith('//')) {
+    return '/dashboard'
+  }
+
+  if (nextPath.startsWith('/login') || nextPath.startsWith('/register')) {
+    return '/dashboard'
+  }
+
+  return nextPath
+}
+
 export default function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login, setToken } = useAuthStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const loginNotice = loginNotices[searchParams.get('reason') ?? '']
 
   const {
     register,
@@ -34,9 +62,9 @@ export default function Login() {
     console.log('[Login] attempting login for:', data.email)
     try {
       const tokenPair = await authApi.login(data)
-      console.log('[Login] token received:', tokenPair.access_token ? '✅ present' : '❌ missing')
+      console.log('[Login] token received:', tokenPair.access_token ? 'present' : 'missing')
 
-      // Store token BEFORE calling /me so the axios interceptor can attach it
+      // Store token before calling /me so the axios interceptor can attach it.
       setToken(tokenPair.access_token)
       console.log('[Login] token stored in store, store token now:', !!useAuthStore.getState().token)
 
@@ -45,7 +73,7 @@ export default function Login() {
       console.log('[Login] user fetched:', user.email)
       login(tokenPair.access_token, user)
       toast.success(`Welcome back${user.full_name ? ', ' + user.full_name.split(' ')[0] : ''}!`)
-      navigate('/dashboard')
+      navigate(getSafeNextPath(searchParams.get('next')), { replace: true })
     } catch (err) {
       console.error('[Login] error:', err)
       const axiosErr = err as AxiosError<ApiError>
@@ -67,10 +95,16 @@ export default function Login() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-8 shadow-sm rounded-2xl border border-gray-200">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-            {/* Inline server error — visible even if toast isn't mounted */}
             {serverError && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3">
                 <p className="text-sm text-red-700">{serverError}</p>
+              </div>
+            )}
+
+            {loginNotice && !serverError && (
+              <div className="rounded-lg bg-warning-50 border border-warning-500/30 px-4 py-3">
+                <p className="text-sm font-medium text-warning-600">{loginNotice.title}</p>
+                <p className="mt-1 text-sm text-gray-600">{loginNotice.message}</p>
               </div>
             )}
 
@@ -84,7 +118,7 @@ export default function Login() {
                 autoComplete="email"
                 placeholder="you@example.com"
                 {...register('email')}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
+                className={inputClass}
               />
               {errors.email && (
                 <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
@@ -99,9 +133,9 @@ export default function Login() {
                 id="password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="••••••••"
+                placeholder="********"
                 {...register('password')}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
+                className={inputClass}
               />
               {errors.password && (
                 <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
@@ -113,7 +147,7 @@ export default function Login() {
               disabled={isSubmitting}
               className="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
             >
-              {isSubmitting ? 'Signing in…' : 'Sign in'}
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
