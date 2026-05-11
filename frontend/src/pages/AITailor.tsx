@@ -1,416 +1,495 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  LightBulbIcon,
-  SparklesIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   ArrowPathIcon,
+  CheckCircleIcon,
+  DocumentTextIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
-import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { cvApi, jobApi, aiApi } from '../services/api'
-import type { CV, JobDescription, AIAnalysis } from '../types'
+import { IntensitySelector } from '../components/tailor/IntensitySelector'
+import { SectionDiff } from '../components/tailor/SectionDiff'
+import { TailorProgress } from '../components/tailor/TailorProgress'
+import { TailorSummary } from '../components/tailor/TailorSummary'
+import { cvApi, jobApi } from '../services/api'
+import { tailorApi } from '../services/tailorApi'
+import type { CV, JobDescription } from '../types'
+import type { TailorIntensity, TailorPreview, TailorUsage } from '../types/tailor'
 
-function ScoreRing({ score }: { score: number }) {
-  const r = 54
-  const circ = 2 * Math.PI * r
-  const filled = (score / 100) * circ
+type Step = 'select' | 'processing' | 'preview' | 'done'
 
-  const color =
-    score >= 80 ? '#16a34a' : score >= 60 ? '#ca8a04' : score >= 40 ? '#ea580c' : '#dc2626'
-
-  const label =
-    score >= 80
-      ? 'Excellent match'
-      : score >= 60
-      ? 'Good match'
-      : score >= 40
-      ? 'Fair match'
-      : 'Needs work'
-
-  const labelColor =
-    score >= 80
-      ? 'text-green-600'
-      : score >= 60
-      ? 'text-yellow-600'
-      : score >= 40
-      ? 'text-orange-600'
-      : 'text-red-600'
-
-  const bgColor =
-    score >= 80
-      ? 'bg-green-50'
-      : score >= 60
-      ? 'bg-yellow-50'
-      : score >= 40
-      ? 'bg-orange-50'
-      : 'bg-red-50'
-
-  return (
-    <div className={`flex flex-col items-center justify-center rounded-2xl p-8 ${bgColor}`}>
-      <div className="relative">
-        <svg width="128" height="128" className="-rotate-90">
-          <circle cx="64" cy="64" r={r} fill="none" stroke="#e5e7eb" strokeWidth="10" />
-          <circle
-            cx="64"
-            cy="64"
-            r={r}
-            fill="none"
-            stroke={color}
-            strokeWidth="10"
-            strokeDasharray={`${filled} ${circ}`}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dasharray 0.8s ease' }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-gray-900">{score}</span>
-          <span className="text-xs text-gray-500 font-medium">/ 100</span>
-        </div>
-      </div>
-      <p className={`mt-3 text-sm font-semibold ${labelColor}`}>{label}</p>
-    </div>
-  )
-}
-
-function CollapsibleSection({
-  title,
-  icon,
-  iconClass,
-  children,
-  defaultOpen = true,
-}: {
-  title: string
-  icon: React.ReactNode
-  iconClass: string
-  children: React.ReactNode
-  defaultOpen?: boolean
-}) {
-  const [open, setOpen] = useState(defaultOpen)
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${iconClass}`}>
-            {icon}
-          </div>
-          <span className="text-sm font-semibold text-gray-900">{title}</span>
-        </div>
-        {open ? (
-          <ChevronUpIcon className="h-4 w-4 text-gray-400" />
-        ) : (
-          <ChevronDownIcon className="h-4 w-4 text-gray-400" />
-        )}
-      </button>
-      {open && <div className="px-6 pb-5 border-t border-gray-100">{children}</div>}
-    </div>
-  )
-}
+const POLL_INTERVAL_MS = 2500
 
 export default function AITailor() {
+  const [step, setStep] = useState<Step>('select')
   const [cvs, setCvs] = useState<CV[]>([])
   const [jobs, setJobs] = useState<JobDescription[]>([])
-  const [loadingData, setLoadingData] = useState(true)
+  const [usage, setUsage] = useState<TailorUsage | null>(null)
+  const [loading, setLoading] = useState(true)
 
   const [selectedCvId, setSelectedCvId] = useState('')
   const [selectedJobId, setSelectedJobId] = useState('')
+  const [intensity, setIntensity] = useState<TailorIntensity>('medium')
 
-  const [analyzing, setAnalyzing] = useState(false)
-  const [result, setResult] = useState<AIAnalysis | null>(null)
-  const [fullAnalysisOpen, setFullAnalysisOpen] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const [preview, setPreview] = useState<TailorPreview | null>(null)
+  const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set())
+  const [savedCvId, setSavedCvId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  const pollRef = useRef<number | null>(null)
 
   useEffect(() => {
-    Promise.all([cvApi.list(), jobApi.list()])
-      .then(([c, j]) => {
-        setCvs(c)
-        setJobs(j)
-        if (c.length === 1) setSelectedCvId(c[0].id)
-        if (j.length === 1) setSelectedJobId(j[0].id)
+    Promise.all([cvApi.list(), jobApi.list(), tailorApi.getUsage()])
+      .then(([cvList, jobList, usageInfo]) => {
+        setCvs(cvList)
+        setJobs(jobList)
+        setUsage(usageInfo)
+        const defaultCv = cvList.find((cv) => cv.is_default)
+        if (defaultCv) setSelectedCvId(defaultCv.id)
+        else if (cvList.length === 1) setSelectedCvId(cvList[0].id)
+        if (jobList.length === 1) setSelectedJobId(jobList[0].id)
       })
-      .catch(() => toast.error('Failed to load your CVs and jobs'))
-      .finally(() => setLoadingData(false))
+      .catch(() => toast.error('Failed to load tailoring data'))
+      .finally(() => setLoading(false))
   }, [])
 
-  async function handleAnalyze() {
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) window.clearInterval(pollRef.current)
+    }
+  }, [])
+
+  async function handleSubmit() {
     if (!selectedCvId || !selectedJobId) return
-    setAnalyzing(true)
-    setResult(null)
+    setSubmitting(true)
     try {
-      const analysis = await aiApi.tailorCV(selectedCvId, selectedJobId)
-      setResult(analysis)
-      toast.success('Analysis complete!')
-    } catch {
-      toast.error('Analysis failed. Please try again.')
+      const job = await tailorApi.submit(selectedCvId, selectedJobId, intensity)
+      setJobId(job.id)
+      setStep('processing')
+      startPolling(job.id)
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail
+      toast.error(detail || 'Failed to start tailoring')
     } finally {
-      setAnalyzing(false)
+      setSubmitting(false)
     }
   }
 
-  function reset() {
-    setResult(null)
-    setFullAnalysisOpen(false)
+  function startPolling(id: string) {
+    if (pollRef.current) window.clearInterval(pollRef.current)
+    pollRef.current = window.setInterval(async () => {
+      try {
+        const status = await tailorApi.getStatus(id)
+        if (status.status === 'complete') {
+          if (pollRef.current) window.clearInterval(pollRef.current)
+          const nextPreview = await tailorApi.getPreview(id)
+          setPreview(nextPreview)
+          setAcceptedIds(new Set(nextPreview.sections.map((section) => section.section_id)))
+          setStep('preview')
+        } else if (status.status === 'failed') {
+          if (pollRef.current) window.clearInterval(pollRef.current)
+          toast.error(status.error_message || 'Tailoring failed')
+          setStep('select')
+        }
+      } catch {
+        // Polling tolerates transient network errors.
+      }
+    }, POLL_INTERVAL_MS)
   }
 
-  const selectedCv = cvs.find((c) => c.id === selectedCvId)
-  const selectedJob = jobs.find((j) => j.id === selectedJobId)
-  const canAnalyze = !!selectedCvId && !!selectedJobId && !analyzing
+  function toggleSection(id: string) {
+    setAcceptedIds((previous) => {
+      const next = new Set(previous)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function handleSave(cvTitle?: string) {
+    if (!jobId || !preview) return
+    setSaving(true)
+    try {
+      const result = await tailorApi.save(
+        jobId,
+        acceptedIds.size === preview.sections.length ? null : [...acceptedIds],
+        cvTitle,
+      )
+      setSavedCvId(result.cv_id)
+      setStep('done')
+      toast.success('Tailored CV saved')
+      tailorApi.getUsage().then(setUsage).catch(() => undefined)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to save tailored CV')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleReset() {
+    if (pollRef.current) window.clearInterval(pollRef.current)
+    setStep('select')
+    setJobId(null)
+    setPreview(null)
+    setAcceptedIds(new Set())
+    setSavedCvId(null)
+  }
+
+  const selectedCv = cvs.find((cv) => cv.id === selectedCvId)
+  const selectedJob = jobs.find((job) => job.id === selectedJobId)
+  const atLimit = Boolean(usage && usage.daily_limit !== null && usage.used_today >= usage.daily_limit)
+  const canSubmit = Boolean(selectedCvId && selectedJobId && !submitting && !atLimit)
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      {/* Header */}
+    <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
           <SparklesIcon className="h-7 w-7 text-brand-500" />
-          AI Tailor
+          AI CV Tailor
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Match your CV to a job description and get actionable AI-powered recommendations.
+          Rewrite your CV for a specific job, review every section, and save a tailored PDF.
         </p>
       </div>
 
-      {/* Selection card */}
-      {!result && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-6">
-          <h2 className="text-sm font-semibold text-gray-700">Select your CV and target job</h2>
+      {usage && <UsageBanner usage={usage} />}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* CV selector */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                Your CV
-              </label>
-              {loadingData ? (
-                <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
-              ) : cvs.length === 0 ? (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-gray-300 text-sm text-gray-400">
-                  No CVs found —{' '}
-                  <a href="/cvs" className="text-brand-500 hover:underline">
-                    upload one
-                  </a>
-                </div>
-              ) : (
-                <select
-                  value={selectedCvId}
-                  onChange={(e) => setSelectedCvId(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-                >
-                  <option value="">Choose a CV…</option>
-                  {cvs.map((cv) => (
-                    <option key={cv.id} value={cv.id}>
-                      {cv.title}
-                      {cv.is_default ? ' (default)' : ''}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+      {step === 'select' && (
+        <SelectStep
+          cvs={cvs}
+          jobs={jobs}
+          loading={loading}
+          selectedCvId={selectedCvId}
+          selectedJobId={selectedJobId}
+          selectedCv={selectedCv}
+          selectedJob={selectedJob}
+          intensity={intensity}
+          onCvChange={setSelectedCvId}
+          onJobChange={setSelectedJobId}
+          onIntensityChange={setIntensity}
+          onSubmit={handleSubmit}
+          canSubmit={canSubmit}
+          submitting={submitting}
+          atLimit={atLimit}
+        />
+      )}
 
-            {/* Job selector */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                Target Job
-              </label>
-              {loadingData ? (
-                <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
-              ) : jobs.length === 0 ? (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-gray-300 text-sm text-gray-400">
-                  No jobs found —{' '}
-                  <a href="/jobs" className="text-brand-500 hover:underline">
-                    add one
-                  </a>
-                </div>
-              ) : (
-                <select
-                  value={selectedJobId}
-                  onChange={(e) => setSelectedJobId(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-                >
-                  <option value="">Choose a job…</option>
-                  {jobs.map((j) => (
-                    <option key={j.id} value={j.id}>
-                      {j.job_title} @ {j.company_name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          </div>
+      {step === 'processing' && <TailorProgress />}
 
-          {/* Selection summary */}
-          {(selectedCv || selectedJob) && (
-            <div className="flex flex-wrap gap-2">
-              {selectedCv && (
-                <span className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium">
-                  <CheckCircleSolid className="h-3.5 w-3.5 text-blue-500" />
-                  {selectedCv.title}
-                </span>
-              )}
-              {selectedJob && (
-                <span className="inline-flex items-center gap-1.5 text-xs bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-medium">
-                  <CheckCircleSolid className="h-3.5 w-3.5 text-violet-500" />
-                  {selectedJob.job_title} @ {selectedJob.company_name}
-                </span>
-              )}
-            </div>
-          )}
+      {step === 'preview' && preview && (
+        <PreviewStep
+          preview={preview}
+          acceptedIds={acceptedIds}
+          onToggle={toggleSection}
+          onSave={handleSave}
+          onBack={handleReset}
+          saving={saving}
+        />
+      )}
 
-          {/* Analyze button */}
+      {step === 'done' && savedCvId && <DoneStep onReset={handleReset} />}
+    </div>
+  )
+}
+
+function UsageBanner({ usage }: { usage: TailorUsage }) {
+  const resetTime = new Date(usage.resets_at).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const label =
+    usage.daily_limit === null
+      ? `${usage.used_today} used today. Admin access has no daily limit.`
+      : `${usage.used_today} of ${usage.daily_limit} tailoring runs used today.`
+
+  return (
+    <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
+      <p className="text-sm font-medium text-brand-900">{label}</p>
+      <p className="mt-0.5 text-xs text-brand-700">Resets at {resetTime} UTC.</p>
+    </div>
+  )
+}
+
+interface SelectStepProps {
+  cvs: CV[]
+  jobs: JobDescription[]
+  loading: boolean
+  selectedCvId: string
+  selectedJobId: string
+  selectedCv: CV | undefined
+  selectedJob: JobDescription | undefined
+  intensity: TailorIntensity
+  onCvChange: (value: string) => void
+  onJobChange: (value: string) => void
+  onIntensityChange: (value: TailorIntensity) => void
+  onSubmit: () => void
+  canSubmit: boolean
+  submitting: boolean
+  atLimit: boolean
+}
+
+function SelectStep({
+  cvs,
+  jobs,
+  loading,
+  selectedCvId,
+  selectedJobId,
+  selectedCv,
+  selectedJob,
+  intensity,
+  onCvChange,
+  onJobChange,
+  onIntensityChange,
+  onSubmit,
+  canSubmit,
+  submitting,
+  atLimit,
+}: SelectStepProps) {
+  return (
+    <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6">
+      <div>
+        <h2 className="text-sm font-semibold text-gray-700">Select source CV and target job</h2>
+        <p className="mt-1 text-xs text-gray-400">
+          The original CV remains unchanged. A tailored copy is created only after you save.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Selector
+          label="Your CV"
+          value={selectedCvId}
+          onChange={onCvChange}
+          loading={loading}
+          emptyMessage="No CVs found"
+          emptyHref="/cvs"
+          emptyLinkLabel="Upload one"
+          options={cvs.map((cv) => ({
+            value: cv.id,
+            label: `${cv.title}${cv.is_default ? ' (default)' : ''}`,
+          }))}
+        />
+        <Selector
+          label="Target job"
+          value={selectedJobId}
+          onChange={onJobChange}
+          loading={loading}
+          emptyMessage="No job descriptions found"
+          emptyHref="/jobs"
+          emptyLinkLabel="Add one"
+          options={jobs.map((job) => ({
+            value: job.id,
+            label: `${job.job_title} @ ${job.company_name}`,
+          }))}
+        />
+      </div>
+
+      {(selectedCv || selectedJob) && (
+        <div className="flex flex-wrap gap-2">
+          {selectedCv && <Pill>{selectedCv.title}</Pill>}
+          {selectedJob && <Pill>{`${selectedJob.job_title} @ ${selectedJob.company_name}`}</Pill>}
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-gray-700">Tailoring intensity</h3>
+        <IntensitySelector value={intensity} onChange={onIntensityChange} />
+      </div>
+
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={!canSubmit}
+        className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {submitting ? (
+          <>
+            <ArrowPathIcon className="h-4 w-4 animate-spin" />
+            Starting tailoring
+          </>
+        ) : (
+          <>
+            <SparklesIcon className="h-4 w-4" />
+            Tailor CV
+          </>
+        )}
+      </button>
+
+      {atLimit && (
+        <p className="text-sm text-red-600">
+          Daily tailoring limit reached. Try again after the reset time.
+        </p>
+      )}
+    </div>
+  )
+}
+
+interface SelectorProps {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  loading: boolean
+  emptyMessage: string
+  emptyHref: string
+  emptyLinkLabel: string
+  options: { value: string; label: string }[]
+}
+
+function Selector({
+  label,
+  value,
+  onChange,
+  loading,
+  emptyMessage,
+  emptyHref,
+  emptyLinkLabel,
+  options,
+}: SelectorProps) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium uppercase tracking-wide text-gray-600">{label}</label>
+      {loading ? (
+        <div className="h-10 animate-pulse rounded-lg bg-gray-100" />
+      ) : options.length === 0 ? (
+        <div className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-sm text-gray-400">
+          {emptyMessage}
+          <Link to={emptyHref} className="text-brand-600 hover:underline">
+            {emptyLinkLabel}
+          </Link>
+        </div>
+      ) : (
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        >
+          <option value="">Choose...</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  )
+}
+
+function Pill({ children }: { children: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
+      <CheckCircleIcon className="h-3.5 w-3.5" />
+      {children}
+    </span>
+  )
+}
+
+interface PreviewStepProps {
+  preview: TailorPreview
+  acceptedIds: Set<string>
+  onToggle: (sectionId: string) => void
+  onSave: (cvTitle?: string) => void
+  onBack: () => void
+  saving: boolean
+}
+
+function PreviewStep({
+  preview,
+  acceptedIds,
+  onToggle,
+  onSave,
+  onBack,
+  saving,
+}: PreviewStepProps) {
+  const [title, setTitle] = useState('')
+
+  return (
+    <div className="space-y-5">
+      <TailorSummary meta={preview.meta} />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">Review section changes</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Accepted sections use tailored text. Rejected sections keep the original text.
+          </p>
+        </div>
+        <div className="text-sm text-gray-500">
+          {acceptedIds.size} of {preview.sections.length} accepted
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {preview.sections.map((section) => (
+          <SectionDiff
+            key={section.section_id}
+            section={section}
+            accepted={acceptedIds.has(section.section_id)}
+            onToggle={() => onToggle(section.section_id)}
+          />
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <label className="text-xs font-medium uppercase tracking-wide text-gray-600">
+          Saved CV title
+        </label>
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Tailored CV"
+          className="mt-1.5 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        />
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button
-            onClick={handleAnalyze}
-            disabled={!canAnalyze}
-            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition-colors"
+            type="button"
+            onClick={onBack}
+            disabled={saving}
+            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
           >
-            {analyzing ? (
-              <>
-                <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                Analyzing your CV…
-              </>
-            ) : (
-              <>
-                <SparklesIcon className="h-4 w-4" />
-                Analyze Match
-              </>
-            )}
+            Start over
           </button>
-
-          {analyzing && (
-            <p className="text-xs text-gray-400">
-              This usually takes 5–15 seconds. Hang tight while our AI reviews your profile…
-            </p>
-          )}
+          <button
+            type="button"
+            onClick={() => onSave(title || undefined)}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+          >
+            {saving && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
+            Save tailored PDF
+          </button>
         </div>
-      )}
+      </div>
+    </div>
+  )
+}
 
-      {/* Results */}
-      {result && (
-        <div className="space-y-4">
-          {/* Context banner */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="text-sm text-gray-500">
-              <span className="font-medium text-gray-700">{selectedCv?.title}</span>
-              {' vs '}
-              <span className="font-medium text-gray-700">
-                {selectedJob?.job_title} @ {selectedJob?.company_name}
-              </span>
-            </div>
-            <button
-              onClick={reset}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowPathIcon className="h-4 w-4" />
-              Run another analysis
-            </button>
-          </div>
-
-          {/* Score + overview row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <ScoreRing score={result.match_score} />
-
-            {/* Quick stats */}
-            <div className="sm:col-span-2 grid grid-cols-3 gap-3">
-              <div className="bg-green-50 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                <CheckCircleIcon className="h-7 w-7 text-green-500 mb-1" />
-                <p className="text-2xl font-bold text-gray-900">{result.strengths.length}</p>
-                <p className="text-xs text-green-700 font-medium mt-0.5">Strengths</p>
-              </div>
-              <div className="bg-orange-50 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                <ExclamationTriangleIcon className="h-7 w-7 text-orange-500 mb-1" />
-                <p className="text-2xl font-bold text-gray-900">{result.gaps.length}</p>
-                <p className="text-xs text-orange-700 font-medium mt-0.5">Gaps</p>
-              </div>
-              <div className="bg-brand-50 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                <LightBulbIcon className="h-7 w-7 text-brand-500 mb-1" />
-                <p className="text-2xl font-bold text-gray-900">{result.recommendations.length}</p>
-                <p className="text-xs text-brand-700 font-medium mt-0.5">Tips</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Strengths */}
-          <CollapsibleSection
-            title={`Strengths (${result.strengths.length})`}
-            icon={<CheckCircleIcon className="h-4 w-4 text-green-600" />}
-            iconClass="bg-green-100"
-          >
-            <ul className="mt-4 space-y-2.5">
-              {result.strengths.map((s, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <CheckCircleSolid className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-700">{s}</span>
-                </li>
-              ))}
-            </ul>
-          </CollapsibleSection>
-
-          {/* Gaps */}
-          <CollapsibleSection
-            title={`Gaps to Address (${result.gaps.length})`}
-            icon={<ExclamationTriangleIcon className="h-4 w-4 text-orange-600" />}
-            iconClass="bg-orange-100"
-          >
-            <ul className="mt-4 space-y-2.5">
-              {result.gaps.map((g, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <ExclamationTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-700">{g}</span>
-                </li>
-              ))}
-            </ul>
-          </CollapsibleSection>
-
-          {/* Recommendations */}
-          <CollapsibleSection
-            title={`Recommendations (${result.recommendations.length})`}
-            icon={<LightBulbIcon className="h-4 w-4 text-brand-600" />}
-            iconClass="bg-brand-100"
-          >
-            <ol className="mt-4 space-y-3">
-              {result.recommendations.map((rec, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 h-5 w-5 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center mt-0.5">
-                    {i + 1}
-                  </span>
-                  <span className="text-sm text-gray-700">{rec}</span>
-                </li>
-              ))}
-            </ol>
-          </CollapsibleSection>
-
-          {/* Full analysis */}
-          {result.full_analysis && (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <button
-                onClick={() => setFullAnalysisOpen((o) => !o)}
-                className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                    <SparklesIcon className="h-4 w-4 text-gray-500" />
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">Full AI Analysis</span>
-                </div>
-                {fullAnalysisOpen ? (
-                  <ChevronUpIcon className="h-4 w-4 text-gray-400" />
-                ) : (
-                  <ChevronDownIcon className="h-4 w-4 text-gray-400" />
-                )}
-              </button>
-              {fullAnalysisOpen && (
-                <div className="px-6 pb-6 border-t border-gray-100">
-                  <p className="mt-4 text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                    {result.full_analysis}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+function DoneStep({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-green-50">
+        <DocumentTextIcon className="h-6 w-6 text-green-600" />
+      </div>
+      <h2 className="mt-4 text-lg font-semibold text-gray-900">Tailored CV saved</h2>
+      <p className="mt-1 text-sm text-gray-500">
+        Your tailored PDF was saved as a new CV. The original remains unchanged.
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <Link
+          to="/cvs"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+        >
+          View CVs
+        </Link>
+        <button
+          type="button"
+          onClick={onReset}
+          className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+        >
+          Tailor another
+        </button>
+      </div>
     </div>
   )
 }
