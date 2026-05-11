@@ -4,6 +4,7 @@ export interface User {
   full_name: string | null
   is_active: boolean
   is_verified: boolean
+  role: 'user' | 'admin' | 'premium'
   created_at: string
   updated_at: string
 }
@@ -33,6 +34,9 @@ export interface CV {
   file_url: string | null
   file_size: number | null
   is_default: boolean
+  is_tailored: boolean
+  parent_cv_id: string | null
+  tailor_job_id: string | null
   created_at: string
   updated_at: string
 }
