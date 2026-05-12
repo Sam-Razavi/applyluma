@@ -11,6 +11,7 @@ from app.crud import cv as crud_cv
 from app.models.user import User
 from app.schemas.cv import CVPublic, CVSummary, CVUpdate
 from app.services.cv_parser import parse_cv
+from app.services.pdf_generator import generate_cv_pdf
 
 router = APIRouter(prefix="/cvs", tags=["cvs"])
 
@@ -21,6 +22,7 @@ _CONTENT_TYPE_EXT: dict[str, str] = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
 }
 _ALLOWED_EXTENSIONS = {".pdf", ".docx"}
+_PDF_MEDIA_TYPE = "application/pdf"
 
 
 def _resolve_extension(content_type: str, original_filename: str) -> str | None:
@@ -28,6 +30,85 @@ def _resolve_extension(content_type: str, original_filename: str) -> str | None:
         return _CONTENT_TYPE_EXT[content_type]
     ext = Path(original_filename).suffix.lower()
     return ext if ext in _ALLOWED_EXTENSIONS else None
+
+
+def _storage_path(relative_url: str) -> Path:
+    storage_root = Path(settings.STORAGE_DIR).resolve()
+    file_path = (storage_root / relative_url).resolve()
+    if storage_root != file_path and storage_root not in file_path.parents:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found on server",
+        )
+    return file_path
+
+
+def _pdf_download_name(cv_title: str, cv_filename: str | None) -> str:
+    stem = Path(cv_filename or cv_title or "cv").stem
+    safe_stem = "".join(
+        char if char.isalnum() or char in (" ", "-", "_", ".") else "_" for char in stem
+    )
+    return f"{safe_stem.strip() or 'cv'}.pdf"
+
+
+def _sections_from_text(content: str) -> list[dict[str, str]]:
+    sections: list[dict[str, str]] = []
+    current_name = ""
+    current_lines: list[str] = []
+
+    def append_section() -> None:
+        text = "\n".join(line for line in current_lines).strip()
+        if text:
+            sections.append({"section_name": current_name, "content": text})
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            append_section()
+            current_name = stripped.removeprefix("## ").strip()
+            current_lines = []
+        else:
+            current_lines.append(line)
+
+    append_section()
+    return sections or [{"section_name": "", "content": content}]
+
+
+def _generated_pdf_path(cv_id: uuid.UUID, user_id: uuid.UUID, file_url: str | None) -> Path:
+    if file_url:
+        existing_path = _storage_path(file_url)
+        if existing_path.suffix.lower() == ".pdf":
+            return existing_path
+    return Path(settings.STORAGE_DIR).resolve() / "cvs" / str(user_id) / f"{cv_id}.pdf"
+
+
+def _ensure_downloadable_pdf(cv, db: Session) -> Path:
+    if cv.file_url:
+        file_path = _storage_path(cv.file_url)
+        if file_path.exists() and file_path.suffix.lower() == ".pdf":
+            return file_path
+
+    if not cv.content:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No PDF or extractable CV content is available for download",
+        )
+
+    output_path = _generated_pdf_path(cv.id, cv.user_id, cv.file_url)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.exists():
+        return output_path
+
+    generate_cv_pdf(_sections_from_text(cv.content), output_path)
+
+    if not cv.file_url:
+        relative_url = output_path.relative_to(Path(settings.STORAGE_DIR).resolve()).as_posix()
+        cv.file_url = relative_url
+        cv.filename = _pdf_download_name(cv.title, cv.filename)
+        db.commit()
+        db.refresh(cv)
+
+    return output_path
 
 
 @router.post("/upload", response_model=CVPublic, status_code=status.HTTP_201_CREATED)
@@ -143,13 +224,9 @@ def download_cv(
     cv = crud_cv.get_by_id(db, cv_id, current_user.id)
     if not cv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
-    if not cv.file_url:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No file associated with this CV")
-    file_path = Path(settings.STORAGE_DIR) / cv.file_url
-    if not file_path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")
-    download_name = cv.filename or f"{cv.title}.pdf"
-    return FileResponse(path=str(file_path), media_type="application/pdf", filename=download_name)
+    file_path = _ensure_downloadable_pdf(cv, db)
+    download_name = _pdf_download_name(cv.title, cv.filename)
+    return FileResponse(path=str(file_path), media_type=_PDF_MEDIA_TYPE, filename=download_name)
 
 
 @router.delete("/{cv_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -165,5 +242,11 @@ def delete_cv(
     if cv.file_url:
         file_path = Path(settings.STORAGE_DIR) / cv.file_url
         file_path.unlink(missing_ok=True)
+
+    generated_pdf = (
+        Path(settings.STORAGE_DIR).resolve() / "cvs" / str(current_user.id) / f"{cv.id}.pdf"
+    )
+    if not cv.file_url or generated_pdf != (Path(settings.STORAGE_DIR) / cv.file_url).resolve():
+        generated_pdf.unlink(missing_ok=True)
 
     crud_cv.delete(db, cv)
