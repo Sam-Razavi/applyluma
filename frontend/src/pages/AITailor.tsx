@@ -194,7 +194,7 @@ export default function AITailor() {
       )}
 
       {step === 'done' && savedCvId && jobId && (
-        <DoneStep jobId={jobId} savedTitle={savedTitle} onReset={handleReset} />
+        <DoneStep cvId={savedCvId} savedTitle={savedTitle} onReset={handleReset} />
       )}
     </div>
   )
@@ -472,11 +472,11 @@ function PreviewStep({
 }
 
 function DoneStep({
-  jobId,
+  cvId,
   savedTitle,
   onReset,
 }: {
-  jobId: string
+  cvId: string
   savedTitle: string
   onReset: () => void
 }) {
@@ -486,7 +486,7 @@ function DoneStep({
     setDownloading(true)
     try {
       const filename = savedTitle ? `${savedTitle}.pdf` : 'tailored-cv.pdf'
-      await tailorApi.download(jobId, filename)
+      await cvApi.download(cvId, filename)
     } catch {
       toast.error('Could not download the tailored CV')
     } finally {

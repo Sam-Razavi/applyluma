@@ -16,6 +16,7 @@ class CVSummary(BaseModel):
     is_tailored: bool
     parent_cv_id: uuid.UUID | None
     tailor_job_id: uuid.UUID | None
+    file_url: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -23,7 +24,6 @@ class CVSummary(BaseModel):
 class CVPublic(CVSummary):
     """Returned in detail / upload responses — includes parsed text."""
     content: str | None
-    file_url: str | None
 
 
 class CVUpdate(BaseModel):
