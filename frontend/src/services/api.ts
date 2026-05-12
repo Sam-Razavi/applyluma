@@ -22,6 +22,11 @@ import type {
   User,
 } from '../types'
 
+function pdfFilename(filename: string): string {
+  const stem = filename.replace(/\.[^.]+$/, '').trim()
+  return `${stem || 'cv'}.pdf`
+}
+
 export interface LoginRequest {
   email: string
   password: string
@@ -86,7 +91,7 @@ export const cvApi = {
     const url = URL.createObjectURL(new Blob([response.data as BlobPart], { type: 'application/pdf' }))
     const a = document.createElement('a')
     a.href = url
-    a.download = filename
+    a.download = pdfFilename(filename)
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

@@ -2,6 +2,7 @@
 CV tailoring service: calls OpenAI and returns a structured section-by-section diff.
 """
 import json
+import re
 
 from langdetect import LangDetectException, detect
 from openai import AuthenticationError, OpenAI, RateLimitError
@@ -25,11 +26,39 @@ _INTENSITY_INSTRUCTIONS: dict[TailorIntensity, str] = {
     ),
 }
 
-_SYSTEM_PROMPT = """\
+_CONTACT_PRESERVATION_INSTRUCTION = (
+    "PRESERVE ALL CONTACT INFORMATION: You MUST keep the candidate's name, email, phone "
+    "number, location, LinkedIn, GitHub, portfolio URLs, and any other contact details "
+    "EXACTLY as provided in the original CV. Never remove, modify, or omit contact "
+    "information under any circumstances."
+)
+
+_CONTACT_SECTION_TERMS = ("contact", "personal information", "candidate information")
+_CONTACT_STOP_HEADINGS = {
+    "summary",
+    "profile",
+    "experience",
+    "work experience",
+    "employment",
+    "skills",
+    "technical skills",
+    "projects",
+    "education",
+}
+_CONTACT_SIGNAL_RE = re.compile(
+    r"@|\+?\d[\d\s().-]{6,}|linkedin|github|portfolio|https?://|www\.",
+    re.IGNORECASE,
+)
+
+_SYSTEM_PROMPT = _CONTACT_PRESERVATION_INSTRUCTION + """\
+
 You are an expert tech resume writer and career coach. Rewrite the candidate's CV
 to maximise interview chances for the specific job description provided.
 
 Core rules - non-negotiable:
+- Always include a contact information section in the JSON output. It must be the first section
+  and must contain the candidate's name, email, phone number, location, LinkedIn, GitHub,
+  portfolio URLs, and any other contact details exactly as they appear in the source CV.
 - PDF format only, two pages max, reverse chronological, one-column layout
 - Active verbs, quantified bullets, and measurable impact wherever the source CV supports it
 - Never fabricate numbers, companies, titles, dates, credentials, employers, or technologies
@@ -61,6 +90,8 @@ Intensity instruction:
 
 Output requirements:
 - Split the CV into logical sections.
+- The first section MUST be contact_information, with original and tailored values identical
+  unless the source CV has no contact details.
 - Include each section's original text verbatim.
 - Include a tailored rewrite for each accepted section.
 - Include "changes" as the "Changes made" explanation: what changed and why.
@@ -95,6 +126,67 @@ def _detect_language(text: str) -> str:
         return detect(text)
     except LangDetectException:
         return "en"
+
+
+def _extract_contact_information(cv_content: str) -> str:
+    collected: list[str] = []
+    has_contact_signal = False
+
+    for line in cv_content.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            if collected:
+                break
+            continue
+
+        normalized = stripped.rstrip(":").lower()
+        if collected and normalized in _CONTACT_STOP_HEADINGS:
+            break
+
+        collected.append(stripped)
+        has_contact_signal = has_contact_signal or bool(_CONTACT_SIGNAL_RE.search(stripped))
+
+    if not has_contact_signal:
+        return ""
+    return "\n".join(collected).strip()
+
+
+def _is_contact_section(section: dict) -> bool:
+    section_id = str(section.get("section_id") or "").replace("_", " ").lower()
+    section_name = str(section.get("section_name") or "").lower()
+    return any(term in section_id or term in section_name for term in _CONTACT_SECTION_TERMS)
+
+
+def _preserve_contact_section(result: dict, cv_content: str) -> dict:
+    sections = result.get("sections")
+    if not isinstance(sections, list):
+        result["sections"] = []
+        sections = result["sections"]
+
+    contact_text = _extract_contact_information(cv_content)
+    for section in sections:
+        if isinstance(section, dict) and _is_contact_section(section):
+            original = contact_text or str(section.get("original") or "")
+            section["section_id"] = section.get("section_id") or "contact_information"
+            section["section_name"] = section.get("section_name") or "Contact Information"
+            section["original"] = original
+            section["tailored"] = original
+            changes = section.get("changes")
+            section["changes"] = changes if isinstance(changes, list) else []
+            return result
+
+    if contact_text:
+        sections.insert(
+            0,
+            {
+                "section_id": "contact_information",
+                "section_name": "Contact Information",
+                "original": contact_text,
+                "tailored": contact_text,
+                "changes": ["Preserved contact information exactly as provided."],
+            },
+        )
+    return result
 
 
 def tailor_cv(
@@ -142,4 +234,4 @@ def tailor_cv(
     except json.JSONDecodeError as exc:
         raise ValueError(f"OpenAI returned non-JSON: {exc}") from exc
     result["language"] = result.get("language") or detected_language
-    return result
+    return _preserve_contact_section(result, cv_content)

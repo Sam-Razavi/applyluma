@@ -286,24 +286,20 @@ export default function CVs() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {cv.file_url && (
-                    <>
-                      <button
-                        onClick={() => cvApi.view(cv.id).catch(() => toast.error('Could not open CV'))}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                        title="View"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => cvApi.download(cv.id, cv.filename).catch(() => toast.error('Could not download CV'))}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                        title="Download"
-                      >
-                        <ArrowDownTrayIcon className="h-4 w-4" />
-                      </button>
-                    </>
-                  )}
+                  <button
+                    onClick={() => cvApi.view(cv.id).catch(() => toast.error('Could not open CV'))}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    title="View"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => cvApi.download(cv.id, cv.filename).catch(() => toast.error('Could not download CV'))}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    title="Download"
+                  >
+                    <ArrowDownTrayIcon className="h-4 w-4" />
+                  </button>
                   <button
                     onClick={() => handleSetDefault(cv)}
                     disabled={cv.is_default}
