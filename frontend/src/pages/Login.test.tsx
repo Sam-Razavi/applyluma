@@ -64,7 +64,7 @@ describe('Login Page', () => {
   });
 
   it('successfully logs in and navigates to dashboard', async () => {
-    const mockToken = { access_token: 'fake-token', token_type: 'bearer' };
+    const mockToken = { access_token: 'fake-token', token_type: 'bearer', refresh_token: 'fake-refresh-token' };
     const mockUser = { id: '1', email: 'test@example.com', full_name: 'Test User' };
 
     vi.mocked(authApi.login).mockResolvedValueOnce(mockToken);
