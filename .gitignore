@@ -89,10 +89,14 @@ GEMINI.md
 # Local editor workspace state
 .obsidian/
 
-# Graphify - commit the graph, ignore local cache/state
+# Graphify - ignore all generated output (large binary/JSON artifacts)
 graphify-out/manifest.json
 graphify-out/cost.json
 graphify-out/cache/
 graphify-out/converted/
 graphify-out/.graphify_labels.json
 graphify-out/.graphify_root
+graphify-out/graph.json
+graphify-out/graph.html
+graphify-out/GRAPH_REPORT.md
+graphify-out/wiki/
