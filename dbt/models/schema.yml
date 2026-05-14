@@ -11,6 +11,11 @@ sources:
     tables:
       - name: raw_job_postings
         description: "Raw job postings scraped from Remotive and The Muse"
+        tests:
+          - dbt_utils.recency:
+              datepart: day
+              field: scraped_at
+              interval: 2
         columns:
           - name: id
             description: "UUID primary key"
@@ -37,7 +42,3 @@ sources:
           - name: scraped_at
             tests:
               - not_null
-              - dbt_utils.recency:
-                  datepart: day
-                  field: scraped_at
-                  interval: 2
