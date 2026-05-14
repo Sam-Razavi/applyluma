@@ -31,6 +31,13 @@ sources:
           - name: description
             tests: [not_null]
           - name: url
-            tests: [not_null]
+            tests:
+              - not_null
+              - is_valid_url
           - name: scraped_at
-            tests: [not_null]
+            tests:
+              - not_null
+              - dbt_utils.recency:
+                  datepart: day
+                  field: scraped_at
+                  interval: 2
