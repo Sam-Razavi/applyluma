@@ -1,5 +1,6 @@
+from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import List
+from typing import AsyncIterator, List
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,12 +16,27 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.dependencies import get_redis_client
 
+_INSECURE_DEFAULT_KEY = "change-me-in-production"
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    if settings.SECRET_KEY == _INSECURE_DEFAULT_KEY:
+        raise RuntimeError(
+            "SECRET_KEY is not configured. "
+            "Set the SECRET_KEY environment variable to a secure random value "
+            "(e.g. openssl rand -hex 32) before starting the server."
+        )
+    yield
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
+    lifespan=lifespan,
 )
 
 # CORS configuration with Vercel preview URL support
