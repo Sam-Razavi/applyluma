@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { AxiosError } from 'axios'
 import {
   ArrowDownTrayIcon,
   ArrowPathIcon,
@@ -71,8 +72,8 @@ export default function AITailor() {
       setJobId(job.id)
       setStep('processing')
       startPolling(job.id)
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail
+    } catch (err: unknown) {
+      const detail = (err as AxiosError<{ detail: string }>)?.response?.data?.detail
       toast.error(detail || 'Failed to start tailoring')
     } finally {
       setSubmitting(false)
@@ -124,8 +125,8 @@ export default function AITailor() {
       setStep('done')
       toast.success('Tailored CV saved')
       tailorApi.getUsage().then(setUsage).catch(() => undefined)
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed to save tailored CV')
+    } catch (err: unknown) {
+      toast.error((err as AxiosError<{ detail: string }>)?.response?.data?.detail || 'Failed to save tailored CV')
     } finally {
       setSaving(false)
     }
