@@ -87,7 +87,7 @@ describe('Login Page', () => {
         password: 'password123',
       });
       expect(authApi.me).toHaveBeenCalled();
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
       expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Welcome back, Test'));
     });
 

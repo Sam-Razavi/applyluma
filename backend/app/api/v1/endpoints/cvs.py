@@ -144,7 +144,7 @@ async def upload_cv(
         content = parse_cv(file_path, ext)
     except Exception:
         file_path.unlink(missing_ok=True)
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Could not extract text from the file. Make sure it is not password-protected.",
         )

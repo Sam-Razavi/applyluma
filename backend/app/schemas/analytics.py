@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from enum import Enum
-from typing import Any, Generic, Optional, TypeVar
+from enum import StrEnum
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,10 +20,10 @@ from pydantic import BaseModel, ConfigDict, Field
 class AnalyticsOverview(BaseModel):
     total_jobs: int
     remote_percentage: float
-    avg_salary_min: Optional[int] = None
-    avg_salary_max: Optional[int] = None
-    top_skill: Optional[str] = None
-    last_updated: Optional[datetime] = None
+    avg_salary_min: int | None = None
+    avg_salary_max: int | None = None
+    top_skill: str | None = None
+    last_updated: datetime | None = None
 
 
 class CompanyStat(BaseModel):
@@ -46,11 +46,11 @@ class RecentJob(BaseModel):
     id: str
     title: str
     company: str
-    location: Optional[str] = None
+    location: str | None = None
     url: str
     remote_allowed: bool
-    employment_type: Optional[str] = None
-    extracted_skills: Optional[list[str]] = None
+    employment_type: str | None = None
+    extracted_skills: list[str] | None = None
     scraped_at: datetime
 
 
@@ -66,13 +66,13 @@ class ResponseMetadata(BaseModel):
     )
     sample_size: int = Field(description="Number of job postings included in this result")
     applied_filters: dict[str, Any] = Field(default_factory=dict)
-    next_update: Optional[datetime] = None
+    next_update: datetime | None = None
 
 
 class ErrorDetail(BaseModel):
     code: str = Field(description="Machine-readable error code, e.g. INVALID_PARAMS")
     message: str = Field(description="Human-readable description of the error")
-    details: Optional[dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
 
 class AnalyticsResponse(BaseModel, Generic[T]):
@@ -81,27 +81,27 @@ class AnalyticsResponse(BaseModel, Generic[T]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     success: bool
-    data: Optional[T] = None
-    metadata: Optional[ResponseMetadata] = None
-    error: Optional[ErrorDetail] = None
+    data: T | None = None
+    metadata: ResponseMetadata | None = None
+    error: ErrorDetail | None = None
 
 
 # ── 3. Phase 6: Enums ─────────────────────────────────────────────────────────
 
 
-class TrendDirection(str, Enum):
+class TrendDirection(StrEnum):
     up = "up"
     down = "down"
     stable = "stable"
 
 
-class Granularity(str, Enum):
+class Granularity(StrEnum):
     daily = "daily"
     weekly = "weekly"
     monthly = "monthly"
 
 
-class ExperienceLevel(str, Enum):
+class ExperienceLevel(StrEnum):
     junior = "junior"
     mid = "mid"
     senior = "senior"
@@ -117,8 +117,8 @@ class SkillTrend(BaseModel):
     skill: str
     frequency: int = Field(description="Number of job postings mentioning this skill")
     frequency_pct: float = Field(description="Percentage of all jobs that mention this skill")
-    avg_salary_min: Optional[int] = Field(None, description="Average advertised salary floor across jobs with this skill")
-    avg_salary_max: Optional[int] = Field(None, description="Average advertised salary ceiling across jobs with this skill")
+    avg_salary_min: int | None = Field(None, description="Average advertised salary floor across jobs with this skill")
+    avg_salary_max: int | None = Field(None, description="Average advertised salary ceiling across jobs with this skill")
     trending_score_pct: float = Field(
         description="Week-over-week demand change in percent. Positive = growing demand."
     )
@@ -135,13 +135,13 @@ class SalaryInsightItem(BaseModel):
         description="What dimension was used (e.g. 'location', 'experience_level', 'overall')"
     )
     dimension_value: str = Field(description="The value of the dimension (e.g. 'London', 'senior')")
-    p25_salary: Optional[int] = None
-    p50_salary: Optional[int] = None
-    p75_salary: Optional[int] = None
-    p90_salary: Optional[int] = None
-    avg_salary: Optional[int] = None
-    min_salary_floor: Optional[int] = None
-    max_salary_ceiling: Optional[int] = None
+    p25_salary: int | None = None
+    p50_salary: int | None = None
+    p75_salary: int | None = None
+    p90_salary: int | None = None
+    avg_salary: int | None = None
+    min_salary_floor: int | None = None
+    max_salary_ceiling: int | None = None
     job_count: int
 
 
@@ -157,7 +157,7 @@ class HiringPatternPoint(BaseModel):
     job_count: int
     remote_count: int
     remote_percentage: float
-    avg_salary: Optional[int] = None
+    avg_salary: int | None = None
 
 
 # ── 7. Endpoint 4: GET /company-insights ─────────────────────────────────────
@@ -168,9 +168,9 @@ class CompanyInsight(BaseModel):
     total_jobs: int
     remote_jobs: int
     remote_percentage: float
-    avg_salary_min: Optional[int] = None
-    avg_salary_max: Optional[int] = None
-    most_common_employment_type: Optional[str] = None
+    avg_salary_min: int | None = None
+    avg_salary_max: int | None = None
+    most_common_employment_type: str | None = None
     first_seen_date: str = Field(description="YYYY-MM-DD")
     last_seen_date: str = Field(description="YYYY-MM-DD")
     hiring_velocity: float = Field(
@@ -185,7 +185,7 @@ class JobMarketHealth(BaseModel):
     total_jobs: int
     unique_companies: int
     remote_percentage: float
-    avg_salary_midpoint: Optional[int] = None
+    avg_salary_midpoint: int | None = None
     senior_role_pct: float
     junior_role_pct: float
     management_role_pct: float
@@ -194,7 +194,7 @@ class JobMarketHealth(BaseModel):
     data_date_range_days: int = Field(
         description="Number of days covered by the underlying data"
     )
-    last_updated: Optional[datetime] = None
+    last_updated: datetime | None = None
 
 
 # ── 9. Endpoint 6: GET /skill-demand ─────────────────────────────────────────
@@ -208,8 +208,8 @@ class SkillDemand(BaseModel):
     trending_score_pct: float = Field(
         description="Week-over-week change percent. 100.0 means skill is new this week."
     )
-    avg_salary_min: Optional[int] = None
-    avg_salary_max: Optional[int] = None
+    avg_salary_min: int | None = None
+    avg_salary_max: int | None = None
     trend: TrendDirection
 
 
@@ -220,8 +220,8 @@ class LocationTrend(BaseModel):
     location: str
     job_count: int
     pct_of_total: float
-    avg_salary_midpoint: Optional[int] = None
-    remote_percentage: Optional[float] = None
+    avg_salary_midpoint: int | None = None
+    remote_percentage: float | None = None
 
 
 # ── 11. Endpoint 8: GET /industry-breakdown ──────────────────────────────────
@@ -236,8 +236,8 @@ class IndustryBreakdown(BaseModel):
     industry: str
     job_count: int
     pct_of_total: float
-    avg_salary_min: Optional[int] = None
-    avg_salary_max: Optional[int] = None
+    avg_salary_min: int | None = None
+    avg_salary_max: int | None = None
     remote_percentage: float
 
 
@@ -248,8 +248,8 @@ class ExperienceLevelBreakdown(BaseModel):
     level: ExperienceLevel
     job_count: int
     pct_of_total: float
-    avg_salary_min: Optional[int] = None
-    avg_salary_max: Optional[int] = None
+    avg_salary_min: int | None = None
+    avg_salary_max: int | None = None
     remote_percentage: float
 
 
@@ -261,8 +261,8 @@ class JobTypeMixItem(BaseModel):
     remote_label: str = Field(description="'remote', 'on-site', or 'hybrid/unknown'")
     job_count: int
     pct_of_total: float
-    avg_salary_min: Optional[int] = None
-    avg_salary_max: Optional[int] = None
+    avg_salary_min: int | None = None
+    avg_salary_max: int | None = None
 
 
 # ── 14. Endpoint 11: GET /salary-by-skill ────────────────────────────────────
@@ -270,13 +270,13 @@ class JobTypeMixItem(BaseModel):
 
 class SalaryBySkill(BaseModel):
     skill: str
-    avg_salary: Optional[int] = None
-    p25_salary: Optional[int] = None
-    p50_salary: Optional[int] = None
-    p75_salary: Optional[int] = None
-    p90_salary: Optional[int] = None
-    min_salary_floor: Optional[int] = None
-    max_salary_ceiling: Optional[int] = None
+    avg_salary: int | None = None
+    p25_salary: int | None = None
+    p50_salary: int | None = None
+    p75_salary: int | None = None
+    p90_salary: int | None = None
+    min_salary_floor: int | None = None
+    max_salary_ceiling: int | None = None
     job_count: int
 
 
@@ -289,8 +289,8 @@ class SkillGap(BaseModel):
     market_demand_rank: int = Field(description="Rank among all known skills by total job mentions (1 = most in-demand)")
     total_market_mentions: int
     trending_score_pct: float
-    avg_salary_min: Optional[int] = None
-    avg_salary_max: Optional[int] = None
+    avg_salary_min: int | None = None
+    avg_salary_max: int | None = None
     trend: TrendDirection
 
 
@@ -305,7 +305,7 @@ class ResumeComparison(BaseModel):
     skill_details: list[SkillGap] = Field(
         description="Full detail for each skill extracted from the resume"
     )
-    market_salary_benchmark: Optional[SalaryInsightItem] = Field(
+    market_salary_benchmark: SalaryInsightItem | None = Field(
         None,
         description="Overall salary percentiles for jobs matching the resume's top skills"
     )
