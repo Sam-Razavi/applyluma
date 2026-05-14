@@ -1,6 +1,6 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import AsyncIterator, List
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -40,7 +40,7 @@ app = FastAPI(
 )
 
 # CORS configuration with Vercel preview URL support
-static_origins: List[str] = settings.BACKEND_CORS_ORIGINS
+static_origins: list[str] = settings.BACKEND_CORS_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
