@@ -19,7 +19,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-mock
-          pip install "apache-airflow==2.7.0" apache-airflow-providers-postgres \
+          pip install "apache-airflow==2.7.0" "pendulum<3.0" apache-airflow-providers-postgres \
             "psycopg2-binary>=2.9.0" "requests>=2.31.0" "beautifulsoup4>=4.12.0" "pandas>=2.0.0"
       - name: Run Airflow Integrity Tests
         run: |
@@ -40,7 +40,7 @@ jobs:
           python-version: '3.11'
       - name: Install dbt
         run: |
-          pip install dbt-postgres
+          pip install "dbt-postgres>=1.7.0,<1.8.0"
       - name: Install dbt packages
         run: |
           cd dbt
