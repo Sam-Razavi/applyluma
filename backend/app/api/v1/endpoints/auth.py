@@ -69,7 +69,7 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
         if user_id is None:
             raise credentials_exception
     except JWTError:
-        raise credentials_exception
+        raise credentials_exception from None
 
     user = crud_user.get_by_id(db, user_id)
     if not user or not user.is_active:
