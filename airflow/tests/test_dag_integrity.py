@@ -36,7 +36,8 @@ def test_dag_cycle_check(dagbag):
     Tests that no DAG contains a cycle (which would prevent it from running).
     """
     for dag_id, dag in dagbag.dags.items():
-        dag.test_cycle()  # Raises AirflowDagCycleException if a cycle exists
+        # dag.validate() replaces the removed test_cycle() from Airflow 1.x
+        dag.validate()
 
 
 def test_dag_parameters(dagbag):
@@ -45,6 +46,8 @@ def test_dag_parameters(dagbag):
     """
     for dag_id, dag in dagbag.dags.items():
         assert dag.owner == "applyluma", f"DAG {dag_id} has wrong owner"
-        assert dag.retries >= 1, f"DAG {dag_id} should have at least 1 retry"
+        # retries is a task-level attribute set via default_args, not on DAG itself
+        retries = dag.default_args.get("retries", 0)
+        assert retries >= 1, f"DAG {dag_id} should have at least 1 retry"
         assert len(dag.tags) > 0, f"DAG {dag_id} should have tags"
         assert dag.catchup is False, f"DAG {dag_id} should have catchup=False"
