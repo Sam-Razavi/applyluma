@@ -80,7 +80,8 @@ PHASE7_ANALYTICS_TEST_RESULTS.md
 phase7-test-screenshots/
 
 # Local AI assistant/tooling config
-.claude/settings.json
+# settings.json is project-level (hooks, permissions) — committed intentionally
+# settings.local.json is personal per-developer overrides — not committed
 .claude/settings.local.json
 .codex/
 AGENTS.md
