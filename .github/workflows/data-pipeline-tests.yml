@@ -1,0 +1,51 @@
+name: Data Pipeline Tests
+
+on:
+  push:
+    branches: [ main, dev, 'feature/data-pipeline-tests' ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  airflow-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-mock
+          pip install "apache-airflow==2.7.0" "pendulum<3.0" apache-airflow-providers-postgres \
+            "psycopg2-binary>=2.9.0" "requests>=2.31.0" "beautifulsoup4>=4.12.0" "pandas>=2.0.0"
+      - name: Run Airflow Integrity Tests
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)/airflow/dags:$(pwd)/airflow/plugins
+          pytest airflow/tests/test_dag_integrity.py
+      - name: Run Airflow Logic Tests
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)/airflow/dags:$(pwd)/airflow/plugins
+          pytest airflow/tests/test_dag_logic.py
+
+  dbt-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dbt
+        run: |
+          pip install "dbt-postgres>=1.7.0,<1.8.0"
+      - name: Install dbt packages
+        run: |
+          cd dbt
+          dbt deps --profiles-dir .
+      - name: dbt Parse
+        run: |
+          cd dbt
+          dbt parse --profiles-dir .
