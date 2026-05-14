@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import sys
 from datetime import datetime, timedelta
@@ -11,6 +12,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "plugins"))
 sys.path.insert(0, "/opt/airflow/plugins")
 from job_scrapers.remotive_client import RemotiveClient
 from job_scrapers.the_muse_client import TheMuseClient
