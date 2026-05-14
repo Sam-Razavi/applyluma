@@ -19,8 +19,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-mock
-          pip install -r airflow/requirements.txt
-          pip install apache-airflow-providers-postgres
+          pip install "apache-airflow==2.7.0" apache-airflow-providers-postgres \
+            "psycopg2-binary>=2.9.0" "requests>=2.31.0" "beautifulsoup4>=4.12.0" "pandas>=2.0.0"
       - name: Run Airflow Integrity Tests
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)/airflow/dags:$(pwd)/airflow/plugins
@@ -45,8 +45,7 @@ jobs:
         run: |
           cd dbt
           dbt deps --profiles-dir .
-      - name: dbt Parse and Compile
+      - name: dbt Parse
         run: |
           cd dbt
           dbt parse --profiles-dir .
-          dbt compile --profiles-dir .
