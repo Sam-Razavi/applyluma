@@ -15,7 +15,7 @@ export default function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="flex h-64 flex-col items-center justify-center px-6 text-center">
+    <div className="flex h-48 flex-col items-center justify-center px-6 text-center md:h-72">
       <div className="mb-4 rounded-full bg-gray-100 p-4">
         <ChartBarIcon className="h-8 w-8 text-gray-400" aria-hidden="true" />
       </div>

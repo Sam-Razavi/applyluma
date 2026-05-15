@@ -25,8 +25,9 @@ export default function SalaryBySkillChart({ data }: Props) {
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={450}>
-        <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 40, left: 140, bottom: 5 }}>
+      <div className="h-48 w-full md:h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 24, left: 80, bottom: 5 }}>
           <XAxis type="number" tickFormatter={(value) => formatCompactCurrency(Number(value))} tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
           <YAxis type="category" dataKey="name" width={110} tick={CHART_DARK_AXIS_TICK} axisLine={false} tickLine={false} />
           <Tooltip
@@ -42,8 +43,9 @@ export default function SalaryBySkillChart({ data }: Props) {
               <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
             ))}
           </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
       <p id="salary-by-skill-desc" className="sr-only">
         Horizontal bar chart showing top paying skills by average salary.
       </p>

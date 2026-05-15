@@ -229,13 +229,13 @@ export default function Jobs() {
                   <div className="h-10 w-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0">
                     <BriefcaseIcon className="h-5 w-5 text-violet-600" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 text-sm leading-snug">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-semibold leading-snug text-gray-900">
                       {job.job_title}
                     </h3>
-                    <p className="text-sm text-gray-500">{job.company_name}</p>
+                    <p className="truncate text-sm text-gray-500">{job.company_name}</p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
                     <span className="text-xs text-gray-400 hidden sm:block">
                       {formatDate(job.created_at)}
                     </span>

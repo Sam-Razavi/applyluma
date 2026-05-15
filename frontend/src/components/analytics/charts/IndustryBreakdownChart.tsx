@@ -26,8 +26,9 @@ export default function IndustryBreakdownChart({ data }: Props) {
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={320}>
-        <PieChart>
+      <div className="h-48 w-full md:h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
           <Pie
             data={chartData}
             cx="50%"
@@ -52,8 +53,9 @@ export default function IndustryBreakdownChart({ data }: Props) {
             contentStyle={CHART_TOOLTIP_STYLE}
           />
           <Legend verticalAlign="bottom" height={60} wrapperStyle={{ fontSize: '12px', paddingTop: '16px' }} iconType="circle" />
-        </PieChart>
-      </ResponsiveContainer>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
       <p id="industry-breakdown-desc" className="sr-only">
         Donut chart showing job postings by derived industry segment.
       </p>
