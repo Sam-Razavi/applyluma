@@ -14,6 +14,7 @@ import Applications from './pages/Applications'
 import JobSearch from './pages/JobSearch'
 import AITailor from './pages/AITailor'
 import Analytics from './pages/Analytics'
+import Discover from './pages/Discover'
 import Plans from './pages/Plans'
 import BillingSuccess from './pages/BillingSuccess'
 import BillingCancel from './pages/BillingCancel'
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="cvs" element={<CVs />} />
             <Route path="jobs" element={<Jobs />} />
+            <Route path="discover" element={<Discover />} />
             <Route path="job-search" element={<JobSearch />} />
             <Route path="applications" element={<Applications />} />
             <Route path="ai-tailor" element={<AITailor />} />
