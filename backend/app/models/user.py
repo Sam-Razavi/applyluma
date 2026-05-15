@@ -11,6 +11,7 @@ from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.cv import CV
+    from app.models.job import JobMatchingScore, SavedJob
     from app.models.job_description import JobDescription
     from app.models.notification import Notification
     from app.models.tailor_job import TailorJob
@@ -58,4 +59,10 @@ class User(Base, TimestampMixin):
     )
     notifications: Mapped[list["Notification"]] = relationship(
         "Notification", back_populates="user", cascade="all, delete-orphan"
+    )
+    saved_jobs: Mapped[list["SavedJob"]] = relationship(
+        "SavedJob", back_populates="user", cascade="all, delete-orphan"
+    )
+    matching_scores: Mapped[list["JobMatchingScore"]] = relationship(
+        "JobMatchingScore", back_populates="user", cascade="all, delete-orphan"
     )

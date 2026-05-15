@@ -37,6 +37,8 @@ out/
 
 # Railway credentials (Phase 8)
 .env.railway
+airflow/.env.airflow
+airflow/logs/
 
 # IDE
 .vscode/*
