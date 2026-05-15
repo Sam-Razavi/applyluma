@@ -73,7 +73,7 @@ const initialErrors = LOAD_KEYS.reduce(
 )
 
 function chartFallback() {
-  return <div className="h-64 animate-pulse rounded-lg bg-gray-100" aria-hidden="true" />
+  return <div className="h-48 animate-pulse rounded-lg bg-gray-100 md:h-72" aria-hidden="true" />
 }
 
 function getErrorMessage(error: unknown): string {

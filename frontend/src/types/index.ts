@@ -5,6 +5,9 @@ export interface User {
   is_active: boolean
   is_verified: boolean
   role: 'user' | 'admin' | 'premium'
+  stripe_customer_id?: string | null
+  subscription_status?: string | null
+  subscription_ends_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -39,6 +42,26 @@ export interface CV {
   tailor_job_id: string | null
   created_at: string
   updated_at: string
+}
+
+export interface CVVersionNode {
+  id: string
+  title: string
+  is_tailored: boolean
+  created_at: string
+  children: CVVersionNode[]
+}
+
+export interface CVDiffSection {
+  name: string
+  original: string
+  tailored: string
+  changes: number
+}
+
+export interface CVDiffResponse {
+  cv_id: string
+  sections: CVDiffSection[]
 }
 
 export interface JobDescription {

@@ -1,22 +1,43 @@
+import logging
+import time
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 
+import sentry_sdk
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.routing import APIRoute
 from jose import JWTError, jwt
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from app.api.v1.endpoints.analytics import router as analytics_router
+from app.api.v1.endpoints.applications import router as applications_router
 from app.api.v1.endpoints.auth import router as auth_router
+from app.api.v1.endpoints.billing import router as billing_router
 from app.api.v1.endpoints.cvs import router as cvs_router
+from app.api.v1.endpoints.health import router as health_router
+from app.api.v1.endpoints.job_search import router as job_search_router
+from app.api.v1.endpoints.notifications import router as notifications_router
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.dependencies import get_redis_client
+from app.core.logging_config import setup_logging
 
 _INSECURE_DEFAULT_KEY = "change-me-in-production"
+request_logger = logging.getLogger("app.requests")
+
+setup_logging()
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        integrations=[FastApiIntegration()],
+        traces_sample_rate=0.1,
+    )
 
 
 @asynccontextmanager
@@ -50,6 +71,53 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _user_id_from_request(request: Request) -> str | None:
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    try:
+        payload = jwt.decode(auth.split(" ", 1)[1], settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("type") == "access" and payload.get("sub"):
+        return str(payload["sub"])
+    return None
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+    request.state.request_id = request_id
+    user_id = _user_id_from_request(request)
+    started = time.perf_counter()
+    log_extra = {
+        "request_id": request_id,
+        "path": request.url.path,
+        "method": request.method,
+        "duration_ms": None,
+        "user_id": user_id,
+    }
+    request_logger.info("request_start", extra=log_extra)
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = round((time.perf_counter() - started) * 1000, 2)
+        request_logger.exception(
+            "request_error",
+            extra={**log_extra, "duration_ms": duration_ms},
+        )
+        raise
+
+    duration_ms = round((time.perf_counter() - started) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    request_logger.info(
+        "request_end",
+        extra={**log_extra, "duration_ms": duration_ms},
+    )
+    return response
 
 
 @app.middleware("http")
@@ -91,6 +159,11 @@ async def analytics_rate_limit(request: Request, call_next):
     return await call_next(request)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(applications_router, prefix=settings.API_V1_STR, tags=["applications"])
+app.include_router(health_router, prefix=settings.API_V1_STR)
+app.include_router(job_search_router, prefix=settings.API_V1_STR, tags=["jobs"])
+app.include_router(billing_router, prefix=settings.API_V1_STR, tags=["billing"])
+app.include_router(notifications_router, prefix=settings.API_V1_STR, tags=["notifications"])
 
 
 compat_router = APIRouter(include_in_schema=False)
@@ -154,4 +227,4 @@ app.include_router(compat_router)
 
 @app.get("/health", tags=["health"])
 async def health_check() -> dict[str, str]:
-    return {"status": "healthy", "version": settings.VERSION}
+    return {"status": "ok", "version": settings.VERSION}

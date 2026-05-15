@@ -27,8 +27,9 @@ export default function SalaryInsightsChart({ data }: Props) {
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData} margin={{ top: 20, right: 24, left: 0, bottom: 56 }}>
+      <div className="h-48 w-full md:h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 20, right: 24, left: 0, bottom: 56 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
           <XAxis dataKey="category" angle={-35} textAnchor="end" height={72} tick={{ fontSize: 11, fill: '#6b7280' }} interval={0} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
           <YAxis tickFormatter={(value) => formatCompactCurrency(Number(value))} tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
@@ -40,8 +41,9 @@ export default function SalaryInsightsChart({ data }: Props) {
           <ReferenceLine y={average} stroke="#6366f1" strokeDasharray="3 3" />
           <Bar dataKey="p25" fill="#e5e7eb" stackId="salary" />
           <Bar dataKey="median" fill="#4f46e5" stackId="salary" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
       <p id="salary-insights-desc" className="sr-only">
         Bar chart comparing salary percentiles across market segments.
       </p>

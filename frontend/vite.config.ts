@@ -1,9 +1,25 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
+
+const sentryEnabled = Boolean(process.env.SENTRY_AUTH_TOKEN)
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    ...(sentryEnabled
+      ? [
+          sentryVitePlugin({
+            org: process.env.SENTRY_ORG ?? 'applyluma',
+            project: process.env.SENTRY_PROJECT ?? 'applyluma-frontend',
+          }),
+        ]
+      : []),
+  ],
+  build: {
+    sourcemap: sentryEnabled,
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

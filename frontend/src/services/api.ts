@@ -4,6 +4,8 @@ import type {
   AnalyticsEnvelope,
   CompanyInsight,
   CV,
+  CVDiffResponse,
+  CVVersionNode,
   ExperienceLevel,
   ExperienceLevelBreakdown,
   Granularity,
@@ -104,6 +106,12 @@ export const cvApi = {
     window.open(url, '_blank')
     setTimeout(() => URL.revokeObjectURL(url), 30000)
   },
+
+  getHistory: (cvId: string): Promise<CVVersionNode> =>
+    client.get<CVVersionNode>(`/api/v1/cvs/${cvId}/history`).then((r) => r.data),
+
+  getDiff: (cvId: string): Promise<CVDiffResponse> =>
+    client.get<CVDiffResponse>(`/api/v1/cvs/${cvId}/diff`).then((r) => r.data),
 }
 
 export const jobApi = {

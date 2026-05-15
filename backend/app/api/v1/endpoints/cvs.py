@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.crud import cv as crud_cv
 from app.models.user import User
-from app.schemas.cv import CVPublic, CVSummary, CVUpdate
+from app.schemas.cv import CVDiffResponse, CVPublic, CVSummary, CVUpdate, CVVersionNode
 from app.services.cv_parser import parse_cv
 from app.services.pdf_generator import generate_cv_pdf
 
@@ -172,6 +172,45 @@ def list_cvs(
     db: Session = Depends(get_db),
 ) -> list[CVSummary]:
     return crud_cv.list_for_user(db, current_user.id)
+
+
+@router.get("/{cv_id}/history", response_model=CVVersionNode)
+def get_cv_history(
+    cv_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CVVersionNode:
+    cv = crud_cv.get_by_id(db, cv_id, current_user.id)
+    if not cv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+
+    root_cv = cv
+    visited = {cv.id}
+    while root_cv.parent_cv_id:
+        if root_cv.parent_cv_id in visited:
+            break
+        parent = crud_cv.get_by_id(db, root_cv.parent_cv_id, current_user.id)
+        if not parent:
+            break
+        visited.add(parent.id)
+        root_cv = parent
+
+    version_tree = crud_cv.get_version_tree(db, root_cv.id)
+    if not version_tree:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV history not found")
+    return version_tree
+
+
+@router.get("/{cv_id}/diff", response_model=CVDiffResponse)
+def get_cv_diff(
+    cv_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CVDiffResponse:
+    diff = crud_cv.get_cv_diff(db, cv_id, current_user.id)
+    if not diff:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV diff not found")
+    return diff
 
 
 @router.get("/{cv_id}", response_model=CVPublic)

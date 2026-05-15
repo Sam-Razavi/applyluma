@@ -11,6 +11,7 @@ from app.db.session import SessionLocal
 from app.models.cv import CV
 from app.models.job_description import JobDescription
 from app.models.tailor_job import TailorJob, TailorStatus
+from app.services import notification_service
 from app.services.tailor_service import tailor_cv
 from app.tasks.celery_app import celery_app
 
@@ -73,6 +74,17 @@ def run_tailoring(self, job_id: str) -> dict[str, Any]:
             job,
             result_json=result,
             language=result.get("language", "en"),
+        )
+        notification_service.create_notification(
+            db,
+            user_id=job.user_id,
+            type="tailor_complete",
+            title="Your tailored CV is ready",
+            body="Your AI-tailored CV has finished processing.",
+            related_id=job.id,
+            related_type="tailor_job",
+            send_email=True,
+            email=getattr(getattr(job, "user", None), "email", None),
         )
 
         return {"status": "complete", "job_id": job_id}
