@@ -21,7 +21,9 @@ from app.api.v1.endpoints.billing import router as billing_router
 from app.api.v1.endpoints.cvs import router as cvs_router
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.job_search import router as job_search_router
+from app.api.v1.endpoints.jobs import router as jobs_discovery_router
 from app.api.v1.endpoints.notifications import router as notifications_router
+from app.api.v1.endpoints.saved_jobs import router as saved_jobs_router
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.dependencies import get_redis_client
@@ -162,6 +164,8 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(applications_router, prefix=settings.API_V1_STR, tags=["applications"])
 app.include_router(health_router, prefix=settings.API_V1_STR)
 app.include_router(job_search_router, prefix=settings.API_V1_STR, tags=["jobs"])
+app.include_router(jobs_discovery_router, prefix=settings.API_V1_STR, tags=["jobs-discovery"])
+app.include_router(saved_jobs_router, prefix=settings.API_V1_STR, tags=["saved-jobs"])
 app.include_router(billing_router, prefix=settings.API_V1_STR, tags=["billing"])
 app.include_router(notifications_router, prefix=settings.API_V1_STR, tags=["notifications"])
 
