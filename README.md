@@ -7,25 +7,28 @@ AI-powered job search and resume optimization platform with production analytics
 - Production: https://applyluma.com
 - Backend API: https://applyluma-production.up.railway.app
 - API docs: https://applyluma-production.up.railway.app/docs
-- Current status: Phase 9 complete
-- Next phase: Phase 10 planning
+- Current status: Phase 10A complete
+- Next phase: Phase 10B planning
 
 ApplyLuma is live in production. All major features are working, including the
-analytics dashboard and the AI CV Tailor. Phase 9 delivered end-to-end CV
-tailoring: users select a CV and job description, an async Celery worker
-rewrites CV sections using OpenAI, users review section diffs, and the
-tailored PDF is saved and available for download.
+analytics dashboard, the AI CV Tailor, and the new Swedish job discovery feed
+with AI-powered match scoring. Phase 10A delivered end-to-end job discovery:
+Airflow scrapes Swedish job boards daily, an AI scoring engine ranks jobs against
+each user's CV, and users can browse, filter, save, and star jobs from a
+responsive discovery feed.
 
 ## Overview
 
 ApplyLuma helps job seekers search jobs, manage resumes, tailor CVs with AI,
-and compare their profile against market analytics.
+discover AI-matched Swedish jobs, and compare their profile against market analytics.
 
 Core capabilities:
 - JWT authentication
 - Resume upload and AI resume analysis
 - AI CV Tailor: async section-by-section CV rewriting against a job description
 - Authenticated PDF download for all CVs (uploaded and tailored)
+- Swedish job discovery with AI match scoring against your CV
+- Saved jobs collection with named lists, starring, and notes
 - Job search through Adzuna
 - Job description management
 - Market analytics dashboard
@@ -53,7 +56,8 @@ Data:
 - Railway PostgreSQL for production analytics data
 
 AI and external APIs:
-- OpenAI API for resume analysis and CV tailoring
+- OpenAI API for resume analysis, CV tailoring, and job match scoring
+- JobTech Dev API (Platsbanken) for Swedish job data — free, no key required
 - Adzuna API for job search
 - Celery + Redis for async tailoring jobs
 - ReportLab for PDF generation
@@ -178,33 +182,40 @@ curl https://applyluma-production.up.railway.app/api/v1/analytics/job-market-hea
 ## Features
 
 Completed:
-- User authentication
+- User authentication (JWT, refresh tokens)
 - Resume upload and parsing
 - AI resume analysis
-- Job search
+- Job search through Adzuna
 - Job description management
-- Analytics API
-- Analytics dashboard
-- Production deployment
-- Production data pipeline
+- Analytics API and dashboard
+- Production deployment on Railway + Vercel
+- Production data pipeline (Airflow + dbt, daily at 2–3 AM UTC)
 - AI CV Tailor (Phase 9): async rewriting, section review, PDF save and download
 - Authenticated CV download for all CVs (uploaded and tailored)
+- Swedish job discovery (Phase 10A):
+  - Paginated, filterable job feed from Platsbanken, Jobbsafari, and Indeed.se
+  - AI match scoring against user's CV (skills, experience, salary, education, location)
+  - Keyword extraction with type classification and confidence scores
+  - Saved jobs with named collections, starring, notes, and detail modal
+  - Mobile-responsive filters (collapsible sidebar)
+  - Redis caching: 24h match scores, 7d keywords, 1h job feed
 
 Ready for planning:
-- Phase 10: application tracking improvements, mobile polish, monitoring and
-  alerting, or premium subscription flow
+- Phase 10B: one-click CV tailoring from discovered jobs, email alerts for
+  high-match jobs, application tracking integration with the Discover feed
 
 ## Project Structure
 
 ```text
 applyluma/
-|-- backend/      FastAPI application, models, schemas, migrations, services
-|-- frontend/     React and TypeScript application
+|-- backend/      FastAPI application, models, schemas, migrations, services, tests
+|-- frontend/     React + TypeScript application and component tests
 |-- airflow/      Airflow DAGs for scraping and transforms
 |-- dbt/          dbt analytics project
 |-- docker/       Local Docker support
-|-- deployment/   Deployment and production operation docs
-`-- graphify-out/ Knowledge graph for codebase navigation
+|-- deployment/   Deployment and production operation guides
+|-- docs/         Feature and deployment documentation
+`-- graphify-out/ Knowledge graph for codebase navigation (gitignored)
 ```
 
 ## Environment Variables
