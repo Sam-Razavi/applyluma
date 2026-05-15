@@ -1,4 +1,5 @@
-import { FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { useState } from 'react'
+import { ChevronDownIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import type { JobFilters } from '../../types/jobDiscovery'
 import { JOB_SOURCES, SOURCE_LABELS } from '../../types/jobDiscovery'
 
@@ -36,6 +37,8 @@ function hasActiveFilters(f: JobFilters): boolean {
 }
 
 export default function JobFilters({ filters, onChange, onReset }: Props) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
   function set(key: keyof JobFilters, value: string) {
     onChange({ ...filters, [key]: value })
   }
@@ -43,12 +46,26 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
   const active = hasActiveFilters(filters)
 
   return (
-    <aside className="w-full space-y-5 rounded-2xl border border-gray-200 bg-white p-5 lg:w-64 lg:shrink-0">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+    <aside className="w-full rounded-2xl border border-gray-200 bg-white lg:w-64 lg:shrink-0">
+      {/* Header — always visible, toggles body on mobile */}
+      <div className="flex items-center justify-between p-5">
+        <button
+          type="button"
+          onClick={() => setMobileOpen((o) => !o)}
+          className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 lg:cursor-default"
+          aria-expanded={mobileOpen}
+        >
           <FunnelIcon className="h-4 w-4" />
           Filters
-        </span>
+          {active && (
+            <span className="ml-1 rounded-full bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-700 lg:hidden">
+              On
+            </span>
+          )}
+          <ChevronDownIcon
+            className={`h-4 w-4 text-gray-400 transition-transform lg:hidden ${mobileOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
         {active && (
           <button
             type="button"
@@ -61,7 +78,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className={`space-y-4 px-5 pb-5 ${mobileOpen ? 'block' : 'hidden'} lg:block`}>
         {/* Sort */}
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">Sort by</label>
