@@ -8,23 +8,40 @@ ApplyLuma repository.
 - ApplyLuma is an AI-powered job search and resume optimization platform.
 - Production frontend: https://applyluma.com
 - Production backend: https://applyluma-production.up.railway.app
-- Status: Phase 9 complete + test infrastructure complete. Production is 100% functional.
+- Status: Phase 10A complete. Production is 100% functional.
 - All major features are working, including authentication, resume analysis, job
-  search, job description management, the analytics dashboard, and AI CV Tailor.
+  search, job description management, the analytics dashboard, AI CV Tailor, and
+  Swedish job discovery with AI-powered match scoring.
 
 ## Current Phase
 
 - Phase 8: ✅ COMPLETE
 - Phase 9: ✅ COMPLETE
 - Test Infrastructure: ✅ COMPLETE
-- Phase 10: Ready to start
-- Phase 9 delivered the AI CV Tailor feature end-to-end:
+- Phase 10A: ✅ COMPLETE — Swedish Job Discovery & AI-Powered Job Matching
+- Phase 10B: Ready to plan
+
+Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Celery worker tailors CV sections against a job description using OpenAI.
   - Users review section diffs, accept/reject changes, and save a tailored PDF.
   - Authenticated download endpoints serve PDFs for both uploaded and tailored CVs.
   - Tailored CVs appear in the My CVs tab with working view and download buttons.
   - Daily tailoring limits enforced per user role (user: 1, premium: 10, admin: unlimited).
   - Alembic migrations for tailor_jobs table and user role column included.
+
+Phase 10A delivered Swedish job discovery end-to-end:
+  - Airflow scrapes Platsbanken, Jobbsafari, and Indeed.se daily at 2 AM UTC.
+  - AI match scoring compares each job against the user's CV (skills, experience,
+    salary, education, location) and caches results in Redis (24h TTL).
+  - Keyword extraction (technical skills, frameworks, tools, soft skills, languages,
+    certifications) stored in extracted_keywords with 7-day cache.
+  - Discover page (/discover): filterable, paginated job feed with match score bars.
+  - Saved Jobs page (/saved-jobs): bookmark jobs into named collections, star/delete,
+    open detail modal, collection tabs filter view.
+  - JobFilters sidebar collapses on mobile via chevron toggle.
+  - Three new database tables: saved_jobs, extracted_keywords, job_matching_scores.
+  - Alembic migration 0008_phase_10a_tables.py applied to Railway.
+  - 104 backend tests, 38 frontend tests — all passing.
 
 ## Git Workflow
 
@@ -120,6 +137,8 @@ Files:
 - `src/stores/auth.test.ts` — auth store (login, logout, setUser, setLoading)
 - `src/pages/Login.test.tsx` — Login page (render, validation, success, error)
 - `src/utils/formatters.test.ts` — currency, date, percentage, titleCase formatters
+- `src/pages/Discover.test.tsx` — job feed, save flow, empty state, error toast
+- `src/pages/SavedJobs.test.tsx` — saved jobs load, star, delete, collection tabs
 
 Setup: `vite.config.ts` has `test: { globals: true, environment: 'jsdom' }`.
 The `src/test/setup.ts` imports `@testing-library/jest-dom`.
@@ -141,6 +160,15 @@ Files:
 - `tests/test_tailor_downloads.py` — authenticated PDF download endpoints
 - `tests/test_tailor_endpoints.py` — AI tailor job endpoints
 - `tests/test_tailor_service.py` — tailor service unit tests
+- `tests/test_jobs_endpoints.py` — job discovery list/detail/keywords + all saved-jobs CRUD
+- `tests/test_matching_service.py` — CV-to-job match scoring unit tests
+- `tests/test_application_endpoints.py` — application tracking CRUD
+- `tests/test_application_analytics.py` — application analytics endpoint
+- `tests/test_notifications.py` — notification list, mark-read, stale-app task
+- `tests/test_billing_endpoints.py` — Stripe checkout, webhook, portal
+- `tests/test_health_endpoints.py` — health and detailed health checks
+- `tests/test_cv_history_endpoints.py` — CV history tree and diff endpoints
+- `tests/test_job_search_endpoints.py` — Adzuna job search + caching
 
 Pattern: tests use `httpx.AsyncClient(transport=httpx.ASGITransport(app=app))`
 and `app.dependency_overrides` to inject `FakeDb` and a stub user — no real
@@ -222,6 +250,11 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 - Fixed CI workflow dependency conflicts (sqlalchemy, pendulum, dbt beta).
 - Fixed Airflow 2.x API incompatibilities in DAG integrity tests.
 - Fixed `dbt_utils.recency` placement from column-level to table-level.
+- Fixed alembic `.env` loading: `config.py` now resolves `.env` relative to its
+  own file location (project root) rather than CWD, so `alembic upgrade head`
+  works from any directory. Use public Railway proxy URL
+  (`viaduct.proxy.rlwy.net:38089`) in `.env` DATABASE_URL when running locally
+  against Railway — the `.railway.internal` host is only reachable inside Railway.
 
 ## Known Issues
 
@@ -229,12 +262,13 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Next Steps
 
-- Start Phase 10.
-- Candidate Phase 10 areas: application tracking, mobile polish, monitoring and
-  alerting, or premium subscription flow.
+- Plan Phase 10B.
+- Candidate areas: one-click CV tailoring from discovered jobs, advanced match
+  score explanations, email alerts for high-match jobs, application tracking
+  integration with the Discover feed.
 - Continue using the `dev` -> `main` workflow.
 - Use feature branches for AI collaboration.
-- Run the relevant test suite before merging any Phase 10 work.
+- Run the relevant test suite before merging any Phase 10B work.
 
 ## AI Development Guidelines
 
