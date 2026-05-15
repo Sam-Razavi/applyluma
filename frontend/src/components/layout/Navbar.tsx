@@ -9,6 +9,7 @@ export const NAV_LINKS = [
   { to: '/cvs', label: 'My CVs' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/discover', label: 'Discover' },
+  { to: '/saved-jobs', label: 'Saved Jobs' },
   { to: '/job-search', label: 'Job Search' },
   { to: '/applications', label: 'Applications' },
   { to: '/ai-tailor', label: 'AI Tailor' },
