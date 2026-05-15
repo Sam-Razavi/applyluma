@@ -26,7 +26,7 @@ export default function ResumeComparisonChart({ data }: Props) {
 
   if (!data || chartData.length === 0) {
     return (
-      <div className="flex h-96 items-center justify-center">
+      <div className="flex h-48 items-center justify-center md:h-72">
         <div className="text-center">
           <p className="text-sm text-gray-600">Upload a resume to see your skill comparison.</p>
           <Link to="/cvs" className="mt-2 inline-block text-sm font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700">
@@ -54,8 +54,9 @@ export default function ResumeComparisonChart({ data }: Props) {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
-        <RadarChart data={chartData}>
+      <div className="h-48 w-full md:h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={chartData}>
           <PolarGrid stroke="#e5e7eb" />
           <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12 }} />
           <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 11 }} />
@@ -66,8 +67,9 @@ export default function ResumeComparisonChart({ data }: Props) {
             formatter={(value) => [`${value}%`, '']}
             contentStyle={CHART_TOOLTIP_STYLE}
           />
-        </RadarChart>
-      </ResponsiveContainer>
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
 
       {data.missing_high_demand_skills.length > 0 && (
         <div className="mt-4">

@@ -1,8 +1,9 @@
 import enum
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, String
+from sqlalchemy import DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -11,6 +12,7 @@ from app.db.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.cv import CV
     from app.models.job_description import JobDescription
+    from app.models.notification import Notification
     from app.models.tailor_job import TailorJob
 
 
@@ -34,6 +36,13 @@ class User(Base, TimestampMixin):
         default=UserRole.user,
         server_default="user",
     )
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    subscription_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    subscription_ends_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     cvs: Mapped[list["CV"]] = relationship(
         "CV",
@@ -46,4 +55,7 @@ class User(Base, TimestampMixin):
     )
     tailor_jobs: Mapped[list["TailorJob"]] = relationship(
         "TailorJob", back_populates="user", cascade="all, delete-orphan"
+    )
+    notifications: Mapped[list["Notification"]] = relationship(
+        "Notification", back_populates="user", cascade="all, delete-orphan"
     )

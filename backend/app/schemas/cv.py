@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CVSummary(BaseModel):
@@ -28,3 +30,25 @@ class CVPublic(CVSummary):
 
 class CVUpdate(BaseModel):
     title: str | None = None
+
+
+class CVVersionNode(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    title: str
+    is_tailored: bool
+    created_at: datetime
+    children: list[CVVersionNode] = Field(default_factory=list)
+
+
+class CVDiffSection(BaseModel):
+    name: str
+    original: str
+    tailored: str
+    changes: int
+
+
+class CVDiffResponse(BaseModel):
+    cv_id: uuid.UUID
+    sections: list[CVDiffSection]

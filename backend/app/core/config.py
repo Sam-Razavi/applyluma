@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
+    SENTRY_DSN: str = ""
+    LOG_LEVEL: str = "INFO"
 
     DATABASE_URL: str = "postgresql://applyluma:applyluma@localhost:5432/applyluma"
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -25,6 +27,14 @@ class Settings(BaseSettings):
     MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MB
 
     OPENAI_API_KEY: str = ""
+    ADZUNA_APP_ID: str = ""
+    ADZUNA_API_KEY: str = ""
+    ADZUNA_COUNTRY: str = "gb"
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PREMIUM_PRICE_ID: str = ""
+    SENDGRID_API_KEY: str = ""
+    SENDGRID_FROM_EMAIL: str = "notifications@applyluma.com"
 
 
 settings = Settings()

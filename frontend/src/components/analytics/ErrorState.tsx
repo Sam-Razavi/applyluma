@@ -7,7 +7,7 @@ interface ErrorStateProps {
 
 export default function ErrorState({ error, onRetry }: ErrorStateProps) {
   return (
-    <div className="flex h-64 flex-col items-center justify-center px-6 text-center">
+    <div className="flex h-48 flex-col items-center justify-center px-6 text-center md:h-72">
       <div className="mb-4 rounded-full bg-danger-50 p-4">
         <ExclamationCircleIcon className="h-8 w-8 text-danger-500" aria-hidden="true" />
       </div>

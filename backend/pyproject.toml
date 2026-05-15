@@ -29,6 +29,9 @@ dependencies = [
     "reportlab>=4.2.0",
     "langdetect>=1.0.9",
     "Pillow>=10.0.0",
+    "stripe>=10.0.0",
+    "sendgrid>=6.11.0",
+    "sentry-sdk[fastapi]>=2.0.0",
 ]
 
 [project.optional-dependencies]

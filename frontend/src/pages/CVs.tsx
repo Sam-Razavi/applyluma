@@ -4,6 +4,7 @@ import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
+  ClockIcon,
   DocumentTextIcon,
   ExclamationCircleIcon,
   EyeIcon,
@@ -12,8 +13,10 @@ import {
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import { StarIcon as StarOutline } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
+import VersionDiffViewer from '../components/cvs/VersionDiffViewer'
+import VersionHistory from '../components/cvs/VersionHistory'
 import { cvApi } from '../services/api'
-import type { CV } from '../types'
+import type { CV, CVVersionNode } from '../types'
 
 const MAX_SIZE = 10 * 1024 * 1024
 const ACCEPT = {
@@ -62,6 +65,8 @@ export default function CVs() {
   const [pendingTitle, setPendingTitle] = useState('')
   const [uploadPct, setUploadPct] = useState<number | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CV | null>(null)
+  const [historyTarget, setHistoryTarget] = useState<CV | null>(null)
+  const [diffTarget, setDiffTarget] = useState<CVVersionNode | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
@@ -253,7 +258,7 @@ export default function CVs() {
             {cvs.map((cv) => (
               <div
                 key={cv.id}
-                className="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
+                className="flex items-start gap-4 px-6 py-4 transition-colors hover:bg-gray-50 sm:items-center"
               >
                 {/* Icon */}
                 <div className="h-9 w-9 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -285,7 +290,7 @@ export default function CVs() {
                 </span>
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex flex-shrink-0 flex-col items-center gap-1 sm:flex-row">
                   <button
                     onClick={() => cvApi.view(cv.id).catch(() => toast.error('Could not open CV'))}
                     className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
@@ -300,6 +305,16 @@ export default function CVs() {
                   >
                     <ArrowDownTrayIcon className="h-4 w-4" />
                   </button>
+                  {cv.is_tailored && (
+                    <button
+                      onClick={() => setHistoryTarget(cv)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-700"
+                      title="Version History"
+                    >
+                      <ClockIcon className="h-4 w-4" />
+                      <span className="hidden lg:inline">History</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => handleSetDefault(cv)}
                     disabled={cv.is_default}
@@ -372,6 +387,20 @@ export default function CVs() {
           </DialogPanel>
         </div>
       </Dialog>
+
+      <VersionHistory
+        cv={historyTarget}
+        open={!!historyTarget}
+        onClose={() => setHistoryTarget(null)}
+        onViewDiff={setDiffTarget}
+      />
+
+      <VersionDiffViewer
+        cvId={diffTarget?.id ?? null}
+        title={diffTarget?.title ?? null}
+        open={!!diffTarget}
+        onClose={() => setDiffTarget(null)}
+      />
     </div>
   )
 }

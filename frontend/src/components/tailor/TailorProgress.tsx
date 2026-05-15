@@ -23,12 +23,12 @@ export function TailorProgress() {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-8">
       <h2 className="mb-6 text-base font-semibold text-gray-900">Tailoring your CV</h2>
-      <ol className="space-y-4">
+      <ol className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {STEPS.map((step, index) => {
           const done = index < activeStep
           const active = index === activeStep
           return (
-            <li key={step.label} className="flex items-start gap-3">
+            <li key={step.label} className="flex min-w-0 items-start gap-3 sm:flex-1">
               <div
                 className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
                   done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-gray-200'

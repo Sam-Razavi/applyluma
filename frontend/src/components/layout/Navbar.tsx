@@ -2,13 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores'
+import NotificationBell from '../notifications/NotificationBell'
 
-const NAV_LINKS = [
+export const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/cvs', label: 'My CVs' },
   { to: '/jobs', label: 'Jobs' },
+  { to: '/job-search', label: 'Job Search' },
+  { to: '/applications', label: 'Applications' },
   { to: '/ai-tailor', label: 'AI Tailor' },
   { to: '/analytics', label: 'Analytics' },
+  { to: '/plans', label: 'Plans' },
 ]
 
 export default function Navbar() {
@@ -110,6 +114,8 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <NotificationBell />
+
           {/* User dropdown */}
           <div className="relative flex-shrink-0" ref={dropdownRef}>
           <button

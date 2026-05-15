@@ -28,6 +28,9 @@ class UserPublic(BaseModel):
     is_active: bool
     is_verified: bool
     role: UserRole
+    stripe_customer_id: str | None = None
+    subscription_status: str | None = None
+    subscription_ends_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,8 +1,10 @@
 import uuid
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.models.cv import CV
+from app.schemas.cv import CVDiffResponse, CVDiffSection, CVVersionNode
 
 
 def get_by_id(db: Session, cv_id: uuid.UUID, user_id: uuid.UUID) -> CV | None:
@@ -59,6 +61,69 @@ def delete(db: Session, cv: CV) -> None:
     db.commit()
     if was_default:
         _promote_next_default(db, user_id)
+
+
+def get_version_tree(db: Session, root_cv_id: uuid.UUID) -> CVVersionNode | None:
+    root = db.query(CV).filter(CV.id == root_cv_id).first()
+    if not root:
+        return None
+
+    def build_node(cv: CV) -> CVVersionNode:
+        children = (
+            db.query(CV)
+            .filter(CV.parent_cv_id == cv.id, CV.user_id == root.user_id)
+            .order_by(CV.created_at.asc())
+            .all()
+        )
+        return CVVersionNode(
+            id=cv.id,
+            title=cv.title,
+            is_tailored=cv.is_tailored,
+            created_at=cv.created_at,
+            children=[build_node(child) for child in children],
+        )
+
+    return build_node(root)
+
+
+def get_cv_diff(db: Session, cv_id: uuid.UUID, user_id: uuid.UUID) -> CVDiffResponse | None:
+    cv = get_by_id(db, cv_id, user_id)
+    if not cv or not cv.is_tailored or not cv.tailor_job:
+        return None
+
+    result_json = cv.tailor_job.result_json
+    if not isinstance(result_json, dict):
+        return None
+
+    raw_sections = result_json.get("sections")
+    if not isinstance(raw_sections, list):
+        return None
+
+    sections = [
+        _parse_diff_section(section)
+        for section in raw_sections
+        if isinstance(section, dict)
+    ]
+    return CVDiffResponse(cv_id=cv.id, sections=sections)
+
+
+def _parse_diff_section(section: dict[str, Any]) -> CVDiffSection:
+    changes = section.get("changes", 0)
+    if isinstance(changes, list):
+        change_count = len(changes)
+    elif isinstance(changes, int):
+        change_count = changes
+    elif changes:
+        change_count = 1
+    else:
+        change_count = 0
+
+    return CVDiffSection(
+        name=str(section.get("name") or section.get("section_name") or ""),
+        original=str(section.get("original") or ""),
+        tailored=str(section.get("tailored") or ""),
+        changes=change_count,
+    )
 
 
 def _promote_next_default(db: Session, user_id: uuid.UUID) -> None:

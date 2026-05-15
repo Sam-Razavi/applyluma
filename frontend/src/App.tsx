@@ -10,8 +10,13 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import CVs from './pages/CVs'
 import Jobs from './pages/Jobs'
+import Applications from './pages/Applications'
+import JobSearch from './pages/JobSearch'
 import AITailor from './pages/AITailor'
 import Analytics from './pages/Analytics'
+import Plans from './pages/Plans'
+import BillingSuccess from './pages/BillingSuccess'
+import BillingCancel from './pages/BillingCancel'
 import NotFound from './pages/NotFound'
 import { useAuthStore } from './stores'
 
@@ -42,8 +47,13 @@ export default function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="cvs" element={<CVs />} />
             <Route path="jobs" element={<Jobs />} />
+            <Route path="job-search" element={<JobSearch />} />
+            <Route path="applications" element={<Applications />} />
             <Route path="ai-tailor" element={<AITailor />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="plans" element={<Plans />} />
+            <Route path="billing/success" element={<BillingSuccess />} />
+            <Route path="billing/cancel" element={<BillingCancel />} />
           </Route>
         </Route>
 

@@ -22,8 +22,9 @@ export default function HiringPatternsChart({ data }: Props) {
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+      <div className="h-48 w-full md:h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
           <defs>
             <linearGradient id="analyticsJobsGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -45,8 +46,9 @@ export default function HiringPatternsChart({ data }: Props) {
             cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '5 5' }}
           />
           <Area type="monotone" dataKey="jobs" stroke="#6366f1" strokeWidth={2} fill="url(#analyticsJobsGradient)" dot={false} activeDot={{ r: 4, fill: '#6366f1' }} />
-        </AreaChart>
-      </ResponsiveContainer>
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
       <p id="hiring-patterns-desc" className="sr-only">
         Area chart showing job posting volume over time.
       </p>

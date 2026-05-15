@@ -1,7 +1,7 @@
 export default function LoadingSkeleton() {
   return (
-    <div className="h-64 animate-pulse" aria-hidden="true">
-      <div className="mb-4 flex h-52 items-end gap-2">
+    <div className="h-48 animate-pulse md:h-72" aria-hidden="true">
+      <div className="mb-4 flex h-36 items-end gap-2 md:h-60">
         {[40, 70, 50, 90, 60, 80, 45, 65].map((height, index) => (
           <div
             key={index}

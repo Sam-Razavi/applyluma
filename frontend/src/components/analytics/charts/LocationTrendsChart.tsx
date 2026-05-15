@@ -55,8 +55,9 @@ export default function LocationTrendsChart({ data }: Props) {
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={300}>
-        <Treemap data={chartData} dataKey="size" nameKey="name" stroke="#fff" content={<TreemapTile />}>
+      <div className="h-48 w-full md:h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <Treemap data={chartData} dataKey="size" nameKey="name" stroke="#fff" content={<TreemapTile />}>
           <Tooltip
             formatter={(value, _name, props) => [
               `${formatNumber(Number(value))} jobs, ${formatPercentage(props.payload.remote)} remote, ${formatCompactCurrency(props.payload.salary)} avg salary`,
@@ -64,8 +65,9 @@ export default function LocationTrendsChart({ data }: Props) {
             ]}
             contentStyle={CHART_TOOLTIP_STYLE}
           />
-        </Treemap>
-      </ResponsiveContainer>
+          </Treemap>
+        </ResponsiveContainer>
+      </div>
       <p id="location-trends-desc" className="sr-only">
         Treemap showing geographic distribution of job postings.
       </p>

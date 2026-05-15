@@ -22,8 +22,9 @@ export default function SkillDemandChart({ data }: Props) {
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData} margin={{ top: 5, right: 24, left: 0, bottom: 28 }}>
+      <div className="h-48 w-full md:h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 5, right: 24, left: 0, bottom: 28 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
           <XAxis dataKey="skill" angle={-25} textAnchor="end" interval={0} tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
           <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
@@ -34,8 +35,9 @@ export default function SkillDemandChart({ data }: Props) {
           <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} iconType="circle" />
           <Line type="monotone" dataKey="thisWeek" name="This week" stroke={CHART_COLORS[0]} strokeWidth={2} dot={false} />
           <Line type="monotone" dataKey="lastWeek" name="Last week" stroke={CHART_COLORS[1]} strokeWidth={2} dot={false} />
-        </LineChart>
-      </ResponsiveContainer>
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
       <p id="skill-demand-desc" className="sr-only">
         Line chart comparing this week's and last week's mentions for growing skills.
       </p>
