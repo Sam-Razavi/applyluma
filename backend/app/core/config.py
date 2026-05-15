@@ -1,8 +1,17 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve .env from the project root regardless of where alembic/uvicorn is invoked from.
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]  # backend/app/core -> backend/app -> backend -> project root
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=str(_PROJECT_ROOT / ".env"),
+        case_sensitive=True,
+        extra="ignore",
+    )
 
     PROJECT_NAME: str = "ApplyLuma"
     VERSION: str = "0.1.0"
