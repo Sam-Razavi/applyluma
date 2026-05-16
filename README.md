@@ -1,5 +1,8 @@
 # ApplyLuma
 
+[![CI](https://github.com/sam-razavi/applyluma/actions/workflows/ci.yml/badge.svg)](https://github.com/sam-razavi/applyluma/actions/workflows/ci.yml)
+[![Data Pipeline Tests](https://github.com/sam-razavi/applyluma/actions/workflows/data-pipeline-tests.yml/badge.svg)](https://github.com/sam-razavi/applyluma/actions/workflows/data-pipeline-tests.yml)
+
 AI-powered job search and resume optimization platform with production analytics.
 
 ## Status
