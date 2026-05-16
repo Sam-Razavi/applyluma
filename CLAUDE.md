@@ -312,7 +312,8 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Next Steps
 
-- PR from `dev` to `main` is open for Phase 10B plus mobile UX enhancements.
+- PR #6 from `dev` to `main` is open for the mobile UX enhancements on top of
+  the merged Phase 10B baseline.
 - Review CI and mobile behavior, then merge `dev` to `main` when ready for
   production deployment.
 - Phase 10C candidate areas: in-app surfacing for high-match notifications,
