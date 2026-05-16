@@ -7,15 +7,17 @@ import {
   DocumentTextIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { IntensitySelector } from '../components/tailor/IntensitySelector'
 import { SectionDiff } from '../components/tailor/SectionDiff'
 import { TailorProgress } from '../components/tailor/TailorProgress'
 import { TailorSummary } from '../components/tailor/TailorSummary'
 import { cvApi, jobApi } from '../services/api'
+import { fetchJobDetail } from '../services/jobDiscoveryApi'
 import { tailorApi } from '../services/tailorApi'
 import type { CV, JobDescription } from '../types'
+import type { DiscoveredJobDetail } from '../types/jobDiscovery'
 import type { TailorIntensity, TailorPreview, TailorUsage } from '../types/tailor'
 
 type Step = 'select' | 'processing' | 'preview' | 'done'
@@ -23,9 +25,12 @@ type Step = 'select' | 'processing' | 'preview' | 'done'
 const POLL_INTERVAL_MS = 2500
 
 export default function AITailor() {
+  const location = useLocation()
+  const rawJobPostingId = (location.state as { rawJobPostingId?: string } | null)?.rawJobPostingId
   const [step, setStep] = useState<Step>('select')
   const [cvs, setCvs] = useState<CV[]>([])
   const [jobs, setJobs] = useState<JobDescription[]>([])
+  const [rawJob, setRawJob] = useState<DiscoveredJobDetail | null>(null)
   const [usage, setUsage] = useState<TailorUsage | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -44,19 +49,21 @@ export default function AITailor() {
   const pollRef = useRef<number | null>(null)
 
   useEffect(() => {
-    Promise.all([cvApi.list(), jobApi.list(), tailorApi.getUsage()])
-      .then(([cvList, jobList, usageInfo]) => {
+    const rawJobPromise = rawJobPostingId ? fetchJobDetail(rawJobPostingId) : Promise.resolve(null)
+    Promise.all([cvApi.list(), jobApi.list(), tailorApi.getUsage(), rawJobPromise])
+      .then(([cvList, jobList, usageInfo, discoveredJob]) => {
         setCvs(cvList)
         setJobs(jobList)
+        setRawJob(discoveredJob)
         setUsage(usageInfo)
         const defaultCv = cvList.find((cv) => cv.is_default)
         if (defaultCv) setSelectedCvId(defaultCv.id)
         else if (cvList.length === 1) setSelectedCvId(cvList[0].id)
-        if (jobList.length === 1) setSelectedJobId(jobList[0].id)
+        if (!rawJobPostingId && jobList.length === 1) setSelectedJobId(jobList[0].id)
       })
       .catch(() => toast.error('Failed to load tailoring data'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [rawJobPostingId])
 
   useEffect(() => {
     return () => {
@@ -65,10 +72,14 @@ export default function AITailor() {
   }, [])
 
   async function handleSubmit() {
-    if (!selectedCvId || !selectedJobId) return
+    if (!selectedCvId || (!selectedJobId && !rawJobPostingId)) return
     setSubmitting(true)
     try {
-      const job = await tailorApi.submit(selectedCvId, selectedJobId, intensity)
+      const job = await tailorApi.submit(
+        rawJobPostingId
+          ? { cv_id: selectedCvId, raw_job_posting_id: rawJobPostingId, intensity }
+          : { cv_id: selectedCvId, job_description_id: selectedJobId, intensity },
+      )
       setJobId(job.id)
       setStep('processing')
       startPolling(job.id)
@@ -145,7 +156,9 @@ export default function AITailor() {
   const selectedCv = cvs.find((cv) => cv.id === selectedCvId)
   const selectedJob = jobs.find((job) => job.id === selectedJobId)
   const atLimit = Boolean(usage && usage.daily_limit !== null && usage.used_today >= usage.daily_limit)
-  const canSubmit = Boolean(selectedCvId && selectedJobId && !submitting && !atLimit)
+  const canSubmit = Boolean(
+    selectedCvId && (rawJobPostingId || selectedJobId) && !submitting && !atLimit,
+  )
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -170,6 +183,8 @@ export default function AITailor() {
           selectedJobId={selectedJobId}
           selectedCv={selectedCv}
           selectedJob={selectedJob}
+          rawJob={rawJob}
+          rawJobPostingId={rawJobPostingId}
           intensity={intensity}
           onCvChange={setSelectedCvId}
           onJobChange={setSelectedJobId}
@@ -227,6 +242,8 @@ interface SelectStepProps {
   selectedJobId: string
   selectedCv: CV | undefined
   selectedJob: JobDescription | undefined
+  rawJob: DiscoveredJobDetail | null
+  rawJobPostingId: string | undefined
   intensity: TailorIntensity
   onCvChange: (value: string) => void
   onJobChange: (value: string) => void
@@ -245,6 +262,8 @@ function SelectStep({
   selectedJobId,
   selectedCv,
   selectedJob,
+  rawJob,
+  rawJobPostingId,
   intensity,
   onCvChange,
   onJobChange,
@@ -277,25 +296,35 @@ function SelectStep({
             label: `${cv.title}${cv.is_default ? ' (default)' : ''}`,
           }))}
         />
-        <Selector
-          label="Target job"
-          value={selectedJobId}
-          onChange={onJobChange}
-          loading={loading}
-          emptyMessage="No job descriptions found"
-          emptyHref="/jobs"
-          emptyLinkLabel="Add one"
-          options={jobs.map((job) => ({
-            value: job.id,
-            label: `${job.job_title} @ ${job.company_name}`,
-          }))}
-        />
+        {rawJobPostingId ? (
+          <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-2.5">
+            <p className="text-xs font-medium uppercase tracking-wide text-brand-700">Target job</p>
+            <p className="mt-1 text-sm font-semibold text-brand-900">
+              {rawJob ? `${rawJob.title} @ ${rawJob.company}` : 'Loading discovered job'}
+            </p>
+          </div>
+        ) : (
+          <Selector
+            label="Target job"
+            value={selectedJobId}
+            onChange={onJobChange}
+            loading={loading}
+            emptyMessage="No job descriptions found"
+            emptyHref="/jobs"
+            emptyLinkLabel="Add one"
+            options={jobs.map((job) => ({
+              value: job.id,
+              label: `${job.job_title} @ ${job.company_name}`,
+            }))}
+          />
+        )}
       </div>
 
       {(selectedCv || selectedJob) && (
         <div className="flex flex-wrap gap-2">
           {selectedCv && <Pill>{selectedCv.title}</Pill>}
-          {selectedJob && <Pill>{`${selectedJob.job_title} @ ${selectedJob.company_name}`}</Pill>}
+          {rawJob && <Pill>{`${rawJob.title} @ ${rawJob.company}`}</Pill>}
+          {!rawJob && selectedJob && <Pill>{`${selectedJob.job_title} @ ${selectedJob.company_name}`}</Pill>}
         </div>
       )}
 

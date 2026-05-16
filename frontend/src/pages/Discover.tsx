@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import JobCard from '../components/discover/JobCard'
-import JobFilters, { DEFAULT_FILTERS } from '../components/discover/JobFilters'
+import { DEFAULT_FILTERS } from '../components/discover/defaultFilters'
+import JobFilters from '../components/discover/JobFilters'
 import JobDetail from '../components/discover/JobDetail'
 import { fetchDiscoveredJobs, saveJob } from '../services/jobDiscoveryApi'
 import type { DiscoveredJob, JobFilters as Filters } from '../types/jobDiscovery'
@@ -170,6 +171,15 @@ export default function Discover() {
         onSave={(id) => {
           const job = jobs.find((j) => j.job_id === id)
           if (job) void handleSave(job)
+        }}
+        onApplicationCreated={(id, applicationId, status) => {
+          setJobs((prev) =>
+            prev.map((job) =>
+              job.job_id === id
+                ? { ...job, application_id: applicationId, application_status: status }
+                : job,
+            ),
+          )
         }}
       />
     </div>

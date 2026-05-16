@@ -1,7 +1,6 @@
 """Redis caching service for job matching scores and extracted keywords."""
 import json
 import uuid
-from typing import Optional
 
 import redis
 
@@ -15,7 +14,7 @@ class CacheService:
     KEYWORD_TTL_SECONDS = 7 * 86400  # 7 days
     JOB_FEED_TTL_SECONDS = 3600      # 1 hour
 
-    def __init__(self, redis_client: Optional[redis.Redis] = None) -> None:
+    def __init__(self, redis_client: redis.Redis | None = None) -> None:
         if redis_client is not None:
             self._redis = redis_client
         else:
@@ -25,7 +24,7 @@ class CacheService:
     # Match scores
     # ------------------------------------------------------------------
 
-    def get_cached_score(self, user_id: uuid.UUID, job_id: uuid.UUID) -> Optional[dict]:
+    def get_cached_score(self, user_id: uuid.UUID, job_id: uuid.UUID) -> dict | None:
         key = self._score_key(user_id, job_id)
         raw = self._redis.get(key)
         if raw is None:
@@ -59,7 +58,7 @@ class CacheService:
     # Extracted keywords
     # ------------------------------------------------------------------
 
-    def get_cached_keywords(self, job_id: uuid.UUID) -> Optional[dict]:
+    def get_cached_keywords(self, job_id: uuid.UUID) -> dict | None:
         raw = self._redis.get(self._keyword_key(job_id))
         if raw is None:
             return None
@@ -80,7 +79,7 @@ class CacheService:
     # Job feed (list responses)
     # ------------------------------------------------------------------
 
-    def get_cached_job_feed(self, cache_key: str) -> Optional[list]:
+    def get_cached_job_feed(self, cache_key: str) -> list | None:
         raw = self._redis.get(f"feed:{cache_key}")
         if raw is None:
             return None

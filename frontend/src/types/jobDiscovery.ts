@@ -19,6 +19,8 @@ export interface DiscoveredJob {
   explanation: string | null
   keywords: ExtractedKeyword[]
   is_saved: boolean
+  application_status?: string | null
+  application_id?: string | null
 }
 
 export interface DiscoveredJobDetail extends DiscoveredJob {

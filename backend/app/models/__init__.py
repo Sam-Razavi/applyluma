@@ -1,3 +1,4 @@
+from app.models.alert_preferences import JobAlertSentLog, UserAlertPreferences
 from app.models.application import Application
 from app.models.application_contact import ApplicationContact
 from app.models.application_event import ApplicationEvent
@@ -21,4 +22,6 @@ __all__ = [
     "SavedJob",
     "ExtractedKeyword",
     "JobMatchingScore",
+    "UserAlertPreferences",
+    "JobAlertSentLog",
 ]

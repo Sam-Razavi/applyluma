@@ -16,6 +16,7 @@ import AITailor from './pages/AITailor'
 import Analytics from './pages/Analytics'
 import Discover from './pages/Discover'
 import SavedJobs from './pages/SavedJobs'
+import Settings from './pages/Settings'
 import Plans from './pages/Plans'
 import BillingSuccess from './pages/BillingSuccess'
 import BillingCancel from './pages/BillingCancel'
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="applications" element={<Applications />} />
             <Route path="ai-tailor" element={<AITailor />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="settings" element={<Settings />} />
             <Route path="plans" element={<Plans />} />
             <Route path="billing/success" element={<BillingSuccess />} />
             <Route path="billing/cancel" element={<BillingCancel />} />
