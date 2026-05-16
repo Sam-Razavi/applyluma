@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { FadeIn } from '../components/ui/FadeIn'
 import { useAuthStore } from '../stores'
 
 const STATS = [
@@ -51,6 +52,7 @@ export default function Dashboard() {
   const firstName = user?.full_name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'there'
 
   return (
+    <FadeIn>
     <div className="space-y-8">
       {/* Welcome */}
       <div>
@@ -116,5 +118,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </FadeIn>
   )
 }

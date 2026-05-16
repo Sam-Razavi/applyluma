@@ -1,4 +1,5 @@
 import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { AnimatePresence, motion } from 'framer-motion'
 import type { TailorSection } from '../../types/tailor'
 
 interface Props {
@@ -30,35 +31,46 @@ export function SectionDiff({ section, accepted, onToggle }: Props) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 divide-y divide-gray-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-        <div className="p-4">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">Original</p>
-          <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-gray-600">
-            {section.original}
-          </pre>
-        </div>
-        <div className="p-4">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-brand-500">
-            Tailored
-          </p>
-          <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-gray-900">
-            {section.tailored}
-          </pre>
-        </div>
-      </div>
+      <AnimatePresence initial={false}>
+        <motion.div
+          key="diff-content"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: 'easeInOut' }}
+          style={{ overflow: 'hidden' }}
+        >
+          <div className="grid grid-cols-1 divide-y divide-gray-100 md:grid-cols-2 md:divide-x md:divide-y-0">
+            <div className="p-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">Original</p>
+              <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-gray-600">
+                {section.original}
+              </pre>
+            </div>
+            <div className="p-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-brand-500">
+                Tailored
+              </p>
+              <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-gray-900">
+                {section.tailored}
+              </pre>
+            </div>
+          </div>
 
-      {section.changes.length > 0 && (
-        <div className="border-t border-gray-100 bg-amber-50/50 px-4 py-3">
-          <p className="mb-1 text-xs font-medium text-gray-500">Changes made</p>
-          <ul className="space-y-0.5">
-            {section.changes.map((change, index) => (
-              <li key={`${section.section_id}-${index}`} className="text-xs text-gray-600">
-                - {change}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+          {section.changes.length > 0 && (
+            <div className="border-t border-gray-100 bg-amber-50/50 px-4 py-3">
+              <p className="mb-1 text-xs font-medium text-gray-500">Changes made</p>
+              <ul className="space-y-0.5">
+                {section.changes.map((change, index) => (
+                  <li key={`${section.section_id}-${index}`} className="text-xs text-gray-600">
+                    - {change}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }
