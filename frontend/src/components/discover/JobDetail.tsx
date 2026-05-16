@@ -176,11 +176,11 @@ export default function JobDetail({
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 border-t border-gray-100 pt-4">
+            <div className="flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:gap-3">
               <button
                 type="button"
                 onClick={() => onSave(job.job_id)}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors sm:w-auto ${
                   isSaved
                     ? 'bg-primary-100 text-primary-700 hover:bg-primary-200'
                     : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -201,13 +201,13 @@ export default function JobDetail({
               <button
                 type="button"
                 onClick={handleTailor}
-                className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100 sm:w-auto"
               >
                 <SparklesIcon className="h-4 w-4" />
                 Tailor CV
               </button>
               {job.application_status ? (
-                <span className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700">
+                <span className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700 sm:w-auto">
                   <BriefcaseIcon className="h-4 w-4" />
                   {job.application_status.replace('_', ' ')}
                 </span>
@@ -216,7 +216,7 @@ export default function JobDetail({
                   type="button"
                   onClick={() => void handleAddApplication()}
                   disabled={addingApplication}
-                  className="flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
                 >
                   <BriefcaseIcon className="h-4 w-4" />
                   {addingApplication ? 'Adding' : 'Add to Applications'}
@@ -226,7 +226,7 @@ export default function JobDetail({
                 href={job.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 sm:w-auto"
               >
                 <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                 Apply now

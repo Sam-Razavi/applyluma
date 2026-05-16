@@ -44,8 +44,8 @@ export default function VersionDiffViewer({ cvId, title, open, onClose }: Props)
   return (
     <Dialog open={open} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+      <div className="fixed inset-0 flex items-center justify-center p-3 sm:p-4">
+        <DialogPanel className="flex max-h-[90vh] w-full max-w-[64rem] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
           <div className="flex items-start justify-between border-b border-gray-100 px-6 py-4">
             <div className="min-w-0">
               <DialogTitle className="text-base font-semibold text-gray-900">

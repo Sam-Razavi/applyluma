@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useDropzone, type FileRejection } from 'react-dropzone'
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
+import { motion } from 'framer-motion'
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
@@ -156,7 +157,7 @@ export default function CVs() {
 
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer select-none transition-colors ${
+          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer select-none transition-colors sm:p-10 ${
             isDragActive
               ? 'border-brand-400 bg-brand-50'
               : 'border-gray-300 hover:border-brand-400 hover:bg-gray-50'
@@ -189,19 +190,19 @@ export default function CVs() {
               value={pendingTitle}
               onChange={(e) => setPendingTitle(e.target.value)}
               placeholder="CV title"
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-44 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="min-h-11 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 sm:w-44"
             />
             <div className="flex items-center gap-2">
               <button
                 onClick={handleUpload}
-                className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
               >
                 <ArrowUpTrayIcon className="h-3.5 w-3.5" />
                 Upload
               </button>
               <button
                 onClick={() => setPendingFile(null)}
-                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                className="min-h-11 rounded-lg px-3 py-2.5 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               >
                 Cancel
               </button>
@@ -217,9 +218,11 @@ export default function CVs() {
               <span className="flex-shrink-0 ml-2">{uploadPct}%</span>
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-brand-500 rounded-full transition-all duration-200"
-                style={{ width: `${uploadPct}%` }}
+              <motion.div
+                className="h-full rounded-full bg-brand-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${uploadPct}%` }}
+                transition={{ ease: 'linear', duration: 0.1 }}
               />
             </div>
           </div>
@@ -293,14 +296,14 @@ export default function CVs() {
                 <div className="flex flex-shrink-0 flex-col items-center gap-1 sm:flex-row">
                   <button
                     onClick={() => cvApi.view(cv.id).catch(() => toast.error('Could not open CV'))}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
                     title="View"
                   >
                     <EyeIcon className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => cvApi.download(cv.id, cv.filename).catch(() => toast.error('Could not download CV'))}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
                     title="Download"
                   >
                     <ArrowDownTrayIcon className="h-4 w-4" />
@@ -308,7 +311,7 @@ export default function CVs() {
                   {cv.is_tailored && (
                     <button
                       onClick={() => setHistoryTarget(cv)}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-700"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-700"
                       title="Version History"
                     >
                       <ClockIcon className="h-4 w-4" />
@@ -318,7 +321,7 @@ export default function CVs() {
                   <button
                     onClick={() => handleSetDefault(cv)}
                     disabled={cv.is_default}
-                    className={`h-8 w-8 flex items-center justify-center rounded-lg transition-colors ${
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
                       cv.is_default
                         ? 'text-brand-500 cursor-default'
                         : 'text-gray-400 hover:text-brand-600 hover:bg-brand-50'
@@ -333,7 +336,7 @@ export default function CVs() {
                   </button>
                   <button
                     onClick={() => setDeleteTarget(cv)}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
                     title="Delete"
                   >
                     <TrashIcon className="h-4 w-4" />
