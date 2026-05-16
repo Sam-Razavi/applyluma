@@ -88,17 +88,17 @@ export default function Discover() {
   async function handleSave(job: DiscoveredJob) {
     const alreadySaved = savedIds.has(job.job_id)
     if (alreadySaved) {
-      // For now just toggle visually — full unsave requires knowing the saved_job id
-      // which requires a separate fetch. Keep simple: re-save is idempotent on backend.
       toast('Job is already saved')
       return
     }
+    setSavedIds((prev) => new Set(prev).add(job.job_id))
+    setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: true } : j)))
+    toast.success('Job saved!')
     try {
       await saveJob({ job_id: job.job_id })
-      setSavedIds((prev) => new Set(prev).add(job.job_id))
-      setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: true } : j)))
-      toast.success('Job saved!')
     } catch {
+      setSavedIds((prev) => { const next = new Set(prev); next.delete(job.job_id); return next })
+      setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: false } : j)))
       toast.error('Failed to save job')
     }
   }
