@@ -21,7 +21,7 @@ export default function AppLayout() {
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
             aria-label="Open navigation menu"
           >
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />

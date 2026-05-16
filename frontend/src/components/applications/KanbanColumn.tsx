@@ -16,7 +16,7 @@ export default function KanbanColumn({ status, label, colorClass, applications }
   return (
     <section
       ref={setNodeRef}
-      className={`flex h-[calc(100vh-17rem)] min-h-[28rem] w-72 flex-shrink-0 flex-col rounded-2xl border border-gray-200 bg-gray-50 transition ${
+      className={`flex h-auto min-h-[18rem] w-72 flex-shrink-0 flex-col rounded-2xl border border-gray-200 bg-gray-50 transition md:h-[calc(100vh-17rem)] md:min-h-[28rem] ${
         isOver ? 'border-brand-300 bg-brand-50' : ''
       }`}
     >
