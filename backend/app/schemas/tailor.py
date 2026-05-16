@@ -1,15 +1,24 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from app.models.tailor_job import TailorIntensity, TailorStatus
 
 
 class TailorSubmitRequest(BaseModel):
     cv_id: uuid.UUID
-    job_description_id: uuid.UUID
+    job_description_id: uuid.UUID | None = None
+    raw_job_posting_id: uuid.UUID | None = None
     intensity: TailorIntensity = TailorIntensity.medium
+
+    @model_validator(mode="after")
+    def validate_single_job_source(self) -> "TailorSubmitRequest":
+        has_jd = self.job_description_id is not None
+        has_raw_job = self.raw_job_posting_id is not None
+        if has_jd == has_raw_job:
+            raise ValueError("Set exactly one of job_description_id or raw_job_posting_id")
+        return self
 
 
 class TailorJobPublic(BaseModel):

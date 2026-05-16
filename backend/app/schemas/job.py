@@ -97,6 +97,8 @@ class JobWithScoreSchema(BaseModel):
     explanation: str | None = None
     keywords: list[ExtractedKeywordSchema] = Field(default_factory=list)
     is_saved: bool = False
+    application_status: str | None = None
+    application_id: uuid.UUID | None = None
 
 
 class JobDetailSchema(JobWithScoreSchema):

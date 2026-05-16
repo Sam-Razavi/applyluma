@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.application import Application
 from app.models.application_contact import ApplicationContact
 from app.models.application_event import ApplicationEvent
+from app.models.job import RawJobPosting
 from app.schemas.application import ApplicationContactCreate, ApplicationCreate, ApplicationUpdate
 from app.schemas.application_analytics import (
     ApplicationAnalytics,
@@ -30,8 +31,35 @@ RESPONSE_STATUSES = {"phone_screen", "interview", "offer", "rejected"}
 SALARY_BUCKETS = ("<30k", "30-60k", "60-90k", "90-120k", "120k+")
 
 
+class RawJobPostingNotFoundError(ValueError):
+    pass
+
+
+class MissingApplicationFieldsError(ValueError):
+    pass
+
+
 def create_application(db: Session, user_id: uuid.UUID, data: ApplicationCreate) -> Application:
-    application = Application(user_id=user_id, **data.model_dump())
+    values = data.model_dump()
+    raw_job_posting_id = values.get("raw_job_posting_id")
+
+    if raw_job_posting_id:
+        existing = (
+            db.query(Application)
+            .filter(
+                Application.user_id == user_id,
+                Application.raw_job_posting_id == raw_job_posting_id,
+            )
+            .first()
+        )
+        if existing:
+            return existing
+        values.update(_hydrate_from_raw_job(db, raw_job_posting_id, values))
+
+    if not values.get("company_name") or not values.get("job_title"):
+        raise MissingApplicationFieldsError("company_name and job_title are required")
+
+    application = Application(user_id=user_id, **values)
     db.add(application)
     db.flush()
     db.add(
@@ -44,6 +72,35 @@ def create_application(db: Session, user_id: uuid.UUID, data: ApplicationCreate)
     db.commit()
     db.refresh(application)
     return application
+
+
+def _hydrate_from_raw_job(
+    db: Session,
+    raw_job_posting_id: uuid.UUID,
+    values: dict[str, Any],
+) -> dict[str, Any]:
+    raw_job = db.query(RawJobPosting).filter(RawJobPosting.id == raw_job_posting_id).first()
+    if not raw_job:
+        raise RawJobPostingNotFoundError("Raw job posting not found")
+
+    hydrated: dict[str, Any] = {}
+    if not values.get("company_name"):
+        hydrated["company_name"] = raw_job.company
+    if not values.get("job_title"):
+        hydrated["job_title"] = raw_job.title
+    if not values.get("job_url"):
+        hydrated["job_url"] = raw_job.url
+    if not values.get("source"):
+        hydrated["source"] = raw_job.source
+    if values.get("salary_min") is None:
+        hydrated["salary_min"] = raw_job.salary_min
+    if values.get("salary_max") is None:
+        hydrated["salary_max"] = raw_job.salary_max
+    if not values.get("location"):
+        hydrated["location"] = raw_job.location
+    if not values.get("remote_type"):
+        hydrated["remote_type"] = "remote" if raw_job.remote_allowed else "onsite"
+    return hydrated
 
 
 def get_applications(

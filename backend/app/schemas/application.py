@@ -61,9 +61,10 @@ class ApplicationContactPublic(BaseModel):
 
 class ApplicationCreate(BaseModel):
     job_description_id: uuid.UUID | None = None
+    raw_job_posting_id: uuid.UUID | None = None
     cv_id: uuid.UUID | None = None
-    company_name: str
-    job_title: str
+    company_name: str | None = None
+    job_title: str | None = None
     job_url: str | None = None
     status: ApplicationStatus = "wishlist"
     applied_date: datetime | None = None
@@ -78,6 +79,7 @@ class ApplicationCreate(BaseModel):
 
 class ApplicationUpdate(BaseModel):
     job_description_id: uuid.UUID | None = None
+    raw_job_posting_id: uuid.UUID | None = None
     cv_id: uuid.UUID | None = None
     company_name: str | None = None
     job_title: str | None = None
@@ -99,6 +101,7 @@ class ApplicationSummary(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
     job_description_id: uuid.UUID | None
+    raw_job_posting_id: uuid.UUID | None = None
     cv_id: uuid.UUID | None
     company_name: str
     job_title: str

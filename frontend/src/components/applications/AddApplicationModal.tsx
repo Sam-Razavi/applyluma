@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import { useApplicationsStore } from '../../stores/applications'
 import type { ApplicationCreate, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
-import { STATUS_META } from './KanbanBoard'
+import { STATUS_META } from './statusMeta'
 
 interface Props {
   open: boolean
@@ -134,7 +134,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
               <Field label="Company name" required>
                 <input
                   name="company_name"
-                  value={form.company_name}
+                  value={form.company_name ?? ''}
                   onChange={(e) => setField('company_name', e.target.value)}
                   className="input"
                   placeholder="Spotify"
@@ -143,7 +143,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
               <Field label="Job title" required>
                 <input
                   name="job_title"
-                  value={form.job_title}
+                  value={form.job_title ?? ''}
                   onChange={(e) => setField('job_title', e.target.value)}
                   className="input"
                   placeholder="Backend Engineer"

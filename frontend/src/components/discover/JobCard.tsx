@@ -65,6 +65,11 @@ export default function JobCard({ job, onClick, onSave }: Props) {
               {score}%
             </span>
           )}
+          {job.application_status && (
+            <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+              {job.application_status.replace('_', ' ')}
+            </span>
+          )}
           <button
             type="button"
             onClick={(e) => {

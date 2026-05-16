@@ -1,9 +1,13 @@
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func
+from sqlalchemy import desc, exists, func, not_
+from sqlalchemy.orm import joinedload
 
+from app.crud import alert_preferences as crud_alert_preferences
 from app.db.session import SessionLocal
+from app.models.alert_preferences import JobAlertSentLog
 from app.models.application import Application
+from app.models.job import JobMatchingScore
 from app.models.user import User
 from app.services import notification_service
 from app.tasks.celery_app import celery_app
@@ -78,5 +82,79 @@ def send_weekly_summary() -> dict[str, int]:
             )
             created += 1
         return {"created": created}
+    finally:
+        db.close()
+
+
+@celery_app.task(name="app.tasks.notifications.notify_high_match_jobs")
+def notify_high_match_jobs() -> dict[str, int]:
+    db = SessionLocal()
+    created = 0
+    logged = 0
+    try:
+        now = datetime.now(UTC)
+        preferences = crud_alert_preferences.due_for_alert(db, now=now)
+        for pref in preferences:
+            score_query = (
+                db.query(JobMatchingScore)
+                .options(joinedload(JobMatchingScore.job))
+                .filter(
+                    JobMatchingScore.user_id == pref.user_id,
+                    JobMatchingScore.overall_score >= pref.score_threshold,
+                    not_(
+                        exists().where(
+                            (JobAlertSentLog.user_id == pref.user_id)
+                            & (
+                                JobAlertSentLog.raw_job_posting_id
+                                == JobMatchingScore.raw_job_posting_id
+                            )
+                        )
+                    ),
+                )
+            )
+            if pref.last_sent_at is not None:
+                score_query = score_query.filter(JobMatchingScore.computed_at > pref.last_sent_at)
+
+            matches = score_query.order_by(desc(JobMatchingScore.overall_score)).limit(10).all()
+            if not matches:
+                pref.last_sent_at = now
+                db.commit()
+                continue
+
+            lines = [
+                f"{score.job.title} at {score.job.company} ({round(score.overall_score)}%)"
+                for score in matches
+                if score.job
+            ]
+            if not lines:
+                pref.last_sent_at = now
+                db.commit()
+                continue
+
+            user = db.get(User, pref.user_id)
+            notification_service.create_notification(
+                db,
+                user_id=pref.user_id,
+                type="high_match_alert",
+                title="New high-match jobs",
+                body="\n".join(lines),
+                related_type="jobs",
+                send_email=True,
+                email=getattr(user, "email", None),
+            )
+            created += 1
+
+            for score in matches:
+                db.add(
+                    JobAlertSentLog(
+                        user_id=pref.user_id,
+                        raw_job_posting_id=score.raw_job_posting_id,
+                    )
+                )
+                logged += 1
+            pref.last_sent_at = now
+            db.commit()
+
+        return {"created": created, "logged": logged}
     finally:
         db.close()

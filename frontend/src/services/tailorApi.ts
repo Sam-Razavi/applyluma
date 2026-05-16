@@ -7,22 +7,40 @@ import type {
   TailorUsage,
 } from '../types/tailor'
 
+export type TailorSubmitPayload =
+  | {
+      cv_id: string
+      job_description_id: string
+      raw_job_posting_id?: never
+      intensity: TailorIntensity
+    }
+  | {
+      cv_id: string
+      raw_job_posting_id: string
+      job_description_id?: never
+      intensity: TailorIntensity
+    }
+
 export const tailorApi = {
   getUsage: (): Promise<TailorUsage> =>
     client.get<TailorUsage>('/api/v1/tailor/usage').then((r) => r.data),
 
   submit: (
-    cvId: string,
-    jobDescriptionId: string,
-    intensity: TailorIntensity,
-  ): Promise<TailorJob> =>
-    client
-      .post<TailorJob>('/api/v1/tailor/submit', {
-        cv_id: cvId,
-        job_description_id: jobDescriptionId,
-        intensity,
-      })
-      .then((r) => r.data),
+    cvOrPayload: string | TailorSubmitPayload,
+    jobDescriptionId?: string,
+    intensity?: TailorIntensity,
+  ): Promise<TailorJob> => {
+    const payload =
+      typeof cvOrPayload === 'string'
+        ? {
+            cv_id: cvOrPayload,
+            job_description_id: jobDescriptionId,
+            intensity,
+          }
+        : cvOrPayload
+
+    return client.post<TailorJob>('/api/v1/tailor/submit', payload).then((r) => r.data)
+  },
 
   getStatus: (jobId: string): Promise<TailorStatusResponse> =>
     client.get<TailorStatusResponse>(`/api/v1/tailor/${jobId}/status`).then((r) => r.data),

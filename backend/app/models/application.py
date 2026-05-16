@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.application_contact import ApplicationContact
     from app.models.application_event import ApplicationEvent
     from app.models.cv import CV
+    from app.models.job import RawJobPosting
     from app.models.job_description import JobDescription
     from app.models.user import User
 
@@ -26,6 +27,11 @@ class Application(Base, TimestampMixin):
     job_description_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("job_descriptions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    raw_job_posting_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("raw_job_postings.id", ondelete="SET NULL"),
         nullable=True,
     )
     cv_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -47,6 +53,7 @@ class Application(Base, TimestampMixin):
     user: Mapped["User"] = relationship("User")
     cv: Mapped["CV | None"] = relationship("CV")
     job_description: Mapped["JobDescription | None"] = relationship("JobDescription")
+    raw_job: Mapped["RawJobPosting | None"] = relationship("RawJobPosting")
     events: Mapped[list["ApplicationEvent"]] = relationship(
         "ApplicationEvent",
         back_populates="application",
