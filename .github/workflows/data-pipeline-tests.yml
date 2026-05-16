@@ -2,7 +2,7 @@ name: Data Pipeline Tests
 
 on:
   push:
-    branches: [ main, dev, 'feature/data-pipeline-tests' ]
+    branches: [ main, dev, 'feature/**', 'claude/**' ]
   pull_request:
     branches: [ main, dev ]
 
@@ -10,9 +10,9 @@ jobs:
   airflow-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install dependencies
@@ -33,9 +33,9 @@ jobs:
   dbt-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install dbt
