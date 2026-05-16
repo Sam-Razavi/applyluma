@@ -237,6 +237,57 @@ Key variables:
 
 Never commit real secrets or production `.env` files.
 
+## Screenshots
+
+### Analytics Dashboard — Desktop
+
+![Analytics Dashboard Desktop](docs/screenshots/dashboard-desktop.png)
+
+### Analytics Dashboard — Tablet
+
+![Analytics Dashboard Tablet](docs/screenshots/dashboard-tablet.png)
+
+### Analytics Dashboard — Mobile
+
+![Analytics Dashboard Mobile](docs/screenshots/dashboard-mobile.png)
+
+## Limitations
+
+**Job market coverage**
+- Swedish job discovery (Platsbanken, Jobbsafari, Indeed.se) is the only
+  automated scraping pipeline. International job search is powered by the
+  Adzuna API and is subject to Adzuna's rate limits and regional coverage.
+- The scraper runs once daily (2 AM UTC), so newly posted jobs can take up
+  to 24 hours to appear in the Discover feed.
+
+**AI features**
+- CV tailoring and job match scoring require an OpenAI API key; they will
+  not work in self-hosted deployments without one.
+- AI match scoring requires the user to have at least one CV uploaded.
+  Without a CV the match score cannot be calculated.
+- Daily CV tailoring is rate-limited per role: 1 tailor job/day for free
+  users, 10/day for premium, unlimited for admins.
+- Match score explanations are AI-generated estimates and should be treated
+  as a guide, not a guarantee of fit.
+
+**Infrastructure**
+- Redis is required for job feed caching, match score caching, and Celery
+  task queuing. Removing Redis will disable async tailoring and degrade
+  Discover performance.
+- Email alert delivery requires an outbound email service (SMTP or
+  transactional provider) to be configured. The alert preference and
+  scheduling logic is complete, but emails will not be sent without a
+  working `MAIL_*` environment configuration.
+- There are 2 moderate severity vulnerabilities in frontend npm dependencies
+  (reported by `npm audit`). Do not run `npm audit fix --force` without
+  reviewing the impact — it can introduce breaking dependency upgrades.
+
+**Platform**
+- No native mobile app; the platform is a responsive web application only.
+- Phase 10B features (Discover integrations, job alerts, Settings page) are
+  fully implemented on the `dev` branch and pass all tests, but have not
+  yet been merged to `main` / deployed to production.
+
 ## License
 
 MIT
