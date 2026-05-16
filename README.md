@@ -237,20 +237,6 @@ Key variables:
 
 Never commit real secrets or production `.env` files.
 
-## Screenshots
-
-### Analytics Dashboard — Desktop
-
-![Analytics Dashboard Desktop](docs/screenshots/dashboard-desktop.png)
-
-### Analytics Dashboard — Tablet
-
-![Analytics Dashboard Tablet](docs/screenshots/dashboard-tablet.png)
-
-### Analytics Dashboard — Mobile
-
-![Analytics Dashboard Mobile](docs/screenshots/dashboard-mobile.png)
-
 ## Limitations
 
 **Job market coverage**
