@@ -2,18 +2,26 @@ import { useEffect, useState } from 'react'
 import {
   ArrowTopRightOnSquareIcon,
   BookmarkIcon as BookmarkOutline,
+  BriefcaseIcon,
+  SparklesIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolid } from '@heroicons/react/24/solid'
+import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import type { DiscoveredJobDetail } from '../../types/jobDiscovery'
 import { SOURCE_LABELS } from '../../types/jobDiscovery'
 import { fetchJobDetail } from '../../services/jobDiscoveryApi'
+import { createApplication } from '../../services/applicationsApi'
+import ScoreBreakdown from './ScoreBreakdown'
+import SkillsBreakdown from './SkillsBreakdown'
 
 interface Props {
   jobId: string | null
   isSaved: boolean
   onClose: () => void
   onSave: (jobId: string) => void
+  onApplicationCreated?: (jobId: string, applicationId: string, status: string) => void
 }
 
 function Pill({ text, color }: { text: string; color: string }) {
@@ -22,10 +30,18 @@ function Pill({ text, color }: { text: string; color: string }) {
   )
 }
 
-export default function JobDetail({ jobId, isSaved, onClose, onSave }: Props) {
+export default function JobDetail({
+  jobId,
+  isSaved,
+  onClose,
+  onSave,
+  onApplicationCreated,
+}: Props) {
+  const navigate = useNavigate()
   const [job, setJob] = useState<DiscoveredJobDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [addingApplication, setAddingApplication] = useState(false)
 
   useEffect(() => {
     if (!jobId) {
@@ -41,6 +57,29 @@ export default function JobDetail({ jobId, isSaved, onClose, onSave }: Props) {
   }, [jobId])
 
   if (!jobId) return null
+
+  async function handleAddApplication() {
+    if (!job) return
+    setAddingApplication(true)
+    try {
+      const application = await createApplication({
+        raw_job_posting_id: job.job_id,
+        status: 'wishlist',
+      })
+      setJob({ ...job, application_id: application.id, application_status: application.status })
+      onApplicationCreated?.(job.job_id, application.id, application.status)
+      toast.success('Added to applications')
+    } catch {
+      toast.error('Failed to add application')
+    } finally {
+      setAddingApplication(false)
+    }
+  }
+
+  function handleTailor() {
+    if (!job) return
+    navigate('/ai-tailor', { state: { rawJobPostingId: job.job_id } })
+  }
 
   return (
     <div
@@ -102,41 +141,29 @@ export default function JobDetail({ jobId, isSaved, onClose, onSave }: Props) {
               <div className="rounded-xl border border-primary-100 bg-primary-50 p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-primary-800">Match score</span>
-                  <span className="text-lg font-bold text-primary-700">
+                  <span
+                    className="text-lg font-bold text-primary-700"
+                    title="Weights: skills 40%, experience 30%, salary 15%, education 10%, location 5%"
+                  >
                     {Math.round(job.match_score)}%
                   </span>
                 </div>
-                {job.explanation && (
-                  <p className="text-xs text-primary-700">{job.explanation}</p>
-                )}
               </div>
             )}
 
-            {/* Matched / missing skills */}
-            {(job.matched_skills.length > 0 || job.missing_skills.length > 0) && (
-              <div className="grid grid-cols-2 gap-4">
-                {job.matched_skills.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs font-semibold text-green-700">Matched skills</p>
-                    <div className="flex flex-wrap gap-1">
-                      {job.matched_skills.map((s) => (
-                        <Pill key={s} text={s} color="bg-green-50 text-green-700" />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {job.missing_skills.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs font-semibold text-red-700">Missing skills</p>
-                    <div className="flex flex-wrap gap-1">
-                      {job.missing_skills.map((s) => (
-                        <Pill key={s} text={s} color="bg-red-50 text-red-700" />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            <ScoreBreakdown
+              skillsMatch={job.skills_match}
+              experienceMatch={job.experience_match}
+              salaryMatchScore={job.salary_match_score}
+              educationMatch={job.education_match}
+              locationMatch={job.location_match}
+              explanation={job.explanation}
+            />
+
+            <SkillsBreakdown
+              matchedSkills={job.matched_skills}
+              missingSkills={job.missing_skills}
+            />
 
             {/* Description */}
             {job.description && (
@@ -171,6 +198,30 @@ export default function JobDetail({ jobId, isSaved, onClose, onSave }: Props) {
                   </>
                 )}
               </button>
+              <button
+                type="button"
+                onClick={handleTailor}
+                className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100"
+              >
+                <SparklesIcon className="h-4 w-4" />
+                Tailor CV
+              </button>
+              {job.application_status ? (
+                <span className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700">
+                  <BriefcaseIcon className="h-4 w-4" />
+                  {job.application_status.replace('_', ' ')}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void handleAddApplication()}
+                  disabled={addingApplication}
+                  className="flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <BriefcaseIcon className="h-4 w-4" />
+                  {addingApplication ? 'Adding' : 'Add to Applications'}
+                </button>
+              )}
               <a
                 href={job.url}
                 target="_blank"

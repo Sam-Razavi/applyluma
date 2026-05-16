@@ -34,6 +34,7 @@ export interface Application {
   id: string
   user_id: string
   job_description_id: string | null
+  raw_job_posting_id: string | null
   cv_id: string | null
   company_name: string
   job_title: string
@@ -54,9 +55,10 @@ export interface Application {
 }
 
 export interface ApplicationCreate {
-  company_name: string
-  job_title: string
+  company_name?: string | null
+  job_title?: string | null
   job_description_id?: string | null
+  raw_job_posting_id?: string | null
   cv_id?: string | null
   job_url?: string | null
   status?: ApplicationStatus

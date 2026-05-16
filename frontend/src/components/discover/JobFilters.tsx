@@ -15,16 +15,6 @@ const SORT_OPTIONS = [
   { value: 'date_posted', label: 'Most recent' },
 ]
 
-export const DEFAULT_FILTERS: JobFilters = {
-  location: '',
-  salary_min: '',
-  salary_max: '',
-  keywords: '',
-  source: '',
-  match_score_min: '',
-  sort: 'score_desc',
-}
-
 function hasActiveFilters(f: JobFilters): boolean {
   return (
     !!f.location ||
