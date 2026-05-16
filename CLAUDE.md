@@ -21,6 +21,7 @@ ApplyLuma repository.
 - Test Infrastructure: ✅ COMPLETE
 - Phase 10A: ✅ COMPLETE — Swedish Job Discovery & AI-Powered Job Matching
 - Phase 10B: ✅ IMPLEMENTED ON DEV — Discover Integrations & Job Alerts
+- Mobile UX Enhancement: ✅ IMPLEMENTED ON DEV — Responsive polish and motion
 
 Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Celery worker tailors CV sections against a job description using OpenAI.
@@ -65,6 +66,24 @@ Phase 10B integrates job discovery with the rest of the app:
     38 passed, `npm run type-check` passed, `npm run build` passed, backend
     `ruff` passed.
 
+Mobile UX enhancement pass improves frontend responsiveness and interaction polish:
+  - Added `framer-motion` and `@use-gesture/react`; `react-dropzone` was already
+    present.
+  - Consolidated mobile navigation around `MobileNav.tsx` with animated drawer
+    and overlay; removed the duplicate inline mobile nav from `Navbar.tsx`.
+  - Raised mobile touch targets for nav, global `.input`, CV upload controls, and
+    CV list action buttons.
+  - Improved CV upload layout on small screens and animated upload progress.
+  - Added Discover skeleton cards, staggered job-card entry animation, and
+    mobile-stacked Job Detail actions.
+  - Added AI Tailor step transitions and animated SectionDiff content with the
+    tablet two-column breakpoint moved to `md:`.
+  - Added shared animation constants in `frontend/src/lib/animations.ts`,
+    reusable `FadeIn`, reusable `SkeletonCard`, and reduced-motion CSS support.
+  - Validation on 2026-05-16: frontend `npm run type-check` passed, `npm test`
+    38 passed, `npm run build` passed. Bundle gzip increased by about 38.6 kB,
+    within the mobile plan target.
+
 ## Git Workflow
 
 Branch structure:
@@ -100,6 +119,8 @@ Frontend:
 - TypeScript
 - Vite
 - Tailwind CSS on Vercel
+- framer-motion for mobile polish and page/element transitions
+- @use-gesture/react is installed for future gesture enhancements
 
 Data:
 - Apache Airflow
@@ -283,13 +304,18 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 ## Known Issues
 
 - No known Phase 10B code issues after local validation.
+- `npm install` reported 2 moderate frontend dependency vulnerabilities; do not
+  run `npm audit fix --force` casually because it can introduce breaking
+  dependency upgrades.
 - GitHub CLI (`gh`) is not installed in the local Codex environment; use the
   GitHub connector or install `gh` for CLI-based PR workflows.
 
 ## Next Steps
 
-- Open PR from `dev` to `main` for Phase 10B.
-- Review CI, then merge `dev` to `main` when ready for production deployment.
+- PR #6 from `dev` to `main` is open for the mobile UX enhancements on top of
+  the merged Phase 10B baseline.
+- Review CI and mobile behavior, then merge `dev` to `main` when ready for
+  production deployment.
 - Phase 10C candidate areas: in-app surfacing for high-match notifications,
   Discover filter for jobs already in Applications, richer alert preferences,
   and additional frontend/backend tests for Phase 10B edge cases.

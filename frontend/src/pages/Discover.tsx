@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import JobCard from '../components/discover/JobCard'
 import { DEFAULT_FILTERS } from '../components/discover/defaultFilters'
 import JobFilters from '../components/discover/JobFilters'
 import JobDetail from '../components/discover/JobDetail'
+import { FadeIn } from '../components/ui/FadeIn'
+import { SkeletonCard } from '../components/ui/SkeletonCard'
+import { staggerItem } from '../lib/animations'
 import { fetchDiscoveredJobs, saveJob } from '../services/jobDiscoveryApi'
 import type { DiscoveredJob, JobFilters as Filters } from '../types/jobDiscovery'
 
@@ -102,6 +106,7 @@ export default function Discover() {
   const selectedJobSaved = selectedJobId ? savedIds.has(selectedJobId) : false
 
   return (
+    <FadeIn>
     <div className="space-y-6">
       {/* Page header */}
       <div>
@@ -120,7 +125,7 @@ export default function Discover() {
           {initialLoad ? (
             <div className="grid gap-4">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-40 animate-pulse rounded-2xl bg-gray-100" />
+                <SkeletonCard key={i} />
               ))}
             </div>
           ) : jobs.length === 0 ? (
@@ -136,13 +141,19 @@ export default function Discover() {
           ) : (
             <>
               <div className="grid gap-4">
-                {jobs.map((job) => (
-                  <JobCard
+                {jobs.map((job, index) => (
+                  <motion.div
                     key={job.job_id}
-                    job={{ ...job, is_saved: savedIds.has(job.job_id) }}
-                    onClick={(j) => setSelectedJobId(j.job_id)}
-                    onSave={handleSave}
-                  />
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={staggerItem(index % PAGE_SIZE)}
+                  >
+                    <JobCard
+                      job={{ ...job, is_saved: savedIds.has(job.job_id) }}
+                      onClick={(j) => setSelectedJobId(j.job_id)}
+                      onSave={handleSave}
+                    />
+                  </motion.div>
                 ))}
               </div>
 
@@ -183,5 +194,6 @@ export default function Discover() {
         }}
       />
     </div>
+    </FadeIn>
   )
 }
