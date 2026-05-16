@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.alert_preferences import UserAlertPreferences
     from app.models.cv import CV
     from app.models.job import JobMatchingScore, SavedJob
     from app.models.job_description import JobDescription
@@ -65,4 +66,10 @@ class User(Base, TimestampMixin):
     )
     matching_scores: Mapped[list["JobMatchingScore"]] = relationship(
         "JobMatchingScore", back_populates="user", cascade="all, delete-orphan"
+    )
+    alert_preferences: Mapped["UserAlertPreferences | None"] = relationship(
+        "UserAlertPreferences",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
     )

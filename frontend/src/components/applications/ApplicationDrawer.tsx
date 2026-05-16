@@ -12,7 +12,7 @@ import type { Application, ApplicationStatus, ApplicationUpdate } from '../../ty
 import { APPLICATION_STATUSES } from '../../types/application'
 import ApplicationTimeline from './ApplicationTimeline'
 import ContactsList from './ContactsList'
-import { STATUS_META } from './KanbanBoard'
+import { STATUS_META } from './statusMeta'
 
 interface DrawerForm {
   company_name: string

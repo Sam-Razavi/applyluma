@@ -7,9 +7,9 @@ from typing import Any
 from sqlalchemy import desc, nullslast
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.application import Application
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
 from app.schemas.job import SaveJobRequest, UpdateSavedJobRequest
-
 
 # ------------------------------------------------------------------
 # Jobs
@@ -31,11 +31,16 @@ def list_jobs(
 ) -> list[dict[str, Any]]:
     """Return a paginated list of jobs with match scores for the user."""
     q = (
-        db.query(RawJobPosting, JobMatchingScore)
+        db.query(RawJobPosting, JobMatchingScore, Application)
         .outerjoin(
             JobMatchingScore,
             (JobMatchingScore.raw_job_posting_id == RawJobPosting.id)
             & (JobMatchingScore.user_id == user_id),
+        )
+        .outerjoin(
+            Application,
+            (Application.raw_job_posting_id == RawJobPosting.id)
+            & (Application.user_id == user_id),
         )
         .filter(RawJobPosting.is_duplicate.is_(False))
     )
@@ -75,8 +80,8 @@ def list_jobs(
     rows = q.offset(offset).limit(limit).all()
 
     results = []
-    for posting, score in rows:
-        results.append(_job_to_dict(posting, score))
+    for posting, score, application in rows:
+        results.append(_job_to_dict(posting, score, application))
     return results
 
 
@@ -87,11 +92,16 @@ def get_job_with_score(
 ) -> dict[str, Any] | None:
     """Return a job with its match score for the given user."""
     row = (
-        db.query(RawJobPosting, JobMatchingScore)
+        db.query(RawJobPosting, JobMatchingScore, Application)
         .outerjoin(
             JobMatchingScore,
             (JobMatchingScore.raw_job_posting_id == RawJobPosting.id)
             & (JobMatchingScore.user_id == user_id),
+        )
+        .outerjoin(
+            Application,
+            (Application.raw_job_posting_id == RawJobPosting.id)
+            & (Application.user_id == user_id),
         )
         .filter(RawJobPosting.id == job_id)
         .first()
@@ -99,8 +109,8 @@ def get_job_with_score(
     if not row:
         return None
 
-    posting, score = row
-    return _job_to_dict(posting, score, include_description=True)
+    posting, score, application = row
+    return _job_to_dict(posting, score, application, include_description=True)
 
 
 def get_job_keywords(
@@ -231,6 +241,7 @@ def delete_saved_job(db: Session, saved: SavedJob) -> None:
 def _job_to_dict(
     posting: RawJobPosting,
     score: JobMatchingScore | None,
+    application: Application | None = None,
     include_description: bool = False,
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
@@ -254,6 +265,8 @@ def _job_to_dict(
         "explanation": score.explanation if score else None,
         "keywords": [],
         "is_saved": False,
+        "application_status": application.status if application else None,
+        "application_id": application.id if application else None,
     }
     if include_description:
         data["description"] = posting.description

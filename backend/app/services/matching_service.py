@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy.orm import Session
 
 from app.models.cv import CV
-from app.models.job import JobMatchingScore, RawJobPosting
+from app.models.job import RawJobPosting
 from app.services.keyword_extractor import KeywordExtractor
 
 if TYPE_CHECKING:
