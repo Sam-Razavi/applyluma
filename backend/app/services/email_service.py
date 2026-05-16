@@ -17,6 +17,10 @@ EMAIL_TEMPLATES = {
         "subject": "Your weekly application summary",
         "body": "<p>Your weekly application funnel summary is ready.</p>",
     },
+    "high_match_alert": {
+        "subject": "New high-match jobs",
+        "body": "<p>New jobs match your profile in ApplyLuma.</p>",
+    },
 }
 
 

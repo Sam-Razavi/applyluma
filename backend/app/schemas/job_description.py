@@ -17,6 +17,7 @@ class JobDescriptionSummary(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
+    source_raw_job_posting_id: uuid.UUID | None = None
     company_name: str
     job_title: str
     url: str | None

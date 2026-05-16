@@ -38,7 +38,18 @@ def create_application(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApplicationPublic:
-    return crud_application.create_application(db, current_user.id, body)
+    try:
+        return crud_application.create_application(db, current_user.id, body)
+    except crud_application.RawJobPostingNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Raw job posting not found",
+        ) from None
+    except crud_application.MissingApplicationFieldsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from None
 
 
 @router.get("", response_model=list[ApplicationSummary])

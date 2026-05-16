@@ -8,7 +8,8 @@ ApplyLuma repository.
 - ApplyLuma is an AI-powered job search and resume optimization platform.
 - Production frontend: https://applyluma.com
 - Production backend: https://applyluma-production.up.railway.app
-- Status: Phase 10A complete. Production is 100% functional.
+- Status: Phase 10B implemented on `dev` and ready for PR review. Production
+  remains on the last merged release until `dev` is merged to `main`.
 - All major features are working, including authentication, resume analysis, job
   search, job description management, the analytics dashboard, AI CV Tailor, and
   Swedish job discovery with AI-powered match scoring.
@@ -19,7 +20,7 @@ ApplyLuma repository.
 - Phase 9: ✅ COMPLETE
 - Test Infrastructure: ✅ COMPLETE
 - Phase 10A: ✅ COMPLETE — Swedish Job Discovery & AI-Powered Job Matching
-- Phase 10B: Ready to plan
+- Phase 10B: ✅ IMPLEMENTED ON DEV — Discover Integrations & Job Alerts
 
 Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Celery worker tailors CV sections against a job description using OpenAI.
@@ -42,6 +43,27 @@ Phase 10A delivered Swedish job discovery end-to-end:
   - Three new database tables: saved_jobs, extracted_keywords, job_matching_scores.
   - Alembic migration 0008_phase_10a_tables.py applied to Railway.
   - 104 backend tests, 38 frontend tests — all passing.
+
+Phase 10B integrates job discovery with the rest of the app:
+  - Discover jobs can be added directly to application tracking via
+    `applications.raw_job_posting_id`; the backend hydrates company, title, URL,
+    source, salary, location, and remote type from `raw_job_postings`.
+  - Discover jobs can launch AI CV Tailor directly. The tailor endpoint accepts
+    either `job_description_id` or `raw_job_posting_id`; raw jobs are converted
+    into reusable job descriptions with `source_raw_job_posting_id` deduping.
+  - Discover job detail now shows structured score and skill breakdowns instead
+    of plain explanation text.
+  - High-match job alerts are implemented with user alert preferences, sent-job
+    dedupe logs, a daily Celery Beat task, notification rows, and email template
+    support.
+  - Settings page (`/settings`) lets users enable alerts, set threshold, and
+    choose daily or weekly frequency.
+  - New Alembic chain: `0009_application_raw_job_link.py`,
+    `0010_jd_source_raw_job.py`, `0011_user_alert_preferences.py`.
+  - `alembic upgrade head` ran successfully through `0011` on 2026-05-16.
+  - Validation on 2026-05-16: backend `pytest` 104 passed, frontend `npm test`
+    38 passed, `npm run type-check` passed, `npm run build` passed, backend
+    `ruff` passed.
 
 ## Git Workflow
 
@@ -169,6 +191,8 @@ Files:
 - `tests/test_health_endpoints.py` — health and detailed health checks
 - `tests/test_cv_history_endpoints.py` — CV history tree and diff endpoints
 - `tests/test_job_search_endpoints.py` — Adzuna job search + caching
+- Phase 10B alert preference endpoints and high-match alert task are implemented;
+  add focused endpoint/task tests when extending alert behavior further.
 
 Pattern: tests use `httpx.AsyncClient(transport=httpx.ASGITransport(app=app))`
 and `app.dependency_overrides` to inject `FakeDb` and a stub user — no real
@@ -258,17 +282,20 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Known Issues
 
-- None. All features and tests are passing in production and CI.
+- No known Phase 10B code issues after local validation.
+- GitHub CLI (`gh`) is not installed in the local Codex environment; use the
+  GitHub connector or install `gh` for CLI-based PR workflows.
 
 ## Next Steps
 
-- Plan Phase 10B.
-- Candidate areas: one-click CV tailoring from discovered jobs, advanced match
-  score explanations, email alerts for high-match jobs, application tracking
-  integration with the Discover feed.
+- Open PR from `dev` to `main` for Phase 10B.
+- Review CI, then merge `dev` to `main` when ready for production deployment.
+- Phase 10C candidate areas: in-app surfacing for high-match notifications,
+  Discover filter for jobs already in Applications, richer alert preferences,
+  and additional frontend/backend tests for Phase 10B edge cases.
 - Continue using the `dev` -> `main` workflow.
 - Use feature branches for AI collaboration.
-- Run the relevant test suite before merging any Phase 10B work.
+- Run the relevant test suite before merging any future Phase 10C work.
 
 ## AI Development Guidelines
 

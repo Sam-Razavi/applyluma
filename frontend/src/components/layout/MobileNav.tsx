@@ -1,6 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 import { XMarkIcon } from '@heroicons/react/24/outline'
-import { NAV_LINKS } from './Navbar'
+import { NAV_LINKS } from './navLinks'
 
 interface Props {
   open: boolean

@@ -30,5 +30,9 @@ celery_app.conf.update(
             "task": "app.tasks.notifications.send_weekly_summary",
             "schedule": crontab(hour=8, minute=0, day_of_week="monday"),
         },
+        "notify-high-match-jobs-daily": {
+            "task": "app.tasks.notifications.notify_high_match_jobs",
+            "schedule": crontab(hour=3, minute=30),
+        },
     },
 )
