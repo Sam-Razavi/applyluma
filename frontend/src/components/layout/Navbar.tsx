@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores'
 import NotificationBell from '../notifications/NotificationBell'
@@ -10,10 +9,7 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const [open, setOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const mobileMenuRef = useRef<HTMLElement>(null)
-  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -26,44 +22,11 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
-    setMobileMenuOpen(false)
+    setOpen(false)
   }, [location.pathname])
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return
-
-    function onEscape(e: KeyboardEvent) {
-      if (e.key !== 'Escape') return
-
-      setMobileMenuOpen(false)
-      mobileMenuButtonRef.current?.focus()
-    }
-
-    document.addEventListener('keydown', onEscape)
-    return () => document.removeEventListener('keydown', onEscape)
-  }, [mobileMenuOpen])
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return
-
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(target) &&
-        !mobileMenuButtonRef.current?.contains(target)
-      ) {
-        setMobileMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [mobileMenuOpen])
 
   function handleLogout() {
     logout()
-    setMobileMenuOpen(false)
     navigate('/login')
   }
 
@@ -110,7 +73,7 @@ export default function Navbar() {
           <div className="relative flex-shrink-0" ref={dropdownRef}>
           <button
             onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            className="flex items-center gap-2 rounded-lg px-2 py-2 transition-colors duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
             aria-expanded={open}
             aria-haspopup="menu"
           >
@@ -148,45 +111,8 @@ export default function Navbar() {
             </div>
           )}
           </div>
-
-          <button
-            ref={mobileMenuButtonRef}
-            type="button"
-            onClick={() => setMobileMenuOpen((current) => !current)}
-            className="inline-flex items-center justify-center rounded-lg p-2 text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 md:hidden"
-            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? (
-              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-            ) : (
-              <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-            )}
-          </button>
         </div>
       </div>
-
-      {mobileMenuOpen && (
-        <nav ref={mobileMenuRef} className="border-t border-gray-200 bg-white md:hidden" aria-label="Mobile navigation">
-          <div className="space-y-1 px-4 py-3">
-            {NAV_LINKS.map(({ to, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `block rounded-lg px-3 py-2 text-base font-medium transition-colors duration-200 ${
-                    isActive
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  }`
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
-          </div>
-        </nav>
-      )}
     </header>
   )
 }

@@ -7,6 +7,7 @@ import {
   DocumentTextIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Link, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { IntensitySelector } from '../components/tailor/IntensitySelector'
@@ -174,44 +175,54 @@ export default function AITailor() {
 
       {usage && <UsageBanner usage={usage} />}
 
-      {step === 'select' && (
-        <SelectStep
-          cvs={cvs}
-          jobs={jobs}
-          loading={loading}
-          selectedCvId={selectedCvId}
-          selectedJobId={selectedJobId}
-          selectedCv={selectedCv}
-          selectedJob={selectedJob}
-          rawJob={rawJob}
-          rawJobPostingId={rawJobPostingId}
-          intensity={intensity}
-          onCvChange={setSelectedCvId}
-          onJobChange={setSelectedJobId}
-          onIntensityChange={setIntensity}
-          onSubmit={handleSubmit}
-          canSubmit={canSubmit}
-          submitting={submitting}
-          atLimit={atLimit}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.18 }}
+        >
+          {step === 'select' && (
+            <SelectStep
+              cvs={cvs}
+              jobs={jobs}
+              loading={loading}
+              selectedCvId={selectedCvId}
+              selectedJobId={selectedJobId}
+              selectedCv={selectedCv}
+              selectedJob={selectedJob}
+              rawJob={rawJob}
+              rawJobPostingId={rawJobPostingId}
+              intensity={intensity}
+              onCvChange={setSelectedCvId}
+              onJobChange={setSelectedJobId}
+              onIntensityChange={setIntensity}
+              onSubmit={handleSubmit}
+              canSubmit={canSubmit}
+              submitting={submitting}
+              atLimit={atLimit}
+            />
+          )}
 
-      {step === 'processing' && <TailorProgress />}
+          {step === 'processing' && <TailorProgress />}
 
-      {step === 'preview' && preview && (
-        <PreviewStep
-          preview={preview}
-          acceptedIds={acceptedIds}
-          onToggle={toggleSection}
-          onSave={handleSave}
-          onBack={handleReset}
-          saving={saving}
-        />
-      )}
+          {step === 'preview' && preview && (
+            <PreviewStep
+              preview={preview}
+              acceptedIds={acceptedIds}
+              onToggle={toggleSection}
+              onSave={handleSave}
+              onBack={handleReset}
+              saving={saving}
+            />
+          )}
 
-      {step === 'done' && savedCvId && jobId && (
-        <DoneStep cvId={savedCvId} savedTitle={savedTitle} onReset={handleReset} />
-      )}
+          {step === 'done' && savedCvId && jobId && (
+            <DoneStep cvId={savedCvId} savedTitle={savedTitle} onReset={handleReset} />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }
