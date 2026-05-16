@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
 from app.schemas.job import SaveJobRequest, UpdateSavedJobRequest
 
-
 # ------------------------------------------------------------------
 # Jobs
 # ------------------------------------------------------------------

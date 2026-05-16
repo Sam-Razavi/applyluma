@@ -1,6 +1,6 @@
 import type { ApplicationStats as Stats, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
-import { STATUS_META } from './KanbanBoard'
+import { STATUS_META } from './applicationMeta'
 
 interface Props {
   stats: Stats

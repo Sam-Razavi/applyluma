@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import { useApplicationsStore } from '../../stores/applications'
 import type { ApplicationCreate, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
-import { STATUS_META } from './KanbanBoard'
+import { STATUS_META } from './applicationMeta'
 
 interface Props {
   open: boolean

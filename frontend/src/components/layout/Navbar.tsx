@@ -4,18 +4,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores'
 import NotificationBell from '../notifications/NotificationBell'
 
-export const NAV_LINKS = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/cvs', label: 'My CVs' },
-  { to: '/jobs', label: 'Jobs' },
-  { to: '/discover', label: 'Discover' },
-  { to: '/saved-jobs', label: 'Saved Jobs' },
-  { to: '/job-search', label: 'Job Search' },
-  { to: '/applications', label: 'Applications' },
-  { to: '/ai-tailor', label: 'AI Tailor' },
-  { to: '/analytics', label: 'Analytics' },
-  { to: '/plans', label: 'Plans' },
-]
+import { NAV_LINKS } from './navLinks'
 
 export default function Navbar() {
   const { user, logout } = useAuthStore()
