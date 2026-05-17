@@ -31,7 +31,7 @@ def list_jobs(
 ) -> list[dict[str, Any]]:
     """Return a paginated list of jobs with match scores for the user."""
     q = (
-        db.query(RawJobPosting, JobMatchingScore, Application)
+        db.query(RawJobPosting, JobMatchingScore, Application, SavedJob)
         .outerjoin(
             JobMatchingScore,
             (JobMatchingScore.raw_job_posting_id == RawJobPosting.id)
@@ -41,6 +41,11 @@ def list_jobs(
             Application,
             (Application.raw_job_posting_id == RawJobPosting.id)
             & (Application.user_id == user_id),
+        )
+        .outerjoin(
+            SavedJob,
+            (SavedJob.raw_job_posting_id == RawJobPosting.id)
+            & (SavedJob.user_id == user_id),
         )
         .filter(RawJobPosting.is_duplicate.is_(False))
     )
@@ -80,8 +85,8 @@ def list_jobs(
     rows = q.offset(offset).limit(limit).all()
 
     results = []
-    for posting, score, application in rows:
-        results.append(_job_to_dict(posting, score, application))
+    for posting, score, application, saved_job in rows:
+        results.append(_job_to_dict(posting, score, application, saved_job))
     return results
 
 
@@ -92,7 +97,7 @@ def get_job_with_score(
 ) -> dict[str, Any] | None:
     """Return a job with its match score for the given user."""
     row = (
-        db.query(RawJobPosting, JobMatchingScore, Application)
+        db.query(RawJobPosting, JobMatchingScore, Application, SavedJob)
         .outerjoin(
             JobMatchingScore,
             (JobMatchingScore.raw_job_posting_id == RawJobPosting.id)
@@ -103,14 +108,19 @@ def get_job_with_score(
             (Application.raw_job_posting_id == RawJobPosting.id)
             & (Application.user_id == user_id),
         )
+        .outerjoin(
+            SavedJob,
+            (SavedJob.raw_job_posting_id == RawJobPosting.id)
+            & (SavedJob.user_id == user_id),
+        )
         .filter(RawJobPosting.id == job_id)
         .first()
     )
     if not row:
         return None
 
-    posting, score, application = row
-    return _job_to_dict(posting, score, application, include_description=True)
+    posting, score, application, saved_job = row
+    return _job_to_dict(posting, score, application, saved_job, include_description=True)
 
 
 def get_job_keywords(
@@ -242,6 +252,7 @@ def _job_to_dict(
     posting: RawJobPosting,
     score: JobMatchingScore | None,
     application: Application | None = None,
+    saved_job: SavedJob | None = None,
     include_description: bool = False,
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
@@ -264,7 +275,8 @@ def _job_to_dict(
         "location_match": score.location_match if score else None,
         "explanation": score.explanation if score else None,
         "keywords": [],
-        "is_saved": False,
+        "is_saved": saved_job is not None,
+        "saved_job_id": saved_job.id if saved_job else None,
         "application_status": application.status if application else None,
         "application_id": application.id if application else None,
     }
