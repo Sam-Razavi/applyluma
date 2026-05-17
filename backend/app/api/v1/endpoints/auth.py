@@ -5,11 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.crud import user as crud_user
 from app.models.user import User
 from app.schemas.token import LoginRequest, RefreshRequest, Token, TokenPair
-from app.schemas.user import UserCreate, UserPublic
+from app.schemas.user import ChangePasswordRequest, UserCreate, UserPublic
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -81,3 +81,25 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
 @router.get("/me", response_model=UserPublic)
 def get_me(current_user: User = Depends(get_current_user)) -> UserPublic:
     return current_user
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+    crud_user.update_password(db, current_user, body.new_password)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    crud_user.delete(db, current_user)
