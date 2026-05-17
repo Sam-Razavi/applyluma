@@ -62,6 +62,7 @@ def _job_dict(job_id: uuid.UUID = JOB_ID, **extra: Any) -> dict[str, Any]:
         "explanation": "You have 5/6 required skills.",
         "keywords": [],
         "is_saved": False,
+        "saved_job_id": None,
         **extra,
     }
 
