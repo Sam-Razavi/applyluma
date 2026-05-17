@@ -6,19 +6,31 @@ import SavedJobCard from '../components/discover/SavedJobCard'
 import JobDetail from '../components/discover/JobDetail'
 import { fetchSavedJobs, updateSavedJob, deleteSavedJob } from '../services/jobDiscoveryApi'
 import type { SavedJob } from '../types/jobDiscovery'
+import { ErrorState } from '../components/ui/ErrorState'
+import { extractApiError } from '../utils/errors'
 
 export default function SavedJobs() {
   const [saved, setSaved] = useState<SavedJob[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [activeCollection, setActiveCollection] = useState<string | null>(null)
 
-  useEffect(() => {
-    document.title = 'Saved Jobs | ApplyLuma'
+  function doFetch() {
+    setLoading(true)
+    setLoadError(false)
     fetchSavedJobs()
       .then(setSaved)
-      .catch(() => toast.error('Failed to load saved jobs'))
+      .catch((err) => {
+        setLoadError(true)
+        toast.error(extractApiError(err, 'Failed to load saved jobs'))
+      })
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    document.title = 'Saved Jobs | ApplyLuma'
+    doFetch()
   }, [])
 
   async function handleStar(savedId: string, starred: boolean) {
@@ -26,9 +38,9 @@ export default function SavedJobs() {
     try {
       const updated = await updateSavedJob(savedId, { starred })
       setSaved((prev) => prev.map((s) => (s.id === savedId ? updated : s)))
-    } catch {
+    } catch (err) {
       setSaved((prev) => prev.map((s) => (s.id === savedId ? { ...s, starred: !starred } : s)))
-      toast.error('Failed to update')
+      toast.error(extractApiError(err, 'Failed to update'))
     }
   }
 
@@ -38,9 +50,9 @@ export default function SavedJobs() {
     toast.success('Removed from saved jobs')
     try {
       await deleteSavedJob(savedId)
-    } catch {
+    } catch (err) {
       if (removed) setSaved((prev) => [...prev, removed])
-      toast.error('Failed to remove')
+      toast.error(extractApiError(err, 'Failed to remove'))
     }
   }
 
@@ -66,6 +78,8 @@ export default function SavedJobs() {
             <div key={i} className="h-36 animate-pulse rounded-2xl bg-gray-100" />
           ))}
         </div>
+      ) : loadError ? (
+        <ErrorState message="Failed to load saved jobs" onRetry={doFetch} />
       ) : saved.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50">

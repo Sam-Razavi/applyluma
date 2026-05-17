@@ -199,6 +199,57 @@ async def test_get_job_detail_returns_404_when_missing(monkeypatch: pytest.Monke
 
 
 # ------------------------------------------------------------------
+# is_saved / saved_job_id field tests
+# ------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_list_jobs_is_saved_false_and_saved_job_id_null_when_not_saved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(jobs_endpoint.crud_job, "list_jobs", lambda *a, **kw: [_job_dict()])
+    resp = await _request("GET", "/api/v1/jobs")
+    assert resp.status_code == 200
+    data = resp.json()[0]
+    assert data["is_saved"] is False
+    assert data["saved_job_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_list_jobs_is_saved_true_and_saved_job_id_populated_when_saved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    saved_job_id = str(SAVED_ID)
+    monkeypatch.setattr(
+        jobs_endpoint.crud_job,
+        "list_jobs",
+        lambda *a, **kw: [_job_dict(is_saved=True, saved_job_id=saved_job_id)],
+    )
+    resp = await _request("GET", "/api/v1/jobs")
+    assert resp.status_code == 200
+    data = resp.json()[0]
+    assert data["is_saved"] is True
+    assert data["saved_job_id"] == saved_job_id
+
+
+@pytest.mark.asyncio
+async def test_get_job_detail_returns_is_saved_and_saved_job_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    saved_job_id = str(SAVED_ID)
+    detail = {
+        **_job_dict(is_saved=True, saved_job_id=saved_job_id),
+        "description": "Full description.",
+        "matched_skills": [],
+        "missing_skills": [],
+    }
+    monkeypatch.setattr(jobs_endpoint.crud_job, "get_job_with_score", lambda *a, **kw: detail)
+    resp = await _request("GET", f"/api/v1/jobs/{JOB_ID}")
+    assert resp.status_code == 200
+    assert resp.json()["is_saved"] is True
+    assert resp.json()["saved_job_id"] == saved_job_id
+
+
+# ------------------------------------------------------------------
 # GET /jobs/{job_id}/keywords
 # ------------------------------------------------------------------
 

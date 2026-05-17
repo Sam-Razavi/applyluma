@@ -11,6 +11,8 @@ import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { staggerItem } from '../lib/animations'
 import { deleteSavedJob, fetchDiscoveredJobs, saveJob } from '../services/jobDiscoveryApi'
 import type { DiscoveredJob, JobFilters as Filters } from '../types/jobDiscovery'
+import { ErrorState } from '../components/ui/ErrorState'
+import { extractApiError } from '../utils/errors'
 
 const PAGE_SIZE = 20
 
@@ -21,6 +23,7 @@ export default function Discover() {
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const savedJobMapRef = useRef<Map<string, string>>(new Map())
@@ -35,6 +38,7 @@ export default function Discover() {
       abortRef.current?.abort()
       abortRef.current = new AbortController()
 
+      if (replace) setLoadError(false)
       setLoading(true)
       try {
         const results = await fetchDiscoveredJobs({
@@ -59,7 +63,8 @@ export default function Discover() {
         })
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
-        toast.error('Failed to load jobs')
+        if (replace) setLoadError(true)
+        else toast.error('Failed to load more jobs')
       } finally {
         setLoading(false)
         setInitialLoad(false)
@@ -100,10 +105,10 @@ export default function Discover() {
         await deleteSavedJob(savedJobId)
         savedJobMapRef.current.delete(job.job_id)
         toast('Job unsaved')
-      } catch {
+      } catch (err) {
         setSavedIds((prev) => new Set(prev).add(job.job_id))
         setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: true } : j)))
-        toast.error('Failed to unsave job')
+        toast.error(extractApiError(err, 'Failed to unsave job'))
       }
       return
     }
@@ -113,10 +118,10 @@ export default function Discover() {
     try {
       const result = await saveJob({ job_id: job.job_id })
       savedJobMapRef.current.set(job.job_id, result.id)
-    } catch {
+    } catch (err) {
       setSavedIds((prev) => { const next = new Set(prev); next.delete(job.job_id); return next })
       setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: false } : j)))
-      toast.error('Failed to save job')
+      toast.error(extractApiError(err, 'Failed to save job'))
     }
   }
 
@@ -139,7 +144,12 @@ export default function Discover() {
 
         {/* Job list */}
         <div className="flex-1 min-w-0 space-y-4">
-          {initialLoad ? (
+          {loadError && !loading ? (
+            <ErrorState
+              message="Failed to load jobs"
+              onRetry={() => { setLoadError(false); void loadJobs(filters, 1, true) }}
+            />
+          ) : initialLoad || (loading && jobs.length === 0) ? (
             <div className="grid gap-4">
               {[...Array(6)].map((_, i) => (
                 <SkeletonCard key={i} />

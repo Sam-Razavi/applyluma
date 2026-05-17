@@ -9,6 +9,7 @@ vi.mock('../services/jobDiscoveryApi', () => ({
   fetchDiscoveredJobs: vi.fn(),
   fetchJobDetail: vi.fn(),
   saveJob: vi.fn(),
+  deleteSavedJob: vi.fn(),
 }))
 
 vi.mock('react-hot-toast', () => ({
@@ -108,11 +109,37 @@ describe('Discover page', () => {
     })
   })
 
-  it('shows error toast when job loading fails', async () => {
+  it('shows error state UI when initial job load fails', async () => {
     vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockRejectedValue(new Error('Network error'))
     renderDiscover()
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to load jobs')
+      expect(screen.getByText('Failed to load jobs')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    })
+  })
+
+  it('retries loading when Try again is clicked', async () => {
+    vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs)
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValueOnce([mockJob])
+    renderDiscover()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(screen.getByText('Senior Python Developer')).toBeInTheDocument())
+  })
+
+  it('calls deleteSavedJob when save button clicked on an already-saved job', async () => {
+    const savedJob = { ...mockJob, is_saved: true, saved_job_id: 'saved-1' }
+    vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockResolvedValue([savedJob])
+    vi.mocked(jobDiscoveryApi.deleteSavedJob).mockResolvedValue(undefined)
+    renderDiscover()
+
+    await waitFor(() => expect(screen.getByText('Senior Python Developer')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByLabelText('Unsave job'))
+
+    await waitFor(() => {
+      expect(jobDiscoveryApi.deleteSavedJob).toHaveBeenCalledWith('saved-1')
     })
   })
 })

@@ -18,6 +18,8 @@ import VersionDiffViewer from '../components/cvs/VersionDiffViewer'
 import VersionHistory from '../components/cvs/VersionHistory'
 import { cvApi } from '../services/api'
 import type { CV, CVVersionNode } from '../types'
+import { ErrorState } from '../components/ui/ErrorState'
+import { extractApiError } from '../utils/errors'
 
 const MAX_SIZE = 10 * 1024 * 1024
 const ACCEPT = {
@@ -62,6 +64,7 @@ function SkeletonRow() {
 export default function CVs() {
   const [cvs, setCvs] = useState<CV[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [pendingTitle, setPendingTitle] = useState('')
   const [uploadPct, setUploadPct] = useState<number | null>(null)
@@ -70,13 +73,20 @@ export default function CVs() {
   const [diffTarget, setDiffTarget] = useState<CVVersionNode | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
+  function doFetch() {
+    setLoading(true)
+    setLoadError(false)
     cvApi
       .list()
       .then(setCvs)
-      .catch(() => toast.error('Failed to load CVs'))
+      .catch((err) => {
+        setLoadError(true)
+        toast.error(extractApiError(err, 'Failed to load CVs'))
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { doFetch() }, [])
 
   const onDrop = useCallback((accepted: File[], rejected: FileRejection[]) => {
     if (rejected.length > 0) {
@@ -109,8 +119,8 @@ export default function CVs() {
       toast.success('CV uploaded!')
       setPendingFile(null)
       setPendingTitle('')
-    } catch {
-      toast.error('Upload failed. Please try again.')
+    } catch (err) {
+      toast.error(extractApiError(err, 'Upload failed. Please try again.'))
     } finally {
       setUploadPct(null)
     }
@@ -121,8 +131,8 @@ export default function CVs() {
       const updated = await cvApi.setDefault(cv.id)
       setCvs((prev) => prev.map((c) => ({ ...c, is_default: c.id === updated.id })))
       toast.success(`"${cv.title}" set as default`)
-    } catch {
-      toast.error('Could not set default CV')
+    } catch (err) {
+      toast.error(extractApiError(err, 'Could not set default CV'))
     }
   }
 
@@ -134,8 +144,8 @@ export default function CVs() {
       setCvs((prev) => prev.filter((c) => c.id !== deleteTarget.id))
       toast.success('CV deleted')
       setDeleteTarget(null)
-    } catch {
-      toast.error('Could not delete CV')
+    } catch (err) {
+      toast.error(extractApiError(err, 'Could not delete CV'))
     } finally {
       setDeleting(false)
     }
@@ -245,6 +255,10 @@ export default function CVs() {
             {[...Array(3)].map((_, i) => (
               <SkeletonRow key={i} />
             ))}
+          </div>
+        ) : loadError ? (
+          <div className="p-6">
+            <ErrorState message="Failed to load CVs" onRetry={doFetch} />
           </div>
         ) : cvs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
