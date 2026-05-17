@@ -7,6 +7,7 @@ from datetime import datetime
 
 import sentry_sdk
 from fastapi import APIRouter, FastAPI
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -30,6 +31,19 @@ from app.core.dependencies import get_redis_client
 from app.core.logging_config import setup_logging
 
 _INSECURE_DEFAULT_KEY = "change-me-in-production"
+
+_HTTP_ERROR_CODES: dict[int, str] = {
+    400: "BAD_REQUEST",
+    401: "UNAUTHORIZED",
+    403: "FORBIDDEN",
+    404: "NOT_FOUND",
+    405: "METHOD_NOT_ALLOWED",
+    409: "CONFLICT",
+    422: "VALIDATION_ERROR",
+    429: "TOO_MANY_REQUESTS",
+    500: "INTERNAL_SERVER_ERROR",
+    502: "BAD_GATEWAY",
+}
 request_logger = logging.getLogger("app.requests")
 
 setup_logging()
@@ -61,6 +75,18 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_STR}/redoc",
     lifespan=lifespan,
 )
+
+@app.exception_handler(FastAPIHTTPException)
+async def structured_http_exception_handler(request: Request, exc: FastAPIHTTPException) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "code": _HTTP_ERROR_CODES.get(exc.status_code, "ERROR"),
+        },
+        headers=getattr(exc, "headers", None),
+    )
+
 
 # CORS configuration with Vercel preview URL support
 static_origins: list[str] = settings.BACKEND_CORS_ORIGINS

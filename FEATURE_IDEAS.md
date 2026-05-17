@@ -109,14 +109,14 @@ Tick them off as they get built.
 
 ## Developer / Quality
 
-- [ ] **Health badge in README**
+- [x] **Health badge in README**
   A `GET /health` endpoint already exists. Wire the Railway health URL
   into a shields.io badge in the README alongside the CI badges.
 
-- [ ] **Rate-limit feedback in UI**
+- [x] **Rate-limit feedback in UI**
   When the API returns 429 (e.g. tailor limit hit), show a friendly toast
   with the reason and reset time instead of a generic error.
 
-- [ ] **Structured error responses**
+- [x] **Structured error responses**
   Standardise all FastAPI error responses to `{ detail, code, field? }`
   so the frontend can display actionable messages rather than raw strings.
