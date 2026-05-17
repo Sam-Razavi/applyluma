@@ -34,3 +34,15 @@ def authenticate(db: Session, email: str, password: str) -> User | None:
     if not user or not verify_password(password, user.hashed_password):
         return None
     return user
+
+
+def update_password(db: Session, user: User, new_password: str) -> User:
+    user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete(db: Session, user: User) -> None:
+    db.delete(user)
+    db.commit()
