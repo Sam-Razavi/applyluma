@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/sam-razavi/applyluma/actions/workflows/ci.yml/badge.svg)](https://github.com/sam-razavi/applyluma/actions/workflows/ci.yml)
 [![Data Pipeline Tests](https://github.com/sam-razavi/applyluma/actions/workflows/data-pipeline-tests.yml/badge.svg)](https://github.com/sam-razavi/applyluma/actions/workflows/data-pipeline-tests.yml)
+[![API Health](https://img.shields.io/website?url=https%3A%2F%2Fapplyluma-production.up.railway.app%2Fhealth&label=API&up_message=online&down_message=offline)](https://applyluma-production.up.railway.app/health)
 
 AI-powered job search and resume optimization platform with production analytics.
 
