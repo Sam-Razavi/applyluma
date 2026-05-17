@@ -171,6 +171,7 @@ export default function Discover() {
                 {jobs.map((job, index) => (
                   <motion.div
                     key={job.job_id}
+                    className="w-full min-w-0"
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={staggerItem(index % PAGE_SIZE)}
