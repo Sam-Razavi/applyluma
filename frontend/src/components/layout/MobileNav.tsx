@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Link, NavLink } from 'react-router-dom'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { ArrowRightStartOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { NAV_LINKS } from './navLinks'
 import { spring } from '../../lib/animations'
+import { useAuthStore } from '../../stores'
 
 interface Props {
   open: boolean
@@ -11,6 +12,15 @@ interface Props {
 }
 
 export default function MobileNav({ open, onClose }: Props) {
+  const { logout } = useAuthStore()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    onClose()
+    logout()
+    navigate('/login')
+  }
+
   useEffect(() => {
     if (!open) return
 
@@ -79,6 +89,17 @@ export default function MobileNav({ open, onClose }: Props) {
                   {label}
                 </NavLink>
               ))}
+            </div>
+
+            <div className="border-t border-gray-200 px-4 py-4">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-base font-semibold text-red-600 transition hover:bg-red-50"
+              >
+                <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
+                Sign out
+              </button>
             </div>
           </motion.nav>
         </div>

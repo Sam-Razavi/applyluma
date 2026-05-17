@@ -48,7 +48,7 @@ export default function JobCard({ job, onClick, onSave }: Props) {
 
   return (
     <div
-      className="group relative flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
+      className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
       onClick={() => onClick(job)}
     >
       {/* Header row */}

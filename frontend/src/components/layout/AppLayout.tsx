@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bars3Icon } from '@heroicons/react/24/outline'
 import Navbar from './Navbar'
@@ -19,7 +19,7 @@ export default function AppLayout() {
 
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white md:hidden">
         <div className="flex h-16 items-center justify-between px-4">
-          <span className="text-xl font-bold tracking-tight text-primary-600">ApplyLuma</span>
+          <Link to="/dashboard" className="text-xl font-bold tracking-tight text-primary-600">ApplyLuma</Link>
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}

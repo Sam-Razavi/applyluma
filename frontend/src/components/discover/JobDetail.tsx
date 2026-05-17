@@ -151,14 +151,16 @@ export default function JobDetail({
               </div>
             )}
 
-            <ScoreBreakdown
-              skillsMatch={job.skills_match}
-              experienceMatch={job.experience_match}
-              salaryMatchScore={job.salary_match_score}
-              educationMatch={job.education_match}
-              locationMatch={job.location_match}
-              explanation={job.explanation}
-            />
+            {job.match_score !== null && (
+              <ScoreBreakdown
+                skillsMatch={job.skills_match}
+                experienceMatch={job.experience_match}
+                salaryMatchScore={job.salary_match_score}
+                educationMatch={job.education_match}
+                locationMatch={job.location_match}
+                explanation={job.explanation}
+              />
+            )}
 
             <SkillsBreakdown
               matchedSkills={job.matched_skills}
