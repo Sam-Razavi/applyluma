@@ -9,7 +9,7 @@ import JobDetail from '../components/discover/JobDetail'
 import { FadeIn } from '../components/ui/FadeIn'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { staggerItem } from '../lib/animations'
-import { fetchDiscoveredJobs, saveJob } from '../services/jobDiscoveryApi'
+import { deleteSavedJob, fetchDiscoveredJobs, saveJob } from '../services/jobDiscoveryApi'
 import type { DiscoveredJob, JobFilters as Filters } from '../types/jobDiscovery'
 
 const PAGE_SIZE = 20
@@ -23,6 +23,7 @@ export default function Discover() {
   const [initialLoad, setInitialLoad] = useState(true)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const savedJobMapRef = useRef<Map<string, string>>(new Map())
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -43,12 +44,16 @@ export default function Discover() {
         })
         setJobs((prev) => (replace ? results : [...prev, ...results]))
         setHasMore(results.length === PAGE_SIZE)
-        // Track which jobs are saved
+        // Track which jobs are saved and their saved_job_id for unsaving
         setSavedIds((prev) => {
           const next = new Set(prev)
           results.forEach((j) => {
-            if (j.is_saved) next.add(j.job_id)
-            else next.delete(j.job_id)
+            if (j.is_saved) {
+              next.add(j.job_id)
+              if (j.saved_job_id) savedJobMapRef.current.set(j.job_id, j.saved_job_id)
+            } else {
+              next.delete(j.job_id)
+            }
           })
           return next
         })
@@ -86,19 +91,31 @@ export default function Discover() {
   }
 
   async function handleSave(job: DiscoveredJob) {
-    const alreadySaved = savedIds.has(job.job_id)
-    if (alreadySaved) {
-      // For now just toggle visually — full unsave requires knowing the saved_job id
-      // which requires a separate fetch. Keep simple: re-save is idempotent on backend.
-      toast('Job is already saved')
+    if (savedIds.has(job.job_id)) {
+      const savedJobId = savedJobMapRef.current.get(job.job_id)
+      if (!savedJobId) return
+      setSavedIds((prev) => { const next = new Set(prev); next.delete(job.job_id); return next })
+      setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: false } : j)))
+      try {
+        await deleteSavedJob(savedJobId)
+        savedJobMapRef.current.delete(job.job_id)
+        toast('Job unsaved')
+      } catch {
+        setSavedIds((prev) => new Set(prev).add(job.job_id))
+        setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: true } : j)))
+        toast.error('Failed to unsave job')
+      }
       return
     }
+    setSavedIds((prev) => new Set(prev).add(job.job_id))
+    setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: true } : j)))
+    toast.success('Job saved!')
     try {
-      await saveJob({ job_id: job.job_id })
-      setSavedIds((prev) => new Set(prev).add(job.job_id))
-      setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: true } : j)))
-      toast.success('Job saved!')
+      const result = await saveJob({ job_id: job.job_id })
+      savedJobMapRef.current.set(job.job_id, result.id)
     } catch {
+      setSavedIds((prev) => { const next = new Set(prev); next.delete(job.job_id); return next })
+      setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: false } : j)))
       toast.error('Failed to save job')
     }
   }

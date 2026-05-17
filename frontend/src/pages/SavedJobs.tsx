@@ -22,20 +22,24 @@ export default function SavedJobs() {
   }, [])
 
   async function handleStar(savedId: string, starred: boolean) {
+    setSaved((prev) => prev.map((s) => (s.id === savedId ? { ...s, starred } : s)))
     try {
       const updated = await updateSavedJob(savedId, { starred })
       setSaved((prev) => prev.map((s) => (s.id === savedId ? updated : s)))
     } catch {
+      setSaved((prev) => prev.map((s) => (s.id === savedId ? { ...s, starred: !starred } : s)))
       toast.error('Failed to update')
     }
   }
 
   async function handleDelete(savedId: string) {
+    const removed = saved.find((s) => s.id === savedId)
+    setSaved((prev) => prev.filter((s) => s.id !== savedId))
+    toast.success('Removed from saved jobs')
     try {
       await deleteSavedJob(savedId)
-      setSaved((prev) => prev.filter((s) => s.id !== savedId))
-      toast.success('Removed from saved jobs')
     } catch {
+      if (removed) setSaved((prev) => [...prev, removed])
       toast.error('Failed to remove')
     }
   }
