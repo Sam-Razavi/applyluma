@@ -45,6 +45,20 @@ apiClient.interceptors.response.use(
       useAuthStore.getState().logout()
       redirectToLogin('session-expired')
     }
+
+    // Normalise 429 responses to a consistent shape so every page can read
+    // `error.response.data.detail` regardless of which endpoint fired it.
+    // The analytics middleware returns a nested `error.message`; tailor and
+    // other endpoints return a top-level `detail` string.
+    if (error.response?.status === 429) {
+      const raw = error.response.data as Record<string, unknown>
+      const message =
+        (raw?.detail as string) ||
+        ((raw?.error as Record<string, unknown>)?.message as string) ||
+        'Too many requests. Please try again later.'
+      error.response.data = { detail: message, code: 'TOO_MANY_REQUESTS' }
+    }
+
     return Promise.reject(error)
   },
 )
