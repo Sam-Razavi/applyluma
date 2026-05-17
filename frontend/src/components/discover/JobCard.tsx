@@ -16,7 +16,7 @@ function ScoreBar({ value, label }: { value: number | null; label: string }) {
   return (
     <div className="flex items-center gap-2 text-xs text-gray-500">
       <span className="w-20 shrink-0">{label}</span>
-      <div className="h-1.5 flex-1 rounded-full bg-gray-100">
+      <div className="h-1.5 flex-1 min-w-0 overflow-hidden rounded-full bg-gray-100">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <span className="w-8 text-right font-medium text-gray-700">{pct}%</span>
@@ -114,14 +114,15 @@ export default function JobCard({ job, onClick, onSave }: Props) {
         <span className="ml-auto text-gray-400">{SOURCE_LABELS[job.source] ?? job.source}</span>
       </div>
 
-      {/* Score bars */}
-      {job.match_score !== null && (
-        <div className="space-y-1 border-t border-gray-100 pt-3">
-          <ScoreBar value={job.skills_match} label="Skills" />
-          <ScoreBar value={job.experience_match} label="Experience" />
-          <ScoreBar value={job.salary_match_score} label="Salary" />
-        </div>
-      )}
+      {/* Score bars — only render when sub-scores exist */}
+      {job.match_score !== null &&
+        (job.skills_match !== null || job.experience_match !== null || job.salary_match_score !== null) && (
+          <div className="space-y-1 border-t border-gray-100 pt-3">
+            <ScoreBar value={job.skills_match} label="Skills" />
+            <ScoreBar value={job.experience_match} label="Experience" />
+            <ScoreBar value={job.salary_match_score} label="Salary" />
+          </div>
+        )}
 
       {/* Explanation snippet */}
       {job.explanation && (

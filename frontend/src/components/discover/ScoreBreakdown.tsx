@@ -76,7 +76,7 @@ export default function ScoreBreakdown({
                         {scoreBand(value)} - {pct}%
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-gray-100">
+                    <div className="h-2 min-w-0 overflow-hidden rounded-full bg-gray-100">
                       <div className={`h-full rounded-full ${barColor(pct)}`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>

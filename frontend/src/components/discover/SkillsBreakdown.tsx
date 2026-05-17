@@ -32,7 +32,16 @@ function SkillPill({
 
 export default function SkillsBreakdown({ matchedSkills, missingSkills }: Props) {
   const total = matchedSkills.length + missingSkills.length
-  if (total === 0) return null
+  if (total === 0) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <h3 className="text-sm font-semibold text-gray-900">Skills match</h3>
+        <p className="mt-2 text-xs text-gray-400">
+          Upload a CV so AI can compare your skills against this role.
+        </p>
+      </div>
+    )
+  }
 
   async function copySkill(skill: string) {
     await navigator.clipboard.writeText(skill)

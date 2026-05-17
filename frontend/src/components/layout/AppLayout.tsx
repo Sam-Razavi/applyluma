@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bars3Icon } from '@heroicons/react/24/outline'
@@ -11,6 +11,10 @@ export default function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const location = useLocation()
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="hidden md:block">
@@ -19,7 +23,13 @@ export default function AppLayout() {
 
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white md:hidden">
         <div className="flex h-16 items-center justify-between px-4">
-          <Link to="/dashboard" className="text-xl font-bold tracking-tight text-primary-600">ApplyLuma</Link>
+          <Link
+            to="/dashboard"
+            onClick={() => window.scrollTo(0, 0)}
+            className="text-xl font-bold tracking-tight text-primary-600"
+          >
+            ApplyLuma
+          </Link>
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}

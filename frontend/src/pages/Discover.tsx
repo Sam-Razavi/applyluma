@@ -143,7 +143,7 @@ export default function Discover() {
         <JobFilters filters={filters} onChange={applyFilters} onReset={resetFilters} />
 
         {/* Job list */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div className="w-full space-y-4 lg:flex-1 lg:min-w-0">
           {loadError && !loading ? (
             <ErrorState
               message="Failed to load jobs"
