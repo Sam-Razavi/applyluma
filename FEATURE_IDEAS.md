@@ -90,17 +90,17 @@ Tick them off as they get built.
 
 ## Settings & Account
 
-- [ ] **Change password**
+- [x] **Change password**
   A "Change password" form in Settings. Backend endpoint
   `POST /auth/change-password` that verifies the current password before
   updating. Standard flow, no third-party dependency.
 
-- [ ] **Delete account**
+- [x] **Delete account**
   A "Delete my account" option in Settings. Soft-delete the user row and
   cascade-delete or anonymise related data. Show a confirmation modal with
   a typed confirmation ("type DELETE to confirm").
 
-- [ ] **Dark mode toggle**
+- [x] **Dark mode toggle**
   Tailwind's `dark:` classes are already partially used. Add a toggle in
   Settings (or the navbar) that flips a `dark` class on `<html>` and
   persists the preference in `localStorage`.
