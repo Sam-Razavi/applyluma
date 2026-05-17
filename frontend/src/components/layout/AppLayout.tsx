@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bars3Icon } from '@heroicons/react/24/outline'
 import Navbar from './Navbar'
@@ -11,6 +11,10 @@ export default function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const location = useLocation()
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="hidden md:block">
@@ -19,7 +23,13 @@ export default function AppLayout() {
 
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white md:hidden dark:border-gray-700 dark:bg-gray-800">
         <div className="flex h-16 items-center justify-between px-4">
-          <span className="text-xl font-bold tracking-tight text-primary-600">ApplyLuma</span>
+          <Link
+            to="/dashboard"
+            onClick={() => window.scrollTo(0, 0)}
+            className="text-xl font-bold tracking-tight text-primary-600"
+          >
+            ApplyLuma
+          </Link>
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}
@@ -37,6 +47,7 @@ export default function AppLayout() {
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
+            className="w-full min-w-0"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}

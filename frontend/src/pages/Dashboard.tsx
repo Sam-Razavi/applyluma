@@ -56,10 +56,10 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Welcome */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           Welcome back, {firstName} 👋
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Here's an overview of your job search.
         </p>
       </div>
@@ -83,7 +83,7 @@ export default function Dashboard() {
 
       {/* Quick actions */}
       <div>
-        <h2 className="text-base font-semibold text-gray-900 mb-3">Quick actions</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Quick actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {QUICK_ACTIONS.map(({ title, description, href, iconBg, icon, btnClass }) => (
             <div
@@ -110,7 +110,7 @@ export default function Dashboard() {
 
       {/* Recent activity */}
       <div>
-        <h2 className="text-base font-semibold text-gray-900 mb-3">Recent activity</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Recent activity</h2>
         <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
           <p className="text-sm text-gray-400">
             No activity yet — upload a CV or add a job to get started.

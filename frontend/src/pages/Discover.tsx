@@ -138,7 +138,7 @@ export default function Discover() {
         <JobFilters filters={filters} onChange={applyFilters} onReset={resetFilters} />
 
         {/* Job list */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div className="w-full space-y-4 lg:flex-1 lg:min-w-0">
           {initialLoad ? (
             <div className="grid gap-4">
               {[...Array(6)].map((_, i) => (
@@ -161,6 +161,7 @@ export default function Discover() {
                 {jobs.map((job, index) => (
                   <motion.div
                     key={job.job_id}
+                    className="w-full min-w-0"
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={staggerItem(index % PAGE_SIZE)}

@@ -34,6 +34,9 @@ export default function ScoreBreakdown({
   explanation,
 }: Props) {
   const [open, setOpen] = useState(true)
+  const hasAnyScore = [skillsMatch, experienceMatch, salaryMatchScore, educationMatch, locationMatch].some(
+    (v) => v !== null,
+  )
   const values = {
     skills_match: skillsMatch,
     experience_match: experienceMatch,
@@ -57,27 +60,35 @@ export default function ScoreBreakdown({
 
       {open && (
         <div className="mt-4 space-y-3">
-          {ROWS.map((row) => {
-            const value = values[row.key]
-            if (value === null) return null
-            const pct = Math.round(value)
-            return (
-              <div key={row.key} className="space-y-1">
-                <div className="flex items-center justify-between gap-3 text-xs">
-                  <span className="font-medium text-gray-700">
-                    {row.label} <span className="text-gray-400">({MATCH_WEIGHTS[row.key]}%)</span>
-                  </span>
-                  <span className="text-gray-500">
-                    {scoreBand(value)} - {pct}%
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-gray-100">
-                  <div className={`h-full rounded-full ${barColor(pct)}`} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            )
-          })}
-          {explanation && <p className="pt-1 text-xs text-gray-500">{explanation}</p>}
+          {hasAnyScore ? (
+            <>
+              {ROWS.map((row) => {
+                const value = values[row.key]
+                if (value === null) return null
+                const pct = Math.round(value)
+                return (
+                  <div key={row.key} className="space-y-1">
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <span className="font-medium text-gray-700">
+                        {row.label} <span className="text-gray-400">({MATCH_WEIGHTS[row.key]}%)</span>
+                      </span>
+                      <span className="text-gray-500">
+                        {scoreBand(value)} - {pct}%
+                      </span>
+                    </div>
+                    <div className="h-2 min-w-0 overflow-hidden rounded-full bg-gray-100">
+                      <div className={`h-full rounded-full ${barColor(pct)}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+              {explanation && <p className="pt-1 text-xs text-gray-500">{explanation}</p>}
+            </>
+          ) : (
+            <p className="text-xs text-gray-400">
+              Score details unavailable — upload a CV so AI matching can run.
+            </p>
+          )}
         </div>
       )}
     </div>

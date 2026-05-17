@@ -16,7 +16,7 @@ function ScoreBar({ value, label }: { value: number | null; label: string }) {
   return (
     <div className="flex items-center gap-2 text-xs text-gray-500">
       <span className="w-20 shrink-0">{label}</span>
-      <div className="h-1.5 flex-1 rounded-full bg-gray-100">
+      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-gray-100">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <span className="w-8 text-right font-medium text-gray-700">{pct}%</span>
@@ -36,6 +36,8 @@ function formatSalary(min: number | null, max: number | null): string | null {
 export default function JobCard({ job, onClick, onSave }: Props) {
   const score = job.match_score !== null ? Math.round(job.match_score) : null
   const salary = formatSalary(job.salary_min, job.salary_max)
+  const hasSubScores =
+    job.skills_match !== null || job.experience_match !== null || job.salary_match_score !== null
 
   const scoreColor =
     score === null
@@ -48,7 +50,7 @@ export default function JobCard({ job, onClick, onSave }: Props) {
 
   return (
     <div
-      className="group relative flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
+      className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
       onClick={() => onClick(job)}
     >
       {/* Header row */}
@@ -114,8 +116,8 @@ export default function JobCard({ job, onClick, onSave }: Props) {
         <span className="ml-auto text-gray-400">{SOURCE_LABELS[job.source] ?? job.source}</span>
       </div>
 
-      {/* Score bars */}
-      {job.match_score !== null && (
+      {/* Score bars — only render when sub-scores exist */}
+      {job.match_score !== null && hasSubScores && (
         <div className="space-y-1 border-t border-gray-100 pt-3">
           <ScoreBar value={job.skills_match} label="Skills" />
           <ScoreBar value={job.experience_match} label="Experience" />
