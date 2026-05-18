@@ -227,22 +227,32 @@ class KeywordExtractor:
     def _confidence_score(self, keyword: str, text: str) -> float:
         """Return 0-1 confidence that keyword appears in text.
 
-        1.0 — exact case match
-        0.8 — all words of a multi-word keyword found in text (partial match)
-        0.6 — case-insensitive full match
+        1.0 — exact case-sensitive word-boundary match
+        0.8 — multi-word phrase appears as a phrase (flexible spacing)
+        0.6 — case-insensitive word-boundary match
         0.0 — not found
+
+        Word boundaries prevent "React" matching "Reactive", and the phrase
+        check prevents "Apache Kafka" matching when both words appear in
+        unrelated parts of the text.
         """
-        if keyword in text:
+        text_lower = text.lower()
+        kw_lower = keyword.lower()
+        kw_words = kw_lower.split()
+
+        # Exact case-sensitive word-boundary match
+        if re.search(r"\b" + re.escape(keyword) + r"\b", text):
             return 1.0
 
-        kw_words = keyword.lower().split()
-        text_lower = text.lower()
-
-        if len(kw_words) > 1 and all(w in text_lower for w in kw_words):
-            return 0.8
-
-        if keyword.lower() in text_lower:
-            return 0.6
+        if len(kw_words) > 1:
+            # Require multi-word term to appear as an actual phrase
+            phrase_pattern = r"\b" + r"[\s\-/]+" .join(re.escape(w) for w in kw_words) + r"\b"
+            if re.search(phrase_pattern, text_lower):
+                return 0.8
+        else:
+            # Single-word case-insensitive word-boundary match
+            if re.search(r"\b" + re.escape(kw_lower) + r"\b", text_lower):
+                return 0.6
 
         return 0.0
 

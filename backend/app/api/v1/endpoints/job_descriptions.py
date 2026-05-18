@@ -11,7 +11,9 @@ from app.schemas.job_description import (
     JobDescriptionPublic,
     JobDescriptionSummary,
 )
-from app.services.keyword_extractor import extract_keywords
+from app.services.keyword_extractor import KeywordExtractor
+
+_extractor = KeywordExtractor()
 
 router = APIRouter(prefix="/job-descriptions", tags=["job-descriptions"])
 
@@ -22,7 +24,8 @@ def create_job_description(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JobDescriptionPublic:
-    keywords = extract_keywords(body.description)
+    extracted = _extractor.extract_keywords(body.description)
+    keywords = _extractor.keywords_as_flat_list(extracted, min_confidence=0.6)
     return crud_jd.create(db, user_id=current_user.id, body=body, keywords=keywords)
 
 
