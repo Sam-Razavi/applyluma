@@ -20,7 +20,7 @@ import SavedJobCard from '../components/discover/SavedJobCard'
 import JobDetail from '../components/discover/JobDetail'
 import { jobApi } from '../services/api'
 import type { CreateJobDescriptionRequest } from '../services/api'
-import { fetchSavedJobs, updateSavedJob, deleteSavedJob } from '../services/jobDiscoveryApi'
+import { fetchSavedJobs, fetchJobDetail, updateSavedJob, deleteSavedJob } from '../services/jobDiscoveryApi'
 import type { JobDescription } from '../types'
 import type { SavedJob } from '../types/jobDiscovery'
 
@@ -127,8 +127,9 @@ export default function Jobs() {
   const [deleteTarget, setDeleteTarget] = useState<JobDescription | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [addingFromSavedId, setAddingFromSavedId] = useState<string | null>(null)
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<JobFormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
   })
 
@@ -147,6 +148,23 @@ export default function Jobs() {
       (j.job_title ?? '').toLowerCase().includes(q)
     )
   })
+
+  async function handleAddToDescriptions(saved: SavedJob) {
+    setAddingFromSavedId(saved.id)
+    try {
+      const detail = await fetchJobDetail(saved.raw_job_posting_id)
+      reset()
+      setValue('company_name', detail.company ?? '')
+      setValue('job_title', detail.title ?? '')
+      setValue('description', detail.description ?? '')
+      if (detail.url) setValue('url', detail.url)
+      setAddOpen(true)
+    } catch {
+      toast.error('Failed to load job details')
+    } finally {
+      setAddingFromSavedId(null)
+    }
+  }
 
   async function onSubmit(data: JobFormData) {
     setSubmitting(true)
@@ -297,6 +315,8 @@ export default function Jobs() {
                     onClick={setSelectedJobId}
                     onStar={handleStar}
                     onDelete={handleDeleteSaved}
+                    onAddToDescriptions={handleAddToDescriptions}
+                    addingToDescriptions={addingFromSavedId === s.id}
                   />
                 ))}
               </div>

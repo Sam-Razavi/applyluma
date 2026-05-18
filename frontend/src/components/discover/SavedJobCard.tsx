@@ -1,4 +1,4 @@
-import { MapPinIcon, StarIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { MapPinIcon, PlusCircleIcon, StarIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import type { SavedJob } from '../../types/jobDiscovery'
 
@@ -7,6 +7,8 @@ interface Props {
   onClick: (jobId: string) => void
   onStar: (savedId: string, starred: boolean) => void
   onDelete: (savedId: string) => void
+  onAddToDescriptions?: (saved: SavedJob) => void
+  addingToDescriptions?: boolean
 }
 
 function formatSalary(min: number | null | undefined, max: number | null | undefined): string | null {
@@ -17,7 +19,14 @@ function formatSalary(min: number | null | undefined, max: number | null | undef
   return `up to ${fmt(max!)} kr`
 }
 
-export default function SavedJobCard({ saved, onClick, onStar, onDelete }: Props) {
+export default function SavedJobCard({
+  saved,
+  onClick,
+  onStar,
+  onDelete,
+  onAddToDescriptions,
+  addingToDescriptions = false,
+}: Props) {
   const job = saved.job
   const salary = job ? formatSalary(job.salary_min, job.salary_max) : null
 
@@ -38,6 +47,28 @@ export default function SavedJobCard({ saved, onClick, onStar, onDelete }: Props
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {onAddToDescriptions && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onAddToDescriptions(saved)
+              }}
+              disabled={addingToDescriptions}
+              className="rounded-lg p-1 text-gray-400 transition-colors hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-40"
+              aria-label="Add to job descriptions"
+              title="Add to Job Descriptions"
+            >
+              {addingToDescriptions ? (
+                <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
+                </svg>
+              ) : (
+                <PlusCircleIcon className="h-5 w-5" />
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={(e) => {
