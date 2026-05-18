@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  ArrowDownTrayIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline'
+import { exportApplicationsToCsv } from '../utils/exportCsv'
 import AddApplicationModal from '../components/applications/AddApplicationModal'
 import ApplicationDrawer from '../components/applications/ApplicationDrawer'
 import ApplicationStats from '../components/applications/ApplicationStats'
@@ -55,14 +57,27 @@ export default function Applications() {
             Track every opportunity from wishlist to offer.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setAddOpen(true)}
-          className="inline-flex items-center gap-2 self-start rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 sm:self-auto"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Add Application
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {applications.length > 0 && (
+            <button
+              type="button"
+              onClick={() => exportApplicationsToCsv(applications)}
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              title="Export all applications to CSV"
+            >
+              <ArrowDownTrayIcon className="h-4 w-4" />
+              Export CSV
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Add Application
+          </button>
+        </div>
       </div>
 
       <div className="flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
