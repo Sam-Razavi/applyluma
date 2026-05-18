@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: stg_job_postings
+    description: "Cleaned, type-cast job postings. One row per raw posting; no dedup applied yet."
+    columns:
+      - name: job_id
+        description: "UUID from raw_job_postings cast to text"
+        tests: [unique, not_null]
+      - name: job_source
+        description: "Source job board (remotive | the_muse)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['remotive', 'the_muse']
+      - name: job_id_external
+        description: "Job ID from the source platform"
+        tests: [not_null]
+      - name: job_title
+        description: "Trimmed job title"
+        tests: [not_null]
+      - name: company_name
+        description: "Trimmed company name"
+        tests: [not_null]
+      - name: location
+        description: "Location string; 'Unknown' when blank"
+        tests: [not_null]
+      - name: job_description
+        description: "Full job description (may contain HTML)"
+        tests: [not_null]
+      - name: job_url
+        description: "Canonical URL to the original posting"
+        tests: [not_null]
+      - name: employment_type
+        description: "Lower-cased employment type; 'unknown' when missing"
+      - name: remote_allowed
+        description: "True when the role allows remote work"
+        tests: [not_null]
+      - name: is_duplicate
+        description: "Duplicate flag set by the Airflow dedup step"
+        tests: [not_null]
+      - name: scraped_at
+        description: "Timestamp when the record was scraped"
+        tests: [not_null]
+      - name: scrape_date
+        description: "Date portion of scraped_at"
+        tests: [not_null]
