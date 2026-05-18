@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ExclamationTriangleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { ExclamationTriangleIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import AddApplicationModal from '../components/applications/AddApplicationModal'
 import JobResultList from '../components/jobs/JobResultList'
@@ -14,6 +14,30 @@ const emptyResults: JobSearchResponse = {
   total_pages: 0,
 }
 
+const RECENT_KEY = 'recent_job_searches'
+const MAX_RECENT = 5
+
+interface RecentSearch {
+  query: string
+  location: string
+}
+
+function loadRecentSearches(): RecentSearch[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as RecentSearch[]
+  } catch {
+    return []
+  }
+}
+
+function saveRecentSearch(query: string, location: string) {
+  const existing = loadRecentSearches().filter(
+    (r) => !(r.query === query && r.location === location),
+  )
+  const updated = [{ query, location }, ...existing].slice(0, MAX_RECENT)
+  localStorage.setItem(RECENT_KEY, JSON.stringify(updated))
+}
+
 export default function JobSearch() {
   const [query, setQuery] = useState('')
   const [location, setLocation] = useState('')
@@ -23,6 +47,7 @@ export default function JobSearch() {
   const [error, setError] = useState<string | null>(null)
   const [trackData, setTrackData] = useState<Partial<ApplicationCreate> | null>(null)
   const [trackOpen, setTrackOpen] = useState(false)
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(loadRecentSearches)
 
   useEffect(() => {
     document.title = 'Job Search | ApplyLuma'
@@ -40,6 +65,11 @@ export default function JobSearch() {
     setQuery(nextQuery)
     setLocation(nextLocation)
 
+    if (nextPage === 1) {
+      saveRecentSearch(nextQuery, nextLocation)
+      setRecentSearches(loadRecentSearches())
+    }
+
     try {
       setData(await searchJobs(nextQuery, nextLocation, nextPage))
     } catch (err) {
@@ -49,6 +79,12 @@ export default function JobSearch() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function removeRecentSearch(index: number) {
+    const updated = recentSearches.filter((_, i) => i !== index)
+    localStorage.setItem(RECENT_KEY, JSON.stringify(updated))
+    setRecentSearches(updated)
   }
 
   function handleTrack(data: Partial<ApplicationCreate>) {
@@ -71,6 +107,34 @@ export default function JobSearch() {
       </div>
 
       <JobSearchBar loading={loading} onSearch={(q, loc) => void runSearch(q, loc)} />
+
+      {recentSearches.length > 0 && !hasSearched && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-gray-400">Recent:</span>
+          {recentSearches.map((r, i) => (
+            <span
+              key={i}
+              className="group flex items-center gap-1 rounded-full border border-gray-200 bg-white pl-3 pr-1.5 py-1 text-xs text-gray-600 hover:border-primary-300 hover:text-primary-700 cursor-pointer transition-colors"
+            >
+              <button
+                type="button"
+                className="focus:outline-none"
+                onClick={() => void runSearch(r.query, r.location)}
+              >
+                {r.query}{r.location ? ` · ${r.location}` : ''}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); removeRecentSearch(i) }}
+                className="ml-0.5 rounded-full p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none"
+                aria-label="Remove recent search"
+              >
+                <XMarkIcon className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
