@@ -73,7 +73,11 @@ async def request(
 
 @pytest.mark.asyncio
 async def test_create_jd_extracts_keywords(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(jd_endpoint, "extract_keywords", lambda text: ["Python", "SQL"])
+    fake_extractor = SimpleNamespace(
+        extract_keywords=lambda text: {},
+        keywords_as_flat_list=lambda extracted, min_confidence=0.0: ["Python", "SQL"],
+    )
+    monkeypatch.setattr(jd_endpoint, "_extractor", fake_extractor)
     monkeypatch.setattr(jd_endpoint.crud_jd, "create", lambda db, user_id, body, keywords: jd_data())
 
     response = await request(
