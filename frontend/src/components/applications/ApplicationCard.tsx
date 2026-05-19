@@ -1,6 +1,7 @@
 import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 import {
+  ArrowTopRightOnSquareIcon,
   Bars3Icon,
   BriefcaseIcon,
   CalendarDaysIcon,
@@ -83,16 +84,30 @@ export default function ApplicationCard({ application }: Props) {
           <p className="truncate text-sm text-gray-500">{application.company_name}</p>
         </div>
 
-        <button
-          type="button"
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-          aria-label={`Drag ${application.job_title}`}
-          onClick={(event) => event.stopPropagation()}
-          {...attributes}
-          {...listeners}
-        >
-          <Bars3Icon className="h-4 w-4" />
-        </button>
+        <div className="flex shrink-0 items-center">
+          {application.job_url && (
+            <a
+              href={application.job_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-brand-600"
+              aria-label="Open job listing"
+            >
+              <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+            </a>
+          )}
+          <button
+            type="button"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+            aria-label={`Drag ${application.job_title}`}
+            onClick={(event) => event.stopPropagation()}
+            {...attributes}
+            {...listeners}
+          >
+            <Bars3Icon className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
