@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ArrowDownTrayIcon,
   ExclamationTriangleIcon,
@@ -25,7 +26,12 @@ export default function Applications() {
   const fetchApplications = useApplicationsStore((state) => state.fetchApplications)
   const setFilters = useApplicationsStore((state) => state.setFilters)
   const [addOpen, setAddOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'board' | 'stats'>('board')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = (searchParams.get('tab') === 'stats' ? 'stats' : 'board') as 'board' | 'stats'
+
+  function setActiveTab(tab: 'board' | 'stats') {
+    setSearchParams(tab === 'board' ? {} : { tab })
+  }
 
   useEffect(() => {
     void fetchApplications()

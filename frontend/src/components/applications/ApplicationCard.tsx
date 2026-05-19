@@ -34,6 +34,14 @@ function formatDate(value: string | null): string {
   })
 }
 
+function daysSince(dateStr: string | null): number | null {
+  if (!dateStr) return null
+  const diff = Date.now() - new Date(dateStr).getTime()
+  return Math.floor(diff / 86_400_000)
+}
+
+const FOLLOWUP_STATUSES = new Set(['applied', 'phone_screen'])
+
 export default function ApplicationCard({ application }: Props) {
   const setSelected = useApplicationsStore((state) => state.setSelected)
   const {
@@ -44,6 +52,10 @@ export default function ApplicationCard({ application }: Props) {
     transition,
     isDragging,
   } = useSortable({ id: application.id })
+
+  const days = daysSince(application.applied_date)
+  const showNudge = FOLLOWUP_STATUSES.has(application.status) && days !== null && days >= 7
+  const nudgeUrgent = days !== null && days >= 14
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -110,6 +122,18 @@ export default function ApplicationCard({ application }: Props) {
           </div>
         )}
       </div>
+
+      {showNudge && (
+        <div
+          className={`mt-3 rounded-lg px-2.5 py-1.5 text-xs font-medium ${
+            nudgeUrgent
+              ? 'bg-red-50 text-red-700'
+              : 'bg-amber-50 text-amber-700'
+          }`}
+        >
+          {nudgeUrgent ? '⚠️' : '💬'} {days}d since applied — consider following up
+        </div>
+      )}
     </article>
   )
 }
