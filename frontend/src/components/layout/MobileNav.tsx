@@ -5,6 +5,7 @@ import { ArrowRightStartOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/o
 import { NAV_LINKS } from './navLinks'
 import { spring } from '../../lib/animations'
 import { useAuthStore } from '../../stores'
+import UserAvatar from '../ui/UserAvatar'
 
 interface Props {
   open: boolean
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export default function MobileNav({ open, onClose }: Props) {
-  const { logout } = useAuthStore()
+  const { user, logout } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -56,11 +57,19 @@ export default function MobileNav({ open, onClose }: Props) {
           >
             <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
               <Link
-                to="/dashboard"
+                to="/settings"
                 onClick={onClose}
-                className="text-xl font-bold tracking-tight text-primary-600"
+                className="flex items-center gap-2.5 min-w-0"
               >
-                ApplyLuma
+                <UserAvatar fullName={user?.full_name} email={user?.email} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                    {user?.full_name ?? user?.email ?? 'Account'}
+                  </p>
+                  {user?.full_name && (
+                    <p className="truncate text-xs text-gray-400">{user.email}</p>
+                  )}
+                </div>
               </Link>
               <button
                 type="button"
