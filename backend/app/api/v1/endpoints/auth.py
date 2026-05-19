@@ -9,7 +9,7 @@ from app.core.security import create_access_token, create_refresh_token, verify_
 from app.crud import user as crud_user
 from app.models.user import User
 from app.schemas.token import LoginRequest, RefreshRequest, Token, TokenPair
-from app.schemas.user import ChangePasswordRequest, UserCreate, UserPublic
+from app.schemas.user import ChangePasswordRequest, UserCreate, UserPublic, UserUpdate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -81,6 +81,15 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
 @router.get("/me", response_model=UserPublic)
 def get_me(current_user: User = Depends(get_current_user)) -> UserPublic:
     return current_user
+
+
+@router.patch("/me", response_model=UserPublic)
+def update_me(
+    body: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserPublic:
+    return crud_user.update_profile(db, current_user, body)
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)

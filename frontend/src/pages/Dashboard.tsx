@@ -17,6 +17,9 @@ import type { CV, JobDescription } from '../types'
 export default function Dashboard() {
   const { user } = useAuthStore()
   const firstName = user?.full_name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'there'
+  const isNewUser = user?.created_at
+    ? Date.now() - new Date(user.created_at).getTime() < 60 * 60 * 1000
+    : false
 
   const applications = useApplicationsStore((s) => s.applications)
   const stats = useApplicationsStore((s) => s.stats)
@@ -110,7 +113,7 @@ export default function Dashboard() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Welcome back, {firstName} 👋
+            {isNewUser ? `Welcome, ${firstName}! 🎉` : `Welcome back, ${firstName} 👋`}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Here's your job search at a glance.
