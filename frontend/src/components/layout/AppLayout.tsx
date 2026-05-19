@@ -5,15 +5,33 @@ import { Bars3Icon } from '@heroicons/react/24/outline'
 import Navbar from './Navbar'
 import MobileNav from './MobileNav'
 import { useInactivityLogout } from '../../hooks/useInactivityLogout'
+import { useNotificationsStore } from '../../stores/notifications'
+
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/applications': 'Applications',
+  '/discover': 'Discover',
+  '/saved-jobs': 'Saved Jobs',
+  '/settings': 'Settings',
+  '/cv': 'My CVs',
+  '/jobs': 'Job Search',
+}
 
 export default function AppLayout() {
   useInactivityLogout()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const location = useLocation()
+  const unreadCount = useNotificationsStore((s) => s.unreadCount)
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [location.pathname])
+
+  useEffect(() => {
+    const base = PAGE_TITLES[location.pathname] ?? 'ApplyLuma'
+    const title = `${base} | ApplyLuma`
+    document.title = unreadCount > 0 ? `(${unreadCount}) ${title}` : title
+  }, [location.pathname, unreadCount])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
