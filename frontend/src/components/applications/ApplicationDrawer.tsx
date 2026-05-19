@@ -177,7 +177,13 @@ export default function ApplicationDrawer() {
                 <Field label="Status">
                   <select
                     value={form.status}
-                    onChange={(e) => setField('status', e.target.value as ApplicationStatus)}
+                    onChange={(e) => {
+                      const next = e.target.value as ApplicationStatus
+                      setField('status', next)
+                      if (next === 'applied' && !form.applied_date) {
+                        setField('applied_date', new Date().toISOString().slice(0, 10))
+                      }
+                    }}
                     className="input"
                   >
                     {APPLICATION_STATUSES.map((status) => (
