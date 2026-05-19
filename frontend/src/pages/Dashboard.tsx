@@ -11,6 +11,7 @@ import { FadeIn } from '../components/ui/FadeIn'
 import { useAuthStore } from '../stores'
 import { useApplicationsStore } from '../stores/applications'
 import { cvApi, jobApi } from '../services/api'
+import DashboardActivityChart from '../components/applications/DashboardActivityChart'
 import type { CV, JobDescription } from '../types'
 
 export default function Dashboard() {
@@ -141,6 +142,9 @@ export default function Dashboard() {
             </Link>
           ))}
         </div>
+
+        {/* Activity chart */}
+        <DashboardActivityChart />
 
         {/* Pipeline snapshot + Recent activity */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
