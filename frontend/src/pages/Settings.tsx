@@ -9,6 +9,7 @@ import {
   MoonIcon,
   SunIcon,
   TrashIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import { type AxiosError } from 'axios'
 import toast from 'react-hot-toast'
@@ -20,8 +21,26 @@ import { useThemeStore } from '../stores/theme'
 
 export default function Settings() {
   const navigate = useNavigate()
-  const { logout } = useAuthStore()
+  const { user, setUser, logout } = useAuthStore()
   const { dark, toggle: toggleDark } = useThemeStore()
+
+  // ── Profile ───────────────────────────────────────────────────────────────
+  const [fullName, setFullName] = useState(user?.full_name ?? '')
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  async function handleSaveProfile(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingProfile(true)
+    try {
+      const updated = await authApi.updateProfile(fullName.trim())
+      setUser(updated)
+      toast.success('Profile updated')
+    } catch {
+      toast.error('Failed to update profile')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
 
   // ── Alert preferences ────────────────────────────────────────────────────
   const [preferences, setPreferences] = useState<AlertPreferences | null>(null)
@@ -125,6 +144,47 @@ export default function Settings() {
           Manage your account and preferences.
         </p>
       </div>
+
+      {/* ── Profile ──────────────────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+          <UserCircleIcon className="h-4 w-4 text-gray-400" />
+          Profile
+        </h2>
+        <form onSubmit={(e) => void handleSaveProfile(e)} className="mt-4 space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300">
+              Display name
+            </label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your name"
+              className="input w-full"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300">
+              Email
+            </label>
+            <input
+              type="email"
+              value={user?.email ?? ''}
+              disabled
+              className="input w-full cursor-not-allowed opacity-60"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={savingProfile || fullName.trim() === (user?.full_name ?? '')}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+          >
+            {savingProfile && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
+            Save profile
+          </button>
+        </form>
+      </section>
 
       {!hasDefaultCv && (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
