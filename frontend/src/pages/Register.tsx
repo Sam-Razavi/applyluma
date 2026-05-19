@@ -8,15 +8,21 @@ import { authApi } from '../services/api'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
 
-const schema = z.object({
-  full_name: z.string().optional(),
-  email: z.string().email('Enter a valid email address'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Include at least one uppercase letter')
-    .regex(/[0-9]/, 'Include at least one number'),
-})
+const schema = z
+  .object({
+    full_name: z.string().optional(),
+    email: z.string().email('Enter a valid email address'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Include at least one uppercase letter')
+      .regex(/[0-9]/, 'Include at least one number'),
+    confirm_password: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((d) => d.password === d.confirm_password, {
+    message: 'Passwords do not match',
+    path: ['confirm_password'],
+  })
 
 type FormData = z.infer<typeof schema>
 
@@ -110,6 +116,23 @@ export default function Register() {
               />
               {errors.password && (
                 <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm password
+              </label>
+              <input
+                id="confirm_password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Re-enter your password"
+                {...register('confirm_password')}
+                className={inputClass}
+              />
+              {errors.confirm_password && (
+                <p className="mt-1 text-xs text-red-600">{errors.confirm_password.message}</p>
               )}
             </div>
 
