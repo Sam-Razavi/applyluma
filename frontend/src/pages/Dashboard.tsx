@@ -1,123 +1,268 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  ArrowRightIcon,
+  BriefcaseIcon,
+  DocumentTextIcon,
+  MagnifyingGlassIcon,
+  SparklesIcon,
+} from '@heroicons/react/24/outline'
 import { FadeIn } from '../components/ui/FadeIn'
 import { useAuthStore } from '../stores'
-
-const STATS = [
-  { label: 'Total CVs', value: '—', sub: 'Upload your first CV', href: '/cvs' },
-  { label: 'Job Listings', value: '—', sub: 'Add a job description', href: '/jobs' },
-  { label: 'AI Analyses', value: '—', sub: 'Run your first analysis', href: '/ai-tailor' },
-]
-
-const QUICK_ACTIONS = [
-  {
-    title: 'Upload CV',
-    description: 'Add a CV in PDF or DOCX format for AI analysis.',
-    href: '/cvs',
-    iconBg: 'bg-blue-100',
-    icon: (
-      <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12-3-3m0 0-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-      </svg>
-    ),
-    btnClass: 'bg-blue-600 hover:bg-blue-700',
-  },
-  {
-    title: 'Add Job',
-    description: 'Paste a job description to extract keywords and track.',
-    href: '/jobs',
-    iconBg: 'bg-violet-100',
-    icon: (
-      <svg className="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
-      </svg>
-    ),
-    btnClass: 'bg-violet-600 hover:bg-violet-700',
-  },
-  {
-    title: 'AI Tailor',
-    description: 'Match your CV to a job and get actionable improvement tips.',
-    href: '/ai-tailor',
-    iconBg: 'bg-brand-100',
-    icon: (
-      <svg className="h-6 w-6 text-brand-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-      </svg>
-    ),
-    btnClass: 'bg-brand-600 hover:bg-brand-700',
-  },
-]
+import { useApplicationsStore } from '../stores/applications'
+import { cvApi, jobApi } from '../services/api'
+import type { CV, JobDescription } from '../types'
 
 export default function Dashboard() {
   const { user } = useAuthStore()
   const firstName = user?.full_name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'there'
 
+  const applications = useApplicationsStore((s) => s.applications)
+  const stats = useApplicationsStore((s) => s.stats)
+  const fetchApplications = useApplicationsStore((s) => s.fetchApplications)
+
+  const [cvs, setCvs] = useState<CV[]>([])
+  const [jds, setJds] = useState<JobDescription[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    document.title = 'Dashboard | ApplyLuma'
+    void Promise.all([
+      fetchApplications(),
+      cvApi.list().then(setCvs).catch(() => {}),
+      jobApi.list().then(setJds).catch(() => {}),
+    ]).finally(() => setLoading(false))
+  }, [fetchApplications])
+
+  const activeApplications = (stats.applied ?? 0) + (stats.phone_screen ?? 0) + (stats.interview ?? 0) + (stats.offer ?? 0)
+  const recentApplications = [...applications]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5)
+
+  const STATUS_COLOR: Record<string, string> = {
+    wishlist: 'bg-gray-100 text-gray-600',
+    applied: 'bg-blue-50 text-blue-700',
+    phone_screen: 'bg-yellow-50 text-yellow-700',
+    interview: 'bg-purple-50 text-purple-700',
+    offer: 'bg-green-50 text-green-700',
+    rejected: 'bg-red-50 text-red-600',
+    withdrawn: 'bg-gray-100 text-gray-500',
+  }
+
+  const topStats = [
+    {
+      label: 'CVs',
+      value: loading ? '—' : String(cvs.length),
+      sub: cvs.length === 0 ? 'Upload your first CV' : cvs.length === 1 ? '1 CV uploaded' : `${cvs.length} CVs uploaded`,
+      href: '/cvs',
+      icon: <DocumentTextIcon className="h-5 w-5 text-blue-500" />,
+      bg: 'bg-blue-50',
+    },
+    {
+      label: 'Applications',
+      value: loading ? '—' : String(applications.length),
+      sub: activeApplications > 0 ? `${activeApplications} active` : 'None in progress',
+      href: '/applications',
+      icon: <BriefcaseIcon className="h-5 w-5 text-brand-500" />,
+      bg: 'bg-brand-50',
+    },
+    {
+      label: 'Job Descriptions',
+      value: loading ? '—' : String(jds.length),
+      sub: jds.length === 0 ? 'Add a job to get started' : `${jds.length} saved`,
+      href: '/jobs',
+      icon: <MagnifyingGlassIcon className="h-5 w-5 text-violet-500" />,
+      bg: 'bg-violet-50',
+    },
+  ]
+
+  const quickActions = [
+    {
+      title: 'Upload CV',
+      description: 'Add a CV in PDF or DOCX format for AI analysis.',
+      href: '/cvs',
+      icon: <DocumentTextIcon className="h-6 w-6 text-blue-600" />,
+      iconBg: 'bg-blue-100',
+      btnClass: 'bg-blue-600 hover:bg-blue-700 text-white',
+    },
+    {
+      title: 'Discover Jobs',
+      description: 'Browse AI-matched Swedish job listings from multiple sources.',
+      href: '/discover',
+      icon: <MagnifyingGlassIcon className="h-6 w-6 text-violet-600" />,
+      iconBg: 'bg-violet-100',
+      btnClass: 'bg-violet-600 hover:bg-violet-700 text-white',
+    },
+    {
+      title: 'Tailor with AI',
+      description: 'Match your CV to a job and get targeted improvements.',
+      href: '/ai-tailor',
+      icon: <SparklesIcon className="h-6 w-6 text-brand-600" />,
+      iconBg: 'bg-brand-100',
+      btnClass: 'bg-brand-600 hover:bg-brand-700 text-white',
+    },
+  ]
+
   return (
     <FadeIn>
-    <div className="space-y-8">
-      {/* Welcome */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Welcome back, {firstName} 👋
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Here's an overview of your job search.
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {STATS.map(({ label, value, sub, href }) => (
-          <Link
-            key={label}
-            to={href}
-            className="group bg-white rounded-xl border border-gray-200 p-5 hover:border-brand-300 hover:shadow-sm transition"
-          >
-            <p className="text-sm font-medium text-gray-500">{label}</p>
-            <p className="mt-1 text-3xl font-bold text-gray-900">{value}</p>
-            <p className="mt-1 text-xs text-gray-400 group-hover:text-brand-500 transition-colors">
-              {sub} →
-            </p>
-          </Link>
-        ))}
-      </div>
-
-      {/* Quick actions */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Quick actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {QUICK_ACTIONS.map(({ title, description, href, iconBg, icon, btnClass }) => (
-            <div
-              key={title}
-              className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3"
-            >
-              <div className={`h-10 w-10 rounded-lg ${iconBg} flex items-center justify-center`}>
-                {icon}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 text-sm">{title}</h3>
-                <p className="mt-0.5 text-xs text-gray-500">{description}</p>
-              </div>
-              <Link
-                to={href}
-                className={`self-start inline-block text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${btnClass}`}
-              >
-                Get started
-              </Link>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent activity */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Recent activity</h2>
-        <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
-          <p className="text-sm text-gray-400">
-            No activity yet — upload a CV or add a job to get started.
+      <div className="space-y-8">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Welcome back, {firstName} 👋
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Here's your job search at a glance.
           </p>
         </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {topStats.map(({ label, value, sub, href, icon, bg }) => (
+            <Link
+              key={label}
+              to={href}
+              className="group flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 transition hover:border-brand-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+            >
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg}`}>
+                {icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {loading ? (
+                    <span className="inline-block h-7 w-8 animate-pulse rounded bg-gray-200" />
+                  ) : value}
+                </p>
+                <p className="mt-0.5 truncate text-xs text-gray-400 group-hover:text-brand-500 transition-colors">
+                  {sub}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Pipeline snapshot + Recent activity */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Pipeline snapshot */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Application pipeline</h2>
+              <Link to="/applications" className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700">
+                View all <ArrowRightIcon className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            {loading ? (
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-8 animate-pulse rounded-lg bg-gray-100" />
+                ))}
+              </div>
+            ) : applications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <BriefcaseIcon className="h-8 w-8 text-gray-300" />
+                <p className="mt-2 text-sm text-gray-400">No applications yet</p>
+                <Link to="/applications" className="mt-3 text-xs font-semibold text-brand-600 hover:text-brand-700">
+                  Add your first →
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {[
+                  { key: 'wishlist', label: 'Wishlist', color: 'bg-gray-400' },
+                  { key: 'applied', label: 'Applied', color: 'bg-blue-500' },
+                  { key: 'interview', label: 'Interview', color: 'bg-purple-500' },
+                  { key: 'offer', label: 'Offer', color: 'bg-green-500' },
+                ].map(({ key, label, color }) => {
+                  const count = stats[key as keyof typeof stats] ?? 0
+                  const total = applications.length
+                  const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                  return (
+                    <div key={key} className="flex items-center gap-3">
+                      <span className="w-16 shrink-0 text-xs text-gray-500">{label}</span>
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className={`h-full rounded-full ${color} transition-all duration-500`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="w-6 text-right text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        {count}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Recent applications */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Recent applications</h2>
+              <Link to="/applications" className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700">
+                View all <ArrowRightIcon className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            {loading ? (
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100" />
+                ))}
+              </div>
+            ) : recentApplications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <BriefcaseIcon className="h-8 w-8 text-gray-300" />
+                <p className="mt-2 text-sm text-gray-400">Nothing tracked yet</p>
+                <Link to="/discover" className="mt-3 text-xs font-semibold text-brand-600 hover:text-brand-700">
+                  Discover jobs →
+                </Link>
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                {recentApplications.map((app) => (
+                  <li key={app.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{app.company_name}</p>
+                      <p className="truncate text-xs text-gray-400">{app.job_title}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[app.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {app.status.replace('_', ' ')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Quick actions */}
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Quick actions</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {quickActions.map(({ title, description, href, icon, iconBg, btnClass }) => (
+              <div
+                key={title}
+                className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+              >
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
+                  {icon}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{description}</p>
+                </div>
+                <Link
+                  to={href}
+                  className={`self-start rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${btnClass}`}
+                >
+                  Get started
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
     </FadeIn>
   )
 }
