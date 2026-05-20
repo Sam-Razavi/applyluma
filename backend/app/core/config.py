@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     STRIPE_PREMIUM_PRICE_ID: str = ""
     SENDGRID_API_KEY: str = ""
     SENDGRID_FROM_EMAIL: str = "notifications@applyluma.com"
+    FRONTEND_URL: str = "https://applyluma.com"
 
 
 settings = Settings()
