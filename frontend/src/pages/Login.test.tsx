@@ -49,7 +49,7 @@ describe('Login Page', () => {
     renderLogin();
     expect(screen.getByText(/Sign in to your account/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
   });
 
@@ -75,7 +75,7 @@ describe('Login Page', () => {
     fireEvent.change(screen.getByLabelText(/Email/i), {
       target: { value: 'test@example.com' },
     });
-    fireEvent.change(screen.getByLabelText(/Password/i), {
+    fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'password123' },
     });
 
@@ -108,7 +108,7 @@ describe('Login Page', () => {
     fireEvent.change(screen.getByLabelText(/Email/i), {
       target: { value: 'wrong@example.com' },
     });
-    fireEvent.change(screen.getByLabelText(/Password/i), {
+    fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'wrongpass' },
     });
 

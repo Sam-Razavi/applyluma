@@ -68,6 +68,7 @@ class ApplicationCreate(BaseModel):
     job_url: str | None = None
     status: ApplicationStatus = "wishlist"
     applied_date: datetime | None = None
+    interview_date: datetime | None = None
     source: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
@@ -86,6 +87,7 @@ class ApplicationUpdate(BaseModel):
     job_url: str | None = None
     status: ApplicationStatus | None = None
     applied_date: datetime | None = None
+    interview_date: datetime | None = None
     source: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
@@ -108,6 +110,7 @@ class ApplicationSummary(BaseModel):
     job_url: str | None
     status: str
     applied_date: datetime | None
+    interview_date: datetime | None
     source: str | None
     salary_min: int | None
     salary_max: int | None
