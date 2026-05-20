@@ -50,8 +50,7 @@ export default function Register() {
         password: data.password,
         full_name: data.full_name?.trim() || undefined,
       })
-      toast.success('Account created! Please sign in.')
-      navigate('/login')
+      navigate('/check-email', { state: { email: data.email } })
     } catch (err) {
       const axiosErr = err as AxiosError<ApiError>
       toast.error(axiosErr.response?.data?.detail ?? 'Registration failed. Please try again.')

@@ -139,7 +139,7 @@ def notify_high_match_jobs() -> dict[str, int]:
                 title="New high-match jobs",
                 body="\n".join(lines),
                 related_type="jobs",
-                send_email=True,
+                send_email=bool(getattr(user, "is_verified", False)),
                 email=getattr(user, "email", None),
             )
             created += 1
