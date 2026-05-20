@@ -82,6 +82,7 @@ def application_data(
         job_url="https://example.com/job",
         status=status,
         applied_date=None,
+        interview_date=None,
         source="linkedin",
         salary_min=650000,
         salary_max=800000,

@@ -20,6 +20,7 @@ interface DrawerForm {
   job_url: string
   status: ApplicationStatus
   applied_date: string
+  interview_date: string
   source: string
   salary_min: string
   salary_max: string
@@ -36,6 +37,7 @@ function toForm(application: Application): DrawerForm {
     job_url: application.job_url ?? '',
     status: application.status,
     applied_date: application.applied_date?.slice(0, 10) ?? '',
+    interview_date: application.interview_date?.slice(0, 10) ?? '',
     source: application.source ?? '',
     salary_min: application.salary_min?.toString() ?? '',
     salary_max: application.salary_max?.toString() ?? '',
@@ -78,6 +80,7 @@ export default function ApplicationDrawer() {
       job_url: form.job_url.trim() || null,
       status: form.status,
       applied_date: form.applied_date || null,
+      interview_date: form.interview_date || null,
       source: form.source || null,
       salary_min: numberOrNull(form.salary_min),
       salary_max: numberOrNull(form.salary_max),
@@ -183,6 +186,9 @@ export default function ApplicationDrawer() {
                       if (next === 'applied' && !form.applied_date) {
                         setField('applied_date', new Date().toISOString().slice(0, 10))
                       }
+                      if (next === 'interview' && !form.interview_date) {
+                        setField('interview_date', new Date().toISOString().slice(0, 10))
+                      }
                     }}
                     className="input"
                   >
@@ -198,6 +204,14 @@ export default function ApplicationDrawer() {
                     type="date"
                     value={form.applied_date}
                     onChange={(e) => setField('applied_date', e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Interview date">
+                  <input
+                    type="date"
+                    value={form.interview_date}
+                    onChange={(e) => setField('interview_date', e.target.value)}
                     className="input"
                   />
                 </Field>

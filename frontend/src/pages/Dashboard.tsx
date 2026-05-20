@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   ArrowRightIcon,
   BriefcaseIcon,
+  CalendarDaysIcon,
   DocumentTextIcon,
   MagnifyingGlassIcon,
   SparklesIcon,
@@ -42,6 +43,13 @@ export default function Dashboard() {
   const recentApplications = [...applications]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5)
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const upcomingInterviews = [...applications]
+    .filter((a) => a.interview_date && new Date(a.interview_date) >= today)
+    .sort((a, b) => new Date(a.interview_date!).getTime() - new Date(b.interview_date!).getTime())
+    .slice(0, 4)
 
   const STATUS_COLOR: Record<string, string> = {
     wishlist: 'bg-gray-100 text-gray-600',
@@ -242,6 +250,38 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {/* Upcoming interviews */}
+        {!loading && upcomingInterviews.length > 0 && (
+          <div className="rounded-2xl border border-purple-100 bg-white p-5 dark:border-purple-900/40 dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarDaysIcon className="h-4 w-4 text-purple-500" />
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Upcoming interviews</h2>
+              </div>
+              <Link to="/applications" className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700">
+                View all <ArrowRightIcon className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+              {upcomingInterviews.map((app) => {
+                const date = new Date(app.interview_date!)
+                const daysUntil = Math.ceil((date.getTime() - today.getTime()) / 86_400_000)
+                const label = daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`
+                const urgency = daysUntil === 0 ? 'text-red-600 bg-red-50' : daysUntil <= 2 ? 'text-amber-700 bg-amber-50' : 'text-purple-700 bg-purple-50'
+                return (
+                  <li key={app.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{app.company_name}</p>
+                      <p className="truncate text-xs text-gray-400">{app.job_title} · {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${urgency}`}>{label}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
 
         {/* Quick actions */}
         <div>
