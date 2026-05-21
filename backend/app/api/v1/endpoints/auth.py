@@ -47,7 +47,7 @@ def resend_verification(
     try:
         email_service.send_verification_email(current_user.email, token)
     except Exception:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to send verification email")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to send verification email") from None
 
 
 @router.post("/login", response_model=TokenPair)
