@@ -9,6 +9,9 @@ import { STATUS_META } from './statusMeta'
 
 interface Props {
   applications?: Application[]
+  isSelectMode?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
 }
 
 function isStatus(value: string): value is ApplicationStatus {
@@ -25,7 +28,12 @@ function groupByStatus(applications: Application[]): Record<ApplicationStatus, A
   )
 }
 
-export default function KanbanBoard({ applications: providedApplications }: Props) {
+export default function KanbanBoard({
+  applications: providedApplications,
+  isSelectMode,
+  selectedIds,
+  onToggleSelect,
+}: Props) {
   const storeApplications = useApplicationsStore((state) => state.applications)
   const updateApplication = useApplicationsStore((state) => state.updateApplication)
   const setSelected = useApplicationsStore((state) => state.setSelected)
@@ -37,6 +45,7 @@ export default function KanbanBoard({ applications: providedApplications }: Prop
   const grouped = groupByStatus(applications)
 
   async function handleDragEnd(event: DragEndEvent) {
+    if (isSelectMode) return
     const activeId = String(event.active.id)
     const overId = event.over?.id ? String(event.over.id) : ''
     if (!overId) return
@@ -62,6 +71,7 @@ export default function KanbanBoard({ applications: providedApplications }: Prop
 
   return (
     <>
+      {/* Mobile accordion view */}
       <div className="space-y-3 md:hidden">
         {APPLICATION_STATUSES.map((status) => {
           const statusApplications = grouped[status]
@@ -97,19 +107,48 @@ export default function KanbanBoard({ applications: providedApplications }: Prop
                     </div>
                   ) : (
                     statusApplications.map((application) => (
-                      <button
+                      <div
                         key={application.id}
-                        type="button"
-                        onClick={() => setSelected(application)}
-                        className="block w-full rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          if (isSelectMode) {
+                            onToggleSelect?.(application.id)
+                          } else {
+                            setSelected(application)
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            if (isSelectMode) onToggleSelect?.(application.id)
+                            else setSelected(application)
+                          }
+                        }}
+                        className={`flex items-center gap-3 rounded-xl border bg-white p-4 text-left shadow-sm transition cursor-pointer ${
+                          isSelectMode && selectedIds?.has(application.id)
+                            ? 'border-brand-400 ring-2 ring-brand-200'
+                            : 'border-gray-200 hover:border-brand-200'
+                        }`}
                       >
-                        <span className="block truncate text-sm font-semibold text-gray-900">
-                          {application.job_title}
-                        </span>
-                        <span className="mt-1 block truncate text-sm text-gray-500">
-                          {application.company_name}
-                        </span>
-                      </button>
+                        {isSelectMode && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds?.has(application.id) ?? false}
+                            onChange={() => onToggleSelect?.(application.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-4 w-4 flex-shrink-0 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-gray-900">
+                            {application.job_title}
+                          </span>
+                          <span className="mt-1 block truncate text-sm text-gray-500">
+                            {application.company_name}
+                          </span>
+                        </div>
+                      </div>
                     ))
                   )}
                 </div>
@@ -119,6 +158,7 @@ export default function KanbanBoard({ applications: providedApplications }: Prop
         })}
       </div>
 
+      {/* Desktop kanban view */}
       <div className="hidden md:block">
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="-mx-4 overflow-x-auto px-4 pb-2">
@@ -130,6 +170,9 @@ export default function KanbanBoard({ applications: providedApplications }: Prop
                   label={STATUS_META[status].label}
                   colorClass={STATUS_META[status].color}
                   applications={grouped[status]}
+                  isSelectMode={isSelectMode}
+                  selectedIds={selectedIds}
+                  onToggleSelect={onToggleSelect}
                 />
               ))}
             </div>

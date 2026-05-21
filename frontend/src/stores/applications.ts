@@ -35,6 +35,7 @@ interface ApplicationsState {
   createApplication: (data: ApplicationCreate) => Promise<Application>
   updateApplication: (id: string, data: ApplicationUpdate) => Promise<Application>
   deleteApplication: (id: string) => Promise<void>
+  bulkDeleteApplications: (ids: string[]) => Promise<void>
   addContact: (applicationId: string, data: ApplicationContactCreate) => Promise<void>
   deleteContact: (applicationId: string, contactId: string) => Promise<void>
   setSelected: (application: Application | null) => void
@@ -142,6 +143,21 @@ export const useApplicationsStore = create<ApplicationsState>()(
             stats: countStats(next),
             selectedApplication:
               state.selectedApplication?.id === id ? null : state.selectedApplication,
+          }
+        })
+      },
+
+      bulkDeleteApplications: async (ids) => {
+        const idSet = new Set(ids)
+        await Promise.all(ids.map((id) => deleteApplicationRequest(id)))
+        set((state) => {
+          const next = state.applications.filter((application) => !idSet.has(application.id))
+          return {
+            applications: next,
+            stats: countStats(next),
+            selectedApplication: idSet.has(state.selectedApplication?.id ?? '')
+              ? null
+              : state.selectedApplication,
           }
         })
       },
