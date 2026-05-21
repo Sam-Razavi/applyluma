@@ -22,6 +22,10 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     beat_schedule={
+        "check-upcoming-deadlines-daily": {
+            "task": "app.tasks.notifications.check_upcoming_deadlines",
+            "schedule": crontab(hour=8, minute=0),
+        },
         "check-stale-applications-daily": {
             "task": "app.tasks.notifications.check_stale_applications",
             "schedule": crontab(hour=8, minute=0),

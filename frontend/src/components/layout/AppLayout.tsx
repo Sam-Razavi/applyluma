@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Bars3Icon } from '@heroicons/react/24/outline'
+import { Bars3Icon, EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Navbar from './Navbar'
 import MobileNav from './MobileNav'
 import { useInactivityLogout } from '../../hooks/useInactivityLogout'
 import { useNotificationsStore } from '../../stores/notifications'
+import { useAuthStore } from '../../stores'
+import { authApi } from '../../services/authApi'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -20,8 +22,24 @@ const PAGE_TITLES: Record<string, string> = {
 export default function AppLayout() {
   useInactivityLogout()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+  const [resending, setResending] = useState(false)
   const location = useLocation()
   const unreadCount = useNotificationsStore((s) => s.unreadCount)
+  const user = useAuthStore((s) => s.user)
+  const showVerifyBanner = !!user && !user.is_verified && !bannerDismissed
+
+  async function handleResend() {
+    setResending(true)
+    try {
+      await authApi.resendVerification()
+      setBannerDismissed(true)
+    } catch {
+      // silently ignore
+    } finally {
+      setResending(false)
+    }
+  }
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -35,6 +53,31 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {showVerifyBanner && (
+        <div className="flex items-center justify-between gap-3 bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-sm text-amber-800">
+          <div className="flex items-center gap-2">
+            <EnvelopeIcon className="h-4 w-4 shrink-0" />
+            <span>Please verify your email to enable job alerts.</span>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="underline font-medium hover:text-amber-900 disabled:opacity-60"
+            >
+              {resending ? 'Sending…' : 'Resend email'}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBannerDismissed(true)}
+            className="shrink-0 text-amber-600 hover:text-amber-800"
+            aria-label="Dismiss"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className="hidden md:block">
         <Navbar />
       </div>

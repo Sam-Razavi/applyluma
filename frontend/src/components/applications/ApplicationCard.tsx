@@ -41,7 +41,14 @@ function daysSince(dateStr: string | null): number | null {
   return Math.floor(diff / 86_400_000)
 }
 
+function daysUntil(dateStr: string | null): number | null {
+  if (!dateStr) return null
+  const diff = new Date(dateStr).getTime() - Date.now()
+  return Math.ceil(diff / 86_400_000)
+}
+
 const FOLLOWUP_STATUSES = new Set(['applied', 'phone_screen'])
+const TERMINAL_STATUSES = new Set(['rejected', 'withdrawn', 'offer'])
 
 export default function ApplicationCard({ application }: Props) {
   const setSelected = useApplicationsStore((state) => state.setSelected)
@@ -57,6 +64,16 @@ export default function ApplicationCard({ application }: Props) {
   const days = daysSince(application.applied_date)
   const showNudge = FOLLOWUP_STATUSES.has(application.status) && days !== null && days >= 7
   const nudgeUrgent = days !== null && days >= 14
+
+  const deadlineDays = daysUntil(application.deadline)
+  const showDeadline = deadlineDays !== null && deadlineDays <= 3 && !TERMINAL_STATUSES.has(application.status)
+  const deadlineLabel =
+    deadlineDays === 0 ? 'Deadline today' :
+    deadlineDays === 1 ? 'Deadline tomorrow' :
+    deadlineDays !== null && deadlineDays < 0 ? 'Deadline passed' :
+    `Deadline in ${deadlineDays} days`
+  const deadlineClass =
+    deadlineDays !== null && deadlineDays <= 1 ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -137,6 +154,12 @@ export default function ApplicationCard({ application }: Props) {
           </div>
         )}
       </div>
+
+      {showDeadline && (
+        <div className={`mt-3 rounded-lg px-2.5 py-1.5 text-xs font-medium ${deadlineClass}`}>
+          🗓 {deadlineLabel}
+        </div>
+      )}
 
       {showNudge && (
         <div

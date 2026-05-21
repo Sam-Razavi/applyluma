@@ -9,6 +9,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import CheckEmail from './pages/CheckEmail'
+import VerifyEmail from './pages/VerifyEmail'
 import Dashboard from './pages/Dashboard'
 import CVs from './pages/CVs'
 import Jobs from './pages/Jobs'
@@ -46,6 +48,8 @@ export default function App() {
           path="register"
           element={token ? <Navigate to="/dashboard" replace /> : <Register />}
         />
+        <Route path="check-email" element={<CheckEmail />} />
+        <Route path="verify-email" element={<VerifyEmail />} />
 
         {/* Protected app shell */}
         <Route element={<ProtectedRoute />}>
