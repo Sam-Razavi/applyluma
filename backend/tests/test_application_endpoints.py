@@ -83,6 +83,8 @@ def application_data(
         status=status,
         applied_date=None,
         interview_date=None,
+        deadline=None,
+        deadline_reminder_sent=False,
         source="linkedin",
         salary_min=650000,
         salary_max=800000,

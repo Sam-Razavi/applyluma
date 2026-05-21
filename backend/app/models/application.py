@@ -43,6 +43,8 @@ class Application(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(50), default="wishlist", server_default="wishlist")
     applied_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     interview_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deadline_reminder_sent: Mapped[bool] = mapped_column(default=False, server_default="false")
     source: Mapped[str | None] = mapped_column(String(100), nullable=True)
     salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)

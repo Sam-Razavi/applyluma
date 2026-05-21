@@ -5,6 +5,10 @@ EMAIL_TEMPLATES = {
         "subject": "Verify your ApplyLuma email",
         "body": "<p>Thanks for signing up! Click the link below to verify your email address.</p>",
     },
+    "deadline_reminder": {
+        "subject": "Application deadline approaching",
+        "body": "<p>One of your job applications has a deadline coming up soon.</p>",
+    },
     "tailor_complete": {
         "subject": "Your tailored CV is ready",
         "body": "<p>Your AI-tailored CV is ready to review in ApplyLuma.</p>",
