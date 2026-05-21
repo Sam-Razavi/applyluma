@@ -12,6 +12,8 @@ from app.models.user import User
 from app.services import notification_service
 from app.tasks.celery_app import celery_app
 
+TERMINAL_STATUSES = ("rejected", "withdrawn", "offer")
+
 APPLICATION_STATUSES = (
     "wishlist",
     "applied",
@@ -21,6 +23,56 @@ APPLICATION_STATUSES = (
     "rejected",
     "withdrawn",
 )
+
+
+@celery_app.task(name="app.tasks.notifications.check_upcoming_deadlines")
+def check_upcoming_deadlines() -> dict[str, int]:
+    db = SessionLocal()
+    created = 0
+    try:
+        now = datetime.now(UTC)
+        window = now + timedelta(days=3)
+        applications = (
+            db.query(Application)
+            .filter(
+                Application.deadline.isnot(None),
+                Application.deadline >= now,
+                Application.deadline <= window,
+                Application.deadline_reminder_sent.is_(False),
+                Application.status.notin_(TERMINAL_STATUSES),
+            )
+            .all()
+        )
+        for application in applications:
+            deadline_aware = application.deadline
+            if deadline_aware.tzinfo is None:
+                deadline_aware = deadline_aware.replace(tzinfo=UTC)
+            days_left = (deadline_aware - now).days
+            if days_left == 0:
+                urgency = "today"
+            elif days_left == 1:
+                urgency = "tomorrow"
+            else:
+                urgency = f"in {days_left} days"
+
+            user = db.get(User, application.user_id)
+            notification_service.create_notification(
+                db,
+                user_id=application.user_id,
+                type="deadline_reminder",
+                title="Application deadline approaching",
+                body=f"{application.company_name} – {application.job_title} deadline is {urgency}.",
+                related_id=application.id,
+                related_type="application",
+                send_email=bool(getattr(user, "is_verified", False)),
+                email=getattr(user, "email", None),
+            )
+            application.deadline_reminder_sent = True
+            created += 1
+        db.commit()
+        return {"created": created}
+    finally:
+        db.close()
 
 
 @celery_app.task(name="app.tasks.notifications.check_stale_applications")

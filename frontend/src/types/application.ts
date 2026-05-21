@@ -42,6 +42,7 @@ export interface Application {
   status: ApplicationStatus
   applied_date: string | null
   interview_date: string | null
+  deadline: string | null
   source: string | null
   salary_min: number | null
   salary_max: number | null
@@ -65,6 +66,7 @@ export interface ApplicationCreate {
   status?: ApplicationStatus
   applied_date?: string | null
   interview_date?: string | null
+  deadline?: string | null
   source?: string | null
   salary_min?: number | null
   salary_max?: number | null

@@ -21,6 +21,7 @@ interface DrawerForm {
   status: ApplicationStatus
   applied_date: string
   interview_date: string
+  deadline: string
   source: string
   salary_min: string
   salary_max: string
@@ -38,6 +39,7 @@ function toForm(application: Application): DrawerForm {
     status: application.status,
     applied_date: application.applied_date?.slice(0, 10) ?? '',
     interview_date: application.interview_date?.slice(0, 10) ?? '',
+    deadline: application.deadline?.slice(0, 10) ?? '',
     source: application.source ?? '',
     salary_min: application.salary_min?.toString() ?? '',
     salary_max: application.salary_max?.toString() ?? '',
@@ -81,6 +83,7 @@ export default function ApplicationDrawer() {
       status: form.status,
       applied_date: form.applied_date || null,
       interview_date: form.interview_date || null,
+      deadline: form.deadline || null,
       source: form.source || null,
       salary_min: numberOrNull(form.salary_min),
       salary_max: numberOrNull(form.salary_max),
@@ -212,6 +215,14 @@ export default function ApplicationDrawer() {
                     type="date"
                     value={form.interview_date}
                     onChange={(e) => setField('interview_date', e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Application deadline">
+                  <input
+                    type="date"
+                    value={form.deadline}
+                    onChange={(e) => setField('deadline', e.target.value)}
                     className="input"
                   />
                 </Field>
