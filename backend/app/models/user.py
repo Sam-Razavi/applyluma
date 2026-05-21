@@ -33,6 +33,7 @@ class User(Base, TimestampMixin):
     full_name: Mapped[str | None] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     is_verified: Mapped[bool] = mapped_column(default=False, server_default="false")
+    verification_token: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name="user_role"),
         default=UserRole.user,

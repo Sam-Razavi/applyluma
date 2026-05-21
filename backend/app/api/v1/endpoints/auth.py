@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -10,6 +10,7 @@ from app.crud import user as crud_user
 from app.models.user import User
 from app.schemas.token import LoginRequest, RefreshRequest, Token, TokenPair
 from app.schemas.user import ChangePasswordRequest, UserCreate, UserPublic, UserUpdate
+from app.services import email_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -18,7 +19,35 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def register(user_in: UserCreate, db: Session = Depends(get_db)) -> UserPublic:
     if crud_user.get_by_email(db, user_in.email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    return crud_user.create(db, user_in)
+    user = crud_user.create(db, user_in)
+    if user.verification_token:
+        try:
+            email_service.send_verification_email(user.email, user.verification_token)
+        except Exception:
+            pass
+    return user
+
+
+@router.get("/verify-email", response_model=UserPublic)
+def verify_email(token: str = Query(...), db: Session = Depends(get_db)) -> UserPublic:
+    user = crud_user.verify_email(db, token)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification link")
+    return user
+
+
+@router.post("/resend-verification", status_code=status.HTTP_204_NO_CONTENT)
+def resend_verification(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    if current_user.is_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already verified")
+    token = crud_user.refresh_verification_token(db, current_user)
+    try:
+        email_service.send_verification_email(current_user.email, token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to send verification email")
 
 
 @router.post("/login", response_model=TokenPair)

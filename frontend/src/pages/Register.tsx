@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { authApi } from '../services/api'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
@@ -32,6 +33,8 @@ const inputClass =
 export default function Register() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const {
     register,
@@ -47,8 +50,7 @@ export default function Register() {
         password: data.password,
         full_name: data.full_name?.trim() || undefined,
       })
-      toast.success('Account created! Please sign in.')
-      navigate('/login')
+      navigate('/check-email', { state: { email: data.email } })
     } catch (err) {
       const axiosErr = err as AxiosError<ApiError>
       toast.error(axiosErr.response?.data?.detail ?? 'Registration failed. Please try again.')
@@ -106,14 +108,24 @@ export default function Register() {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Min 8 chars, 1 uppercase, 1 number"
-                {...register('password')}
-                className={inputClass}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Min 8 chars, 1 uppercase, 1 number"
+                  {...register('password')}
+                  className={inputClass}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
               )}
@@ -123,14 +135,24 @@ export default function Register() {
               <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-700 mb-1">
                 Confirm password
               </label>
-              <input
-                id="confirm_password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Re-enter your password"
-                {...register('confirm_password')}
-                className={inputClass}
-              />
+              <div className="relative">
+                <input
+                  id="confirm_password"
+                  type={showConfirm ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Re-enter your password"
+                  {...register('confirm_password')}
+                  className={inputClass}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirm ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </button>
+              </div>
               {errors.confirm_password && (
                 <p className="mt-1 text-xs text-red-600">{errors.confirm_password.message}</p>
               )}
