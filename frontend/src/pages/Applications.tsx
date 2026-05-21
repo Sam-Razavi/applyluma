@@ -2,9 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   ArrowDownTrayIcon,
+  CheckCircleIcon,
+  ClockIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  TrashIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { exportApplicationsToCsv } from '../utils/exportCsv'
 import AddApplicationModal from '../components/applications/AddApplicationModal'
@@ -17,6 +21,9 @@ import { useApplicationsStore } from '../stores/applications'
 import type { ApplicationStatus } from '../types/application'
 import { APPLICATION_STATUSES } from '../types/application'
 
+const STALE_DAYS = 14
+const TERMINAL_STATUSES = new Set(['rejected', 'withdrawn'])
+
 export default function Applications() {
   const applications = useApplicationsStore((state) => state.applications)
   const stats = useApplicationsStore((state) => state.stats)
@@ -25,7 +32,14 @@ export default function Applications() {
   const filters = useApplicationsStore((state) => state.filters)
   const fetchApplications = useApplicationsStore((state) => state.fetchApplications)
   const setFilters = useApplicationsStore((state) => state.setFilters)
+  const bulkDeleteApplications = useApplicationsStore((state) => state.bulkDeleteApplications)
+
   const [addOpen, setAddOpen] = useState(false)
+  const [staleFilter, setStaleFilter] = useState(false)
+  const [isSelectMode, setIsSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = (searchParams.get('tab') === 'stats' ? 'stats' : 'board') as 'board' | 'stats'
 
@@ -41,18 +55,67 @@ export default function Applications() {
     document.title = 'Applications | ApplyLuma'
   }, [])
 
+  const staleThreshold = useMemo(() => Date.now() - STALE_DAYS * 86_400_000, [])
+
+  const staleCount = useMemo(
+    () =>
+      applications.filter(
+        (app) =>
+          !TERMINAL_STATUSES.has(app.status) &&
+          new Date(app.updated_at).getTime() < staleThreshold,
+      ).length,
+    [applications, staleThreshold],
+  )
+
   const filteredApplications = useMemo(() => {
+    let result = applications
     const search = filters.search.trim().toLowerCase()
-    if (!search) return applications
-    return applications.filter((application) =>
-      [
-        application.company_name,
-        application.job_title,
-        application.location ?? '',
-        application.source ?? '',
-      ].some((value) => value.toLowerCase().includes(search)),
-    )
-  }, [applications, filters.search])
+    if (search) {
+      result = result.filter((application) =>
+        [
+          application.company_name,
+          application.job_title,
+          application.location ?? '',
+          application.source ?? '',
+        ].some((value) => value.toLowerCase().includes(search)),
+      )
+    }
+    if (staleFilter) {
+      result = result.filter(
+        (app) =>
+          !TERMINAL_STATUSES.has(app.status) &&
+          new Date(app.updated_at).getTime() < staleThreshold,
+      )
+    }
+    return result
+  }, [applications, filters.search, staleFilter, staleThreshold])
+
+  function toggleSelectMode() {
+    setIsSelectMode((prev) => !prev)
+    setSelectedIds(new Set())
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function handleBulkDelete() {
+    const count = selectedIds.size
+    if (!window.confirm(`Permanently delete ${count} application${count > 1 ? 's' : ''}? This cannot be undone.`)) return
+    setBulkDeleting(true)
+    try {
+      await bulkDeleteApplications([...selectedIds])
+      setSelectedIds(new Set())
+      setIsSelectMode(false)
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -63,8 +126,8 @@ export default function Applications() {
             Track every opportunity from wishlist to offer.
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {applications.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {applications.length > 0 && !isSelectMode && (
             <button
               type="button"
               onClick={() => exportApplicationsToCsv(applications)}
@@ -75,14 +138,39 @@ export default function Applications() {
               Export CSV
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setAddOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-          >
-            <PlusIcon className="h-4 w-4" />
-            Add Application
-          </button>
+          {applications.length > 0 && activeTab === 'board' && (
+            <button
+              type="button"
+              onClick={toggleSelectMode}
+              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                isSelectMode
+                  ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {isSelectMode ? (
+                <>
+                  <XMarkIcon className="h-4 w-4" />
+                  Cancel
+                </>
+              ) : (
+                <>
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Select
+                </>
+              )}
+            </button>
+          )}
+          {!isSelectMode && (
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Add Application
+            </button>
+          )}
         </div>
       </div>
 
@@ -122,27 +210,58 @@ export default function Applications() {
                 className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
-            <select
-              value={filters.status}
-              onChange={(e) => {
-                setFilters({ status: e.target.value as ApplicationStatus | '' })
-                queueMicrotask(() => void fetchApplications())
-              }}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
-              <option value="">All statuses</option>
-              {APPLICATION_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_META[status].label}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={filters.status}
+                onChange={(e) => {
+                  setFilters({ status: e.target.value as ApplicationStatus | '' })
+                  queueMicrotask(() => void fetchApplications())
+                }}
+                className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value="">All statuses</option>
+                {APPLICATION_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_META[status].label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setStaleFilter((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
+                  staleFilter
+                    ? 'border-amber-400 bg-amber-50 text-amber-700'
+                    : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                }`}
+                title={`Show applications with no activity in ${STALE_DAYS}+ days`}
+              >
+                <ClockIcon className="h-4 w-4" />
+                Stale
+                {staleCount > 0 && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${
+                      staleFilter ? 'bg-amber-200 text-amber-800' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {staleCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           {error && (
             <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
               {error}
+            </div>
+          )}
+
+          {isSelectMode && (
+            <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+              <CheckCircleIcon className="h-4 w-4 flex-shrink-0" />
+              Click cards to select them, then use the action bar to delete.
             </div>
           )}
 
@@ -155,14 +274,20 @@ export default function Applications() {
           ) : filteredApplications.length === 0 ? (
             <div className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center">
               <h2 className="text-sm font-semibold text-gray-900">
-                {filters.search ? 'No matching applications' : 'No applications yet'}
+                {staleFilter
+                  ? 'No stale applications'
+                  : filters.search
+                    ? 'No matching applications'
+                    : 'No applications yet'}
               </h2>
               <p className="mt-1 text-sm text-gray-400">
-                {filters.search
-                  ? 'Adjust the search or status filter to broaden the board.'
-                  : 'Add your first application to start tracking your pipeline.'}
+                {staleFilter
+                  ? `All active applications have had activity in the last ${STALE_DAYS} days.`
+                  : filters.search
+                    ? 'Adjust the search or status filter to broaden the board.'
+                    : 'Add your first application to start tracking your pipeline.'}
               </p>
-              {!filters.search && (
+              {!filters.search && !staleFilter && (
                 <button
                   type="button"
                   onClick={() => setAddOpen(true)}
@@ -174,12 +299,17 @@ export default function Applications() {
               )}
             </div>
           ) : (
-            <KanbanBoard applications={filteredApplications} />
+            <KanbanBoard
+              applications={filteredApplications}
+              isSelectMode={isSelectMode}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+            />
           )}
         </>
       )}
 
-      {activeTab === 'board' && (
+      {activeTab === 'board' && !isSelectMode && (
         <button
           type="button"
           onClick={() => setAddOpen(true)}
@@ -188,6 +318,35 @@ export default function Applications() {
         >
           <PlusIcon className="h-6 w-6" />
         </button>
+      )}
+
+      {/* Bulk action bar */}
+      {isSelectMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white px-4 py-4 shadow-xl">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+            <span className="text-sm font-semibold text-gray-700">
+              {selectedIds.size} application{selectedIds.size > 1 ? 's' : ''} selected
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                <TrashIcon className="h-4 w-4" />
+                {bulkDeleting ? 'Deleting…' : `Delete ${selectedIds.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <AddApplicationModal open={addOpen} onClose={() => setAddOpen(false)} />

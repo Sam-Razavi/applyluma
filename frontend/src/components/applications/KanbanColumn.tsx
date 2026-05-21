@@ -11,6 +11,9 @@ interface Props {
   label: string
   colorClass: string
   applications: Application[]
+  isSelectMode?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
 }
 
 function sortApplications(apps: Application[], key: SortKey): Application[] {
@@ -24,7 +27,15 @@ function sortApplications(apps: Application[], key: SortKey): Application[] {
   })
 }
 
-export default function KanbanColumn({ status, label, colorClass, applications }: Props) {
+export default function KanbanColumn({
+  status,
+  label,
+  colorClass,
+  applications,
+  isSelectMode,
+  selectedIds,
+  onToggleSelect,
+}: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const [sort, setSort] = useState<SortKey>('default')
 
@@ -43,18 +54,20 @@ export default function KanbanColumn({ status, label, colorClass, applications }
           <h2 className="text-sm font-semibold text-gray-800">{label}</h2>
         </div>
         <div className="flex items-center gap-1.5">
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="rounded-md border border-gray-200 bg-white py-0.5 pl-1.5 pr-5 text-xs text-gray-500 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-400"
-            aria-label="Sort column"
-          >
-            <option value="default">Default</option>
-            <option value="date_desc">Newest first</option>
-            <option value="date_asc">Oldest first</option>
-            <option value="priority">Priority</option>
-            <option value="company">Company A–Z</option>
-          </select>
+          {!isSelectMode && (
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="rounded-md border border-gray-200 bg-white py-0.5 pl-1.5 pr-5 text-xs text-gray-500 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-400"
+              aria-label="Sort column"
+            >
+              <option value="default">Default</option>
+              <option value="date_desc">Newest first</option>
+              <option value="date_asc">Oldest first</option>
+              <option value="priority">Priority</option>
+              <option value="company">Company A–Z</option>
+            </select>
+          )}
           <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-gray-500 shadow-sm">
             {applications.length}
           </span>
@@ -69,7 +82,13 @@ export default function KanbanColumn({ status, label, colorClass, applications }
             </div>
           ) : (
             sorted.map((application) => (
-              <ApplicationCard key={application.id} application={application} />
+              <ApplicationCard
+                key={application.id}
+                application={application}
+                isSelectMode={isSelectMode}
+                isSelected={selectedIds?.has(application.id)}
+                onToggleSelect={onToggleSelect}
+              />
             ))
           )}
         </div>
