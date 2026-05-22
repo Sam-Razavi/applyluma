@@ -1,15 +1,15 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.user import UserRole
 
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
-    full_name: str | None = None
+    password: str = Field(max_length=128)
+    full_name: str | None = Field(default=None, max_length=200)
 
     @field_validator("password")
     @classmethod
@@ -36,7 +36,7 @@ class UserPublic(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    full_name: str | None = None
+    full_name: str | None = Field(default=None, max_length=200)
 
 
 class ChangePasswordRequest(BaseModel):

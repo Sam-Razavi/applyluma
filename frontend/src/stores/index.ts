@@ -23,11 +23,9 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: false,
         isLoading: false,
         setToken: (token) => {
-          console.log('[AuthStore] setToken called, token present:', !!token)
           set({ token })
         },
         login: (token, user) => {
-          console.log('[AuthStore] login called, token present:', !!token, 'user:', user.email)
           set({ token, user, isAuthenticated: true })
         },
         logout: () => set({ token: null, user: null, isAuthenticated: false }),

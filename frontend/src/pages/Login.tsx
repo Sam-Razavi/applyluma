@@ -61,23 +61,15 @@ export default function Login() {
   async function onSubmit(data: FormData) {
     setServerError(null)
     setIsSubmitting(true)
-    console.log('[Login] attempting login for:', data.email)
     try {
       const tokenPair = await authApi.login(data)
-      console.log('[Login] token received:', tokenPair.access_token ? 'present' : 'missing')
-
       // Store token before calling /me so the axios interceptor can attach it.
       setToken(tokenPair.access_token)
-      console.log('[Login] token stored in store, store token now:', !!useAuthStore.getState().token)
-
-      console.log('[Login] calling GET /api/v1/auth/me...')
       const user = await authApi.me()
-      console.log('[Login] user fetched:', user.email)
       login(tokenPair.access_token, user)
       toast.success(`Welcome back${user.full_name ? ', ' + user.full_name.split(' ')[0] : ''}!`)
       navigate(getSafeNextPath(searchParams.get('next')), { replace: true })
     } catch (err) {
-      console.error('[Login] error:', err)
       const axiosErr = err as AxiosError<ApiError>
       const message = axiosErr.response?.data?.detail ?? 'Login failed. Please try again.'
       setServerError(message)
