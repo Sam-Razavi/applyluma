@@ -37,12 +37,12 @@ class ApplicationEventPublic(BaseModel):
 
 
 class ApplicationContactCreate(BaseModel):
-    name: str | None = None
-    role: str | None = None
-    email: str | None = None
-    phone: str | None = None
-    linkedin_url: str | None = None
-    notes: str | None = None
+    name: str | None = Field(default=None, max_length=200)
+    role: str | None = Field(default=None, max_length=200)
+    email: str | None = Field(default=None, max_length=320)
+    phone: str | None = Field(default=None, max_length=50)
+    linkedin_url: str | None = Field(default=None, max_length=500)
+    notes: str | None = Field(default=None, max_length=2000)
 
 
 class ApplicationContactPublic(BaseModel):
@@ -63,40 +63,40 @@ class ApplicationCreate(BaseModel):
     job_description_id: uuid.UUID | None = None
     raw_job_posting_id: uuid.UUID | None = None
     cv_id: uuid.UUID | None = None
-    company_name: str | None = None
-    job_title: str | None = None
-    job_url: str | None = None
+    company_name: str | None = Field(default=None, max_length=255)
+    job_title: str | None = Field(default=None, max_length=255)
+    job_url: str | None = Field(default=None, max_length=2048)
     status: ApplicationStatus = "wishlist"
     applied_date: datetime | None = None
     interview_date: datetime | None = None
     deadline: datetime | None = None
-    source: str | None = None
-    salary_min: int | None = None
-    salary_max: int | None = None
-    location: str | None = None
-    remote_type: str | None = None
+    source: str | None = Field(default=None, max_length=100)
+    salary_min: int | None = Field(default=None, ge=0)
+    salary_max: int | None = Field(default=None, ge=0)
+    location: str | None = Field(default=None, max_length=255)
+    remote_type: str | None = Field(default=None, max_length=50)
     priority: int = Field(default=1, ge=1, le=3)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=10000)
 
 
 class ApplicationUpdate(BaseModel):
     job_description_id: uuid.UUID | None = None
     raw_job_posting_id: uuid.UUID | None = None
     cv_id: uuid.UUID | None = None
-    company_name: str | None = None
-    job_title: str | None = None
-    job_url: str | None = None
+    company_name: str | None = Field(default=None, max_length=255)
+    job_title: str | None = Field(default=None, max_length=255)
+    job_url: str | None = Field(default=None, max_length=2048)
     status: ApplicationStatus | None = None
     applied_date: datetime | None = None
     interview_date: datetime | None = None
     deadline: datetime | None = None
-    source: str | None = None
-    salary_min: int | None = None
-    salary_max: int | None = None
-    location: str | None = None
-    remote_type: str | None = None
+    source: str | None = Field(default=None, max_length=100)
+    salary_min: int | None = Field(default=None, ge=0)
+    salary_max: int | None = Field(default=None, ge=0)
+    location: str | None = Field(default=None, max_length=255)
+    remote_type: str | None = Field(default=None, max_length=50)
     priority: int | None = Field(default=None, ge=1, le=3)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=10000)
 
 
 class ApplicationSummary(BaseModel):
