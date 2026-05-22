@@ -27,10 +27,8 @@ apiClient.interceptors.request.use((config) => {
     (url.startsWith('/api/v1/analytics/') || url.startsWith('/api/analytics/')) &&
     !url.includes('/comparison')
 
-  console.log(`[HTTP] ${config.method?.toUpperCase()} ${config.url} - token in store: ${token ? 'present' : 'null'}`)
   if (token && !isPublicAnalyticsEndpoint) {
     config.headers.Authorization = `Bearer ${token}`
-    console.log('[HTTP] Authorization header set: Bearer', token.slice(0, 20) + '...')
   }
   return config
 })
