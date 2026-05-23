@@ -12,6 +12,7 @@ celery_app = Celery(
         "app.tasks.tailor",
         "app.tasks.notifications",
         "app.tasks.matching",
+        "app.tasks.cover_letter",
     ],
 )
 
