@@ -22,8 +22,10 @@ export const authApi = {
   deleteAccount: (): Promise<void> =>
     client.delete('/api/v1/auth/me').then(() => undefined),
 
-  logout: (): Promise<void> =>
-    client.post('/api/v1/auth/logout').then(() => undefined),
+  logout: (refreshToken?: string): Promise<void> =>
+    client
+      .post('/api/v1/auth/logout', { refresh_token: refreshToken ?? null })
+      .then(() => undefined),
 
   forgotPassword: (email: string): Promise<void> =>
     client.post('/api/v1/auth/forgot-password', { email }).then(() => undefined),

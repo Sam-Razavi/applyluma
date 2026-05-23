@@ -17,6 +17,7 @@ const ACTIVITY_EVENTS = [
 export function useInactivityLogout(timeoutMs = DEFAULT_INACTIVITY_LIMIT_MS) {
   const navigate = useNavigate()
   const token = useAuthStore((state) => state.token)
+  const refreshToken = useAuthStore((state) => state.refreshToken)
   const logout = useAuthStore((state) => state.logout)
 
   useEffect(() => {
@@ -25,7 +26,7 @@ export function useInactivityLogout(timeoutMs = DEFAULT_INACTIVITY_LIMIT_MS) {
     let timeoutId: ReturnType<typeof window.setTimeout>
 
     async function handleInactive() {
-      try { await authApi.logout() } catch { /* fail open */ }
+      try { await authApi.logout(refreshToken ?? undefined) } catch { /* fail open */ }
       logout()
       navigate('/login?reason=inactive', { replace: true })
     }
@@ -46,5 +47,5 @@ export function useInactivityLogout(timeoutMs = DEFAULT_INACTIVITY_LIMIT_MS) {
         window.removeEventListener(eventName, resetTimer)
       })
     }
-  }, [logout, navigate, timeoutMs, token])
+  }, [logout, navigate, refreshToken, timeoutMs, token])
 }
