@@ -11,6 +11,7 @@ from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.alert_preferences import UserAlertPreferences
+    from app.models.cover_letter_job import CoverLetterJob
     from app.models.cv import CV
     from app.models.job import JobMatchingScore, SavedJob
     from app.models.job_description import JobDescription
@@ -72,4 +73,7 @@ class User(Base, TimestampMixin):
         back_populates="user",
         cascade="all, delete-orphan",
         uselist=False,
+    )
+    cover_letter_jobs: Mapped[list["CoverLetterJob"]] = relationship(
+        "CoverLetterJob", back_populates="user", cascade="all, delete-orphan"
     )
