@@ -11,7 +11,7 @@ from app.core.dependencies import get_current_user, get_current_user_id, get_db,
 from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.crud import user as crud_user
 from app.models.user import User
-from app.schemas.token import LoginRequest, RefreshRequest, Token, TokenPair
+from app.schemas.token import LoginRequest, LogoutRequest, RefreshRequest, Token, TokenPair
 from app.schemas.user import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -110,6 +110,17 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
     except JWTError:
         raise credentials_exception from None
 
+    # Check refresh token denylist (fail open: Redis outage must not block token refresh)
+    try:
+        token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
+        r = get_redis_client()
+        if r.exists(f"token_denylist:{token_hash}"):
+            raise credentials_exception
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
     user = crud_user.get_by_id(db, user_id)
     if not user or not user.is_active:
         raise credentials_exception
@@ -153,27 +164,36 @@ def delete_account(
     crud_user.delete(db, current_user)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(
-    request: Request,
-    user_id: str = Depends(get_current_user_id),
-) -> None:
-    auth = request.headers.get("authorization", "")
-    if not auth.lower().startswith("bearer "):
-        return
-    token = auth.split(" ", 1)[1]
+def _revoke_token(raw_token: str) -> None:
+    """Store a token's SHA-256 hash in the denylist with TTL = remaining lifetime."""
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        from datetime import UTC, datetime
+        payload = jwt.decode(raw_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         exp = payload.get("exp")
         if exp is not None:
-            from datetime import UTC, datetime
             remaining = math.ceil(exp - datetime.now(UTC).timestamp())
             if remaining > 0:
-                token_hash = hashlib.sha256(token.encode()).hexdigest()
+                token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
                 r = get_redis_client()
                 r.setex(f"token_denylist:{token_hash}", remaining, "1")
     except Exception:
-        pass  # fail silently — token is short-lived anyway
+        pass  # fail silently — tokens are short-lived anyway
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    request: Request,
+    body: LogoutRequest,
+    user_id: str = Depends(get_current_user_id),
+) -> None:
+    # Revoke the access token from the Authorization header
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        _revoke_token(auth.split(" ", 1)[1])
+
+    # Revoke the refresh token if the client sent it
+    if body.refresh_token:
+        _revoke_token(body.refresh_token)
 
 
 @router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)

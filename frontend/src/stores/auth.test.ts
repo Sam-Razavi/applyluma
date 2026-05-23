@@ -14,7 +14,7 @@ describe('AuthStore', () => {
     expect(state.isAuthenticated).toBe(false);
   });
 
-  it('should login and set user/token', () => {
+  it('should login and set user/token/refreshToken', () => {
     const mockUser = {
       id: '1',
       email: 'test@example.com',
@@ -25,25 +25,28 @@ describe('AuthStore', () => {
       updated_at: '',
     };
     const mockToken = 'mock-token';
+    const mockRefreshToken = 'mock-refresh-token';
 
-    useAuthStore.getState().login(mockToken, mockUser as any);
+    useAuthStore.getState().login(mockToken, mockRefreshToken, mockUser as any);
 
     const state = useAuthStore.getState();
     expect(state.user).toEqual(mockUser);
     expect(state.token).toBe(mockToken);
+    expect(state.refreshToken).toBe(mockRefreshToken);
     expect(state.isAuthenticated).toBe(true);
   });
 
-  it('should logout and clear state', () => {
+  it('should logout and clear state including refreshToken', () => {
     const mockUser = { id: '1', email: 'test@example.com' };
     const mockToken = 'mock-token';
 
-    useAuthStore.getState().login(mockToken, mockUser as any);
+    useAuthStore.getState().login(mockToken, 'mock-refresh-token', mockUser as any);
     useAuthStore.getState().logout();
 
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
     expect(state.token).toBeNull();
+    expect(state.refreshToken).toBeNull();
     expect(state.isAuthenticated).toBe(false);
   });
 

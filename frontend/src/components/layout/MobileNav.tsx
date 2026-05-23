@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function MobileNav({ open, onClose }: Props) {
-  const { user, logout } = useAuthStore()
+  const { user, logout, refreshToken } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function MobileNav({ open, onClose }: Props) {
 
   async function handleLogout() {
     onClose()
-    try { await authApi.logout() } catch { /* fail open */ }
+    try { await authApi.logout(refreshToken ?? undefined) } catch { /* fail open */ }
     logout()
     navigate('/login')
   }
