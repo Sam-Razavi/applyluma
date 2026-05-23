@@ -87,19 +87,14 @@ async def _post(path: str, json: dict | None = None, headers: dict | None = None
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_logout_returns_204_and_stores_denylist(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_logout_returns_204_and_revokes_access_token(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_redis = _FakeRedis()
     monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: fake_redis)
     monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: fake_redis)
 
-    # Generate a real JWT so the logout endpoint can decode it
     from app.core.security import create_access_token
-    token = create_access_token(str(USER_ID))
-
-    app.dependency_overrides[get_current_user] = lambda: _fake_user()
-
-    # Inject get_current_user_id override so no Redis denylist check fires during auth
     from app.core.dependencies import get_current_user_id
+    token = create_access_token(str(USER_ID))
     app.dependency_overrides[get_current_user_id] = lambda: str(USER_ID)
 
     response = await _post(
@@ -108,9 +103,79 @@ async def test_logout_returns_204_and_stores_denylist(monkeypatch: pytest.Monkey
     )
 
     assert response.status_code == 204
-    # At least one denylist key should have been stored
     denylist_keys = [k for k in fake_redis._store if k.startswith("token_denylist:")]
     assert len(denylist_keys) == 1
+
+
+@pytest.mark.asyncio
+async def test_logout_also_revokes_refresh_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Both the access token and the provided refresh token must be added to the denylist."""
+    fake_redis = _FakeRedis()
+    monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: fake_redis)
+    monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: fake_redis)
+
+    from app.core.security import create_access_token, create_refresh_token
+    from app.core.dependencies import get_current_user_id
+    access_token = create_access_token(str(USER_ID))
+    refresh_token = create_refresh_token(str(USER_ID))
+    app.dependency_overrides[get_current_user_id] = lambda: str(USER_ID)
+
+    response = await _post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": refresh_token},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert response.status_code == 204
+    denylist_keys = [k for k in fake_redis._store if k.startswith("token_denylist:")]
+    # Both access and refresh token hashes must be stored
+    assert len(denylist_keys) == 2
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejected_after_logout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """/refresh must return 401 when the refresh token has been denylisted."""
+    fake_redis = _FakeRedis()
+    monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: fake_redis)
+    monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: fake_redis)
+
+    from app.core.security import create_access_token, create_refresh_token
+    from app.core.dependencies import get_current_user_id
+    access_token = create_access_token(str(USER_ID))
+    refresh_token = create_refresh_token(str(USER_ID))
+    app.dependency_overrides[get_current_user_id] = lambda: str(USER_ID)
+
+    # Logout — this should denylist the refresh token
+    logout_resp = await _post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": refresh_token},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert logout_resp.status_code == 204
+
+    # Try to use the refresh token after logout
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    refresh_resp = await _post("/api/v1/auth/refresh", {"refresh_token": refresh_token})
+
+    assert refresh_resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_fails_open_on_redis_outage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """/refresh must not block when Redis is down — fail open."""
+    monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: _FailingRedis())
+    monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: _FailingRedis())
+
+    from app.core.security import create_refresh_token
+    refresh_token = create_refresh_token(str(USER_ID))
+    user = _fake_user()
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_id", lambda db, uid: user)
+
+    response = await _post("/api/v1/auth/refresh", {"refresh_token": refresh_token})
+
+    # Redis down → fail open → should succeed (200) not block with 500/401
+    assert response.status_code == 200
 
 
 @pytest.mark.asyncio

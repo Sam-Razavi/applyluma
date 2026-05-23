@@ -8,7 +8,7 @@ import UserAvatar from '../ui/UserAvatar'
 import { NAV_LINKS } from './navLinks'
 
 export default function Navbar() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, refreshToken } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [open, setOpen] = useState(false)
@@ -29,7 +29,7 @@ export default function Navbar() {
   }, [location.pathname])
 
   async function handleLogout() {
-    try { await authApi.logout() } catch { /* fail open */ }
+    try { await authApi.logout(refreshToken ?? undefined) } catch { /* fail open */ }
     logout()
     navigate('/login')
   }

@@ -1,4 +1,4 @@
-import axios, { type AxiosError } from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../stores'
 import config from '../config/environment'
 
@@ -20,6 +20,21 @@ function redirectToLogin(reason: 'session-expired') {
   window.location.assign(`/login?${params.toString()}`)
 }
 
+// These paths must never trigger an auto-refresh attempt
+const NO_REFRESH_PATHS = ['/auth/refresh', '/auth/login', '/auth/logout']
+
+let isRefreshing = false
+type QueueItem = { resolve: (token: string) => void; reject: (err: unknown) => void }
+let failedQueue: QueueItem[] = []
+
+function processQueue(error: unknown, token: string | null) {
+  failedQueue.forEach((item) => {
+    if (error) item.reject(error)
+    else item.resolve(token!)
+  })
+  failedQueue = []
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
   const url = config.url ?? ''
@@ -35,19 +50,64 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
-    // Only auto-logout if the user was already authenticated.
-    // Without this guard, a failed login attempt (401) would reload the page
-    // before the catch block in the login form could display the error.
-    if (error.response?.status === 401 && useAuthStore.getState().token) {
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const url = originalRequest?.url ?? ''
+    const { token, refreshToken } = useAuthStore.getState()
+
+    // Attempt silent token refresh when:
+    // - server returned 401
+    // - user had an access token (was authenticated)
+    // - a refresh token is available
+    // - this isn't already a retry
+    // - this isn't the refresh/login/logout endpoint itself
+    if (
+      error.response?.status === 401 &&
+      token &&
+      refreshToken &&
+      !originalRequest._retry &&
+      !NO_REFRESH_PATHS.some((p) => url.includes(p))
+    ) {
+      // Queue concurrent requests while one refresh is in flight
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then((newToken) => {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+          return apiClient(originalRequest)
+        })
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        const res = await apiClient.post<{ access_token: string }>('/api/v1/auth/refresh', {
+          refresh_token: refreshToken,
+        })
+        const newToken = res.data.access_token
+        useAuthStore.getState().setToken(newToken)
+        processQueue(null, newToken)
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return apiClient(originalRequest)
+      } catch (refreshError) {
+        processQueue(refreshError, null)
+        useAuthStore.getState().logout()
+        redirectToLogin('session-expired')
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
+    }
+
+    // No refresh possible — if the user was authenticated, log them out
+    if (error.response?.status === 401 && token) {
       useAuthStore.getState().logout()
       redirectToLogin('session-expired')
     }
 
     // Normalise 429 responses to a consistent shape so every page can read
     // `error.response.data.detail` regardless of which endpoint fired it.
-    // The analytics middleware returns a nested `error.message`; tailor and
-    // other endpoints return a top-level `detail` string.
     if (error.response?.status === 429) {
       const raw = error.response.data as Record<string, unknown>
       const message =
