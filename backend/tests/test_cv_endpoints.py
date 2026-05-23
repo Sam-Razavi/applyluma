@@ -178,12 +178,59 @@ async def test_upload_cv_processes_valid_file(monkeypatch: pytest.MonkeyPatch, t
 
     files = {"file": ("resume.pdf", b"%PDF-1.4 content", "application/pdf")}
     data = {"title": "Uploaded CV"}
-    
+
     response = await request("POST", "/api/v1/cvs/upload", current_user=user(), files=files, data=data)
 
     assert response.status_code == 201
     assert response.json()["is_default"] is True
-    
+
     # Check if file was actually "stored"
     stored_files = list(fake_storage.glob("cvs/**/*.pdf"))
     assert len(stored_files) == 1
+
+
+@pytest.mark.asyncio
+async def test_upload_cv_rejects_wrong_magic_bytes_for_pdf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """An HTML file disguised as a PDF must be rejected."""
+    fake_storage = tmp_path / "storage"
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
+
+    # Content-Type says PDF but bytes are HTML
+    files = {"file": ("resume.pdf", b"<html><body>not a pdf</body></html>", "application/pdf")}
+    response = await request("POST", "/api/v1/cvs/upload", current_user=user(), files=files)
+
+    assert response.status_code == 415
+
+
+@pytest.mark.asyncio
+async def test_upload_cv_rejects_wrong_magic_bytes_for_docx(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A non-ZIP file disguised as a DOCX must be rejected."""
+    fake_storage = tmp_path / "storage"
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
+
+    docx_mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    files = {"file": ("resume.docx", b"This is not a zip archive", docx_mime)}
+    response = await request("POST", "/api/v1/cvs/upload", current_user=user(), files=files)
+
+    assert response.status_code == 415
+
+
+@pytest.mark.asyncio
+async def test_upload_cv_accepts_valid_docx_magic_bytes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A DOCX with correct PK magic bytes must pass the check."""
+    fake_storage = tmp_path / "storage"
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
+    monkeypatch.setattr(cvs_endpoint, "parse_cv", lambda path, ext: "Parsed DOCX Content")
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "count_for_user", lambda db, user_id: 1)
+
+    def mock_create(db, **kwargs):
+        return cv_data(is_default=kwargs.get("is_default", False))
+
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "create", mock_create)
+
+    docx_mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    # DOCX files are ZIP archives: magic bytes are PK\x03\x04
+    files = {"file": ("resume.docx", b"PK\x03\x04" + b"\x00" * 20, docx_mime)}
+    response = await request("POST", "/api/v1/cvs/upload", current_user=user(), files=files)
+
+    assert response.status_code == 201

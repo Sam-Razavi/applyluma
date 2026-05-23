@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { useAuthStore } from '../../stores'
+import { authApi } from '../../services/authApi'
 import NotificationBell from '../notifications/NotificationBell'
 import UserAvatar from '../ui/UserAvatar'
 import { NAV_LINKS } from './navLinks'
@@ -27,7 +28,8 @@ export default function Navbar() {
     setOpen(false)
   }, [location.pathname])
 
-  function handleLogout() {
+  async function handleLogout() {
+    try { await authApi.logout() } catch { /* fail open */ }
     logout()
     navigate('/login')
   }
