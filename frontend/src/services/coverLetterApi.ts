@@ -1,0 +1,44 @@
+import client from '../api/client'
+import type {
+  CoverLetterJob,
+  CoverLetterPreview,
+  CoverLetterStatusResponse,
+  CoverLetterTone,
+  CoverLetterUsage,
+} from '../types/coverLetter'
+
+export const coverLetterApi = {
+  getUsage: (): Promise<CoverLetterUsage> =>
+    client.get<CoverLetterUsage>('/api/v1/cover-letters/usage').then((r) => r.data),
+
+  submit: (cvId: string, jobDescriptionId: string, tone: CoverLetterTone): Promise<CoverLetterJob> =>
+    client
+      .post<CoverLetterJob>('/api/v1/cover-letters/generate', {
+        cv_id: cvId,
+        job_description_id: jobDescriptionId,
+        tone,
+      })
+      .then((r) => r.data),
+
+  getStatus: (jobId: string): Promise<CoverLetterStatusResponse> =>
+    client
+      .get<CoverLetterStatusResponse>(`/api/v1/cover-letters/${jobId}/status`)
+      .then((r) => r.data),
+
+  getPreview: (jobId: string): Promise<CoverLetterPreview> =>
+    client.get<CoverLetterPreview>(`/api/v1/cover-letters/${jobId}`).then((r) => r.data),
+
+  save: (jobId: string, savedText: string, title?: string): Promise<CoverLetterJob> =>
+    client
+      .post<CoverLetterJob>(`/api/v1/cover-letters/${jobId}/save`, {
+        saved_text: savedText,
+        title: title ?? null,
+      })
+      .then((r) => r.data),
+
+  list: (): Promise<CoverLetterJob[]> =>
+    client.get<CoverLetterJob[]>('/api/v1/cover-letters/history').then((r) => r.data),
+
+  remove: (jobId: string): Promise<void> =>
+    client.delete(`/api/v1/cover-letters/${jobId}`).then(() => undefined),
+}
