@@ -63,10 +63,10 @@ export default function Login() {
     setIsSubmitting(true)
     try {
       const tokenPair = await authApi.login(data)
-      // Store token before calling /me so the axios interceptor can attach it.
+      // Store access token before calling /me so the axios interceptor can attach it.
       setToken(tokenPair.access_token)
       const user = await authApi.me()
-      login(tokenPair.access_token, user)
+      login(tokenPair.access_token, tokenPair.refresh_token, user)
       toast.success(`Welcome back${user.full_name ? ', ' + user.full_name.split(' ')[0] : ''}!`)
       navigate(getSafeNextPath(searchParams.get('next')), { replace: true })
     } catch (err) {
