@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores'
+import { authApi } from '../services/authApi'
 
 const DEFAULT_INACTIVITY_LIMIT_MS = 30 * 60 * 1000
 
@@ -23,7 +24,8 @@ export function useInactivityLogout(timeoutMs = DEFAULT_INACTIVITY_LIMIT_MS) {
 
     let timeoutId: ReturnType<typeof window.setTimeout>
 
-    function handleInactive() {
+    async function handleInactive() {
+      try { await authApi.logout() } catch { /* fail open */ }
       logout()
       navigate('/login?reason=inactive', { replace: true })
     }

@@ -1,3 +1,4 @@
+import hashlib
 from collections.abc import Generator
 
 import redis
@@ -36,6 +37,18 @@ async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
             raise credentials_exception
     except JWTError:
         raise credentials_exception from None
+
+    # Check token denylist (fail open: Redis outage must not lock users out)
+    try:
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        r = get_redis_client()
+        if r.exists(f"token_denylist:{token_hash}"):
+            raise credentials_exception
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
     return user_id
 
 

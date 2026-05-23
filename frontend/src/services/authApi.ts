@@ -21,4 +21,15 @@ export const authApi = {
 
   deleteAccount: (): Promise<void> =>
     client.delete('/api/v1/auth/me').then(() => undefined),
+
+  logout: (): Promise<void> =>
+    client.post('/api/v1/auth/logout').then(() => undefined),
+
+  forgotPassword: (email: string): Promise<void> =>
+    client.post('/api/v1/auth/forgot-password', { email }).then(() => undefined),
+
+  resetPassword: (token: string, newPassword: string): Promise<void> =>
+    client
+      .post('/api/v1/auth/reset-password', { token, new_password: newPassword })
+      .then(() => undefined),
 }

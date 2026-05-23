@@ -24,12 +24,23 @@ _CONTENT_TYPE_EXT: dict[str, str] = {
 _ALLOWED_EXTENSIONS = {".pdf", ".docx"}
 _PDF_MEDIA_TYPE = "application/pdf"
 
+# First bytes that identify each accepted file format
+_MAGIC_BYTES: dict[str, bytes] = {
+    ".pdf": b"%PDF-",
+    ".docx": b"PK\x03\x04",
+}
+
 
 def _resolve_extension(content_type: str, original_filename: str) -> str | None:
     if content_type in _CONTENT_TYPE_EXT:
         return _CONTENT_TYPE_EXT[content_type]
     ext = Path(original_filename).suffix.lower()
     return ext if ext in _ALLOWED_EXTENSIONS else None
+
+
+def _check_magic_bytes(data: bytes, ext: str) -> bool:
+    signature = _MAGIC_BYTES.get(ext)
+    return signature is not None and data[: len(signature)] == signature
 
 
 def _storage_path(relative_url: str) -> Path:
@@ -131,6 +142,12 @@ async def upload_cv(
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"File exceeds the {settings.MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit",
+        )
+
+    if not _check_magic_bytes(file_bytes, ext):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="File content does not match the declared type",
         )
 
     # Store file: {STORAGE_DIR}/cvs/{user_id}/{uuid}{ext}
