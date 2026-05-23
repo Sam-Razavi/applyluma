@@ -98,6 +98,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    expose_headers=["X-Request-ID", "Retry-After"],
 )
 
 
@@ -185,6 +186,61 @@ async def analytics_rate_limit(request: Request, call_next):
             # read-only market data unavailable.
             pass
     return await call_next(request)
+
+# Per-IP rate limits (requests per minute) for unauthenticated auth endpoints.
+# Keyed by exact path; compat aliases share the same limits.
+_AUTH_RATE_LIMITS: dict[str, int] = {
+    "/api/v1/auth/login": 10,
+    "/api/v1/auth/token": 10,
+    "/api/v1/auth/register": 5,
+    "/api/v1/auth/resend-verification": 3,
+    "/api/auth/login": 10,
+    "/api/auth/token": 10,
+    "/api/auth/register": 5,
+    "/api/auth/resend-verification": 3,
+}
+
+
+@app.middleware("http")
+async def auth_rate_limit(request: Request, call_next):
+    if request.method == "POST":
+        limit = _AUTH_RATE_LIMITS.get(request.url.path)
+        if limit is not None:
+            ip = request.client.host if request.client else "unknown"
+            minute = int(datetime.utcnow().timestamp() // 60)
+            endpoint = request.url.path.rsplit("/", 1)[-1]
+            key = f"rate_limit:auth:{endpoint}:{ip}:{minute}"
+            try:
+                redis_client = get_redis_client()
+                count = redis_client.incr(key)
+                if count == 1:
+                    redis_client.expire(key, 60)
+                if count > limit:
+                    return JSONResponse(
+                        status_code=429,
+                        content={
+                            "detail": "Too many requests. Please try again later.",
+                            "code": "TOO_MANY_REQUESTS",
+                        },
+                        headers={"Retry-After": "60"},
+                    )
+            except Exception:
+                pass  # fail open: a Redis outage must never lock users out
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
+    response.headers["X-XSS-Protection"] = "0"
+    if settings.ENVIRONMENT == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return response
+
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(applications_router, prefix=settings.API_V1_STR, tags=["applications"])
