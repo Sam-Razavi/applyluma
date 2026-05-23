@@ -1,15 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import hashlib
+import math
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_user, get_current_user_id, get_db, get_redis_client
 from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.crud import user as crud_user
 from app.models.user import User
 from app.schemas.token import LoginRequest, RefreshRequest, Token, TokenPair
-from app.schemas.user import ChangePasswordRequest, UserCreate, UserPublic, UserUpdate
+from app.schemas.user import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    UserCreate,
+    UserPublic,
+    UserUpdate,
+)
 from app.services import email_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -141,3 +151,54 @@ def delete_account(
     db: Session = Depends(get_db),
 ) -> None:
     crud_user.delete(db, current_user)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> None:
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return
+    token = auth.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        exp = payload.get("exp")
+        if exp is not None:
+            from datetime import UTC, datetime
+            remaining = math.ceil(exp - datetime.now(UTC).timestamp())
+            if remaining > 0:
+                token_hash = hashlib.sha256(token.encode()).hexdigest()
+                r = get_redis_client()
+                r.setex(f"token_denylist:{token_hash}", remaining, "1")
+    except Exception:
+        pass  # fail silently — token is short-lived anyway
+
+
+@router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
+def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+) -> None:
+    # Always return 204 to prevent email enumeration
+    user = crud_user.get_by_email(db, body.email)
+    if user and user.is_active:
+        token = crud_user.create_password_reset_token(db, user)
+        try:
+            email_service.send_password_reset_email(user.email, token)
+        except Exception:
+            pass
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password(
+    body: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+) -> None:
+    user = crud_user.consume_password_reset_token(db, body.token, body.new_password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset link",
+        )

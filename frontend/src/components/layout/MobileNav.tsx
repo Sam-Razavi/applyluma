@@ -5,6 +5,7 @@ import { ArrowRightStartOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/o
 import { NAV_LINKS } from './navLinks'
 import { spring } from '../../lib/animations'
 import { useAuthStore } from '../../stores'
+import { authApi } from '../../services/authApi'
 import UserAvatar from '../ui/UserAvatar'
 
 interface Props {
@@ -27,8 +28,9 @@ export default function MobileNav({ open, onClose }: Props) {
     return () => document.removeEventListener('keydown', onEscape)
   }, [onClose, open])
 
-  function handleLogout() {
+  async function handleLogout() {
     onClose()
+    try { await authApi.logout() } catch { /* fail open */ }
     logout()
     navigate('/login')
   }

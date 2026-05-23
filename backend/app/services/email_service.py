@@ -53,6 +53,20 @@ def send_verification_email(to_email: str, token: str) -> None:
     send_email(to_email, subject, html_body)
 
 
+def send_password_reset_email(to_email: str, token: str) -> None:
+    frontend_url = settings.FRONTEND_URL.rstrip("/")
+    reset_url = f"{frontend_url}/reset-password?token={token}"
+    subject = "Reset your ApplyLuma password"
+    html_body = (
+        "<p>We received a request to reset your ApplyLuma password.</p>"
+        f'<p><a href="{reset_url}" style="background:#6366f1;color:#fff;padding:10px 20px;'
+        f'border-radius:8px;text-decoration:none;font-weight:bold;">Reset my password</a></p>'
+        f'<p>Or copy this link: {reset_url}</p>'
+        "<p>This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email.</p>"
+    )
+    send_email(to_email, subject, html_body)
+
+
 def send_email(to_email: str, subject: str, html_body: str) -> None:
     if not settings.SENDGRID_API_KEY:
         return
