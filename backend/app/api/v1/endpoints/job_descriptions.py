@@ -1,6 +1,8 @@
 import uuid
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, HttpUrl
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
@@ -12,10 +14,43 @@ from app.schemas.job_description import (
     JobDescriptionSummary,
 )
 from app.services.keyword_extractor import KeywordExtractor
+from app.services.url_scraper import scrape_job_url
 
 _extractor = KeywordExtractor()
 
 router = APIRouter(prefix="/job-descriptions", tags=["job-descriptions"])
+
+
+class ScrapeUrlRequest(BaseModel):
+    url: HttpUrl
+
+
+class ScrapeUrlResult(BaseModel):
+    company_name: str
+    job_title: str
+    description: str
+    url: str
+
+
+@router.post("/scrape-url", response_model=ScrapeUrlResult)
+async def scrape_url(
+    body: ScrapeUrlRequest,
+    current_user: User = Depends(get_current_user),
+) -> ScrapeUrlResult:
+    url_str = str(body.url)
+    try:
+        result = await scrape_job_url(url_str)
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Failed to fetch URL (HTTP {exc.response.status_code})",
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Could not scrape URL: {exc}",
+        ) from exc
+    return ScrapeUrlResult(**result)
 
 
 @router.post("", response_model=JobDescriptionPublic, status_code=status.HTTP_201_CREATED)
