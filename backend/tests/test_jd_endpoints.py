@@ -13,6 +13,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import httpx as httpx_lib
+
 from app.api.v1.endpoints import job_descriptions as jd_endpoint
 from app.core.dependencies import get_current_user, get_db
 from app.main import app
@@ -118,7 +120,7 @@ async def test_get_jd_returns_404_if_missing(monkeypatch: pytest.MonkeyPatch) ->
 async def test_delete_jd_calls_crud(monkeypatch: pytest.MonkeyPatch) -> None:
     jd = jd_data()
     monkeypatch.setattr(jd_endpoint.crud_jd, "get_by_id", lambda db, jd_id, user_id: jd)
-    
+
     deleted = []
     monkeypatch.setattr(jd_endpoint.crud_jd, "delete", lambda db, jd_obj: deleted.append(jd_obj))
 
@@ -126,3 +128,81 @@ async def test_delete_jd_calls_crud(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert response.status_code == 204
     assert len(deleted) == 1
+
+
+_SCRAPED = {
+    "job_title": "Senior Python Engineer",
+    "company_name": "TechCorp",
+    "description": "We are looking for a Senior Python Engineer...",
+    "url": "https://example.com/jobs/senior-python-engineer",
+}
+
+
+@pytest.mark.asyncio
+async def test_scrape_url_returns_extracted_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_scrape(url: str) -> dict:
+        return _SCRAPED
+
+    monkeypatch.setattr(jd_endpoint, "scrape_job_url", fake_scrape)
+
+    response = await request(
+        "POST",
+        "/api/v1/job-descriptions/scrape-url",
+        current_user=user(),
+        json_body={"url": "https://example.com/jobs/senior-python-engineer"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["job_title"] == "Senior Python Engineer"
+    assert data["company_name"] == "TechCorp"
+    assert "Python Engineer" in data["description"]
+
+
+@pytest.mark.asyncio
+async def test_scrape_url_requires_auth() -> None:
+    response = await request(
+        "POST",
+        "/api/v1/job-descriptions/scrape-url",
+        json_body={"url": "https://example.com/jobs/1"},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_scrape_url_returns_422_on_http_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_scrape(url: str) -> dict:
+        raise httpx_lib.HTTPStatusError(
+            "Not Found",
+            request=httpx_lib.Request("GET", url),
+            response=httpx_lib.Response(404),
+        )
+
+    monkeypatch.setattr(jd_endpoint, "scrape_job_url", fake_scrape)
+
+    response = await request(
+        "POST",
+        "/api/v1/job-descriptions/scrape-url",
+        current_user=user(),
+        json_body={"url": "https://example.com/missing"},
+    )
+
+    assert response.status_code == 422
+    assert "404" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_scrape_url_returns_422_on_generic_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_scrape(url: str) -> dict:
+        raise RuntimeError("Connection timeout")
+
+    monkeypatch.setattr(jd_endpoint, "scrape_job_url", fake_scrape)
+
+    response = await request(
+        "POST",
+        "/api/v1/job-descriptions/scrape-url",
+        current_user=user(),
+        json_body={"url": "https://example.com/jobs/1"},
+    )
+
+    assert response.status_code == 422
