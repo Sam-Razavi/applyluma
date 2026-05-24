@@ -10,6 +10,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   ExclamationCircleIcon,
+  LinkIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   TrashIcon,
@@ -128,6 +129,9 @@ export default function Jobs() {
   const [deleting, setDeleting] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [addingFromSavedId, setAddingFromSavedId] = useState<string | null>(null)
+  const [urlBarOpen, setUrlBarOpen] = useState(false)
+  const [scrapeUrlValue, setScrapeUrlValue] = useState('')
+  const [scraping, setScraping] = useState(false)
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
@@ -163,6 +167,27 @@ export default function Jobs() {
       toast.error('Failed to load job details')
     } finally {
       setAddingFromSavedId(null)
+    }
+  }
+
+  async function handleScrapeUrl(e: React.FormEvent) {
+    e.preventDefault()
+    if (!scrapeUrlValue) return
+    setScraping(true)
+    try {
+      const result = await jobApi.scrapeUrl(scrapeUrlValue)
+      reset()
+      setValue('company_name', result.company_name)
+      setValue('job_title', result.job_title)
+      setValue('description', result.description)
+      setValue('url', result.url)
+      setUrlBarOpen(false)
+      setScrapeUrlValue('')
+      setAddOpen(true)
+    } catch {
+      toast.error('Could not extract job details from that URL')
+    } finally {
+      setScraping(false)
     }
   }
 
@@ -213,13 +238,44 @@ export default function Jobs() {
           </p>
         </div>
         {tab === 'descriptions' && (
-          <button
-            onClick={() => setAddOpen(true)}
-            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors self-start sm:self-auto flex-shrink-0"
-          >
-            <PlusIcon className="h-4 w-4" />
-            Add Job Description
-          </button>
+          <div className="flex flex-col gap-2 self-start sm:self-auto">
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setUrlBarOpen((o) => !o); setScrapeUrlValue('') }}
+                className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl border border-gray-200 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+              >
+                <LinkIcon className="h-4 w-4" />
+                Import from URL
+              </button>
+              <button
+                onClick={() => setAddOpen(true)}
+                className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Manually
+              </button>
+            </div>
+            {urlBarOpen && (
+              <form onSubmit={handleScrapeUrl} className="flex gap-2">
+                <input
+                  type="url"
+                  value={scrapeUrlValue}
+                  onChange={(e) => setScrapeUrlValue(e.target.value)}
+                  placeholder="https://linkedin.com/jobs/view/…"
+                  required
+                  disabled={scraping}
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white min-w-0"
+                />
+                <button
+                  type="submit"
+                  disabled={scraping || !scrapeUrlValue}
+                  className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                >
+                  {scraping ? 'Extracting…' : 'Extract'}
+                </button>
+              </form>
+            )}
+          </div>
         )}
       </div>
 

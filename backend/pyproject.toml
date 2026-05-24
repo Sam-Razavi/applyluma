@@ -32,6 +32,7 @@ dependencies = [
     "stripe>=10.0.0",
     "sendgrid>=6.11.0",
     "sentry-sdk[fastapi]>=2.0.0",
+    "beautifulsoup4>=4.12.0",
 ]
 
 [project.optional-dependencies]
