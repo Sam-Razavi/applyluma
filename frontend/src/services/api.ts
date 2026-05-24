@@ -114,6 +114,13 @@ export const cvApi = {
     client.get<CVDiffResponse>(`/api/v1/cvs/${cvId}/diff`).then((r) => r.data),
 }
 
+export interface ScrapeUrlResult {
+  company_name: string
+  job_title: string
+  description: string
+  url: string
+}
+
 export const jobApi = {
   create: (data: CreateJobDescriptionRequest): Promise<JobDescription> =>
     client.post<JobDescription>('/api/v1/job-descriptions', data).then((r) => r.data),
@@ -129,6 +136,9 @@ export const jobApi = {
 
   remove: (jdId: string): Promise<void> =>
     client.delete(`/api/v1/job-descriptions/${jdId}`).then(() => undefined),
+
+  scrapeUrl: (url: string): Promise<ScrapeUrlResult> =>
+    client.post<ScrapeUrlResult>('/api/v1/job-descriptions/scrape-url', { url }).then((r) => r.data),
 }
 
 export const aiApi = {
