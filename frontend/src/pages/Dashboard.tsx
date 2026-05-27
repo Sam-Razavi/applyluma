@@ -13,6 +13,7 @@ import { useAuthStore } from '../stores'
 import { useApplicationsStore } from '../stores/applications'
 import { cvApi, jobApi } from '../services/api'
 import DashboardActivityChart from '../components/applications/DashboardActivityChart'
+import OnboardingChecklist from '../components/dashboard/OnboardingChecklist'
 import type { CV, JobDescription } from '../types'
 
 export default function Dashboard() {
@@ -127,6 +128,9 @@ export default function Dashboard() {
             Here's your job search at a glance.
           </p>
         </div>
+
+        {/* Onboarding checklist — hidden once all 3 steps are done */}
+        <OnboardingChecklist hasCv={cvs.length > 0} hasJd={jds.length > 0} loading={loading} />
 
         {/* Stats row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
