@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -39,8 +39,28 @@ export default function Register() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+  const passwordValue = watch('password', '')
+
+  const strength = useMemo(() => {
+    if (!passwordValue) return { score: 0, label: '', textColor: '' }
+    let score = 0
+    if (passwordValue.length >= 8) score++
+    if (passwordValue.length >= 12) score++
+    if (/[A-Z]/.test(passwordValue) && /[0-9]/.test(passwordValue)) score++
+    if (/[^A-Za-z0-9]/.test(passwordValue)) score++
+    const capped = Math.min(score, 3)
+    const meta = [
+      { label: '', textColor: '' },
+      { label: 'Weak', textColor: 'text-red-600' },
+      { label: 'Fair', textColor: 'text-amber-600' },
+      { label: 'Strong', textColor: 'text-green-600' },
+    ][capped]
+    return { score: capped, ...meta }
+  }, [passwordValue])
 
   async function onSubmit(data: FormData) {
     setIsSubmitting(true)
@@ -126,6 +146,27 @@ export default function Register() {
                   {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
+              {passwordValue && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map((level) => (
+                      <div
+                        key={level}
+                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                          strength.score >= level
+                            ? level === 1 ? 'bg-red-500' : level === 2 ? 'bg-amber-500' : 'bg-green-500'
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  {strength.label && (
+                    <p className="text-xs text-gray-500">
+                      Strength: <span className={`font-medium ${strength.textColor}`}>{strength.label}</span>
+                    </p>
+                  )}
+                </div>
+              )}
               {errors.password && (
                 <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
               )}
