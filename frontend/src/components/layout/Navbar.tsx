@@ -38,8 +38,11 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
         {/* Logo */}
-        <Link to="/dashboard" className="flex-shrink-0 text-xl font-bold text-primary-600 tracking-tight">
-          ApplyLuma
+        <Link to="/dashboard" className="flex-shrink-0 flex items-center gap-2">
+          <span className="text-xl font-bold text-primary-600 tracking-tight">ApplyLuma</span>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 leading-none">
+            Beta
+          </span>
         </Link>
 
         {/* Nav links */}
