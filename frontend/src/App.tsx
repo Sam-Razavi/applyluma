@@ -27,6 +27,8 @@ import Plans from './pages/Plans'
 import BillingSuccess from './pages/BillingSuccess'
 import BillingCancel from './pages/BillingCancel'
 import NotFound from './pages/NotFound'
+import TermsOfService from './pages/TermsOfService'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import { useAuthStore } from './stores'
 
 export default function App() {
@@ -37,9 +39,11 @@ export default function App() {
   return (
     <>
       <Routes>
-        {/* Marketing page — redirect authenticated users straight to app */}
+        {/* Public pages with header + footer */}
         <Route element={<Layout />}>
           <Route index element={token ? <Navigate to="/dashboard" replace /> : <Home />} />
+          <Route path="terms" element={<TermsOfService />} />
+          <Route path="privacy" element={<PrivacyPolicy />} />
         </Route>
 
         {/* Standalone auth pages (full-screen, no navbar) */}
