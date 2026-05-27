@@ -15,8 +15,8 @@ AI-powered job search and resume optimization platform with production analytics
 - Production: https://applyluma.com
 - Backend API: https://applyluma-production.up.railway.app
 - API docs: https://applyluma-production.up.railway.app/docs
-- Current status: Phase 10A complete
-- Next phase: Phase 10B planning
+- Current status: Phase 10B complete, Cover Letter Generator and Job URL Scraper live
+- Production: https://applyluma.com
 
 ApplyLuma is live in production. All major features are working, including the
 analytics dashboard, the AI CV Tailor, and the new Swedish job discovery feed
@@ -34,11 +34,15 @@ Core capabilities:
 - JWT authentication
 - Resume upload and AI resume analysis
 - AI CV Tailor: async section-by-section CV rewriting against a job description
+- Cover Letter Generator: AI-generated cover letters with tone selection (formal/friendly/concise)
+- Job URL Scraper: paste any job posting URL to auto-fill the job description form
 - Authenticated PDF download for all CVs (uploaded and tailored)
 - Swedish job discovery with AI match scoring against your CV
 - Saved jobs collection with named lists, starring, and notes
 - Job search through Adzuna
 - Job description management
+- Application tracking
+- Job alert emails for high-match jobs
 - Market analytics dashboard
 - Daily Airflow and dbt data pipeline
 
@@ -245,39 +249,42 @@ Never commit real secrets or production `.env` files.
 ## Limitations
 
 **Job market coverage**
-- Swedish job discovery (Platsbanken, Jobbsafari, Indeed.se) is the only
-  automated scraping pipeline. International job search is powered by the
-  Adzuna API and is subject to Adzuna's rate limits and regional coverage.
-- The scraper runs once daily (2 AM UTC), so newly posted jobs can take up
-  to 24 hours to appear in the Discover feed.
+- Automated job scraping covers Swedish job boards only (Platsbanken, Jobbsafari,
+  Indeed.se). International job search uses the Adzuna API and is subject to
+  Adzuna's rate limits and regional coverage.
+- The scraper runs once daily at 2 AM UTC, so newly posted jobs can take up to
+  24 hours to appear in the Discover feed.
 
 **AI features**
-- CV tailoring and job match scoring require an OpenAI API key; they will
-  not work in self-hosted deployments without one.
-- AI match scoring requires the user to have at least one CV uploaded.
-  Without a CV the match score cannot be calculated.
-- Daily CV tailoring is rate-limited per role: 1 tailor job/day for free
-  users, 10/day for premium, unlimited for admins.
-- Match score explanations are AI-generated estimates and should be treated
-  as a guide, not a guarantee of fit.
+- CV tailoring, cover letter generation, and job match scoring all require a
+  configured OpenAI API key and will not work in self-hosted deployments without one.
+- AI match scoring requires at least one uploaded CV; without one, match scores
+  cannot be calculated on the Discover feed.
+- Daily rate limits apply per user role:
+  - CV tailoring: 1/day (free), 10/day (premium), unlimited (admin)
+  - Cover letters: 2/day (free), 10/day (premium), unlimited (admin)
+- AI match score breakdowns are estimates and should be used as a guide, not a
+  guarantee of fit.
+- The Job URL Scraper works best on publicly accessible job pages. Pages behind
+  login walls, anti-bot protection, or heavy JavaScript rendering may not extract
+  correctly.
+
+**Email**
+- Transactional email (verification, password reset, job alerts) requires a
+  configured SendGrid API key and authenticated sending domain. Without it, emails
+  are silently skipped — users can still register and log in, but will not receive
+  verification or alert emails.
 
 **Infrastructure**
-- Redis is required for job feed caching, match score caching, and Celery
-  task queuing. Removing Redis will disable async tailoring and degrade
-  Discover performance.
-- Email alert delivery requires an outbound email service (SMTP or
-  transactional provider) to be configured. The alert preference and
-  scheduling logic is complete, but emails will not be sent without a
-  working `MAIL_*` environment configuration.
-- There are 2 moderate severity vulnerabilities in frontend npm dependencies
-  (reported by `npm audit`). Do not run `npm audit fix --force` without
-  reviewing the impact — it can introduce breaking dependency upgrades.
+- Redis is required for job feed caching, match score caching, and Celery task
+  queuing. Without Redis, async CV tailoring and cover letter generation will not
+  work and Discover feed performance will degrade.
+- There are 2 moderate severity vulnerabilities in frontend npm dependencies. Do
+  not run `npm audit fix --force` without reviewing the impact — it can introduce
+  breaking dependency upgrades.
 
 **Platform**
-- No native mobile app; the platform is a responsive web application only.
-- Phase 10B features (Discover integrations, job alerts, Settings page) are
-  fully implemented on the `dev` branch and pass all tests, but have not
-  yet been merged to `main` / deployed to production.
+- No native mobile app; ApplyLuma is a responsive web application only.
 
 ## License
 
