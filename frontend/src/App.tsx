@@ -22,6 +22,9 @@ import Plans from './pages/Plans'
 import BillingSuccess from './pages/BillingSuccess'
 import BillingCancel from './pages/BillingCancel'
 import NotFound from './pages/NotFound'
+import AdminRoute from './components/AdminRoute'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminUsers from './pages/admin/AdminUsers'
 import { useAuthStore } from './stores'
 
 export default function App() {
@@ -62,6 +65,10 @@ export default function App() {
             <Route path="plans" element={<Plans />} />
             <Route path="billing/success" element={<BillingSuccess />} />
             <Route path="billing/cancel" element={<BillingCancel />} />
+            <Route element={<AdminRoute />}>
+              <Route path="admin" element={<AdminDashboard />} />
+              <Route path="admin/users" element={<AdminUsers />} />
+            </Route>
           </Route>
         </Route>
 

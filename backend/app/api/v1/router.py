@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.ai import router as ai_router
 from app.api.v1.endpoints.alert_preferences import router as alert_preferences_router
 from app.api.v1.endpoints.analytics import router as analytics_router
@@ -19,6 +20,7 @@ api_router.include_router(analytics_router)
 api_router.include_router(tailor_router)
 api_router.include_router(alert_preferences_router)
 api_router.include_router(cover_letters_router)
+api_router.include_router(admin_router)
 
 
 @api_router.get("/ping", tags=["utils"])
