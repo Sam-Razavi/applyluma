@@ -228,3 +228,14 @@ export const analyticsApi = {
       })
       .then((r) => unwrapAnalytics(r.data)),
 }
+
+export const contactApi = {
+  submit: (data: {
+    name: string
+    email: string
+    subject?: string
+    message: string
+    turnstile_token: string
+  }): Promise<{ ok: boolean }> =>
+    client.post<{ ok: boolean }>('/api/v1/contact', data).then((r) => r.data),
+}
