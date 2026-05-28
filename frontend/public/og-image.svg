@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="1080" cy="80" r="220" fill="white" fill-opacity="0.04"/>
+  <circle cx="120" cy="560" r="160" fill="white" fill-opacity="0.04"/>
+  <circle cx="1150" cy="580" r="120" fill="white" fill-opacity="0.04"/>
+
+  <!-- App name -->
+  <text
+    x="600" y="255"
+    font-family="system-ui, -apple-system, Helvetica Neue, Arial, sans-serif"
+    font-size="100"
+    font-weight="700"
+    fill="white"
+    text-anchor="middle"
+    letter-spacing="-2">ApplyLuma</text>
+
+  <!-- Beta pill -->
+  <rect x="776" y="212" width="78" height="30" rx="15" fill="rgba(255,255,255,0.2)"/>
+  <text
+    x="815" y="232"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="15"
+    font-weight="600"
+    fill="white"
+    text-anchor="middle">Beta</text>
+
+  <!-- Tagline -->
+  <text
+    x="600" y="330"
+    font-family="system-ui, -apple-system, Helvetica Neue, Arial, sans-serif"
+    font-size="32"
+    fill="rgba(255,255,255,0.82)"
+    text-anchor="middle">AI-powered job search &amp; CV tailoring</text>
+
+  <!-- Feature pills -->
+  <rect x="238" y="390" width="152" height="38" rx="19" fill="rgba(255,255,255,0.12)"/>
+  <text x="314" y="414" font-family="system-ui, sans-serif" font-size="17" fill="white" text-anchor="middle">AI CV Tailor</text>
+
+  <rect x="406" y="390" width="170" height="38" rx="19" fill="rgba(255,255,255,0.12)"/>
+  <text x="491" y="414" font-family="system-ui, sans-serif" font-size="17" fill="white" text-anchor="middle">Job Discovery</text>
+
+  <rect x="592" y="390" width="188" height="38" rx="19" fill="rgba(255,255,255,0.12)"/>
+  <text x="686" y="414" font-family="system-ui, sans-serif" font-size="17" fill="white" text-anchor="middle">Cover Letters</text>
+
+  <rect x="796" y="390" width="168" height="38" rx="19" fill="rgba(255,255,255,0.12)"/>
+  <text x="880" y="414" font-family="system-ui, sans-serif" font-size="17" fill="white" text-anchor="middle">App Tracking</text>
+
+  <!-- Domain -->
+  <text
+    x="600" y="555"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="22"
+    fill="rgba(255,255,255,0.45)"
+    text-anchor="middle">applyluma.com</text>
+</svg>
