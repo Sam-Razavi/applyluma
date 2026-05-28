@@ -21,6 +21,7 @@ import Settings from './pages/Settings'
 import Plans from './pages/Plans'
 import BillingSuccess from './pages/BillingSuccess'
 import BillingCancel from './pages/BillingCancel'
+import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
 import AdminRoute from './components/AdminRoute'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -33,9 +34,10 @@ export default function App() {
   return (
     <>
       <Routes>
-        {/* Marketing page — redirect authenticated users straight to app */}
+        {/* Public pages with header + footer */}
         <Route element={<Layout />}>
           <Route index element={token ? <Navigate to="/dashboard" replace /> : <Home />} />
+          <Route path="contact" element={<Contact />} />
         </Route>
 
         {/* Standalone auth pages (full-screen, no navbar) */}
