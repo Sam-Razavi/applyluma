@@ -7,7 +7,7 @@ from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.application import Application
-from app.models.cover_letter_job import CoverLetterJob, CoverLetterStatus
+from app.models.cover_letter_job import CoverLetterJob
 from app.models.cv import CV
 from app.models.job_description import JobDescription
 from app.models.tailor_job import TailorJob, TailorStatus

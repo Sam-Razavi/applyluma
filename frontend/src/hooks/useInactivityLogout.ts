@@ -23,7 +23,7 @@ export function useInactivityLogout(timeoutMs = DEFAULT_INACTIVITY_LIMIT_MS) {
   useEffect(() => {
     if (!token) return
 
-    let timeoutId: ReturnType<typeof window.setTimeout>
+    let timeoutId: number
 
     async function handleInactive() {
       try { await authApi.logout(refreshToken ?? undefined) } catch { /* fail open */ }

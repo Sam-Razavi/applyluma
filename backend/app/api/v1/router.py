@@ -2,10 +2,10 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.ai import router as ai_router
-from app.api.v1.endpoints.contact import router as contact_router
 from app.api.v1.endpoints.alert_preferences import router as alert_preferences_router
 from app.api.v1.endpoints.analytics import router as analytics_router
 from app.api.v1.endpoints.auth import router as auth_router
+from app.api.v1.endpoints.contact import router as contact_router
 from app.api.v1.endpoints.cover_letters import router as cover_letters_router
 from app.api.v1.endpoints.cvs import router as cvs_router
 from app.api.v1.endpoints.job_descriptions import router as jd_router
