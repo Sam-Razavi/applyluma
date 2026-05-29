@@ -107,6 +107,7 @@ export default function CVs() {
       const cv = await cvApi.upload(pendingFile, pendingTitle || undefined, setUploadPct)
       setCvs((prev) => [cv, ...prev])
       toast.success('CV uploaded!')
+      import('posthog-js').then(({ default: posthog }) => posthog.capture('cv_uploaded'))
       setPendingFile(null)
       setPendingTitle('')
     } catch {
