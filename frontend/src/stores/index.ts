@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { User } from '../types'
+import posthog from 'posthog-js'
 
 interface AuthState {
   user: User | null
@@ -28,10 +29,17 @@ export const useAuthStore = create<AuthState>()(
           set({ token })
         },
         login: (token, refreshToken, user) => {
+          posthog.identify(user.id, { email: user.email, role: user.role })
           set({ token, refreshToken, user, isAuthenticated: true })
         },
-        logout: () => set({ token: null, refreshToken: null, user: null, isAuthenticated: false }),
-        setUser: (user) => set({ user, isAuthenticated: true }),
+        logout: () => {
+          posthog.reset()
+          set({ token: null, refreshToken: null, user: null, isAuthenticated: false })
+        },
+        setUser: (user) => {
+          posthog.identify(user.id, { email: user.email, role: user.role })
+          set({ user, isAuthenticated: true })
+        },
         setLoading: (isLoading) => set({ isLoading }),
       }),
       {

@@ -1,3 +1,8 @@
+export const ADMIN_NAV_LINKS = [
+  { to: '/admin', label: 'Overview' },
+  { to: '/admin/users', label: 'Users' },
+]
+
 export const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/cvs', label: 'My CVs' },
