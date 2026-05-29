@@ -62,26 +62,6 @@ export default function Navbar() {
               {label}
             </NavLink>
           ))}
-          {user?.role === 'admin' && (
-            <>
-              <span className="mx-1 h-5 w-px bg-gray-200" aria-hidden="true" />
-              {ADMIN_NAV_LINKS.map(({ to, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    `px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                      isActive
-                        ? 'bg-red-50 text-red-700'
-                        : 'text-red-600 hover:text-red-800 hover:bg-red-50'
-                    }`
-                  }
-                >
-                  {label}
-                </NavLink>
-              ))}
-            </>
-          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -125,6 +105,24 @@ export default function Navbar() {
                 <Cog6ToothIcon className="h-4 w-4 text-gray-400" />
                 Settings
               </Link>
+              {user?.role === 'admin' && (
+                <>
+                  <div className="my-1 border-t border-gray-100" />
+                  {ADMIN_NAV_LINKS.map(({ to, label }) => (
+                    <Link
+                      key={to}
+                      to={to}
+                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      </svg>
+                      Admin — {label}
+                    </Link>
+                  ))}
+                </>
+              )}
+              <div className="my-1 border-t border-gray-100" />
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
