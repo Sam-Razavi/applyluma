@@ -127,7 +127,7 @@ Rules:
 
 Prerequisites:
 - Docker Desktop
-- Node.js 18+
+- Node.js 22+
 - Python 3.11+
 - Git
 
@@ -145,9 +145,7 @@ Local service URLs:
 Manual backend setup:
 ```bash
 cd backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+pip install uv && uv pip install -e ".[dev]" --system
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
@@ -278,9 +276,7 @@ Never commit real secrets or production `.env` files.
   transactional provider) to be configured. The alert preference and
   scheduling logic is complete, but emails will not be sent without a
   working `MAIL_*` environment configuration.
-- There are 2 moderate severity vulnerabilities in frontend npm dependencies
-  (reported by `npm audit`). Do not run `npm audit fix --force` without
-  reviewing the impact — it can introduce breaking dependency upgrades.
+- Frontend npm dependencies currently have no known vulnerabilities.
 
 **Platform**
 - No native mobile app; the platform is a responsive web application only.
