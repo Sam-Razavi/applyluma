@@ -136,7 +136,7 @@ Rules:
 
 Prerequisites:
 - Docker Desktop
-- Node.js 18+
+- Node.js 22+
 - Python 3.11+
 - Git
 
@@ -154,9 +154,7 @@ Local service URLs:
 Manual backend setup:
 ```bash
 cd backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+pip install uv && uv pip install -e ".[dev]" --system
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
@@ -290,12 +288,14 @@ Never commit real secrets or production `.env` files.
   verification or alert emails.
 
 **Infrastructure**
-- Redis is required for job feed caching, match score caching, and Celery task
-  queuing. Without Redis, async CV tailoring and cover letter generation will not
-  work and Discover feed performance will degrade.
-- There are 2 moderate severity vulnerabilities in frontend npm dependencies. Do
-  not run `npm audit fix --force` without reviewing the impact — it can introduce
-  breaking dependency upgrades.
+- Redis is required for job feed caching, match score caching, and Celery
+  task queuing. Removing Redis will disable async tailoring and degrade
+  Discover performance.
+- Email alert delivery requires an outbound email service (SMTP or
+  transactional provider) to be configured. The alert preference and
+  scheduling logic is complete, but emails will not be sent without a
+  working `MAIL_*` environment configuration.
+- Frontend npm dependencies currently have no known vulnerabilities.
 
 **Platform**
 - No native mobile app; ApplyLuma is a responsive web application only.
