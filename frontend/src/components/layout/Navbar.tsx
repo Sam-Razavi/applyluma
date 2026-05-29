@@ -5,7 +5,7 @@ import { useAuthStore } from '../../stores'
 import { authApi } from '../../services/authApi'
 import NotificationBell from '../notifications/NotificationBell'
 import UserAvatar from '../ui/UserAvatar'
-import { NAV_LINKS } from './navLinks'
+import { ADMIN_NAV_LINKS, NAV_LINKS } from './navLinks'
 
 export default function Navbar() {
   const { user, logout, refreshToken } = useAuthStore()
@@ -62,6 +62,26 @@ export default function Navbar() {
               {label}
             </NavLink>
           ))}
+          {user?.role === 'admin' && (
+            <>
+              <span className="mx-1 h-5 w-px bg-gray-200" aria-hidden="true" />
+              {ADMIN_NAV_LINKS.map(({ to, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    `px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                      isActive
+                        ? 'bg-red-50 text-red-700'
+                        : 'text-red-600 hover:text-red-800 hover:bg-red-50'
+                    }`
+                  }
+                >
+                  {label}
+                </NavLink>
+              ))}
+            </>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
