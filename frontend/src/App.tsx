@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
+import { usePageTracking } from './hooks/usePageTracking'
 import Layout from './components/layout/Layout'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -30,6 +31,7 @@ import { useAuthStore } from './stores'
 
 export default function App() {
   const { token } = useAuthStore()
+  usePageTracking()
 
   return (
     <>
