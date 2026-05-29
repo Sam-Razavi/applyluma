@@ -81,6 +81,7 @@ export default function AITailor() {
           ? { cv_id: selectedCvId, raw_job_posting_id: rawJobPostingId, intensity }
           : { cv_id: selectedCvId, job_description_id: selectedJobId, intensity },
       )
+      import('posthog-js').then(({ default: posthog }) => posthog.capture('ai_tailor_started', { intensity }))
       setJobId(job.id)
       setStep('processing')
       startPolling(job.id)
