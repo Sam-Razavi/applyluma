@@ -29,12 +29,12 @@ export default function Footer() {
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="font-semibold text-gray-500 text-xs uppercase tracking-wide">Support</span>
-              <a
-                href="mailto:support@applyluma.com"
+              <Link
+                to="/contact"
                 className="text-gray-500 hover:text-gray-900 transition-colors"
               >
                 Contact us
-              </a>
+              </Link>
             </div>
           </div>
         </div>
