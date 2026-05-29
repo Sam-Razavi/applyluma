@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { initTheme } from './stores/theme'
+import { usePageTracking } from './hooks/usePageTracking'
 import Layout from './components/layout/Layout'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -26,13 +27,18 @@ import Settings from './pages/Settings'
 import Plans from './pages/Plans'
 import BillingSuccess from './pages/BillingSuccess'
 import BillingCancel from './pages/BillingCancel'
+import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
 import TermsOfService from './pages/TermsOfService'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import AdminRoute from './components/AdminRoute'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminUsers from './pages/admin/AdminUsers'
 import { useAuthStore } from './stores'
 
 export default function App() {
   const { token } = useAuthStore()
+  usePageTracking()
 
   useEffect(() => { initTheme() }, [])
 
@@ -44,6 +50,7 @@ export default function App() {
           <Route index element={token ? <Navigate to="/dashboard" replace /> : <Home />} />
           <Route path="terms" element={<TermsOfService />} />
           <Route path="privacy" element={<PrivacyPolicy />} />
+          <Route path="contact" element={<Contact />} />
         </Route>
 
         {/* Standalone auth pages (full-screen, no navbar) */}
@@ -77,6 +84,10 @@ export default function App() {
             <Route path="plans" element={<Plans />} />
             <Route path="billing/success" element={<BillingSuccess />} />
             <Route path="billing/cancel" element={<BillingCancel />} />
+            <Route element={<AdminRoute />}>
+              <Route path="admin" element={<AdminDashboard />} />
+              <Route path="admin/users" element={<AdminUsers />} />
+            </Route>
           </Route>
         </Route>
 

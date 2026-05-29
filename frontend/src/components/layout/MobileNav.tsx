@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { ArrowRightStartOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { NAV_LINKS } from './navLinks'
+import { ADMIN_NAV_LINKS, NAV_LINKS } from './navLinks'
 import { spring } from '../../lib/animations'
 import { useAuthStore } from '../../stores'
 import { authApi } from '../../services/authApi'
@@ -16,6 +16,7 @@ interface Props {
 export default function MobileNav({ open, onClose }: Props) {
   const { user, logout, refreshToken } = useAuthStore()
   const navigate = useNavigate()
+
 
   useEffect(() => {
     if (!open) return
@@ -100,6 +101,31 @@ export default function MobileNav({ open, onClose }: Props) {
                   {label}
                 </NavLink>
               ))}
+              {user?.role === 'admin' && (
+                <>
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    <p className="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      Admin
+                    </p>
+                  </div>
+                  {ADMIN_NAV_LINKS.map(({ to, label }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-4 py-3 text-base font-semibold transition ${
+                          isActive
+                            ? 'bg-red-50 text-red-700'
+                            : 'text-red-600 hover:bg-red-50 hover:text-red-800'
+                        }`
+                      }
+                    >
+                      {label}
+                    </NavLink>
+                  ))}
+                </>
+              )}
             </div>
 
             <div className="border-t border-gray-200 px-4 py-4 dark:border-gray-700">
