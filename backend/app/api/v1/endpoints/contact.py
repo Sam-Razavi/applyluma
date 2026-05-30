@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import httpx
 from fastapi import APIRouter, HTTPException, status
 
@@ -7,6 +8,7 @@ from app.core.config import settings
 from app.schemas.contact import ContactRequest
 from app.services import email_service
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/contact", tags=["public"])
 
 
@@ -17,8 +19,12 @@ def _verify_turnstile(token: str) -> bool:
             data={"secret": settings.TURNSTILE_SECRET_KEY, "response": token},
             timeout=10,
         )
-        return resp.json().get("success", False)
-    except Exception:
+        data = resp.json()
+        if not data.get("success"):
+            logger.warning("Turnstile verification failed: %s", data.get("error-codes", []))
+        return data.get("success", False)
+    except Exception as exc:
+        logger.exception("Turnstile request error: %s", exc)
         return False
 
 
