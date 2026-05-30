@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 import logging
-import httpx
+import urllib.error
+import urllib.parse
+import urllib.request
 from fastapi import APIRouter, HTTPException, status
 
 from app.core.config import settings
@@ -14,15 +17,24 @@ router = APIRouter(prefix="/contact", tags=["public"])
 
 def _verify_turnstile(token: str) -> bool:
     try:
-        resp = httpx.post(
+        payload = urllib.parse.urlencode({
+            "secret": settings.TURNSTILE_SECRET_KEY,
+            "response": token,
+        }).encode("utf-8")
+        req = urllib.request.Request(
             "https://challenges.cloudflare.com/turnstile/v1/siteverify",
-            json={"secret": settings.TURNSTILE_SECRET_KEY, "response": token},
-            timeout=10,
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-        data = resp.json()
-        if not data.get("success"):
-            logger.warning("Turnstile verification failed: %s", data.get("error-codes", []))
-        return data.get("success", False)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            if not data.get("success"):
+                logger.warning("Turnstile verification failed: %s", data.get("error-codes", []))
+            return data.get("success", False)
+    except urllib.error.HTTPError as exc:
+        body = exc.read()
+        logger.warning("Turnstile HTTP error %s: %s", exc.code, body)
+        return False
     except Exception as exc:
         logger.exception("Turnstile request error: %s", exc)
         return False
