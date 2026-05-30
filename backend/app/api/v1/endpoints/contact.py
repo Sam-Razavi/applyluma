@@ -1,43 +1,12 @@
 from __future__ import annotations
 
-import json
-import logging
-import urllib.error
-import urllib.parse
-import urllib.request
 from fastapi import APIRouter, HTTPException, status
 
 from app.core.config import settings
 from app.schemas.contact import ContactRequest
 from app.services import email_service
 
-logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/contact", tags=["public"])
-
-
-def _verify_turnstile(token: str) -> bool:
-    try:
-        payload = urllib.parse.urlencode({
-            "secret": settings.TURNSTILE_SECRET_KEY,
-            "response": token,
-        }).encode("utf-8")
-        req = urllib.request.Request(
-            "https://challenges.cloudflare.com/turnstile/v1/siteverify",
-            data=payload,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
-            if not data.get("success"):
-                logger.warning("Turnstile verification failed: %s", data.get("error-codes", []))
-            return data.get("success", False)
-    except urllib.error.HTTPError as exc:
-        body = exc.read()
-        logger.warning("Turnstile HTTP error %s: %s", exc.code, body)
-        return False
-    except Exception as exc:
-        logger.exception("Turnstile request error: %s", exc)
-        return False
 
 
 def _admin_html(name: str, email: str, subject: str, message: str) -> str:
@@ -71,11 +40,8 @@ def _confirmation_html(name: str) -> str:
 
 @router.post("", status_code=status.HTTP_200_OK)
 def submit_contact(body: ContactRequest) -> dict[str, bool]:
-    if not _verify_turnstile(body.turnstile_token):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="CAPTCHA verification failed. Please try again.",
-        )
+    if body.honeypot:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid submission.")
 
     subject_line = body.subject.strip() or "No subject"
     admin_subject = f"[ApplyLuma Contact] {subject_line}"

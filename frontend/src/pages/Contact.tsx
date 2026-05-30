@@ -29,6 +29,7 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [honeypot, setHoneypot] = useState('')
   const turnstileRef = useRef<TurnstileInstance>(undefined)
 
   const {
@@ -51,6 +52,7 @@ export default function Contact() {
         subject: data.subject ?? '',
         message: data.message,
         turnstile_token: turnstileToken,
+        honeypot,
       })
       setSubmitted(true)
     } catch (err) {
@@ -164,6 +166,18 @@ export default function Contact() {
                   <p className="mt-1 text-xs text-red-600">{errors.message.message}</p>
                 )}
               </div>
+
+              {/* Honeypot — hidden from real users, traps bots */}
+              <input
+                type="text"
+                name="website"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                autoComplete="off"
+                tabIndex={-1}
+                aria-hidden="true"
+                style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
+              />
 
               {/* Turnstile */}
               <div className="mt-5">

@@ -246,6 +246,7 @@ export const contactApi = {
     subject?: string
     message: string
     turnstile_token: string
+    honeypot: string
   }): Promise<{ ok: boolean }> =>
     client.post<{ ok: boolean }>('/api/v1/contact', data).then((r) => r.data),
 }
