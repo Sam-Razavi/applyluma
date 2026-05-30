@@ -16,7 +16,7 @@ def _verify_turnstile(token: str) -> bool:
     try:
         resp = httpx.post(
             "https://challenges.cloudflare.com/turnstile/v1/siteverify",
-            data={"secret": settings.TURNSTILE_SECRET_KEY, "response": token},
+            json={"secret": settings.TURNSTILE_SECRET_KEY, "response": token},
             timeout=10,
         )
         data = resp.json()
