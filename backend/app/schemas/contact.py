@@ -7,3 +7,4 @@ class ContactRequest(BaseModel):
     subject: str = Field(default="", max_length=200)
     message: str = Field(min_length=10, max_length=5000)
     turnstile_token: str
+    honeypot: str = Field(default="")
