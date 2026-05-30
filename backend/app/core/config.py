@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     SENDGRID_FROM_EMAIL: str = "notifications@applyluma.com"
     FRONTEND_URL: str = "https://applyluma.com"
     TURNSTILE_SECRET_KEY: str = "1x0000000000000000000000000000000AA"
+    CONTACT_VERIFY_SECRET: str = ""
     CONTACT_RECIPIENT_EMAIL: str = "sam@samincodes.com"
 
 

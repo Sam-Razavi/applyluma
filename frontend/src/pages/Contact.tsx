@@ -46,18 +46,32 @@ export default function Contact() {
     }
     setIsSubmitting(true)
     try {
+      // Verify Turnstile via Vercel edge function (can reach Cloudflare),
+      // then submit the signed token to Railway.
+      const verifyResp = await fetch('/api/verify-turnstile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      })
+      if (!verifyResp.ok) {
+        throw new Error('CAPTCHA verification failed. Please try again.')
+      }
+      const { verificationToken } = await verifyResp.json() as { verificationToken: string }
+
       await contactApi.submit({
         name: data.name,
         email: data.email,
         subject: data.subject ?? '',
         message: data.message,
-        turnstile_token: turnstileToken,
+        verification_token: verificationToken,
         honeypot,
       })
       setSubmitted(true)
     } catch (err) {
-      const axiosErr = err as AxiosError<ApiError>
-      toast.error(axiosErr.response?.data?.detail ?? 'Something went wrong. Please try again.')
+      const msg = err instanceof Error
+        ? err.message
+        : (err as AxiosError<ApiError>).response?.data?.detail ?? 'Something went wrong. Please try again.'
+      toast.error(msg)
       turnstileRef.current?.reset()
       setTurnstileToken(null)
     } finally {
