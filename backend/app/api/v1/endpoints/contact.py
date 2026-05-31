@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
-import json
-import time
 from fastapi import APIRouter, HTTPException, status
 
 from app.core.config import settings
@@ -12,27 +7,6 @@ from app.schemas.contact import ContactRequest
 from app.services import email_service
 
 router = APIRouter(prefix="/contact", tags=["public"])
-
-
-def _verify_contact_token(token: str) -> bool:
-    """Verify the HMAC-signed token issued by the Vercel verify-turnstile function."""
-    if not settings.CONTACT_VERIFY_SECRET:
-        return False
-    try:
-        payload_b64, sig = token.rsplit(".", 1)
-        expected = hmac.new(
-            settings.CONTACT_VERIFY_SECRET.encode(),
-            payload_b64.encode(),
-            hashlib.sha256,
-        ).hexdigest()
-        if not hmac.compare_digest(sig, expected):
-            return False
-        padding = (4 - len(payload_b64) % 4) % 4
-        payload = json.loads(base64.urlsafe_b64decode(payload_b64 + "=" * padding))
-        # Token valid for 10 minutes
-        return (time.time() * 1000 - payload["ts"]) < 600_000
-    except Exception:
-        return False
 
 
 def _admin_html(name: str, email: str, subject: str, message: str) -> str:
@@ -68,11 +42,6 @@ def _confirmation_html(name: str) -> str:
 def submit_contact(body: ContactRequest) -> dict[str, bool]:
     if body.honeypot:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid submission.")
-    if not _verify_contact_token(body.verification_token):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="CAPTCHA verification failed. Please try again.",
-        )
 
     subject_line = body.subject.strip() or "No subject"
     admin_subject = f"[ApplyLuma Contact] {subject_line}"
