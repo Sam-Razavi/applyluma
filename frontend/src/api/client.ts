@@ -106,6 +106,16 @@ apiClient.interceptors.response.use(
       redirectToLogin('session-expired')
     }
 
+    // Unverified user hitting a protected endpoint → send to /check-email
+    if (error.response?.status === 403) {
+      const detail = (error.response.data as Record<string, unknown>)?.detail
+      const code = (detail as Record<string, unknown> | null)?.code
+      if (code === 'EMAIL_NOT_VERIFIED' && window.location.pathname !== '/check-email') {
+        window.location.assign('/check-email')
+        return Promise.reject(error)
+      }
+    }
+
     // Normalise 429 responses to a consistent shape so every page can read
     // `error.response.data.detail` regardless of which endpoint fired it.
     if (error.response?.status === 429) {

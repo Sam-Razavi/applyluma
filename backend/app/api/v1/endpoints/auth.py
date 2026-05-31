@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.dependencies import get_current_user, get_current_user_id, get_db, get_redis_client
+from app.core.dependencies import get_current_user, get_current_user_id, get_current_user_unverified, get_db, get_redis_client
 from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.crud import user as crud_user
 from app.models.user import User
@@ -32,7 +32,9 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> UserPublic:
     user = crud_user.create(db, user_in)
     if user.verification_token:
         try:
-            email_service.send_verification_email(user.email, user.verification_token)
+            email_service.send_welcome_verification_email(
+                user.email, user.verification_token, user.full_name or ""
+            )
         except Exception:
             pass
     return user
@@ -48,14 +50,14 @@ def verify_email(token: str = Query(...), db: Session = Depends(get_db)) -> User
 
 @router.post("/resend-verification", status_code=status.HTTP_204_NO_CONTENT)
 def resend_verification(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_unverified),
     db: Session = Depends(get_db),
 ) -> None:
     if current_user.is_verified:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already verified")
     token = crud_user.refresh_verification_token(db, current_user)
     try:
-        email_service.send_verification_email(current_user.email, token)
+        email_service.send_welcome_verification_email(current_user.email, token, current_user.full_name or "")
     except Exception:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to send verification email") from None
 
@@ -129,14 +131,14 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
 
 
 @router.get("/me", response_model=UserPublic)
-def get_me(current_user: User = Depends(get_current_user)) -> UserPublic:
+def get_me(current_user: User = Depends(get_current_user_unverified)) -> UserPublic:
     return current_user
 
 
 @router.patch("/me", response_model=UserPublic)
 def update_me(
     body: UserUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_unverified),
     db: Session = Depends(get_db),
 ) -> UserPublic:
     return crud_user.update_profile(db, current_user, body)
@@ -145,7 +147,7 @@ def update_me(
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(
     body: ChangePasswordRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_unverified),
     db: Session = Depends(get_db),
 ) -> None:
     if not verify_password(body.current_password, current_user.hashed_password):
@@ -158,7 +160,7 @@ def change_password(
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 def delete_account(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_unverified),
     db: Session = Depends(get_db),
 ) -> None:
     crud_user.delete(db, current_user)
