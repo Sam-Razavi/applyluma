@@ -182,6 +182,6 @@ def test_stale_application_task_creates_notification(monkeypatch: pytest.MonkeyP
     assert created[0]["send_email"] is True
 
 
-def test_email_service_is_noop_when_sendgrid_key_empty(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "SENDGRID_API_KEY", "")
+def test_email_service_is_noop_when_resend_key_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "RESEND_API_KEY", "")
     email_service.send_email("sam@example.com", "Subject", "<p>Body</p>")
