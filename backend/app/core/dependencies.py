@@ -56,6 +56,25 @@ def get_redis_client() -> redis.Redis:
     return redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
+async def get_current_user_unverified(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Return the current user without checking email verification.
+
+    Use only for endpoints that must remain accessible to unverified users:
+    GET/PATCH/DELETE /auth/me, POST /auth/resend-verification, POST /auth/change-password.
+    """
+    from app.crud.user import get_by_id  # local import avoids circular at module load
+
+    user = get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+    return user
+
+
 async def get_current_user(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
@@ -67,4 +86,9 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "EMAIL_NOT_VERIFIED", "message": "Please verify your email address."},
+        )
     return user
