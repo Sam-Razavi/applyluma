@@ -68,16 +68,15 @@ def send_password_reset_email(to_email: str, token: str) -> None:
 
 
 def send_email(to_email: str, subject: str, html_body: str) -> None:
-    if not settings.SENDGRID_API_KEY:
+    if not settings.RESEND_API_KEY:
         return
 
-    from sendgrid import SendGridAPIClient
-    from sendgrid.helpers.mail import Mail
+    import resend
 
-    message = Mail(
-        from_email=settings.SENDGRID_FROM_EMAIL,
-        to_emails=to_email,
-        subject=subject,
-        html_content=html_body,
-    )
-    SendGridAPIClient(settings.SENDGRID_API_KEY).send(message)
+    resend.api_key = settings.RESEND_API_KEY
+    resend.Emails.send({
+        "from": settings.RESEND_FROM_EMAIL,
+        "to": [to_email],
+        "subject": subject,
+        "html": html_body,
+    })
