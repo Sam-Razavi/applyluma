@@ -46,24 +46,11 @@ export default function Contact() {
     }
     setIsSubmitting(true)
     try {
-      // Verify Turnstile via Vercel edge function (can reach Cloudflare),
-      // then submit the signed token to Railway.
-      const verifyResp = await fetch('/api/verify-turnstile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: turnstileToken }),
-      })
-      if (!verifyResp.ok) {
-        throw new Error('CAPTCHA verification failed. Please try again.')
-      }
-      const { verificationToken } = await verifyResp.json() as { verificationToken: string }
-
       await contactApi.submit({
         name: data.name,
         email: data.email,
         subject: data.subject ?? '',
         message: data.message,
-        verification_token: verificationToken,
         honeypot,
       })
       setSubmitted(true)
