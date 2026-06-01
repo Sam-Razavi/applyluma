@@ -11,7 +11,7 @@ registered before enforcement was introduced.
 from alembic import op
 
 revision = "a46df757d16a"
-down_revision = "f6b2c8d4e1a5"
+down_revision = "0016"
 branch_labels = None
 depends_on = None
 
