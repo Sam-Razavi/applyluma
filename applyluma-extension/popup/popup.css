@@ -183,3 +183,85 @@ body {
   color: #dc2626;
   text-align: center;
 }
+
+/* ── Secondary button ── */
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:not(:disabled):hover {
+  background: #e5e7eb;
+}
+
+/* ── Divider ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+/* ── Match score ── */
+.score-section {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.score-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.score-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.score-track {
+  height: 6px;
+  width: 100%;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.score-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+}
+
+.score-hint {
+  font-size: 11px;
+  color: #6b7280;
+}
