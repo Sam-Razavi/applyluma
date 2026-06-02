@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowPathIcon,
   BellAlertIcon,
+  ClipboardDocumentIcon,
   CreditCardIcon,
   EyeIcon,
   EyeSlashIcon,
   KeyIcon,
   MoonIcon,
+  PuzzlePieceIcon,
   SparklesIcon,
   SunIcon,
   TrashIcon,
@@ -83,6 +85,18 @@ export default function Settings() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // ── Browser extension token copy ─────────────────────────────────────────
+  const [tokenCopied, setTokenCopied] = useState(false)
+
+  function handleCopyToken() {
+    const token = useAuthStore.getState().token
+    if (!token) return
+    void navigator.clipboard.writeText(token).then(() => {
+      setTokenCopied(true)
+      setTimeout(() => setTokenCopied(false), 2000)
+    })
   }
 
   // ── Change password ───────────────────────────────────────────────────────
@@ -398,6 +412,28 @@ export default function Settings() {
             </button>
           </div>
         )}
+      </section>
+
+      {/* ── Browser extension ──────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <div className="mb-4 flex items-center gap-2">
+          <PuzzlePieceIcon className="h-5 w-5 text-brand-500" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Browser Extension</h2>
+        </div>
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+          Connect the ApplyLuma browser extension. The easiest way is to click the button in the extension popup — it opens a page that copies your token automatically.
+        </p>
+        <button
+          type="button"
+          onClick={handleCopyToken}
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+        >
+          <ClipboardDocumentIcon className="h-4 w-4" />
+          {tokenCopied ? 'Copied!' : 'Copy Access Token'}
+        </button>
+        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+          Token rotates on re-login. The extension will auto-refresh if both tokens were stored.
+        </p>
       </section>
 
       {/* ── Change password ────────────────────────────────────────────── */}

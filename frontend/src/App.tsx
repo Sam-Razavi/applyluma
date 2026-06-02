@@ -24,6 +24,7 @@ import CoverLetter from './pages/CoverLetter'
 import Analytics from './pages/Analytics'
 import Discover from './pages/Discover'
 import Settings from './pages/Settings'
+import ExtensionAuth from './pages/ExtensionAuth'
 import Plans from './pages/Plans'
 import BillingSuccess from './pages/BillingSuccess'
 import BillingCancel from './pages/BillingCancel'
@@ -69,6 +70,7 @@ export default function App() {
 
         {/* Protected app shell */}
         <Route element={<ProtectedRoute />}>
+          <Route path="extension-auth" element={<ExtensionAuth />} />
           <Route element={<AppLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="cvs" element={<CVs />} />

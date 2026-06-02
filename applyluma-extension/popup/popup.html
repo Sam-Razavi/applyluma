@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ApplyLuma</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <img src="../icons/icon48.png" alt="ApplyLuma" class="logo" />
+        <span class="brand">ApplyLuma</span>
+      </header>
+
+      <!-- Not on a supported job page -->
+      <div id="view-no-job" class="view hidden">
+        <p class="hint">
+          Navigate to a job posting on LinkedIn, Indeed, Glassdoor, or Arbetsförmedlingen to use this extension.
+        </p>
+      </div>
+
+      <!-- Token connect form (no JWT stored yet) -->
+      <div id="view-connect" class="view hidden">
+        <p class="hint">
+          Connect your ApplyLuma account to start saving jobs.
+        </p>
+        <button id="btn-login" class="btn btn-primary">
+          Login with ApplyLuma
+        </button>
+        <div class="divider"><span>or paste token manually</span></div>
+        <label class="field-label" for="token-input">Access token</label>
+        <textarea id="token-input" class="textarea" rows="3" placeholder="Paste token from Settings → Browser Extension…"></textarea>
+        <button id="btn-connect" class="btn btn-secondary">Connect</button>
+        <p id="connect-error" class="error hidden"></p>
+      </div>
+
+      <!-- Main save form -->
+      <div id="view-save" class="view hidden">
+        <div class="field">
+          <label class="field-label" for="field-title">Job title</label>
+          <input id="field-title" type="text" class="input" placeholder="e.g. Senior Software Engineer" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="field-company">Company</label>
+          <input id="field-company" type="text" class="input" placeholder="e.g. Acme Corp" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="field-url">Job URL</label>
+          <input id="field-url" type="url" class="input" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="field-description">Description</label>
+          <textarea id="field-description" class="textarea" rows="5" placeholder="Job description…"></textarea>
+        </div>
+
+        <button id="btn-save" class="btn btn-primary">
+          <span id="btn-save-label">Save to ApplyLuma</span>
+          <span id="btn-save-spinner" class="spinner hidden"></span>
+        </button>
+
+        <p id="save-status" class="status hidden"></p>
+
+        <!-- Match score section (shown after save) -->
+        <div id="score-section" class="score-section hidden">
+          <div class="score-header">
+            <span class="score-label">CV match score</span>
+            <span id="score-value" class="score-value">—</span>
+          </div>
+          <div class="score-track">
+            <div id="score-bar" class="score-bar" style="width: 0%"></div>
+          </div>
+          <p id="score-hint" class="score-hint"></p>
+        </div>
+
+        <button id="btn-disconnect" class="btn btn-ghost">Disconnect account</button>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

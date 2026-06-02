@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "ApplyLuma",
+  "version": "0.2.0",
+  "description": "Save job postings from LinkedIn, Indeed, Glassdoor, and Arbetsförmedlingen to ApplyLuma with one click.",
+  "permissions": ["storage", "activeTab", "scripting", "tabs"],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://se.indeed.com/*",
+    "https://www.indeed.com/*",
+    "https://arbetsformedlingen.se/*",
+    "https://www.glassdoor.com/*",
+    "https://applyluma-production.up.railway.app/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/jobs/*"],
+      "js": ["content/linkedin.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://se.indeed.com/*", "https://www.indeed.com/*"],
+      "js": ["content/indeed.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://arbetsformedlingen.se/*"],
+      "js": ["content/platsbanken.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.glassdoor.com/*"],
+      "js": ["content/glassdoor.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "ApplyLuma",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
