@@ -421,7 +421,7 @@ export default function Settings() {
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Browser Extension</h2>
         </div>
         <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-          Connect the ApplyLuma browser extension by pasting your access token into the extension popup.
+          Connect the ApplyLuma browser extension. The easiest way is to click the button in the extension popup — it opens a page that copies your token automatically.
         </p>
         <button
           type="button"
@@ -432,7 +432,7 @@ export default function Settings() {
           {tokenCopied ? 'Copied!' : 'Copy Access Token'}
         </button>
         <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-          Token rotates on re-login. Paste it again if the extension stops working.
+          Token rotates on re-login. The extension will auto-refresh if both tokens were stored.
         </p>
       </section>
 

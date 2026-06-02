@@ -14,20 +14,25 @@
         <span class="brand">ApplyLuma</span>
       </header>
 
-      <!-- Not on a LinkedIn job page -->
+      <!-- Not on a supported job page -->
       <div id="view-no-job" class="view hidden">
-        <p class="hint">Navigate to a LinkedIn job posting to use this extension.</p>
+        <p class="hint">
+          Navigate to a job posting on LinkedIn, Indeed, Glassdoor, or Arbetsförmedlingen to use this extension.
+        </p>
       </div>
 
       <!-- Token connect form (no JWT stored yet) -->
       <div id="view-connect" class="view hidden">
         <p class="hint">
-          Paste your ApplyLuma access token to connect.<br />
-          Copy it from <strong>applyluma.com → Settings → Browser Extension</strong>.
+          Connect your ApplyLuma account to start saving jobs.
         </p>
+        <button id="btn-login" class="btn btn-primary">
+          Login with ApplyLuma
+        </button>
+        <div class="divider"><span>or paste token manually</span></div>
         <label class="field-label" for="token-input">Access token</label>
-        <textarea id="token-input" class="textarea" rows="4" placeholder="Paste token here…"></textarea>
-        <button id="btn-connect" class="btn btn-primary">Connect</button>
+        <textarea id="token-input" class="textarea" rows="3" placeholder="Paste token from Settings → Browser Extension…"></textarea>
+        <button id="btn-connect" class="btn btn-secondary">Connect</button>
         <p id="connect-error" class="error hidden"></p>
       </div>
 
@@ -54,9 +59,22 @@
           <span id="btn-save-label">Save to ApplyLuma</span>
           <span id="btn-save-spinner" class="spinner hidden"></span>
         </button>
+
         <p id="save-status" class="status hidden"></p>
 
-        <button id="btn-disconnect" class="btn btn-ghost">Disconnect token</button>
+        <!-- Match score section (shown after save) -->
+        <div id="score-section" class="score-section hidden">
+          <div class="score-header">
+            <span class="score-label">CV match score</span>
+            <span id="score-value" class="score-value">—</span>
+          </div>
+          <div class="score-track">
+            <div id="score-bar" class="score-bar" style="width: 0%"></div>
+          </div>
+          <p id="score-hint" class="score-hint"></p>
+        </div>
+
+        <button id="btn-disconnect" class="btn btn-ghost">Disconnect account</button>
       </div>
     </div>
 
