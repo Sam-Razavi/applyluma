@@ -24,6 +24,7 @@ from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.job_search import router as job_search_router
 from app.api.v1.endpoints.jobs import router as jobs_discovery_router
 from app.api.v1.endpoints.notifications import router as notifications_router
+from app.api.v1.endpoints.job_bookmark import router as job_bookmark_router
 from app.api.v1.endpoints.saved_jobs import router as saved_jobs_router
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -94,7 +95,7 @@ static_origins: list[str] = settings.BACKEND_CORS_ORIGINS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=static_origins,
-    allow_origin_regex=r"https://applyluma[a-z0-9-]*\.vercel\.app",
+    allow_origin_regex=r"https://applyluma[a-z0-9-]*\.vercel\.app|chrome-extension://[a-z]{32}",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
@@ -250,6 +251,7 @@ app.include_router(jobs_discovery_router, prefix=settings.API_V1_STR, tags=["job
 app.include_router(saved_jobs_router, prefix=settings.API_V1_STR, tags=["saved-jobs"])
 app.include_router(billing_router, prefix=settings.API_V1_STR, tags=["billing"])
 app.include_router(notifications_router, prefix=settings.API_V1_STR, tags=["notifications"])
+app.include_router(job_bookmark_router, prefix=settings.API_V1_STR, tags=["job-bookmark"])
 
 
 compat_router = APIRouter(include_in_schema=False)

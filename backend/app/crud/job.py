@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.application import Application
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
-from app.schemas.job import SaveJobRequest, UpdateSavedJobRequest
+from app.schemas.job import ExternalJobBookmarkRequest, SaveJobRequest, UpdateSavedJobRequest
 
 # ------------------------------------------------------------------
 # Jobs
@@ -242,6 +242,44 @@ def update_saved_job(
 def delete_saved_job(db: Session, saved: SavedJob) -> None:
     db.delete(saved)
     db.commit()
+
+
+# ------------------------------------------------------------------
+# External bookmarks (browser extension)
+# ------------------------------------------------------------------
+
+def get_raw_job_by_url(db: Session, url: str) -> RawJobPosting | None:
+    return db.query(RawJobPosting).filter(RawJobPosting.url == url).first()
+
+
+def create_raw_job_from_external(db: Session, data: ExternalJobBookmarkRequest) -> RawJobPosting:
+    posting = RawJobPosting(
+        source=data.source,
+        job_id_external=data.url[:255],
+        title=data.title,
+        company=data.company,
+        description=data.description,
+        url=data.url,
+        is_duplicate=False,
+        raw_data={},
+    )
+    db.add(posting)
+    db.commit()
+    db.refresh(posting)
+    return posting
+
+
+def get_saved_job_by_raw_id(
+    db: Session, user_id: uuid.UUID, raw_job_posting_id: uuid.UUID
+) -> SavedJob | None:
+    return (
+        db.query(SavedJob)
+        .filter(
+            SavedJob.user_id == user_id,
+            SavedJob.raw_job_posting_id == raw_job_posting_id,
+        )
+        .first()
+    )
 
 
 # ------------------------------------------------------------------
