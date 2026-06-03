@@ -99,6 +99,19 @@ body {
   background: #fff;
 }
 
+/* ── Notes toggle ── */
+.notes-toggle {
+  display: inline-block;
+  font-size: 11px;
+  color: #6366f1;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+
+.notes-toggle:hover {
+  text-decoration: underline;
+}
+
 /* ── Buttons ── */
 .btn {
   display: flex;
@@ -264,4 +277,43 @@ body {
 .score-hint {
   font-size: 11px;
   color: #6b7280;
+}
+
+/* ── Track Application button ── */
+.btn-track {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1.5px solid #4f46e5;
+  border-radius: 10px;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-track:not(:disabled):hover {
+  background: #eef2ff;
+}
+
+.btn-track:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.btn-track--done {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.track-status {
+  margin-top: 5px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.track-status.error-msg {
+  color: #dc2626;
 }

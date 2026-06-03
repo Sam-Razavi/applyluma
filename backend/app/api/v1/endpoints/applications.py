@@ -52,6 +52,19 @@ def create_application(
         ) from None
 
 
+@router.get("/applied-urls")
+def get_applied_urls(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Return URLs of jobs where the user's application is beyond wishlist.
+
+    Used by the extension background worker to show 'Applied ✓' badges.
+    """
+    urls = crud_application.list_applied_job_urls(db, current_user.id)
+    return {"urls": urls}
+
+
 @router.get("", response_model=list[ApplicationSummary])
 def list_applications(
     status_filter: ApplicationStatus | None = Query(default=None, alias="status"),
