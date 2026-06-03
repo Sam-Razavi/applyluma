@@ -7,7 +7,12 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.dependencies import get_current_user, get_current_user_id, get_current_user_unverified, get_db, get_redis_client
+from app.core.dependencies import (
+    get_current_user_id,
+    get_current_user_unverified,
+    get_db,
+    get_redis_client,
+)
 from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.crud import user as crud_user
 from app.models.user import User
