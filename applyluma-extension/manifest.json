@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ApplyLuma",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Save job postings from LinkedIn, Indeed, Glassdoor, and Arbetsförmedlingen to ApplyLuma with one click.",
   "permissions": ["storage", "activeTab", "scripting", "tabs", "alarms"],
   "host_permissions": [
@@ -9,6 +9,7 @@
     "https://se.indeed.com/*",
     "https://www.indeed.com/*",
     "https://arbetsformedlingen.se/*",
+    "https://www.arbetsformedlingen.se/*",
     "https://www.glassdoor.com/*",
     "https://applyluma-production.up.railway.app/*"
   ],

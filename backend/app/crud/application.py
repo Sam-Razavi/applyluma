@@ -367,6 +367,21 @@ def _salary_distribution(db: Session, params: dict[str, Any]) -> list[SalaryBuck
     return [SalaryBucketCount(bucket=bucket, count=counts[bucket]) for bucket in SALARY_BUCKETS]
 
 
+def list_applied_job_urls(db: Session, user_id: uuid.UUID) -> list[str]:
+    """Return URLs of jobs where the user has an application with status != wishlist."""
+    rows = (
+        db.query(RawJobPosting.url)
+        .join(Application, Application.raw_job_posting_id == RawJobPosting.id)
+        .filter(
+            Application.user_id == user_id,
+            Application.status != "wishlist",
+            Application.raw_job_posting_id.isnot(None),
+        )
+        .all()
+    )
+    return [r.url for r in rows]
+
+
 def _execute_mappings(db: Session, query: str, params: dict[str, Any]) -> Sequence[Any]:
     result = db.execute(text(query), params)
     if hasattr(result, "mappings"):

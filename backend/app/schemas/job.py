@@ -126,6 +126,7 @@ class ExternalJobBookmarkRequest(BaseModel):
     url: str
     description: str
     source: str = "linkedin"
+    notes: str | None = None
 
 
 class KeywordsByTypeSchema(BaseModel):
