@@ -317,3 +317,64 @@ body {
 .track-status.error-msg {
   color: #dc2626;
 }
+
+/* ── AI Tailor section ── */
+.tailor-section {
+  margin-top: 6px;
+}
+
+.tailor-usage {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.tailor-usage.limit-reached {
+  color: #dc2626;
+}
+
+.tailor-select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.tailor-intensity {
+  margin-bottom: 4px;
+}
+
+.intensity-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 5px;
+}
+
+.intensity-opt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.intensity-opt input[type="radio"] {
+  accent-color: #4f46e5;
+  cursor: pointer;
+}
+
+.tailor-status {
+  margin-top: 6px;
+  font-size: 11px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.tailor-status.error-msg {
+  color: #dc2626;
+}
+
+.tailor-status a {
+  color: #4f46e5;
+  text-decoration: underline;
+}

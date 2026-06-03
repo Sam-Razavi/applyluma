@@ -1,7 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Only run in Claude Code remote (web) sessions
+# Always configure git identity for this project
+git config user.name "sam-razavi"
+git config user.email "h24sasah@du.se"
+
+# Only run the install steps in Claude Code remote (web) sessions
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi

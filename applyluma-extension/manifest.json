@@ -1,9 +1,19 @@
 {
   "manifest_version": 3,
   "name": "ApplyLuma",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Save job postings from LinkedIn, Indeed, Glassdoor, and Arbetsförmedlingen to ApplyLuma with one click.",
-  "permissions": ["storage", "activeTab", "scripting", "tabs", "alarms"],
+  "homepage_url": "https://applyluma.com",
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "alarms", "notifications"],
+  "commands": {
+    "quick-save": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Save current job to ApplyLuma"
+    }
+  },
   "host_permissions": [
     "https://www.linkedin.com/*",
     "https://se.indeed.com/*",

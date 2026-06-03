@@ -85,6 +85,26 @@
           <p id="track-status" class="track-status hidden"></p>
         </div>
 
+        <!-- AI Tailor (shown after save when CVs are available) -->
+        <div id="tailor-section" class="tailor-section hidden">
+          <div class="divider"><span>AI Tailor</span></div>
+          <p id="tailor-usage" class="tailor-usage"></p>
+          <div class="field">
+            <label class="field-label" for="tailor-cv-select">CV to tailor</label>
+            <select id="tailor-cv-select" class="input tailor-select"></select>
+          </div>
+          <div class="tailor-intensity">
+            <span class="field-label">Intensity</span>
+            <div class="intensity-group">
+              <label class="intensity-opt"><input type="radio" name="intensity" value="low" /> Light</label>
+              <label class="intensity-opt"><input type="radio" name="intensity" value="medium" checked /> Medium</label>
+              <label class="intensity-opt"><input type="radio" name="intensity" value="high" /> Deep</label>
+            </div>
+          </div>
+          <button id="btn-tailor" class="btn btn-track">Tailor my CV</button>
+          <p id="tailor-status" class="tailor-status hidden"></p>
+        </div>
+
         <button id="btn-disconnect" class="btn btn-ghost">Disconnect account</button>
       </div>
     </div>
