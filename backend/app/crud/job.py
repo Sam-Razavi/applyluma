@@ -282,6 +282,65 @@ def get_saved_job_by_raw_id(
     )
 
 
+def list_saved_job_urls(db: Session, user_id: uuid.UUID) -> list[str]:
+    rows = (
+        db.query(RawJobPosting.url)
+        .join(SavedJob, SavedJob.raw_job_posting_id == RawJobPosting.id)
+        .filter(SavedJob.user_id == user_id)
+        .all()
+    )
+    return [r.url for r in rows]
+
+
+def get_job_matching_score(
+    db: Session, user_id: uuid.UUID, raw_job_posting_id: uuid.UUID
+) -> JobMatchingScore | None:
+    return (
+        db.query(JobMatchingScore)
+        .filter(
+            JobMatchingScore.user_id == user_id,
+            JobMatchingScore.raw_job_posting_id == raw_job_posting_id,
+        )
+        .first()
+    )
+
+
+def upsert_job_matching_score(
+    db: Session,
+    user_id: uuid.UUID,
+    raw_job_posting_id: uuid.UUID,
+    scores: dict,
+) -> JobMatchingScore:
+    existing = get_job_matching_score(db, user_id, raw_job_posting_id)
+    if existing:
+        existing.overall_score = scores["overall_score"]
+        existing.skills_match = scores.get("skills_match")
+        existing.experience_match = scores.get("experience_match")
+        existing.salary_match = scores.get("salary_match")
+        existing.education_match = scores.get("education_match")
+        existing.location_match = scores.get("location_match")
+        existing.explanation = scores.get("explanation")
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    record = JobMatchingScore(
+        user_id=user_id,
+        raw_job_posting_id=raw_job_posting_id,
+        overall_score=scores["overall_score"],
+        skills_match=scores.get("skills_match"),
+        experience_match=scores.get("experience_match"),
+        salary_match=scores.get("salary_match"),
+        education_match=scores.get("education_match"),
+        location_match=scores.get("location_match"),
+        explanation=scores.get("explanation"),
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
 # ------------------------------------------------------------------
 # Private helpers
 # ------------------------------------------------------------------

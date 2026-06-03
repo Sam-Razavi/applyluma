@@ -1,4 +1,4 @@
-// ApplyLuma extension popup script (Phase 2)
+// ApplyLuma extension popup script (Phase 3)
 
 const API_BASE = 'https://applyluma-production.up.railway.app';
 const EXTENSION_AUTH_URL = 'https://applyluma.com/extension-auth';
@@ -31,7 +31,14 @@ const scoreValue = document.getElementById('score-value');
 const scoreBar = document.getElementById('score-bar');
 const scoreHint = document.getElementById('score-hint');
 
+const btnTrack = document.getElementById('btn-track');
+const trackStatus = document.getElementById('track-status');
+
 const btnDisconnect = document.getElementById('btn-disconnect');
+
+// ── State ────────────────────────────────────────────────────────────────────
+
+let savedRawJobPostingId = null;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -64,10 +71,7 @@ function detectSource(url) {
 
 async function getTokens() {
   const data = await chrome.storage.local.get(['applyluma_token', 'applyluma_refresh_token']);
-  return {
-    token: data.applyluma_token || null,
-    refreshToken: data.applyluma_refresh_token || null,
-  };
+  return { token: data.applyluma_token || null, refreshToken: data.applyluma_refresh_token || null };
 }
 
 async function setTokens(token, refreshToken) {
@@ -89,29 +93,22 @@ async function fetchWithAuth(url, options = {}) {
   const doFetch = (t) =>
     fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-        Authorization: `Bearer ${t}`,
-      },
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}), Authorization: `Bearer ${t}` },
     });
 
   let res = await doFetch(token);
 
   if (res.status === 401 && refreshToken) {
-    // Try to refresh the access token.
     const refreshRes = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
-
     if (refreshRes.ok) {
       const { access_token: newToken } = await refreshRes.json();
       await setTokens(newToken, refreshToken);
       res = await doFetch(newToken);
     } else {
-      // Refresh failed — clear tokens and show connect view.
       await clearTokens();
       showView('connect');
       throw new Error('Session expired. Please reconnect.');
@@ -131,15 +128,8 @@ async function init() {
 
   const hasJob = linkedinJob && (linkedinJob.title || linkedinJob.company || linkedinJob.url);
 
-  if (!hasJob) {
-    showView('noJob');
-    return;
-  }
-
-  if (!token) {
-    showView('connect');
-    return;
-  }
+  if (!hasJob) { showView('noJob'); return; }
+  if (!token) { showView('connect'); return; }
 
   fieldTitle.value = linkedinJob.title || '';
   fieldCompany.value = linkedinJob.company || '';
@@ -166,19 +156,12 @@ btnConnect.addEventListener('click', async () => {
   }
   connectError.classList.add('hidden');
 
-  // Accept either a JSON blob {"access_token":"...","refresh_token":"..."} (from
-  // /extension-auth) or a plain access token string (backward compat with Settings).
   let accessToken = raw;
   let refreshToken = null;
   try {
     const parsed = JSON.parse(raw);
-    if (parsed.access_token) {
-      accessToken = parsed.access_token;
-      refreshToken = parsed.refresh_token || null;
-    }
-  } catch {
-    // Not JSON — treat as a raw access token.
-  }
+    if (parsed.access_token) { accessToken = parsed.access_token; refreshToken = parsed.refresh_token || null; }
+  } catch { /* treat as raw access token */ }
 
   await setTokens(accessToken, refreshToken);
   await init();
@@ -188,16 +171,10 @@ btnConnect.addEventListener('click', async () => {
 
 btnSave.addEventListener('click', async () => {
   const { token } = await getTokens();
-  if (!token) {
-    showView('connect');
-    return;
-  }
+  if (!token) { showView('connect'); return; }
 
   const url = fieldUrl.value.trim();
-  if (!url) {
-    showStatus('Job URL is required.', 'error-msg');
-    return;
-  }
+  if (!url) { showStatus('Job URL is required.', 'error-msg'); return; }
 
   const body = {
     title: fieldTitle.value.trim() || 'Untitled',
@@ -224,15 +201,14 @@ btnSave.addEventListener('click', async () => {
     }
 
     const saved = await res.json();
+    savedRawJobPostingId = saved.raw_job_posting_id;
     showStatus('Saved to ApplyLuma!', 'success');
     btnSave.disabled = true;
 
-    // Feature D: fetch and show match score.
-    if (saved.raw_job_posting_id) {
-      fetchMatchScore(saved.raw_job_posting_id);
-    }
+    // Feature A: fetch and display match score (always instant in Phase 3).
+    fetchAndRenderScore(savedRawJobPostingId);
   } catch (err) {
-    if (err.message && err.message.includes('reconnect')) return; // handled in fetchWithAuth
+    if (err.message && err.message.includes('reconnect')) return;
     showStatus('Network error — check your connection.', 'error-msg');
   } finally {
     setSaving(false);
@@ -241,25 +217,26 @@ btnSave.addEventListener('click', async () => {
 
 // ── Match score ─────────────────────────────────────────────────────────────
 
-async function fetchMatchScore(rawJobPostingId) {
+async function fetchAndRenderScore(rawJobPostingId) {
   try {
     const res = await fetchWithAuth(`${API_BASE}/api/v1/jobs/${rawJobPostingId}`);
     if (!res.ok) return;
     const job = await res.json();
     renderScore(job.match_score);
   } catch {
-    // Score is best-effort; ignore errors silently.
+    renderScore(null);
   }
 }
 
 function renderScore(score) {
   scoreSection.classList.remove('hidden');
+  btnTrack.classList.remove('hidden');
 
   if (score === null || score === undefined) {
     scoreValue.textContent = '—';
     scoreBar.style.width = '0%';
     scoreBar.style.background = '#d1d5db';
-    scoreHint.textContent = 'Scoring pending — check back in Saved Jobs.';
+    scoreHint.textContent = 'Score computing… check Saved Jobs in a moment.';
     return;
   }
 
@@ -278,6 +255,38 @@ function renderScore(score) {
     scoreHint.textContent = 'Partial match — consider tailoring your CV.';
   }
 }
+
+// ── Track Application ────────────────────────────────────────────────────────
+
+btnTrack.addEventListener('click', async () => {
+  if (!savedRawJobPostingId) return;
+
+  btnTrack.disabled = true;
+  trackStatus.classList.add('hidden');
+
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/v1/applications`, {
+      method: 'POST',
+      body: JSON.stringify({ raw_job_posting_id: savedRawJobPostingId, status: 'wishlist' }),
+    });
+
+    if (res.status === 201 || res.status === 200) {
+      btnTrack.textContent = 'Tracked ✓';
+      btnTrack.classList.add('btn-track--done');
+    } else {
+      const err = await res.json().catch(() => ({}));
+      trackStatus.textContent = err.detail || `Error ${res.status}`;
+      trackStatus.className = 'track-status error-msg';
+      trackStatus.classList.remove('hidden');
+      btnTrack.disabled = false;
+    }
+  } catch {
+    trackStatus.textContent = 'Network error.';
+    trackStatus.className = 'track-status error-msg';
+    trackStatus.classList.remove('hidden');
+    btnTrack.disabled = false;
+  }
+});
 
 // ── Disconnect ──────────────────────────────────────────────────────────────
 
