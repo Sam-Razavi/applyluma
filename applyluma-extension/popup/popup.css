@@ -63,6 +63,53 @@ body {
   color: #374151;
 }
 
+/* ── Connected view ── */
+.connected-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 10px;
+}
+
+.connected-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.connected-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #ffffff;
+  transition: opacity 0.15s;
+}
+
+.connected-link:hover {
+  opacity: 0.9;
+}
+
+.connected-link--secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.connected-link--secondary:hover {
+  opacity: 1;
+  background: #e5e7eb;
+}
+
+.connected-hint {
+  margin-bottom: 0;
+}
+
 /* ── Form fields ── */
 .field {
   margin-bottom: 10px;
