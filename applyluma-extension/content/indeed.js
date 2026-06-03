@@ -51,7 +51,7 @@
 
   function extractJobData() {
     if (!isJobPage()) {
-      chrome.storage.session.set({ linkedinJob: null });
+      chrome.storage.local.set({ linkedinJob: null });
       return;
     }
     const data = {
@@ -61,7 +61,7 @@
       description: firstText(DESCRIPTION_SELECTORS),
       extractedAt: Date.now(),
     };
-    chrome.storage.session.set({ linkedinJob: data });
+    chrome.storage.local.set({ linkedinJob: data });
   }
 
   // ── Badge injection ──────────────────────────────────────────────────────

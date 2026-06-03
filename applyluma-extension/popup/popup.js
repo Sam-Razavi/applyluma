@@ -130,11 +130,15 @@ async function fetchWithAuth(url, options = {}) {
 
 // ── Initialise popup ────────────────────────────────────────────────────────
 
+const JOB_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
 async function init() {
-  const [{ linkedinJob }, { token }] = await Promise.all([
-    chrome.storage.session.get('linkedinJob'),
+  const [{ linkedinJob: rawJob }, { token }] = await Promise.all([
+    chrome.storage.local.get('linkedinJob'),
     getTokens().then((t) => ({ token: t.token })),
   ]);
+  const linkedinJob = rawJob && rawJob.extractedAt && (Date.now() - rawJob.extractedAt) < JOB_TTL_MS
+    ? rawJob : null;
 
   const hasJob = linkedinJob && (linkedinJob.title || linkedinJob.company || linkedinJob.url);
 
