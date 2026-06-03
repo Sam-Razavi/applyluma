@@ -282,6 +282,14 @@ def get_saved_job_by_raw_id(
     )
 
 
+def update_saved_job_notes(db: Session, saved_job_id: uuid.UUID, notes: str) -> SavedJob:
+    saved = db.query(SavedJob).filter(SavedJob.id == saved_job_id).first()
+    saved.notes = notes
+    db.commit()
+    db.refresh(saved)
+    return saved
+
+
 def list_saved_job_urls(db: Session, user_id: uuid.UUID) -> list[str]:
     rows = (
         db.query(RawJobPosting.url)

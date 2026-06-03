@@ -1,30 +1,45 @@
-// ApplyLuma extension background service worker (Phase 3)
+// ApplyLuma extension background service worker (Phase 4)
 
 const API_BASE = 'https://applyluma-production.up.railway.app';
 const ALARM_NAME = 'al-saved-urls';
 const REFRESH_MINUTES = 30;
 
-// ── Saved URL refresh ────────────────────────────────────────────────────────
+// Patterns for all supported job sites — used to broadcast badge updates.
+const JOB_SITE_PATTERNS = [
+  'https://www.linkedin.com/*',
+  'https://www.indeed.com/*',
+  'https://uk.indeed.com/*',
+  'https://www.glassdoor.com/*',
+  'https://www.arbetsformedlingen.se/*',
+];
+
+// ── Saved / applied URL refresh ──────────────────────────────────────────────
 
 async function refreshSavedUrls() {
   const { applyluma_token: token } = await chrome.storage.local.get('applyluma_token');
   if (!token) return;
 
+  const headers = { Authorization: `Bearer ${token}` };
+
   try {
-    const res = await fetch(`${API_BASE}/api/v1/jobs/bookmark/saved-urls`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return;
+    const [savedRes, appliedRes] = await Promise.all([
+      fetch(`${API_BASE}/api/v1/jobs/bookmark/saved-urls`, { headers }),
+      fetch(`${API_BASE}/api/v1/applications/applied-urls`, { headers }),
+    ]);
 
-    const { urls } = await res.json();
-    // Normalize: strip query params and trailing slashes for reliable badge matching.
-    const normalized = urls.map(normalizeUrl);
-    await chrome.storage.local.set({ savedUrls: normalized });
+    const savedUrls = savedRes.ok ? (await savedRes.json()).urls.map(normalizeUrl) : [];
+    const appliedUrls = appliedRes.ok ? (await appliedRes.json()).urls.map(normalizeUrl) : [];
 
-    // Notify active LinkedIn tabs so badges update immediately.
-    const tabs = await chrome.tabs.query({ url: 'https://www.linkedin.com/*' });
+    await chrome.storage.local.set({ savedUrls, appliedUrls });
+
+    // Notify all active job-site tabs so badges update immediately.
+    const tabs = await chrome.tabs.query({ url: JOB_SITE_PATTERNS });
     for (const tab of tabs) {
-      chrome.tabs.sendMessage(tab.id, { type: 'SAVED_URLS_UPDATED', urls: normalized }).catch(() => {});
+      chrome.tabs.sendMessage(tab.id, {
+        type: 'SAVED_URLS_UPDATED',
+        urls: savedUrls,
+        appliedUrls,
+      }).catch(() => {});
     }
   } catch {
     // Fail silently — next alarm will retry.

@@ -76,13 +76,11 @@
     const style = document.createElement('style');
     style.id = 'al-badge-styles';
     style.textContent = `
-      .al-saved-badge {
+      .al-saved-badge, .al-applied-badge {
         display: inline-flex;
         align-items: center;
-        gap: 3px;
         padding: 1px 7px;
         border-radius: 999px;
-        background: #4f46e5;
         color: #fff !important;
         font-size: 10px;
         font-weight: 700;
@@ -92,15 +90,20 @@
         letter-spacing: 0.02em;
         flex-shrink: 0;
       }
+      .al-saved-badge { background: #4f46e5; }
+      .al-applied-badge { background: #10b981; }
     `;
     document.head.appendChild(style);
   }
 
-  function injectBadges(savedUrls) {
-    if (!savedUrls || savedUrls.length === 0) return;
+  function injectBadges(savedUrls, appliedUrls = []) {
+    const hasSaved = savedUrls && savedUrls.length > 0;
+    const hasApplied = appliedUrls && appliedUrls.length > 0;
+    if (!hasSaved && !hasApplied) return;
 
     injectBadgeStyles();
     const savedSet = new Set(savedUrls.map(normalizeUrl));
+    const appliedSet = new Set(appliedUrls.map(normalizeUrl));
 
     // LinkedIn job cards in list view — find all job-view links.
     const links = document.querySelectorAll(
@@ -109,20 +112,33 @@
 
     links.forEach((link) => {
       const normalized = normalizeUrl(link.href);
-      if (!savedSet.has(normalized)) return;
+      const isApplied = appliedSet.has(normalized);
+      const isSaved = savedSet.has(normalized);
+      if (!isApplied && !isSaved) return;
 
-      // Find the nearest card container — don't double-badge.
+      // Find the nearest card container.
       const card = link.closest(
         '.job-card-container, .base-card, .scaffold-layout__list-item, .jobs-search-results__list-item'
       );
       if (!card) return;
-      if (card.querySelector('.al-saved-badge')) return;
+
+      const wantClass = isApplied ? 'al-applied-badge' : 'al-saved-badge';
+      const wantText = isApplied ? 'Applied ✓' : 'Saved ✓';
+
+      // Upgrade an existing badge if the state changed (e.g. saved → applied).
+      const existing = card.querySelector('.al-saved-badge, .al-applied-badge');
+      if (existing) {
+        if (existing.className !== wantClass) {
+          existing.className = wantClass;
+          existing.textContent = wantText;
+        }
+        return;
+      }
 
       const badge = document.createElement('span');
-      badge.className = 'al-saved-badge';
-      badge.textContent = 'Saved ✓';
+      badge.className = wantClass;
+      badge.textContent = wantText;
 
-      // Try to append after the job title link; fall back to appending to the card.
       const titleEl = card.querySelector('.job-card-list__title, .base-card__full-link, h3');
       if (titleEl) {
         titleEl.insertAdjacentElement('afterend', badge);
@@ -133,8 +149,8 @@
   }
 
   async function refreshBadges() {
-    const { savedUrls } = await chrome.storage.local.get('savedUrls');
-    injectBadges(savedUrls || []);
+    const { savedUrls, appliedUrls } = await chrome.storage.local.get(['savedUrls', 'appliedUrls']);
+    injectBadges(savedUrls || [], appliedUrls || []);
   }
 
   // ── SPA navigation + badge re-run ────────────────────────────────────────
@@ -153,7 +169,7 @@
 
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'SAVED_URLS_UPDATED') {
-      injectBadges(msg.urls || []);
+      injectBadges(msg.urls || [], msg.appliedUrls || []);
     }
   });
 

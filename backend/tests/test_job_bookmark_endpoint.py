@@ -294,6 +294,49 @@ async def test_get_saved_urls_returns_url_list(monkeypatch: pytest.MonkeyPatch) 
 
 
 @pytest.mark.asyncio
+async def test_bookmark_persists_notes_when_provided(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Notes are saved to the SavedJob when the request includes a note."""
+    _stub_no_scoring(monkeypatch)
+    notes_calls: list[str] = []
+
+    def fake_update_notes(db, saved_job_id, notes):
+        notes_calls.append(notes)
+        return _saved_job()
+
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: _posting())
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", lambda *a, **kw: _posting())
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: None)
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "update_saved_job_notes", fake_update_notes)
+
+    body = {**VALID_BODY, "notes": "Referred by John"}
+    resp = await _post(body)
+    assert resp.status_code == 201
+    assert notes_calls == ["Referred by John"]
+
+
+@pytest.mark.asyncio
+async def test_bookmark_skips_notes_when_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """update_saved_job_notes is not called when no note is provided."""
+    _stub_no_scoring(monkeypatch)
+    notes_calls: list[str] = []
+
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: _posting())
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", lambda *a, **kw: _posting())
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: None)
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(
+        bookmark_endpoint.crud_job,
+        "update_saved_job_notes",
+        lambda *a, **kw: notes_calls.append(True) or _saved_job(),
+    )
+
+    resp = await _post(VALID_BODY)
+    assert resp.status_code == 201
+    assert not notes_calls, "update_saved_job_notes must not be called when notes is absent"
+
+
+@pytest.mark.asyncio
 async def test_get_saved_urls_unauthenticated_returns_401() -> None:
     """Unauthenticated requests to saved-urls are rejected."""
     async with httpx.AsyncClient(

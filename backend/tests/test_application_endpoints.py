@@ -317,3 +317,33 @@ async def test_get_stats(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert response.status_code == 200
     assert response.json() == stats
+
+
+@pytest.mark.asyncio
+async def test_get_applied_urls_returns_url_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Returns URLs of non-wishlist applications for the current user."""
+    fake_urls = [
+        "https://www.linkedin.com/jobs/view/111/",
+        "https://www.glassdoor.com/job-listing/abc",
+    ]
+    monkeypatch.setattr(
+        applications_endpoint.crud_application,
+        "list_applied_job_urls",
+        lambda db, user_id: fake_urls,
+    )
+
+    response = await request("GET", "/api/v1/applications/applied-urls", current_user=user())
+
+    assert response.status_code == 200
+    assert response.json() == {"urls": fake_urls}
+
+
+@pytest.mark.asyncio
+async def test_get_applied_urls_unauthenticated_returns_401() -> None:
+    """Unauthenticated requests to applied-urls are rejected."""
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/api/v1/applications/applied-urls")
+    assert resp.status_code == 401

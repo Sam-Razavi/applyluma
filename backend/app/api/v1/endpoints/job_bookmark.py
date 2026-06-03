@@ -40,6 +40,10 @@ def bookmark_external_job(
             body=SaveJobRequest(job_id=posting.id, list_name="Extension"),
         )
 
+    # Persist user's note if provided.
+    if body.notes:
+        crud_job.update_saved_job_notes(db, saved.id, body.notes)
+
     # Compute match score synchronously if not already cached.
     if crud_job.get_job_matching_score(db, current_user.id, posting.id) is None:
         try:

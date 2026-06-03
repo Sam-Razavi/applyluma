@@ -99,6 +99,19 @@ body {
   background: #fff;
 }
 
+/* ── Notes toggle ── */
+.notes-toggle {
+  display: inline-block;
+  font-size: 11px;
+  color: #6366f1;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+
+.notes-toggle:hover {
+  text-decoration: underline;
+}
+
 /* ── Buttons ── */
 .btn {
   display: flex;

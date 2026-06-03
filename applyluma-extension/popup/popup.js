@@ -1,4 +1,4 @@
-// ApplyLuma extension popup script (Phase 3)
+// ApplyLuma extension popup script (Phase 4)
 
 const API_BASE = 'https://applyluma-production.up.railway.app';
 const EXTENSION_AUTH_URL = 'https://applyluma.com/extension-auth';
@@ -20,6 +20,9 @@ const fieldTitle = document.getElementById('field-title');
 const fieldCompany = document.getElementById('field-company');
 const fieldUrl = document.getElementById('field-url');
 const fieldDescription = document.getElementById('field-description');
+const toggleNotes = document.getElementById('toggle-notes');
+const notesField = document.getElementById('notes-field');
+const fieldNotes = document.getElementById('field-notes');
 
 const btnSave = document.getElementById('btn-save');
 const btnSaveLabel = document.getElementById('btn-save-label');
@@ -139,6 +142,14 @@ async function init() {
   showView('save');
 }
 
+// ── Notes toggle ────────────────────────────────────────────────────────────
+
+toggleNotes.addEventListener('click', (e) => {
+  e.preventDefault();
+  const isHidden = notesField.classList.toggle('hidden');
+  toggleNotes.textContent = isHidden ? '+ Add note' : '− Hide note';
+});
+
 // ── Login with ApplyLuma ────────────────────────────────────────────────────
 
 btnLogin.addEventListener('click', () => {
@@ -176,12 +187,14 @@ btnSave.addEventListener('click', async () => {
   const url = fieldUrl.value.trim();
   if (!url) { showStatus('Job URL is required.', 'error-msg'); return; }
 
+  const notes = fieldNotes.value.trim();
   const body = {
     title: fieldTitle.value.trim() || 'Untitled',
     company: fieldCompany.value.trim() || 'Unknown',
     url,
     description: fieldDescription.value.trim(),
     source: detectSource(url),
+    ...(notes ? { notes } : {}),
   };
 
   setSaving(true);
