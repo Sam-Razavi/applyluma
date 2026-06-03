@@ -1,4 +1,4 @@
-// ApplyLuma extension popup script (Phase 4)
+// ApplyLuma extension popup script (Phase 5)
 
 const API_BASE = 'https://applyluma-production.up.railway.app';
 const EXTENSION_AUTH_URL = 'https://applyluma.com/extension-auth';
@@ -39,9 +39,16 @@ const trackStatus = document.getElementById('track-status');
 
 const btnDisconnect = document.getElementById('btn-disconnect');
 
+const tailorSection = document.getElementById('tailor-section');
+const tailorUsage = document.getElementById('tailor-usage');
+const tailorCvSelect = document.getElementById('tailor-cv-select');
+const btnTailor = document.getElementById('btn-tailor');
+const tailorStatus = document.getElementById('tailor-status');
+
 // ── State ────────────────────────────────────────────────────────────────────
 
 let savedRawJobPostingId = null;
+let tailorPollTimer = null;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -218,8 +225,8 @@ btnSave.addEventListener('click', async () => {
     showStatus('Saved to ApplyLuma!', 'success');
     btnSave.disabled = true;
 
-    // Feature A: fetch and display match score (always instant in Phase 3).
     fetchAndRenderScore(savedRawJobPostingId);
+    loadTailorSection(savedRawJobPostingId);
   } catch (err) {
     if (err.message && err.message.includes('reconnect')) return;
     showStatus('Network error — check your connection.', 'error-msg');
@@ -301,9 +308,115 @@ btnTrack.addEventListener('click', async () => {
   }
 });
 
+// ── AI Tailor ────────────────────────────────────────────────────────────────
+
+async function loadTailorSection(rawJobPostingId) {
+  try {
+    const [cvsRes, usageRes] = await Promise.all([
+      fetchWithAuth(`${API_BASE}/api/v1/cvs`),
+      fetchWithAuth(`${API_BASE}/api/v1/tailor/usage`),
+    ]);
+
+    if (!cvsRes.ok || !usageRes.ok) return;
+
+    const cvs = await cvsRes.json();
+    const usage = await usageRes.json();
+
+    // Populate CV dropdown — skip tailored CVs, put default first.
+    const baseCvs = cvs.filter((c) => !c.is_tailored);
+    if (baseCvs.length === 0) return;
+
+    baseCvs.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+    tailorCvSelect.innerHTML = baseCvs
+      .map((c) => `<option value="${c.id}">${c.title || c.filename}${c.is_default ? ' (default)' : ''}</option>`)
+      .join('');
+
+    // Usage display.
+    const { used_today: used, daily_limit: limit } = usage;
+    if (limit !== null && limit !== undefined) {
+      const remaining = Math.max(0, limit - used);
+      tailorUsage.textContent = remaining > 0
+        ? `${remaining} tailor${remaining !== 1 ? 's' : ''} remaining today`
+        : 'Daily tailoring limit reached — upgrade for more';
+      if (remaining === 0) {
+        tailorUsage.classList.add('limit-reached');
+        btnTailor.disabled = true;
+      }
+    } else {
+      tailorUsage.textContent = `${used} tailor${used !== 1 ? 's' : ''} used today`;
+    }
+
+    tailorSection.classList.remove('hidden');
+  } catch {
+    // Fail silently — tailor section stays hidden.
+  }
+}
+
+function setTailorStatus(text, type = '') {
+  tailorStatus.textContent = text;
+  tailorStatus.className = `tailor-status${type ? ` ${type}` : ''}`;
+  tailorStatus.classList.remove('hidden');
+}
+
+btnTailor.addEventListener('click', async () => {
+  if (!savedRawJobPostingId) return;
+
+  const cvId = tailorCvSelect.value;
+  if (!cvId) return;
+
+  const intensity = document.querySelector('input[name="intensity"]:checked')?.value || 'medium';
+
+  btnTailor.disabled = true;
+  tailorStatus.classList.add('hidden');
+  if (tailorPollTimer) { clearInterval(tailorPollTimer); tailorPollTimer = null; }
+
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/v1/tailor/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ cv_id: cvId, raw_job_posting_id: savedRawJobPostingId, intensity }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setTailorStatus(err.detail || `Error ${res.status}`, 'error-msg');
+      btnTailor.disabled = false;
+      return;
+    }
+
+    const { id: tailorJobId } = await res.json();
+    setTailorStatus('Tailoring in progress…');
+
+    tailorPollTimer = setInterval(async () => {
+      try {
+        const statusRes = await fetchWithAuth(`${API_BASE}/api/v1/tailor/${tailorJobId}/status`);
+        if (!statusRes.ok) return;
+        const { status } = await statusRes.json();
+
+        if (status === 'complete') {
+          clearInterval(tailorPollTimer);
+          tailorPollTimer = null;
+          tailorStatus.innerHTML = 'Done! <a href="https://applyluma.com/ai-tailor" target="_blank">View result in ApplyLuma →</a>';
+          tailorStatus.className = 'tailor-status';
+          tailorStatus.classList.remove('hidden');
+        } else if (status === 'failed') {
+          clearInterval(tailorPollTimer);
+          tailorPollTimer = null;
+          setTailorStatus('Tailoring failed — try again in ApplyLuma.', 'error-msg');
+          btnTailor.disabled = false;
+        }
+      } catch { /* keep polling */ }
+    }, 3000);
+  } catch (err) {
+    if (err.message && err.message.includes('reconnect')) return;
+    setTailorStatus('Network error — check your connection.', 'error-msg');
+    btnTailor.disabled = false;
+  }
+});
+
 // ── Disconnect ──────────────────────────────────────────────────────────────
 
 btnDisconnect.addEventListener('click', async () => {
+  if (tailorPollTimer) { clearInterval(tailorPollTimer); tailorPollTimer = null; }
   await clearTokens();
   showView('connect');
 });

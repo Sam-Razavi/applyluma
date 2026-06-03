@@ -102,7 +102,23 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">9. Changes to This Policy</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">9. Browser Extension</h2>
+          <p>
+            The ApplyLuma Chrome extension reads job information (title, company name, job URL, and
+            description) from job listing pages on LinkedIn, Indeed, Glassdoor, and
+            Arbetsförmedlingen. This data is sent to our backend solely to save the job to your
+            ApplyLuma account.
+          </p>
+          <ul className="list-disc list-inside mt-2 space-y-1">
+            <li>Auth tokens are stored in <code>chrome.storage.local</code>, which is encrypted and sandboxed to the extension.</li>
+            <li>Saved job URLs are cached locally to power the "Saved ✓" badge on job search results.</li>
+            <li>No browsing history, page content outside of job postings, or personal data beyond what you explicitly save is collected.</li>
+            <li>Extension data is linked to your ApplyLuma account and subject to the same retention and deletion policy as the web app.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">10. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. Material changes will be
             communicated by email or via an in-app notice.
@@ -110,7 +126,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">10. Contact</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">11. Contact</h2>
           <p>
             For privacy questions or to exercise your rights, contact us at{' '}
             <a href="mailto:support@applyluma.com" className="text-indigo-600 hover:underline">
