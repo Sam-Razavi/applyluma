@@ -40,9 +40,12 @@ def bookmark_external_job(
             body=SaveJobRequest(job_id=posting.id, list_name="Extension"),
         )
 
-    # Persist user's note if provided.
+    # Persist user's note if provided — wrapped so a DB hiccup never blocks the save.
     if body.notes:
-        crud_job.update_saved_job_notes(db, saved.id, body.notes)
+        try:
+            crud_job.update_saved_job_notes(db, saved.id, body.notes)
+        except Exception:
+            log.exception("Failed to persist notes for saved job %s — skipping", saved.id)
 
     # Compute match score synchronously if not already cached.
     if crud_job.get_job_matching_score(db, current_user.id, posting.id) is None:

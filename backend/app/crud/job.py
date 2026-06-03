@@ -282,8 +282,10 @@ def get_saved_job_by_raw_id(
     )
 
 
-def update_saved_job_notes(db: Session, saved_job_id: uuid.UUID, notes: str) -> SavedJob:
+def update_saved_job_notes(db: Session, saved_job_id: uuid.UUID, notes: str) -> SavedJob | None:
     saved = db.query(SavedJob).filter(SavedJob.id == saved_job_id).first()
+    if saved is None:
+        return None
     saved.notes = notes
     db.commit()
     db.refresh(saved)
