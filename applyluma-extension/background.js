@@ -1,4 +1,4 @@
-// ApplyLuma extension background service worker (Phase 5)
+// ApplyLuma extension background service worker (Phase 6)
 
 const API_BASE = 'https://applyluma-production.up.railway.app';
 const ALARM_NAME = 'al-saved-urls';
@@ -125,12 +125,14 @@ async function refreshSavedUrls() {
 
 // ── Keyboard shortcut — quick save ───────────────────────────────────────────
 
+const JOB_TTL_MS = 15 * 60 * 1000; // 15 minutes — mirrors popup.js
+
 chrome.commands.onCommand.addListener(async (command) => {
   if (command !== 'quick-save') return;
 
-  // Read job data written by the content script.
-  const { linkedinJob } = await chrome.storage.session.get('linkedinJob');
-  const job = linkedinJob;
+  const { linkedinJob: rawJob } = await chrome.storage.local.get('linkedinJob');
+  const job = rawJob && rawJob.extractedAt && (Date.now() - rawJob.extractedAt) < JOB_TTL_MS
+    ? rawJob : null;
 
   if (!job || (!job.title && !job.company && !job.url)) {
     notify('ApplyLuma', 'No job detected on this page. Navigate to a job posting first.');
@@ -169,11 +171,24 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function clearStaleJobData() {
+  const { linkedinJob } = await chrome.storage.local.get('linkedinJob');
+  if (linkedinJob && linkedinJob.extractedAt && (Date.now() - linkedinJob.extractedAt) >= JOB_TTL_MS) {
+    await chrome.storage.local.remove('linkedinJob');
+  }
+}
+
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: REFRESH_MINUTES });
   void refreshSavedUrls();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  void clearStaleJobData();
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {

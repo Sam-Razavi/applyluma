@@ -55,7 +55,7 @@
     const url = window.location.href;
 
     if (!/linkedin\.com\/jobs\/view\//.test(url) && !/linkedin\.com\/jobs\/collections\//.test(url)) {
-      chrome.storage.session.set({ linkedinJob: null });
+      chrome.storage.local.set({ linkedinJob: null });
       return;
     }
 
@@ -66,7 +66,7 @@
       description: firstText(DESCRIPTION_SELECTORS),
       extractedAt: Date.now(),
     };
-    chrome.storage.session.set({ linkedinJob: data });
+    chrome.storage.local.set({ linkedinJob: data });
   }
 
   // ── Badge injection ──────────────────────────────────────────────────────
