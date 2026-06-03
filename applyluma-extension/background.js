@@ -1,4 +1,4 @@
-// ApplyLuma extension background service worker (Phase 6)
+// ApplyLuma extension background service worker (Phase 7)
 
 const API_BASE = 'https://applyluma-production.up.railway.app';
 const ALARM_NAME = 'al-saved-urls';
@@ -81,6 +81,13 @@ function detectSource(url) {
   return 'extension';
 }
 
+function updateBadge(savedUrls) {
+  const count = savedUrls ? savedUrls.length : 0;
+  const text = count > 0 ? String(count > 99 ? '99+' : count) : '';
+  chrome.action.setBadgeText({ text });
+  if (text) chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
+}
+
 function notify(title, message) {
   chrome.notifications.create({
     type: 'basic',
@@ -108,6 +115,7 @@ async function refreshSavedUrls() {
     const appliedUrls = appliedRes.ok ? (await appliedRes.json()).urls.map(normalizeUrl) : [];
 
     await chrome.storage.local.set({ savedUrls, appliedUrls });
+    updateBadge(savedUrls);
 
     // Notify all active job-site tabs so badges update immediately.
     const tabs = await chrome.tabs.query({ url: JOB_SITE_PATTERNS });
@@ -195,9 +203,12 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) void refreshSavedUrls();
 });
 
-// Refresh when the user stores a new token (extension just connected).
+// Refresh on token change: connect triggers a refresh; disconnect clears the badge.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.applyluma_token?.newValue) {
+  if (area !== 'local') return;
+  if (changes.applyluma_token?.newValue) {
     void refreshSavedUrls();
+  } else if (changes.applyluma_token && !changes.applyluma_token.newValue) {
+    updateBadge([]);
   }
 });

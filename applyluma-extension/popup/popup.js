@@ -1,4 +1,4 @@
-// ApplyLuma extension popup script (Phase 5)
+// ApplyLuma extension popup script (Phase 7)
 
 const API_BASE = 'https://applyluma-production.up.railway.app';
 const EXTENSION_AUTH_URL = 'https://applyluma.com/extension-auth';
@@ -7,9 +7,14 @@ const EXTENSION_AUTH_URL = 'https://applyluma.com/extension-auth';
 
 const views = {
   noJob: document.getElementById('view-no-job'),
+  connected: document.getElementById('view-connected'),
   connect: document.getElementById('view-connect'),
   save: document.getElementById('view-save'),
 };
+
+const connectedCount = document.getElementById('connected-count');
+const linkSavedJobs = document.getElementById('link-saved-jobs');
+const linkApp = document.getElementById('link-app');
 
 const connectError = document.getElementById('connect-error');
 const tokenInput = document.getElementById('token-input');
@@ -67,6 +72,15 @@ function setSaving(active) {
   btnSave.disabled = active;
   btnSaveLabel.classList.toggle('hidden', active);
   btnSaveSpinner.classList.toggle('hidden', !active);
+}
+
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.origin + u.pathname.replace(/\/$/, '');
+  } catch {
+    return url;
+  }
 }
 
 function detectSource(url) {
@@ -142,7 +156,18 @@ async function init() {
 
   const hasJob = linkedinJob && (linkedinJob.title || linkedinJob.company || linkedinJob.url);
 
-  if (!hasJob) { showView('noJob'); return; }
+  if (!hasJob && !token) { showView('noJob'); return; }
+  if (!hasJob && token) {
+    const { savedUrls } = await chrome.storage.local.get('savedUrls');
+    const count = (savedUrls || []).length;
+    connectedCount.textContent = count > 0
+      ? `${count} job${count !== 1 ? 's' : ''} saved to ApplyLuma`
+      : 'Connected to ApplyLuma';
+    linkSavedJobs.addEventListener('click', (e) => { e.preventDefault(); chrome.tabs.create({ url: 'https://applyluma.com/jobs' }); });
+    linkApp.addEventListener('click', (e) => { e.preventDefault(); chrome.tabs.create({ url: 'https://applyluma.com' }); });
+    showView('connected');
+    return;
+  }
   if (!token) { showView('connect'); return; }
 
   fieldTitle.value = linkedinJob.title || '';
@@ -208,6 +233,10 @@ btnSave.addEventListener('click', async () => {
     ...(notes ? { notes } : {}),
   };
 
+  // Check local cache first to detect duplicates without waiting for the API.
+  const { savedUrls: cachedUrls } = await chrome.storage.local.get('savedUrls');
+  const alreadySaved = (cachedUrls || []).some((u) => normalizeUrl(u) === normalizeUrl(url));
+
   setSaving(true);
   saveStatus.classList.add('hidden');
   scoreSection.classList.add('hidden');
@@ -226,7 +255,7 @@ btnSave.addEventListener('click', async () => {
 
     const saved = await res.json();
     savedRawJobPostingId = saved.raw_job_posting_id;
-    showStatus('Saved to ApplyLuma!', 'success');
+    showStatus(alreadySaved ? 'Already in your saved jobs ✓' : 'Saved to ApplyLuma!', 'success');
     btnSave.disabled = true;
 
     fetchAndRenderScore(savedRawJobPostingId);

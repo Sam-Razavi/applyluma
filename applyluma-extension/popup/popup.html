@@ -14,11 +14,21 @@
         <span class="brand">ApplyLuma</span>
       </header>
 
-      <!-- Not on a supported job page -->
+      <!-- Not on a supported job page (not connected) -->
       <div id="view-no-job" class="view hidden">
         <p class="hint">
           Navigate to a job posting on LinkedIn, Indeed, Glassdoor, or Arbetsförmedlingen to use this extension.
         </p>
+      </div>
+
+      <!-- Connected but not on a job page -->
+      <div id="view-connected" class="view hidden">
+        <p class="connected-count" id="connected-count"></p>
+        <div class="connected-links">
+          <a id="link-saved-jobs" href="#" class="connected-link">View saved jobs →</a>
+          <a id="link-app" href="#" class="connected-link connected-link--secondary">Open ApplyLuma →</a>
+        </div>
+        <p class="hint connected-hint">Navigate to a job posting to save it.</p>
       </div>
 
       <!-- Token connect form (no JWT stored yet) -->
