@@ -193,3 +193,98 @@ async def test_portal_endpoint_returns_url(monkeypatch: pytest.MonkeyPatch) -> N
     assert response.status_code == 200
     assert response.json() == {"portal_url": "https://billing.stripe.test/portal"}
     assert captured["customer"] == "cus_123"
+
+
+@pytest.mark.asyncio
+async def test_webhook_missing_signature_returns_400(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No stripe-signature header must be treated the same as a bad signature."""
+    configure_stripe(monkeypatch)
+
+    def mock_construct_event(payload, sig_header, secret):
+        raise ValueError("No signature")
+
+    monkeypatch.setattr(billing_endpoint.stripe.Webhook, "construct_event", mock_construct_event)
+
+    response = await request(
+        "POST",
+        "/api/v1/billing/webhook",
+        db=FakeDb(user()),
+        content=b"{}",
+        # no stripe-signature header
+    )
+
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_webhook_subscription_deleted_downgrades_user(monkeypatch: pytest.MonkeyPatch) -> None:
+    configure_stripe(monkeypatch)
+    db_user = user(role=UserRole.premium, stripe_subscription_id="sub_abc")
+
+    class FakeDbWithQuery(FakeDb):
+        """Supports db.query(Model).filter(...).first() for subscription lookup."""
+        def query(self, *args: Any) -> "FakeDbWithQuery":
+            return self
+
+        def filter(self, *args: Any) -> "FakeDbWithQuery":
+            return self
+
+        def first(self) -> SimpleNamespace:
+            return self.user
+
+    fake_db = FakeDbWithQuery(db_user)
+
+    def mock_construct_event(payload, sig_header, secret):
+        return {
+            "type": "customer.subscription.deleted",
+            "data": {
+                "object": {
+                    "id": "sub_abc",
+                    "customer": "cus_123",
+                    "status": "canceled",
+                    "current_period_end": None,
+                }
+            },
+        }
+
+    monkeypatch.setattr(billing_endpoint.stripe.Webhook, "construct_event", mock_construct_event)
+
+    response = await request(
+        "POST",
+        "/api/v1/billing/webhook",
+        db=fake_db,
+        content=b'{"type":"customer.subscription.deleted"}',
+        headers={"stripe-signature": "sig"},
+    )
+
+    assert response.status_code == 200
+    assert db_user.role == UserRole.user
+    assert db_user.subscription_status == "canceled"
+    assert fake_db.commits == 1
+
+
+@pytest.mark.asyncio
+async def test_webhook_unknown_event_type_returns_ok_with_no_side_effects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unrecognised event types must be silently ignored."""
+    configure_stripe(monkeypatch)
+    db_user = user()
+    fake_db = FakeDb(db_user)
+
+    def mock_construct_event(payload, sig_header, secret):
+        return {"type": "payment_intent.created", "data": {"object": {}}}
+
+    monkeypatch.setattr(billing_endpoint.stripe.Webhook, "construct_event", mock_construct_event)
+
+    response = await request(
+        "POST",
+        "/api/v1/billing/webhook",
+        db=fake_db,
+        content=b"{}",
+        headers={"stripe-signature": "sig"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert fake_db.commits == 0  # no DB writes for unknown events
