@@ -40,7 +40,10 @@ def build_cache_key(*parts: Any, **params: Any) -> str:
 def get_or_cache(redis_client: Any, key: str, ttl: int, fetch_fn: Callable[[], Any]) -> Any:
     cached = redis_client.get(key)
     if cached is not None:
-        return json.loads(cached)
+        try:
+            return json.loads(cached)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            pass  # corrupted entry — fall through and re-fetch
 
     value = fetch_fn()
     redis_client.setex(key, ttl, json.dumps(to_jsonable(value)))

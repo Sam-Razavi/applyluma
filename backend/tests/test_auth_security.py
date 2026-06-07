@@ -44,6 +44,9 @@ class _FakeRedis:
     def setex(self, key: str, ttl: int, value: str) -> None:
         self._store[key] = value
 
+    def set(self, key: str, value: str, **kwargs) -> None:
+        self._store[key] = value
+
 
 class _DenylistRedis(_FakeRedis):
     """Pre-populated with one token hash already in the denylist."""
@@ -58,6 +61,9 @@ class _FailingRedis:
         raise ConnectionError("Redis unavailable")
 
     def setex(self, key: str, ttl: int, value: str) -> None:
+        raise ConnectionError("Redis unavailable")
+
+    def set(self, key: str, value: str, **kwargs) -> None:
         raise ConnectionError("Redis unavailable")
 
 

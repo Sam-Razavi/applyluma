@@ -97,7 +97,7 @@ app.add_middleware(
     allow_origin_regex=r"https://applyluma-[a-z0-9][a-z0-9-]*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-CSRF-Token", "X-Requested-With"],
     expose_headers=["X-Request-ID", "Retry-After"],
 )
 
