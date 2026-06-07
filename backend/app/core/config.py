@@ -45,8 +45,11 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     RESEND_FROM_EMAIL: str = "ApplyLuma <notifications@applyluma.com>"
     FRONTEND_URL: str = "https://applyluma.com"
+    # Cloudflare Turnstile: default is the official test key that always passes.
+    # Set a real key from https://dash.cloudflare.com in production.
     TURNSTILE_SECRET_KEY: str = "1x0000000000000000000000000000000AA"
     CONTACT_VERIFY_SECRET: str = ""
+    # Override via CONTACT_RECIPIENT_EMAIL env var in production.
     CONTACT_RECIPIENT_EMAIL: str = "sam@samincodes.com"
 
 
