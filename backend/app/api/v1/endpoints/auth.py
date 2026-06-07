@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -28,6 +29,7 @@ from app.schemas.user import (
 from app.services import email_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
@@ -41,7 +43,11 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> UserPublic:
                 user.email, user.verification_token, user.full_name or ""
             )
         except Exception:
-            pass
+            logger.error(
+                "Failed to send verification email after registration",
+                extra={"user_id": str(user.id)},
+                exc_info=True,
+            )
     return user
 
 
@@ -215,7 +221,11 @@ def forgot_password(
         try:
             email_service.send_password_reset_email(user.email, token)
         except Exception:
-            pass
+            logger.error(
+                "Failed to send password reset email",
+                extra={"user_id": str(user.id)},
+                exc_info=True,
+            )
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
