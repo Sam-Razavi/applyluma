@@ -2,7 +2,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-      <p className="text-sm text-gray-400 mb-10">Last updated: May 2026</p>
+      <p className="text-sm text-gray-400 mb-10">Last updated: June 2026</p>
 
       <div className="prose prose-gray max-w-none space-y-8 text-gray-700">
 
@@ -48,7 +48,8 @@ export default function PrivacyPolicy() {
             <li><strong>Stripe</strong> — subscription billing and payment processing</li>
             <li><strong>SendGrid (Twilio)</strong> — transactional email delivery</li>
             <li><strong>Railway</strong> — backend hosting and database</li>
-            <li><strong>Vercel</strong> — frontend hosting</li>
+            <li><strong>Vercel</strong> — frontend hosting and (with consent) anonymous usage analytics</li>
+            <li><strong>PostHog</strong> — (with consent) product analytics for understanding feature usage</li>
           </ul>
           <p className="mt-3">
             We do not sell your personal data to third parties.
@@ -86,10 +87,30 @@ export default function PrivacyPolicy() {
 
         <section>
           <h2 className="text-xl font-semibold text-gray-900 mb-3">7. Cookies</h2>
-          <p>
-            ApplyLuma uses only essential cookies and local storage (JWT tokens for
-            authentication, theme preference). We do not use advertising or tracking cookies.
-          </p>
+          <p className="mb-3">We use two categories of cookies:</p>
+          <ul className="list-disc list-inside space-y-2">
+            <li>
+              <strong>Strictly necessary</strong> — httpOnly session cookies (
+              <code className="text-xs bg-gray-100 px-1 rounded">access_token</code>,{' '}
+              <code className="text-xs bg-gray-100 px-1 rounded">refresh_token</code>) and a
+              CSRF security token are required for authentication and cannot be disabled.
+            </li>
+            <li>
+              <strong>Analytics (optional, consent required)</strong> — We use{' '}
+              <a
+                href="https://posthog.com"
+                className="text-indigo-600 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                PostHog
+              </a>{' '}
+              and Vercel Analytics to understand how the app is used and improve it. These
+              are only activated after you click "Accept all" in the cookie banner shown on
+              your first visit. You can withdraw consent at any time by clearing your
+              browser's local storage.
+            </li>
+          </ul>
         </section>
 
         <section>

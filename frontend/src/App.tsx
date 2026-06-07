@@ -4,6 +4,8 @@ import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { initTheme } from './stores/theme'
 import { usePageTracking } from './hooks/usePageTracking'
+import { useCookieConsent } from './hooks/useCookieConsent'
+import { CookieBanner } from './components/ui/CookieBanner'
 import Layout from './components/layout/Layout'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -38,7 +40,8 @@ import { useAuthStore } from './stores'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 
 export default function App() {
-  const { token } = useAuthStore()
+  const { isAuthenticated } = useAuthStore()
+  const { consent, accept, decline } = useCookieConsent()
   usePageTracking()
 
   useEffect(() => { initTheme() }, [])
@@ -48,7 +51,7 @@ export default function App() {
       <Routes>
         {/* Public pages with header + footer */}
         <Route element={<Layout />}>
-          <Route index element={token ? <Navigate to="/dashboard" replace /> : <Home />} />
+          <Route index element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Home />} />
           <Route path="terms" element={<TermsOfService />} />
           <Route path="privacy" element={<PrivacyPolicy />} />
           <Route path="contact" element={<Contact />} />
@@ -57,11 +60,11 @@ export default function App() {
         {/* Standalone auth pages (full-screen, no navbar) */}
         <Route
           path="login"
-          element={token ? <Navigate to="/dashboard" replace /> : <Login />}
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
         />
         <Route
           path="register"
-          element={token ? <Navigate to="/dashboard" replace /> : <Register />}
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />}
         />
         <Route path="check-email" element={<CheckEmail />} />
         <Route path="verify-email" element={<VerifyEmail />} />
@@ -94,9 +97,12 @@ export default function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <VercelAnalytics />
-      <SpeedInsights />
+
+      {/* Analytics only after explicit consent */}
+      {consent === 'accepted' && <VercelAnalytics />}
+      {consent === 'accepted' && <SpeedInsights />}
+
+      <CookieBanner consent={consent} onAccept={accept} onDecline={decline} />
     </>
   )
 }
-
