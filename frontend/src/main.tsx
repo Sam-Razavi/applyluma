@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import * as Sentry from '@sentry/react'
-import posthog from 'posthog-js'
+import { initAnalytics } from './lib/analytics'
 import './index.css'
 import App from './App'
 
@@ -15,12 +15,9 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   })
 }
 
-if (import.meta.env.VITE_POSTHOG_KEY) {
-  posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-    api_host: import.meta.env.VITE_POSTHOG_HOST ?? 'https://eu.i.posthog.com',
-    capture_pageview: false, // manual page views via usePostHog hook
-    persistence: 'localStorage',
-  })
+// Only initialise analytics if the user previously accepted the cookie banner.
+if (localStorage.getItem('cookie_consent') === 'accepted') {
+  initAnalytics()
 }
 
 createRoot(document.getElementById('root')!).render(
