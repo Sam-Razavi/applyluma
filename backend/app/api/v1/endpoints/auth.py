@@ -74,9 +74,13 @@ def resend_verification(
 
 
 @router.post("/login", response_model=TokenPair)
-def login(login_in: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
+def login(login_in: LoginRequest, request: Request, db: Session = Depends(get_db)) -> TokenPair:
     user = crud_user.authenticate(db, login_in.email, login_in.password)
     if not user:
+        logger.warning(
+            "auth_login_failed",
+            extra={"ip": request.client.host if request.client else "unknown"},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -108,7 +112,7 @@ def login_oauth2(
 
 
 @router.post("/refresh", response_model=Token)
-def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
+def refresh(body: RefreshRequest, request: Request, db: Session = Depends(get_db)) -> Token:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired refresh token",
@@ -116,11 +120,19 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
     try:
         payload = jwt.decode(body.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         if payload.get("type") != "refresh":
+            logger.warning(
+                "auth_refresh_wrong_token_type",
+                extra={"ip": request.client.host if request.client else "unknown"},
+            )
             raise credentials_exception
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
     except JWTError:
+        logger.warning(
+            "auth_refresh_invalid_token",
+            extra={"ip": request.client.host if request.client else "unknown"},
+        )
         raise credentials_exception from None
 
     # Check refresh token denylist (fail open: Redis outage must not block token refresh)
