@@ -1,6 +1,7 @@
 import uuid
 from typing import Any
 
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.models.cv import CV
@@ -44,11 +45,16 @@ def create(
 
 
 def set_default(db: Session, cv: CV) -> CV:
-    # Unset all existing defaults for this user in one query, then set the new one.
-    db.query(CV).filter(CV.user_id == cv.user_id, CV.is_default.is_(True)).update(
-        {"is_default": False}, synchronize_session="fetch"
+    # Single atomic UPDATE: set target CV to True, all others for this user to
+    # False. Using CASE avoids the check-then-set race condition that two
+    # separate UPDATE statements would have.
+    db.query(CV).filter(
+        CV.user_id == cv.user_id,
+        (CV.id == cv.id) | CV.is_default.is_(True),
+    ).update(
+        {"is_default": case((CV.id == cv.id, True), else_=False)},
+        synchronize_session="fetch",
     )
-    cv.is_default = True
     db.commit()
     db.refresh(cv)
     return cv
@@ -68,19 +74,27 @@ def get_version_tree(db: Session, root_cv_id: uuid.UUID) -> CVVersionNode | None
     if not root:
         return None
 
+    # Load all CVs for this user in one query, then build the tree in Python.
+    # This replaces the previous recursive approach that fired one query per node.
+    all_cvs = (
+        db.query(CV)
+        .filter(CV.user_id == root.user_id)
+        .order_by(CV.created_at.asc())
+        .all()
+    )
+
+    by_parent: dict[uuid.UUID, list[CV]] = {}
+    for cv in all_cvs:
+        if cv.parent_cv_id is not None:
+            by_parent.setdefault(cv.parent_cv_id, []).append(cv)
+
     def build_node(cv: CV) -> CVVersionNode:
-        children = (
-            db.query(CV)
-            .filter(CV.parent_cv_id == cv.id, CV.user_id == root.user_id)
-            .order_by(CV.created_at.asc())
-            .all()
-        )
         return CVVersionNode(
             id=cv.id,
             title=cv.title,
             is_tailored=cv.is_tailored,
             created_at=cv.created_at,
-            children=[build_node(child) for child in children],
+            children=[build_node(child) for child in by_parent.get(cv.id, [])],
         )
 
     return build_node(root)
