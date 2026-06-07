@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 import type { User } from '../types'
 import posthog from 'posthog-js'
 
@@ -44,6 +44,10 @@ export const useAuthStore = create<AuthState>()(
       }),
       {
         name: 'auth',
+        // sessionStorage keeps tokens scoped to a single browser session rather
+        // than persisting them indefinitely in localStorage (reduces XSS blast
+        // radius). Full httpOnly-cookie auth is the long-term goal.
+        storage: createJSONStorage(() => sessionStorage),
         partialize: (state) => ({ token: state.token, refreshToken: state.refreshToken, user: state.user }),
       },
     ),

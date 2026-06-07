@@ -48,7 +48,7 @@ async def scrape_url(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Could not scrape URL: {exc}",
+            detail="Could not scrape the provided URL. Check that the URL is publicly accessible and try again.",
         ) from exc
     return ScrapeUrlResult(**result)
 

@@ -35,6 +35,7 @@ import AdminRoute from './components/AdminRoute'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
 import { useAuthStore } from './stores'
+import { ErrorBoundary } from './components/ui/ErrorBoundary'
 
 export default function App() {
   const { token } = useAuthStore()
@@ -69,7 +70,7 @@ export default function App() {
 
         {/* Protected app shell */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
+          <Route element={<ErrorBoundary><AppLayout /></ErrorBoundary>}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="cvs" element={<CVs />} />
             <Route path="jobs" element={<Jobs />} />
