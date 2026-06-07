@@ -15,15 +15,13 @@ AI-powered job search and resume optimization platform with production analytics
 - Production: https://applyluma.com
 - Backend API: https://applyluma-production.up.railway.app
 - API docs: https://applyluma-production.up.railway.app/docs
-- Current status: Phase 10B complete, Cover Letter Generator and Job URL Scraper live
-- Production: https://applyluma.com
+- Current phase: Phase 10B complete — Discover integrations, job alerts, and mobile UX live in production
 
-ApplyLuma is live in production. All major features are working, including the
-analytics dashboard, the AI CV Tailor, and the new Swedish job discovery feed
-with AI-powered match scoring. Phase 10A delivered end-to-end job discovery:
-Airflow scrapes Swedish job boards daily, an AI scoring engine ranks jobs against
-each user's CV, and users can browse, filter, save, and star jobs from a
-responsive discovery feed.
+All major features are working end-to-end: authentication with httpOnly cookie
+security, resume upload and AI analysis, AI CV Tailor, Cover Letter Generator,
+Job URL Scraper, Swedish job discovery with AI match scoring, saved jobs, job
+alert emails, application tracking, Stripe billing, and the market analytics
+dashboard.
 
 ## Overview
 
@@ -31,20 +29,23 @@ ApplyLuma helps job seekers search jobs, manage resumes, tailor CVs with AI,
 discover AI-matched Swedish jobs, and compare their profile against market analytics.
 
 Core capabilities:
-- JWT authentication
+- Secure authentication — JWT access tokens, httpOnly refresh cookies, CSRF protection, token denylist
 - Resume upload and AI resume analysis
 - AI CV Tailor: async section-by-section CV rewriting against a job description
 - Cover Letter Generator: AI-generated cover letters with tone selection (formal/friendly/concise)
 - Job URL Scraper: paste any job posting URL to auto-fill the job description form
 - Authenticated PDF download for all CVs (uploaded and tailored)
 - Swedish job discovery with AI match scoring against your CV
-- Saved jobs collection with named lists, starring, and notes
+- Saved jobs collections with named lists, starring, and notes
+- Job alert emails for high-match jobs (configurable threshold and frequency)
+- One-click AI tailoring directly from discovered jobs
+- Application tracking with status history and analytics
 - Job search through Adzuna
 - Job description management
-- Application tracking
-- Job alert emails for high-match jobs
+- Stripe subscription billing (free, premium, admin tiers)
 - Market analytics dashboard
 - Daily Airflow and dbt data pipeline
+- GDPR-compliant cookie consent banner (optional analytics gated behind explicit consent)
 
 ## Tech Stack
 
@@ -53,6 +54,7 @@ Backend:
 - PostgreSQL
 - Redis
 - SQLAlchemy and Alembic
+- Celery for async tasks
 - Docker on Railway
 
 Frontend:
@@ -60,6 +62,7 @@ Frontend:
 - TypeScript
 - Vite
 - Tailwind CSS
+- Framer Motion
 - Vercel
 
 Data:
@@ -68,9 +71,10 @@ Data:
 - Railway PostgreSQL for production analytics data
 
 AI and external APIs:
-- OpenAI API for resume analysis, CV tailoring, and job match scoring
+- OpenAI API for resume analysis, CV tailoring, cover letter generation, and job match scoring
 - JobTech Dev API (Platsbanken) for Swedish job data — free, no key required
-- Adzuna API for job search
+- Adzuna API for international job search
+- Stripe for subscription billing
 - Celery + Redis for async tailoring jobs
 - ReportLab for PDF generation
 
@@ -87,6 +91,7 @@ Deployment flow:
 - `main` is production and auto-deploys to Railway and Vercel.
 - `dev` is for development and integration testing.
 - Pushes to `main` usually reach production in about 3 minutes.
+- Railway runs `alembic upgrade head` automatically on each deploy before starting the server.
 
 Important deployment files:
 - `backend/Dockerfile`: Railway backend deployment
@@ -166,14 +171,30 @@ npm install
 npm run dev
 ```
 
+## Testing
+
+```bash
+# Backend (181 tests)
+cd backend && python -m pytest
+
+# Frontend (38 tests)
+cd frontend && npm test
+
+# Airflow DAG integrity
+PYTHONPATH=$(pwd)/airflow/dags:$(pwd)/airflow/plugins pytest airflow/tests/
+
+# dbt project validation
+cd dbt && dbt deps --profiles-dir . && dbt parse --profiles-dir .
+```
+
 ## Data Pipeline
 
-Phase 8 is complete. Airflow writes production analytics data to Railway
-PostgreSQL, and dbt transforms populate the analytics models used by the API and
-dashboard.
+Airflow orchestrates daily scraping and dbt transformations against the Railway
+PostgreSQL database.
 
 Schedule:
-- Job scraping: daily at 2 AM UTC
+- Job scraping (Platsbanken, Jobbsafari, Indeed.se, Adzuna): daily at 2 AM UTC
+- Keyword extraction and match score computation: daily at 3:30 AM UTC
 - dbt transforms: daily at 3 AM UTC
 
 Useful commands:
@@ -192,15 +213,18 @@ curl https://applyluma-production.up.railway.app/api/v1/analytics/job-market-hea
 ## Features
 
 Completed:
-- User authentication (JWT, refresh tokens)
+- User authentication — JWT tokens, httpOnly refresh cookies, CSRF protection, Redis token denylist
 - Resume upload and parsing
 - AI resume analysis
 - Job search through Adzuna
-- Job description management
+- Job description management with URL scraping
+- Application tracking with status history
 - Analytics API and dashboard
+- Stripe subscription billing (free / premium / admin tiers)
 - Production deployment on Railway + Vercel
 - Production data pipeline (Airflow + dbt, daily at 2–3 AM UTC)
 - AI CV Tailor (Phase 9): async rewriting, section review, PDF save and download
+- Cover Letter Generator: AI-written letters with tone selection, PDF export
 - Authenticated CV download for all CVs (uploaded and tailored)
 - Swedish job discovery (Phase 10A):
   - Paginated, filterable job feed from Platsbanken, Jobbsafari, and Indeed.se
@@ -209,10 +233,21 @@ Completed:
   - Saved jobs with named collections, starring, notes, and detail modal
   - Mobile-responsive filters (collapsible sidebar)
   - Redis caching: 24h match scores, 7d keywords, 1h job feed
+- Discover integrations (Phase 10B):
+  - One-click CV tailoring directly from a discovered job
+  - One-click add to application tracking from discovered jobs
+  - Structured match score and skill breakdown in job detail
+  - High-match job alert emails (configurable threshold and daily/weekly frequency)
+  - User alert preferences in the Settings page
+- Mobile UX: animated transitions, responsive navigation drawer, skeleton loading states
+- Security hardening: SSRF protection, per-user rate limiting, CORS tightening, httpOnly cookie auth, atomic Redis token denylist, admin audit logging, FK indexes, unique partial index for CV defaults
+- GDPR-compliant cookie consent banner — analytics (PostHog, Vercel) gated behind explicit user consent
 
-Ready for planning:
-- Phase 10B: one-click CV tailoring from discovered jobs, email alerts for
-  high-match jobs, application tracking integration with the Discover feed
+Next candidates (Phase 10C):
+- In-app notification surface for high-match job alerts
+- Discover filter for jobs already added to Applications
+- Richer alert preference options (source filters, keyword triggers)
+- Additional backend tests for Phase 10B edge cases
 
 ## Project Structure
 
@@ -230,17 +265,24 @@ applyluma/
 
 ## Environment Variables
 
-Backend variables are configured in Railway. Frontend variables are configured in
-Vercel.
+Backend variables are configured in Railway. Frontend variables are configured in Vercel.
 
-Key variables:
+Key backend variables:
 - `PORT=8080`
 - `DATABASE_URL`
 - `REDIS_URL`
+- `SECRET_KEY` — JWT signing secret (generate with `openssl rand -hex 32`)
 - `OPENAI_API_KEY`
-- `ADZUNA_APP_ID`
-- `ADZUNA_APP_KEY`
-- `VITE_API_URL`
+- `ADZUNA_APP_ID` / `ADZUNA_API_KEY`
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PREMIUM_PRICE_ID`
+- `RESEND_API_KEY` — transactional email
+- `SENTRY_DSN` — optional error tracking
+- `ENVIRONMENT=production` — enables Secure + SameSite=None cookies
+
+Key frontend variables:
+- `VITE_API_URL` — Railway backend base URL
+- `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST` — optional analytics (only active after cookie consent)
+- `VITE_SENTRY_DSN` — optional error tracking
 
 Never commit real secrets or production `.env` files.
 
@@ -283,18 +325,14 @@ Never commit real secrets or production `.env` files.
 
 **Email**
 - Transactional email (verification, password reset, job alerts) requires a
-  configured SendGrid API key and authenticated sending domain. Without it, emails
+  configured Resend API key and authenticated sending domain. Without it, emails
   are silently skipped — users can still register and log in, but will not receive
   verification or alert emails.
 
 **Infrastructure**
-- Redis is required for job feed caching, match score caching, and Celery
-  task queuing. Removing Redis will disable async tailoring and degrade
-  Discover performance.
-- Email alert delivery requires an outbound email service (SMTP or
-  transactional provider) to be configured. The alert preference and
-  scheduling logic is complete, but emails will not be sent without a
-  working `MAIL_*` environment configuration.
+- Redis is required for job feed caching, match score caching, Celery task
+  queuing, and the token denylist. Removing Redis will disable async tailoring,
+  logout revocation, and degrade Discover performance.
 - Frontend npm dependencies currently have no known vulnerabilities.
 
 **Platform**
