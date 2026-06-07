@@ -2,10 +2,25 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.user import UserRole
+
+# All notification types produced by the application. Restricting admin sends
+# to this set prevents unknown types from reaching the notification store.
+NotificationType = Literal[
+    "admin_message",
+    "deadline_reminder",
+    "application_stale",
+    "weekly_summary",
+    "high_match_alert",
+    "tailor_complete",
+    "cover_letter_complete",
+    "interview_reminder",
+    "upgrade_success",
+]
 
 
 class AdminOverviewStats(BaseModel):
@@ -53,5 +68,5 @@ class AdminActiveUpdateRequest(BaseModel):
 
 class AdminNotifyRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
-    body: str = Field(min_length=1)
-    type: str = "admin_message"
+    body: str = Field(min_length=1, max_length=2000)
+    type: NotificationType = "admin_message"
