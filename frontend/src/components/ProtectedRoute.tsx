@@ -4,12 +4,14 @@ import { useAuthStore } from '../stores'
 import { authApi } from '../services/api'
 
 export default function ProtectedRoute() {
-  const { token, user, setUser, logout } = useAuthStore()
+  const { isAuthenticated, user, setUser, logout } = useAuthStore()
   const navigate = useNavigate()
-  const [checking, setChecking] = useState(!!token && !user)
+  // Fetch /me when the store says we're authenticated but has no user object
+  // (e.g. sessionStorage cleared but httpOnly cookie still valid).
+  const [checking, setChecking] = useState(isAuthenticated && !user)
 
   useEffect(() => {
-    if (!token || user) {
+    if (!isAuthenticated || user) {
       setChecking(false)
       return
     }
@@ -24,7 +26,6 @@ export default function ProtectedRoute() {
       })
       .catch(() => {
         if (!active) return
-
         logout()
         navigate('/login?reason=session-expired', { replace: true })
       })
@@ -35,9 +36,9 @@ export default function ProtectedRoute() {
     return () => {
       active = false
     }
-  }, [logout, navigate, setUser, token, user])
+  }, [logout, navigate, setUser, isAuthenticated, user])
 
-  if (!token) return <Navigate to="/login" replace />
+  if (!isAuthenticated) return <Navigate to="/login" replace />
 
   if (checking) {
     return (
