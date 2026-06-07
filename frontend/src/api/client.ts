@@ -7,6 +7,8 @@ const API_URL = config.apiUrl
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
+  // Send cookies cross-origin so httpOnly auth cookies are included in every request.
+  withCredentials: true,
 })
 
 function redirectToLogin(reason: 'session-expired') {
@@ -18,6 +20,12 @@ function redirectToLogin(reason: 'session-expired') {
   }
 
   window.location.assign(`/login?${params.toString()}`)
+}
+
+/** Read the csrf_token cookie (non-httpOnly) set by the server on login. */
+function getCsrfToken(): string {
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/)
+  return match ? decodeURIComponent(match[1]) : ''
 }
 
 // These paths must never trigger an auto-refresh attempt
@@ -45,6 +53,16 @@ apiClient.interceptors.request.use((config) => {
   if (token && !isPublicAnalyticsEndpoint) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // Always add X-Requested-With so the server can distinguish AJAX from
+  // form-POST CSRF attacks, and forward the CSRF token for state-changing
+  // requests authenticated via cookie (no Authorization header).
+  config.headers['X-Requested-With'] = 'XMLHttpRequest'
+  if (!token && config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+    const csrf = getCsrfToken()
+    if (csrf) config.headers['X-CSRF-Token'] = csrf
+  }
+
   return config
 })
 
@@ -53,18 +71,17 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
     const url = originalRequest?.url ?? ''
-    const { token, refreshToken } = useAuthStore.getState()
+    const { token, refreshToken, isAuthenticated } = useAuthStore.getState()
 
     // Attempt silent token refresh when:
     // - server returned 401
-    // - user had an access token (was authenticated)
-    // - a refresh token is available
+    // - user had an access token OR was previously authenticated (cookie flow)
+    // - a refresh token is available OR we rely on the httpOnly refresh cookie
     // - this isn't already a retry
     // - this isn't the refresh/login/logout endpoint itself
     if (
       error.response?.status === 401 &&
-      token &&
-      refreshToken &&
+      (token || isAuthenticated) &&
       !originalRequest._retry &&
       !NO_REFRESH_PATHS.some((p) => url.includes(p))
     ) {
@@ -82,9 +99,10 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const res = await apiClient.post<{ access_token: string }>('/api/v1/auth/refresh', {
-          refresh_token: refreshToken,
-        })
+        // Send refresh_token in body if available in memory (same session);
+        // otherwise rely on the httpOnly refresh cookie (cookie-only clients).
+        const refreshBody = refreshToken ? { refresh_token: refreshToken } : {}
+        const res = await apiClient.post<{ access_token: string }>('/api/v1/auth/refresh', refreshBody)
         const newToken = res.data.access_token
         useAuthStore.getState().setToken(newToken)
         processQueue(null, newToken)

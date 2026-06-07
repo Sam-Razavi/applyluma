@@ -44,11 +44,12 @@ export const useAuthStore = create<AuthState>()(
       }),
       {
         name: 'auth',
-        // sessionStorage keeps tokens scoped to a single browser session rather
-        // than persisting them indefinitely in localStorage (reduces XSS blast
-        // radius). Full httpOnly-cookie auth is the long-term goal.
+        // Persist only non-sensitive session state. Raw tokens are no longer
+        // stored in JS-accessible storage — the server sets httpOnly cookies on
+        // login so tokens are invisible to XSS. isAuthenticated + user let the
+        // UI know the session is live without exposing credentials.
         storage: createJSONStorage(() => sessionStorage),
-        partialize: (state) => ({ token: state.token, refreshToken: state.refreshToken, user: state.user }),
+        partialize: (state) => ({ isAuthenticated: state.isAuthenticated, user: state.user }),
       },
     ),
     { name: 'AuthStore' },
