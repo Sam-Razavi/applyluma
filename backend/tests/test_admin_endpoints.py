@@ -316,3 +316,56 @@ async def test_notify_creates_notification(monkeypatch: pytest.MonkeyPatch) -> N
     assert calls[0]["title"] == "Hi there"
     assert calls[0]["body"] == "Admin says hello"
     assert calls[0]["type"] == "admin_message"
+
+
+@pytest.mark.asyncio
+async def test_notify_rejects_invalid_notification_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    """NotificationType Literal must reject unknown type strings with 422."""
+    target = sample_user()
+    monkeypatch.setattr(admin_endpoint.crud_admin, "get_user_by_id_admin", lambda db, uid: target)
+
+    response = await request(
+        "POST",
+        f"/api/v1/admin/users/{USER_ID}/notify",
+        current_user=admin_user(),
+        json_body={"title": "Hi", "body": "Bad type", "type": "hacked"},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_role_emits_audit_log(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Changing a user's role must emit a logger.warning with audit fields."""
+    import logging
+
+    target = sample_user(role=UserRole.user)
+    monkeypatch.setattr(admin_endpoint.crud_admin, "get_user_by_id_admin", lambda db, uid: target)
+
+    def fake_set_role(db: Any, user: Any, role: UserRole) -> Any:
+        user.role = role
+        return user
+
+    monkeypatch.setattr(admin_endpoint.crud_admin, "set_user_role", fake_set_role)
+
+    log_records: list[logging.LogRecord] = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            log_records.append(record)
+
+    handler = _Capture()
+    admin_endpoint.logger.addHandler(handler)
+    try:
+        response = await request(
+            "PATCH",
+            f"/api/v1/admin/users/{USER_ID}/role",
+            current_user=admin_user(),
+            json_body={"role": "premium"},
+        )
+    finally:
+        admin_endpoint.logger.removeHandler(handler)
+
+    assert response.status_code == 200
+    assert any(r.getMessage() == "admin_role_changed" for r in log_records), (
+        "Expected 'admin_role_changed' log record"
+    )

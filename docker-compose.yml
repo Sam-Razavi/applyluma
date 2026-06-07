@@ -12,13 +12,16 @@ x-airflow-common:
     # application data credentials.
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_METADATA_USER:-applyluma}:${AIRFLOW_METADATA_PASSWORD:-applyluma}@postgres:5432/${AIRFLOW_METADATA_DB:-airflow_db}
 
-    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg=}
+    # AIRFLOW_FERNET_KEY and AIRFLOW_SECRET_KEY must be set in your .env file.
+    # Generate a Fernet key:  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Generate a secret key:  openssl rand -hex 32
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?AIRFLOW_FERNET_KEY must be set in .env}
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__PARALLELISM: '4'
     AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: '4'
     AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: '1'
-    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-applyluma-airflow-dev-secret-change-in-prod}
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?AIRFLOW_SECRET_KEY must be set in .env}
     AIRFLOW__WEBSERVER__WORKERS: '2'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: '30'

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Annotated
 
@@ -20,6 +21,7 @@ from app.schemas.admin import (
 from app.services import notification_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+logger = logging.getLogger(__name__)
 DbSession = Annotated[Session, Depends(get_db)]
 
 
@@ -76,7 +78,17 @@ def update_role(
     user = crud_admin.get_user_by_id_admin(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    previous_role = user.role
     updated = crud_admin.set_user_role(db, user, body.role)
+    logger.warning(
+        "admin_role_changed",
+        extra={
+            "admin_id": str(admin.id),
+            "target_user_id": str(user_id),
+            "previous_role": str(previous_role),
+            "new_role": str(body.role),
+        },
+    )
     return AdminUserRow.model_validate(updated)
 
 
@@ -93,6 +105,14 @@ def update_active(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     updated = crud_admin.set_user_active(db, user, body.is_active)
+    logger.warning(
+        "admin_active_changed",
+        extra={
+            "admin_id": str(admin.id),
+            "target_user_id": str(user_id),
+            "is_active": body.is_active,
+        },
+    )
     return AdminUserRow.model_validate(updated)
 
 

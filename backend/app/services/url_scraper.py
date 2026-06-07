@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
+import socket
+from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -16,6 +19,49 @@ _HEADERS = {
 }
 
 _MAX_CHARS = 6000
+
+# RFC-1918 / loopback / link-local / metadata ranges blocked for SSRF prevention.
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network(cidr)
+    for cidr in (
+        "127.0.0.0/8",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "169.254.0.0/16",  # link-local / AWS metadata endpoint
+        "100.64.0.0/10",   # shared address space (RFC 6598)
+        "::1/128",
+        "fc00::/7",
+        "fe80::/10",
+    )
+]
+
+
+def _validate_url(url: str) -> None:
+    """Block non-http(s) schemes and URLs that resolve to private infrastructure."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"URL scheme {parsed.scheme!r} is not allowed")
+    hostname = parsed.hostname or ""
+    if not hostname:
+        raise ValueError("URL has no hostname")
+    try:
+        infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        return  # Let httpx surface the network error with a generic message
+    for *_, sockaddr in infos:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            continue
+        if (
+            ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or any(ip in net for net in _BLOCKED_NETWORKS)
+        ):
+            raise ValueError("URL resolves to a private or reserved address")
 
 
 def _meta(soup: BeautifulSoup, *attrs: str) -> str:
@@ -96,8 +142,9 @@ def _openai_clean(raw: dict[str, str]) -> dict[str, str]:
 
 
 async def scrape_job_url(url: str) -> dict[str, str]:
+    _validate_url(url)
     async with httpx.AsyncClient(
-        headers=_HEADERS, follow_redirects=True, timeout=15
+        headers=_HEADERS, follow_redirects=True, timeout=10
     ) as client:
         response = await client.get(url)
         response.raise_for_status()
