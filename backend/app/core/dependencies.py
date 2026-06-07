@@ -1,8 +1,9 @@
 import hashlib
+import hmac
 from collections.abc import Generator
 
 import redis
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -10,7 +11,9 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import SessionLocal
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token")
+# auto_error=False so we can fall back to the httpOnly cookie when no
+# Authorization header is present (cookie-based browser clients).
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token", auto_error=False)
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -21,12 +24,29 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
+async def get_current_user_id(
+    request: Request,
+    bearer_token: str | None = Depends(oauth2_scheme),
+) -> str:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Prefer the Authorization header; fall back to the httpOnly access_token cookie.
+    token = bearer_token or request.cookies.get("access_token")
+    if not token:
+        raise credentials_exception
+
+    # CSRF guard for cookie-authenticated requests on state-changing methods.
+    # Bearer-header clients (API, mobile) are exempt — they can't be CSRF-attacked.
+    if not bearer_token and request.method not in ("GET", "HEAD", "OPTIONS", "TRACE"):
+        csrf_cookie = request.cookies.get("csrf_token", "")
+        csrf_header = request.headers.get("x-csrf-token", "")
+        if not csrf_cookie or not hmac.compare_digest(csrf_cookie, csrf_header):
+            raise credentials_exception
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         # Reject refresh tokens being used as access tokens
