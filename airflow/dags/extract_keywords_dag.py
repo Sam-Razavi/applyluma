@@ -170,6 +170,8 @@ default_args = {
     "owner": "applyluma",
     "retries": 1,
     "retry_delay": timedelta(minutes=10),
+    "retry_exponential_backoff": True,
+    "max_retry_delay": timedelta(minutes=30),
     "email_on_failure": False,
     "email_on_retry": False,
 }

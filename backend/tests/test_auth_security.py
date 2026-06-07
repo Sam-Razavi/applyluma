@@ -1,4 +1,4 @@
-"""Tests for token revocation, forgot-password, and reset-password flows."""
+"""Tests for token revocation, refresh edge cases, forgot-password, and reset-password flows."""
 from __future__ import annotations
 
 import sys
@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from jose import jwt
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -43,6 +44,9 @@ class _FakeRedis:
     def setex(self, key: str, ttl: int, value: str) -> None:
         self._store[key] = value
 
+    def set(self, key: str, value: str, **kwargs) -> None:
+        self._store[key] = value
+
 
 class _DenylistRedis(_FakeRedis):
     """Pre-populated with one token hash already in the denylist."""
@@ -57,6 +61,9 @@ class _FailingRedis:
         raise ConnectionError("Redis unavailable")
 
     def setex(self, key: str, ttl: int, value: str) -> None:
+        raise ConnectionError("Redis unavailable")
+
+    def set(self, key: str, value: str, **kwargs) -> None:
         raise ConnectionError("Redis unavailable")
 
 
@@ -287,3 +294,78 @@ async def test_reset_password_rejects_short_password(monkeypatch: pytest.MonkeyP
     )
 
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Refresh endpoint edge cases
+# ---------------------------------------------------------------------------
+
+def _make_expired_refresh_token() -> str:
+    """Build a syntactically valid refresh JWT whose exp is in the past."""
+    from app.core.config import settings
+    return jwt.encode(
+        {"exp": datetime.now(UTC) - timedelta(seconds=1), "sub": str(USER_ID), "type": "refresh"},
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_malformed_token() -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+
+    response = await _post("/api/v1/auth/refresh", {"refresh_token": "not.a.jwt"})
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_expired_token() -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    expired = _make_expired_refresh_token()
+
+    response = await _post("/api/v1/auth/refresh", {"refresh_token": expired})
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_access_token() -> None:
+    """Passing an access token to the refresh endpoint must be rejected."""
+    from app.core.security import create_access_token
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    access_token = create_access_token(str(USER_ID))
+
+    response = await _post("/api/v1/auth/refresh", {"refresh_token": access_token})
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_when_user_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A valid refresh token for a deleted user must return 401."""
+    from app.core.security import create_refresh_token
+    monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: _FakeRedis())
+    monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: _FakeRedis())
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_id", lambda db, uid: None)
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    token = create_refresh_token(str(USER_ID))
+
+    response = await _post("/api/v1/auth/refresh", {"refresh_token": token})
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_when_user_inactive(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A valid refresh token for a deactivated user must return 401."""
+    from app.core.security import create_refresh_token
+    monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: _FakeRedis())
+    monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: _FakeRedis())
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_id", lambda db, uid: _fake_user(active=False))
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    token = create_refresh_token(str(USER_ID))
+
+    response = await _post("/api/v1/auth/refresh", {"refresh_token": token})
+
+    assert response.status_code == 401

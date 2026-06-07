@@ -65,7 +65,7 @@ def create_application(db: Session, user_id: uuid.UUID, data: ApplicationCreate)
     db.add(
         ApplicationEvent(
             application_id=application.id,
-            event_type="status_changed",
+            event_type="created",
             new_value=application.status,
         )
     )

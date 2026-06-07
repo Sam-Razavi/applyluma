@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 import type { User } from '../types'
 import posthog from 'posthog-js'
 
@@ -44,7 +44,12 @@ export const useAuthStore = create<AuthState>()(
       }),
       {
         name: 'auth',
-        partialize: (state) => ({ token: state.token, refreshToken: state.refreshToken, user: state.user }),
+        // Persist only non-sensitive session state. Raw tokens are no longer
+        // stored in JS-accessible storage — the server sets httpOnly cookies on
+        // login so tokens are invisible to XSS. isAuthenticated + user let the
+        // UI know the session is live without exposing credentials.
+        storage: createJSONStorage(() => sessionStorage),
+        partialize: (state) => ({ isAuthenticated: state.isAuthenticated, user: state.user }),
       },
     ),
     { name: 'AuthStore' },

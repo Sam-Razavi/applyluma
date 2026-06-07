@@ -35,8 +35,8 @@ export default function Dashboard() {
     document.title = 'Dashboard | ApplyLuma'
     void Promise.all([
       fetchApplications(),
-      cvApi.list().then(setCvs).catch(() => {}),
-      jobApi.list().then(setJds).catch(() => {}),
+      cvApi.list().then(setCvs).catch((err: unknown) => console.error('Failed to load CVs', err)),
+      jobApi.list().then(setJds).catch((err: unknown) => console.error('Failed to load job descriptions', err)),
     ]).finally(() => setLoading(false))
   }, [fetchApplications])
 

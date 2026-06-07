@@ -1,7 +1,8 @@
 import hashlib
-import math
+import logging
+import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -28,6 +29,46 @@ from app.schemas.user import (
 from app.services import email_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
+
+# Cookie names
+_ACCESS_COOKIE = "access_token"
+_REFRESH_COOKIE = "refresh_token"
+_CSRF_COOKIE = "csrf_token"
+
+
+def _cookie_kwargs(max_age: int) -> dict:
+    """Return common cookie attributes — Secure+SameSite=None in production."""
+    prod = settings.ENVIRONMENT == "production"
+    return {
+        "httponly": True,
+        "secure": prod,
+        "samesite": "none" if prod else "lax",
+        "max_age": max_age,
+    }
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    """Set httpOnly access/refresh cookies and a JS-readable CSRF cookie."""
+    response.set_cookie(_ACCESS_COOKIE, access_token, **_cookie_kwargs(settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60))
+    response.set_cookie(_REFRESH_COOKIE, refresh_token, **_cookie_kwargs(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400))
+    prod = settings.ENVIRONMENT == "production"
+    response.set_cookie(
+        _CSRF_COOKIE,
+        secrets.token_hex(32),
+        httponly=False,
+        secure=prod,
+        samesite="none" if prod else "lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    """Expire all auth cookies."""
+    prod = settings.ENVIRONMENT == "production"
+    opts = {"secure": prod, "samesite": "none" if prod else "lax"}
+    for name in (_ACCESS_COOKIE, _REFRESH_COOKIE, _CSRF_COOKIE):
+        response.delete_cookie(name, **opts)
 
 
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
@@ -41,7 +82,11 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> UserPublic:
                 user.email, user.verification_token, user.full_name or ""
             )
         except Exception:
-            pass
+            logger.error(
+                "Failed to send verification email after registration",
+                extra={"user_id": str(user.id)},
+                exc_info=True,
+            )
     return user
 
 
@@ -68,19 +113,28 @@ def resend_verification(
 
 
 @router.post("/login", response_model=TokenPair)
-def login(login_in: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
+def login(
+    login_in: LoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> TokenPair:
     user = crud_user.authenticate(db, login_in.email, login_in.password)
     if not user:
+        logger.warning(
+            "auth_login_failed",
+            extra={"ip": request.client.host if request.client else "unknown"},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
-    return TokenPair(
-        access_token=create_access_token(str(user.id)),
-        refresh_token=create_refresh_token(str(user.id)),
-    )
+    access_token = create_access_token(str(user.id))
+    refresh_token = create_refresh_token(str(user.id))
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
 
 @router.post("/token", response_model=Token)
@@ -102,24 +156,42 @@ def login_oauth2(
 
 
 @router.post("/refresh", response_model=Token)
-def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
+def refresh(
+    body: RefreshRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> Token:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired refresh token",
     )
+    # Accept refresh token from request body or httpOnly cookie
+    raw_refresh_token = body.refresh_token or request.cookies.get(_REFRESH_COOKIE)
+    if not raw_refresh_token:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(body.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(raw_refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         if payload.get("type") != "refresh":
+            logger.warning(
+                "auth_refresh_wrong_token_type",
+                extra={"ip": request.client.host if request.client else "unknown"},
+            )
             raise credentials_exception
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
     except JWTError:
+        logger.warning(
+            "auth_refresh_invalid_token",
+            extra={"ip": request.client.host if request.client else "unknown"},
+        )
         raise credentials_exception from None
 
     # Check refresh token denylist (fail open: Redis outage must not block token refresh)
     try:
-        token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
+        token_hash = hashlib.sha256(raw_refresh_token.encode()).hexdigest()
         r = get_redis_client()
         if r.exists(f"token_denylist:{token_hash}"):
             raise credentials_exception
@@ -132,7 +204,22 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> Token:
     if not user or not user.is_active:
         raise credentials_exception
 
-    return Token(access_token=create_access_token(str(user.id)))
+    new_access_token = create_access_token(str(user.id))
+    # Rotate the access cookie (keep existing refresh cookie)
+    prod = settings.ENVIRONMENT == "production"
+    response.set_cookie(
+        _ACCESS_COOKIE, new_access_token,
+        **_cookie_kwargs(settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60),
+    )
+    response.set_cookie(
+        _CSRF_COOKIE,
+        secrets.token_hex(32),
+        httponly=False,
+        secure=prod,
+        samesite="none" if prod else "lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    return Token(access_token=new_access_token)
 
 
 @router.get("/me", response_model=UserPublic)
@@ -172,17 +259,18 @@ def delete_account(
 
 
 def _revoke_token(raw_token: str) -> None:
-    """Store a token's SHA-256 hash in the denylist with TTL = remaining lifetime."""
+    """Store a token's SHA-256 hash in the denylist with TTL = remaining lifetime.
+
+    Uses SET ... EXAT so the expiry is set atomically from the JWT's own exp claim,
+    avoiding the race between computing a relative TTL in Python and calling SETEX.
+    """
     try:
-        from datetime import UTC, datetime
         payload = jwt.decode(raw_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         exp = payload.get("exp")
         if exp is not None:
-            remaining = math.ceil(exp - datetime.now(UTC).timestamp())
-            if remaining > 0:
-                token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-                r = get_redis_client()
-                r.setex(f"token_denylist:{token_hash}", remaining, "1")
+            token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+            r = get_redis_client()
+            r.set(f"token_denylist:{token_hash}", "1", exat=int(exp))
     except Exception:
         pass  # fail silently — tokens are short-lived anyway
 
@@ -190,17 +278,24 @@ def _revoke_token(raw_token: str) -> None:
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
     request: Request,
+    response: Response,
     body: LogoutRequest,
     user_id: str = Depends(get_current_user_id),
 ) -> None:
-    # Revoke the access token from the Authorization header
+    # Revoke tokens from Authorization header and body
     auth = request.headers.get("authorization", "")
     if auth.lower().startswith("bearer "):
         _revoke_token(auth.split(" ", 1)[1])
-
-    # Revoke the refresh token if the client sent it
     if body.refresh_token:
         _revoke_token(body.refresh_token)
+
+    # Also revoke cookie tokens if present (covers cookie-only clients)
+    if cookie_access := request.cookies.get(_ACCESS_COOKIE):
+        _revoke_token(cookie_access)
+    if cookie_refresh := request.cookies.get(_REFRESH_COOKIE):
+        _revoke_token(cookie_refresh)
+
+    _clear_auth_cookies(response)
 
 
 @router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
@@ -215,7 +310,11 @@ def forgot_password(
         try:
             email_service.send_password_reset_email(user.email, token)
         except Exception:
-            pass
+            logger.error(
+                "Failed to send password reset email",
+                extra={"user_id": str(user.id)},
+                exc_info=True,
+            )
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)

@@ -94,10 +94,10 @@ static_origins: list[str] = settings.BACKEND_CORS_ORIGINS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=static_origins,
-    allow_origin_regex=r"https://applyluma[a-z0-9-]*\.vercel\.app",
+    allow_origin_regex=r"https://applyluma-[a-z0-9][a-z0-9-]*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-CSRF-Token", "X-Requested-With"],
     expose_headers=["X-Request-ID", "Retry-After"],
 )
 
@@ -184,7 +184,7 @@ async def analytics_rate_limit(request: Request, call_next):
         except Exception:
             # Analytics endpoints are public; a Redis outage should not make
             # read-only market data unavailable.
-            pass
+            request_logger.error("Redis error in analytics_rate_limit", exc_info=True)
     return await call_next(request)
 
 # Per-IP rate limits (requests per minute) for unauthenticated auth endpoints.
@@ -225,7 +225,49 @@ async def auth_rate_limit(request: Request, call_next):
                         headers={"Retry-After": "60"},
                     )
             except Exception:
-                pass  # fail open: a Redis outage must never lock users out
+                # fail open: a Redis outage must never lock users out
+                request_logger.error("Redis error in auth_rate_limit", exc_info=True)
+    return await call_next(request)
+
+
+# Per-user rate limits for endpoints that trigger expensive operations (AI
+# calls, file processing, external HTTP fetches).  Keyed by exact path; limits
+# are per user ID when authenticated, falling back to client IP.
+_EXPENSIVE_RATE_LIMITS: dict[str, int] = {
+    "/api/v1/cvs/upload": 20,
+    "/api/v1/tailor": 5,
+    "/api/v1/job-descriptions/scrape-url": 10,
+    "/api/v1/cover-letters": 5,
+}
+
+
+@app.middleware("http")
+async def expensive_endpoint_rate_limit(request: Request, call_next):
+    if request.method == "POST":
+        limit = _EXPENSIVE_RATE_LIMITS.get(request.url.path)
+        if limit is not None:
+            identity = _user_id_from_request(request) or (
+                request.client.host if request.client else "unknown"
+            )
+            minute = int(datetime.utcnow().timestamp() // 60)
+            endpoint = request.url.path.rsplit("/", 1)[-1]
+            key = f"rate_limit:expensive:{endpoint}:{identity}:{minute}"
+            try:
+                redis_client = get_redis_client()
+                count = redis_client.incr(key)
+                if count == 1:
+                    redis_client.expire(key, 60)
+                if count > limit:
+                    return JSONResponse(
+                        status_code=429,
+                        content={
+                            "detail": "Too many requests. Please slow down.",
+                            "code": "TOO_MANY_REQUESTS",
+                        },
+                        headers={"Retry-After": "60"},
+                    )
+            except Exception:
+                request_logger.error("Redis error in expensive_endpoint_rate_limit", exc_info=True)
     return await call_next(request)
 
 
