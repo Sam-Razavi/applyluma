@@ -48,6 +48,7 @@
     "@typescript-eslint/parser": "^7.15.0",
     "@vercel/node": "^5.8.8",
     "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^4.1.8",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",

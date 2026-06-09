@@ -13,6 +13,8 @@ dist/
 build/
 .pytest_cache/
 .coverage
+coverage.json
+coverage/
 htmlcov/
 .mypy_cache/
 .dmypy.json
