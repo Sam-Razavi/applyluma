@@ -272,7 +272,7 @@ def _revoke_token(raw_token: str) -> None:
             r = get_redis_client()
             r.set(f"token_denylist:{token_hash}", "1", exat=int(exp))
     except Exception:
-        pass  # fail silently — tokens are short-lived anyway
+        logger.warning("Failed to revoke token during logout", exc_info=True)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
