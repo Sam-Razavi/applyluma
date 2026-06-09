@@ -160,7 +160,7 @@ services:
         /tmp/airflow-init-connection.sh
         airflow users create \
           --username "${AIRFLOW_ADMIN_USER:-admin}" \
-          --password "${AIRFLOW_ADMIN_PASSWORD:-admin}" \
+          --password "${AIRFLOW_ADMIN_PASSWORD:?AIRFLOW_ADMIN_PASSWORD must be set}" \
           --firstname Admin \
           --lastname User \
           --role Admin \
