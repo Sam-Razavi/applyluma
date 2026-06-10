@@ -155,6 +155,75 @@ describe('SavedJobs page', () => {
     })
   })
 
+  it('filters jobs when a collection tab is clicked', async () => {
+    const second = {
+      ...mockSaved,
+      id: 'saved-2',
+      raw_job_posting_id: 'job-2',
+      list_name: 'Backup options',
+      job: { ...mockJob, job_id: 'job-2', title: 'Junior Developer' },
+    }
+    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved, second])
+    renderPage()
+
+    await waitFor(() => screen.getByText('Senior Python Developer'))
+
+    const dreamTab = screen.getByRole('button', { name: /Dream roles/ })
+    fireEvent.click(dreamTab)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Junior Developer')).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows all jobs when "All" tab is clicked after selecting a collection', async () => {
+    const second = {
+      ...mockSaved,
+      id: 'saved-2',
+      raw_job_posting_id: 'job-2',
+      list_name: 'Backup options',
+      job: { ...mockJob, job_id: 'job-2', title: 'Junior Developer' },
+    }
+    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved, second])
+    renderPage()
+
+    await waitFor(() => screen.getByText('Senior Python Developer'))
+
+    fireEvent.click(screen.getByRole('button', { name: /Dream roles/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^All/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Senior Python Developer')).toBeInTheDocument()
+      expect(screen.getByText('Junior Developer')).toBeInTheDocument()
+    })
+  })
+
+  it('reverts starred state when updateSavedJob throws', async () => {
+    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
+    vi.mocked(jobDiscoveryApi.updateSavedJob).mockRejectedValue(new Error('Network error'))
+    renderPage()
+
+    await waitFor(() => expect(screen.getByLabelText('Star job')).toBeInTheDocument())
+    fireEvent.click(screen.getByLabelText('Star job'))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to update')
+    })
+  })
+
+  it('restores deleted job when deleteSavedJob throws', async () => {
+    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
+    vi.mocked(jobDiscoveryApi.deleteSavedJob).mockRejectedValue(new Error('Network error'))
+    renderPage()
+
+    await waitFor(() => expect(screen.getByLabelText('Remove saved job')).toBeInTheDocument())
+    fireEvent.click(screen.getByLabelText('Remove saved job'))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to remove')
+    })
+  })
+
   it('shows error toast when loading fails', async () => {
     vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockRejectedValue(new Error('Network error'))
     renderPage()
