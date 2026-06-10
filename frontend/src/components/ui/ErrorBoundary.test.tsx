@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { ErrorBoundary } from './ErrorBoundary'
 
@@ -10,7 +11,7 @@ afterAll(() => {
   vi.mocked(console.error).mockRestore()
 })
 
-function Bomb() {
+function Bomb(): JSX.Element {
   throw new Error('Test explosion')
 }
 
