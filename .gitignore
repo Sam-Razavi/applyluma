@@ -72,6 +72,11 @@ test_resume.docx
 backend/test_resume.docx
 healthcheck_resume_docx/
 
+# Test coverage reports (generated artifacts)
+backend/coverage.json
+frontend/coverage/
+coverage/
+
 # dbt artifacts
 dbt/target/
 dbt/logs/
