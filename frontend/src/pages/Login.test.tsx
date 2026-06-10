@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import Login from './Login';
 import { authApi } from '../services/api';
 import { useAuthStore } from '../stores';
@@ -95,6 +95,61 @@ describe('Login Page', () => {
     expect(state.isAuthenticated).toBe(true);
     expect(state.token).toBe('fake-token');
     expect(state.user).toEqual(mockUser);
+  });
+
+  it('navigates to next param path after successful login', async () => {
+    const mockToken = { access_token: 'fake-token', token_type: 'bearer', refresh_token: 'r' };
+    const mockUser = { id: '1', email: 'user@example.com', full_name: 'User' };
+    vi.mocked(authApi.login).mockResolvedValueOnce(mockToken);
+    vi.mocked(authApi.me).mockResolvedValueOnce(mockUser as any);
+
+    render(
+      <MemoryRouter initialEntries={['/login?next=/profile']}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'pass123' } });
+    fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/profile', { replace: true });
+    });
+  });
+
+  it('redirects to /dashboard when next param is /login', async () => {
+    const mockToken = { access_token: 'fake-token', token_type: 'bearer', refresh_token: 'r' };
+    const mockUser = { id: '1', email: 'user@example.com', full_name: 'User' };
+    vi.mocked(authApi.login).mockResolvedValueOnce(mockToken);
+    vi.mocked(authApi.me).mockResolvedValueOnce(mockUser as any);
+
+    render(
+      <MemoryRouter initialEntries={['/login?next=/login']}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'pass123' } });
+    fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+    });
+  });
+
+  it('toggles password visibility when show/hide button is clicked', () => {
+    renderLogin();
+    const passwordInput = screen.getByLabelText('Password');
+    expect(passwordInput).toHaveAttribute('type', 'password');
+
+    fireEvent.click(screen.getByLabelText('Show password'));
+    expect(passwordInput).toHaveAttribute('type', 'text');
   });
 
   it('shows error message on failed login', async () => {

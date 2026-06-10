@@ -369,3 +369,53 @@ async def test_refresh_rejects_when_user_inactive(monkeypatch: pytest.MonkeyPatc
     response = await _post("/api/v1/auth/refresh", {"refresh_token": token})
 
     assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Register endpoint
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_register_duplicate_email_returns_409(monkeypatch: pytest.MonkeyPatch) -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_email", lambda db, email: _fake_user())
+
+    response = await _post(
+        "/api/v1/auth/register",
+        {"email": "existing@example.com", "password": "SecurePass1!", "full_name": "Test User"},
+    )
+
+    assert response.status_code == 409
+
+
+# ---------------------------------------------------------------------------
+# Cookie-based refresh
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_refresh_accepts_token_from_cookie(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Refresh endpoint uses the refresh_token cookie when the body token is absent."""
+    from app.core.security import create_refresh_token
+
+    fake_redis = _FakeRedis()
+    monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: fake_redis)
+    monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: fake_redis)
+
+    user = _fake_user()
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_id", lambda db, uid: user)
+
+    refresh_token = create_refresh_token(str(USER_ID))
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/v1/auth/refresh",
+            json={},  # no refresh_token in body
+            cookies={"refresh_token": refresh_token},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "access_token" in body
