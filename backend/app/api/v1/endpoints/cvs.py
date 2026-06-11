@@ -281,6 +281,10 @@ def download_cv(
     if not cv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
     file_path = _ensure_downloadable_pdf(cv, db)
+    # Defense-in-depth: confirm the resolved file lives inside this user's directory.
+    user_cv_dir = (Path(settings.STORAGE_DIR) / "cvs" / str(current_user.id)).resolve()
+    if user_cv_dir not in file_path.parents:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     download_name = _pdf_download_name(cv.title, cv.filename)
     return FileResponse(path=str(file_path), media_type=_PDF_MEDIA_TYPE, filename=download_name)
 

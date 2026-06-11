@@ -21,6 +21,11 @@ describe('Formatters Utility', () => {
   });
 
   describe('formatCompactCurrency', () => {
+    it('returns n/a for null or undefined', () => {
+      expect(formatCompactCurrency(null)).toBe('n/a');
+      expect(formatCompactCurrency(undefined)).toBe('n/a');
+    });
+
     it('formats millions with M suffix', () => {
       expect(formatCompactCurrency(1200000)).toBe('$1.2M');
     });
@@ -73,5 +78,26 @@ describe('Formatters Utility', () => {
     it('capitalizes words', () => {
       expect(titleCase('software engineering')).toBe('Software Engineering');
     });
+  });
+});
+
+import { formatShortDate, formatPeriod } from './formatters';
+
+describe('formatShortDate', () => {
+  it('formats ISO date strings to short month/day format', () => {
+    const result = formatShortDate('2026-05-12T00:00:00Z');
+    expect(result).toContain('May');
+  });
+});
+
+describe('formatPeriod', () => {
+  it('formats YYYY-MM-DD strings using formatShortDate', () => {
+    const result = formatPeriod('2026-05-12');
+    expect(result).toContain('May');
+  });
+
+  it('returns non-date strings unchanged', () => {
+    expect(formatPeriod('Q1 2026')).toBe('Q1 2026');
+    expect(formatPeriod('custom period')).toBe('custom period');
   });
 });
