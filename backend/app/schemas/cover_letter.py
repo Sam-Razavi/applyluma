@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.cover_letter_job import CoverLetterStatus, CoverLetterTone
 
@@ -42,8 +42,8 @@ class CoverLetterPreviewResponse(BaseModel):
 
 
 class CoverLetterSaveRequest(BaseModel):
-    saved_text: str
-    title: str | None = None
+    saved_text: str = Field(..., max_length=50_000)
+    title: str | None = Field(default=None, max_length=255)
 
 
 class CoverLetterUsageResponse(BaseModel):

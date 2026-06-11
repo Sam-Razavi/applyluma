@@ -36,6 +36,9 @@ jobs:
       - name: Ruff lint
         run: ruff check app/
 
+      - name: mypy type-check
+        run: mypy app/
+
       - name: pytest
         run: pytest
         env:
@@ -71,3 +74,6 @@ jobs:
 
       - name: Vitest
         run: npm test
+
+      - name: Build
+        run: npm run build

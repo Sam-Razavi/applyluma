@@ -29,7 +29,7 @@ class CVPublic(CVSummary):
 
 
 class CVUpdate(BaseModel):
-    title: str | None = None
+    title: str | None = Field(default=None, max_length=255)
 
 
 class CVVersionNode(BaseModel):

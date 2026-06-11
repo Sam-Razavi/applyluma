@@ -63,6 +63,60 @@ python_version = "3.11"
 strict = true
 ignore_missing_imports = true
 
+# Baseline exclusions: existing modules grandfathered before mypy was enforced in CI.
+# Remove entries here as each module is progressively annotated.
+[[tool.mypy.overrides]]
+module = [
+    "app.api.v1.endpoints.ai",
+    "app.api.v1.endpoints.alert_preferences",
+    "app.api.v1.endpoints.analytics.company_insights",
+    "app.api.v1.endpoints.analytics.comparison",
+    "app.api.v1.endpoints.analytics.experience_levels",
+    "app.api.v1.endpoints.analytics.hiring_patterns",
+    "app.api.v1.endpoints.analytics.industry_breakdown",
+    "app.api.v1.endpoints.analytics.job_market_health",
+    "app.api.v1.endpoints.analytics.job_type_mix",
+    "app.api.v1.endpoints.analytics.location_trends",
+    "app.api.v1.endpoints.analytics.salary_by_skill",
+    "app.api.v1.endpoints.analytics.salary_insights",
+    "app.api.v1.endpoints.analytics.skill_demand",
+    "app.api.v1.endpoints.analytics.trending_skills",
+    "app.api.v1.endpoints.applications",
+    "app.api.v1.endpoints.auth",
+    "app.api.v1.endpoints.billing",
+    "app.api.v1.endpoints.cover_letters",
+    "app.api.v1.endpoints.cvs",
+    "app.api.v1.endpoints.job_descriptions",
+    "app.api.v1.endpoints.job_search",
+    "app.api.v1.endpoints.jobs",
+    "app.api.v1.endpoints.notifications",
+    "app.api.v1.endpoints.saved_jobs",
+    "app.api.v1.endpoints.tailor",
+    "app.core.cache_service",
+    "app.core.dependencies",
+    "app.core.security",
+    "app.crud.admin",
+    "app.crud.job",
+    "app.crud.tailor_job",
+    "app.main",
+    "app.models.job",
+    "app.schemas.job",
+    "app.services.adzuna_service",
+    "app.services.cover_letter_service",
+    "app.services.keyword_extractor",
+    "app.services.matching_service",
+    "app.services.notification_service",
+    "app.services.pdf_generator",
+    "app.services.tailor_service",
+    "app.services.url_scraper",
+    "app.tasks.cover_letter",
+    "app.tasks.matching",
+    "app.tasks.notifications",
+    "app.tasks.sample",
+    "app.tasks.tailor",
+]
+ignore_errors = true
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
