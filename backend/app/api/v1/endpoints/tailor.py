@@ -263,7 +263,12 @@ def download_tailored_cv(
     cv = crud_cv.get_by_id(db, job.output_cv_id, current_user.id)
     if not cv or not cv.file_url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tailored CV file not found")
-    file_path = Path(settings.STORAGE_DIR) / cv.file_url
+    storage_root = Path(settings.STORAGE_DIR).resolve()
+    file_path = (storage_root / cv.file_url).resolve()
+    # Path traversal guard + user-directory ownership check.
+    user_cv_dir = storage_root / "cvs" / str(current_user.id)
+    if storage_root not in file_path.parents or user_cv_dir not in file_path.parents:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     if not file_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")
     download_name = cv.filename or f"{cv.title}.pdf"

@@ -25,7 +25,7 @@
     "@use-gesture/react": "^10.3.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "axios": "^1.7.2",
+    "axios": "^1.7.7",
     "framer-motion": "^11.18.2",
     "posthog-js": "^1.376.4",
     "react": "^18.3.1",
