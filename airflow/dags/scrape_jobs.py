@@ -14,6 +14,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "plugins"))
 sys.path.insert(0, "/opt/airflow/plugins")
+from _alerts import notify_dag_failure
 from job_scrapers.remotive_client import RemotiveClient
 from job_scrapers.the_muse_client import TheMuseClient
 
@@ -169,6 +170,7 @@ default_args = {
     "max_retry_delay": timedelta(minutes=30),
     "email_on_failure": False,
     "email_on_retry": False,
+    "on_failure_callback": notify_dag_failure,
 }
 
 with DAG(
@@ -185,26 +187,31 @@ with DAG(
     t_scrape_remotive = PythonOperator(
         task_id="scrape_remotive_jobs",
         python_callable=scrape_remotive,
+        execution_timeout=timedelta(hours=1),
     )
 
     t_scrape_muse = PythonOperator(
         task_id="scrape_the_muse_jobs",
         python_callable=scrape_the_muse,
+        execution_timeout=timedelta(hours=1),
     )
 
     t_dedup = PythonOperator(
         task_id="deduplicate_jobs",
         python_callable=deduplicate_jobs,
+        execution_timeout=timedelta(hours=2),
     )
 
     t_skills = PythonOperator(
         task_id="extract_skills",
         python_callable=extract_skills,
+        execution_timeout=timedelta(hours=2),
     )
 
     t_summary = PythonOperator(
         task_id="log_scrape_summary",
         python_callable=log_scrape_summary,
+        execution_timeout=timedelta(minutes=30),
     )
 
     [t_scrape_remotive, t_scrape_muse] >> t_dedup >> t_skills >> t_summary

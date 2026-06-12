@@ -1,10 +1,17 @@
 import math
 
 import httpx
+import pybreaker
 
 from app.schemas.job_search import AdzunaJobResult, JobSearchResponse
 
 ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs"
+
+_adzuna_breaker = pybreaker.CircuitBreaker(
+    fail_max=5,
+    reset_timeout=60,
+    name="adzuna",
+)
 
 
 def _empty_response(page: int) -> JobSearchResponse:
@@ -37,6 +44,13 @@ def _map_result(raw: dict) -> AdzunaJobResult:
     )
 
 
+async def _fetch_raw(url: str, params: dict[str, str | int]) -> httpx.Response:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(url, params=params)
+        response.raise_for_status()
+        return response
+
+
 async def search_jobs(
     q: str,
     location: str | None,
@@ -49,19 +63,18 @@ async def search_jobs(
     if not app_id or not app_key:
         return _empty_response(page)
 
+    url = f"{ADZUNA_BASE_URL}/{country}/search/{page}"
+    params: dict[str, str | int] = {
+        "app_id": app_id,
+        "app_key": app_key,
+        "what": q,
+        "where": location or "",
+        "results_per_page": results_per_page,
+    }
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                f"{ADZUNA_BASE_URL}/{country}/search/{page}",
-                params={
-                    "app_id": app_id,
-                    "app_key": app_key,
-                    "what": q,
-                    "where": location or "",
-                    "results_per_page": results_per_page,
-                },
-            )
-            response.raise_for_status()
+        response = await _adzuna_breaker.call_async(_fetch_raw, url, params)
+    except pybreaker.CircuitBreakerError:
+        return _empty_response(page)
     except httpx.HTTPError:
         return _empty_response(page)
 

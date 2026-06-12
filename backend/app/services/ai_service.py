@@ -1,6 +1,7 @@
 import json
 
-from openai import AuthenticationError, OpenAI, RateLimitError
+from openai import APIConnectionError, APITimeoutError, AuthenticationError, OpenAI, RateLimitError
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 
@@ -30,6 +31,22 @@ requirement for [skill]") — never generic career advice
 """
 
 
+@retry(  # type: ignore[misc]
+    wait=wait_exponential(multiplier=1, min=2, max=60),
+    stop=stop_after_attempt(3),
+    retry=retry_if_exception_type((RateLimitError, APITimeoutError, APIConnectionError)),
+    reraise=True,
+)
+def _call_openai(client: OpenAI, messages: list[dict[str, str]]) -> str:
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        max_tokens=1024,
+        response_format={"type": "json_object"},
+        messages=messages,
+    )
+    return response.choices[0].message.content or ""
+
+
 def _keyword_match_score(cv_content: str, keywords: list[str]) -> int:
     if not keywords:
         return 0
@@ -57,24 +74,18 @@ def analyze_cv_match(
         f"## Candidate CV\n{cv_content}"
     )
 
+    messages: list[dict[str, str]] = [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            max_tokens=1024,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": user_message},
-            ],
-        )
+        raw = _call_openai(client, messages)
     except AuthenticationError as exc:
         raise ValueError("AI service authentication failed — check OPENAI_API_KEY") from exc
-    except RateLimitError as exc:
+    except (RateLimitError, APITimeoutError, APIConnectionError) as exc:
         raise ValueError("AI service rate limit exceeded, please try again later") from exc
     except Exception as exc:
         raise ValueError(f"AI API error: {exc}") from exc
-
-    raw = response.choices[0].message.content or ""
 
     try:
         parsed = json.loads(raw)

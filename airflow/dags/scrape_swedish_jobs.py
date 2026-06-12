@@ -23,6 +23,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "plugins"))
 sys.path.insert(0, "/opt/airflow/plugins")
 
+from _alerts import notify_dag_failure
 from job_scrapers.platsbanken_client import PlatsbankenClient
 from job_scrapers.jobbsafari_client import JobbsafariClient
 from job_scrapers.indeed_se_client import IndeedSeClient
@@ -191,6 +192,7 @@ default_args = {
     "max_retry_delay": timedelta(minutes=30),
     "email_on_failure": False,
     "email_on_retry": False,
+    "on_failure_callback": notify_dag_failure,
 }
 
 with DAG(
@@ -207,31 +209,37 @@ with DAG(
     t_pb = PythonOperator(
         task_id="scrape_platsbanken",
         python_callable=scrape_platsbanken,
+        execution_timeout=timedelta(hours=1),
     )
 
     t_js = PythonOperator(
         task_id="scrape_jobbsafari",
         python_callable=scrape_jobbsafari,
+        execution_timeout=timedelta(hours=1),
     )
 
     t_ind = PythonOperator(
         task_id="scrape_indeed_se",
         python_callable=scrape_indeed_se,
+        execution_timeout=timedelta(hours=1),
     )
 
     t_dedup = PythonOperator(
         task_id="deduplicate_swedish_jobs",
         python_callable=deduplicate_swedish_jobs,
+        execution_timeout=timedelta(hours=2),
     )
 
     t_enrich = PythonOperator(
         task_id="enrich_platsbanken_skills",
         python_callable=enrich_platsbanken_skills,
+        execution_timeout=timedelta(hours=2),
     )
 
     t_summary = PythonOperator(
         task_id="log_swedish_scrape_summary",
         python_callable=log_swedish_scrape_summary,
+        execution_timeout=timedelta(minutes=30),
     )
 
     [t_pb, t_js, t_ind] >> t_dedup >> t_enrich >> t_summary
