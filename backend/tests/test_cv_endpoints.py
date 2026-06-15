@@ -136,6 +136,21 @@ async def test_set_default_cv_calls_crud(monkeypatch: pytest.MonkeyPatch) -> Non
     assert response.status_code == 200
     assert response.json()["id"] == str(CV_ID)
 
+
+@pytest.mark.asyncio
+async def test_set_default_cv_triggers_match_scoring(monkeypatch: pytest.MonkeyPatch) -> None:
+    cv = cv_data()
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "get_by_id", lambda db, cv_id, user_id: cv)
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "set_default", lambda db, cv_obj: cv_obj)
+
+    triggered: list = []
+    monkeypatch.setattr(cvs_endpoint, "_enqueue_match_scoring", triggered.append)
+
+    response = await request("PATCH", f"/api/v1/cvs/{CV_ID}/set-default", current_user=user())
+
+    assert response.status_code == 200
+    assert triggered == [USER_ID]
+
 @pytest.mark.asyncio
 async def test_delete_cv_removes_file_and_record(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     cv = cv_data()
@@ -187,6 +202,50 @@ async def test_upload_cv_processes_valid_file(monkeypatch: pytest.MonkeyPatch, t
     # Check if file was actually "stored"
     stored_files = list(fake_storage.glob("cvs/**/*.pdf"))
     assert len(stored_files) == 1
+
+
+@pytest.mark.asyncio
+async def test_upload_first_cv_triggers_match_scoring(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    fake_storage = tmp_path / "storage"
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
+    monkeypatch.setattr(cvs_endpoint, "parse_cv", lambda path, ext: "Parsed Content")
+    # count == 0 → this upload becomes the default CV.
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "count_for_user", lambda db, user_id: 0)
+    monkeypatch.setattr(
+        cvs_endpoint.crud_cv, "create", lambda db, **kwargs: cv_data(is_default=kwargs.get("is_default", False))
+    )
+
+    triggered: list = []
+    monkeypatch.setattr(cvs_endpoint, "_enqueue_match_scoring", triggered.append)
+
+    files = {"file": ("resume.pdf", b"%PDF-1.4 content", "application/pdf")}
+    response = await request("POST", "/api/v1/cvs/upload", current_user=user(), files=files)
+
+    assert response.status_code == 201
+    assert triggered == [USER_ID]
+
+
+@pytest.mark.asyncio
+async def test_upload_non_first_cv_does_not_trigger_match_scoring(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    fake_storage = tmp_path / "storage"
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
+    monkeypatch.setattr(cvs_endpoint, "parse_cv", lambda path, ext: "Parsed Content")
+    # count > 0 → not the default CV, so matching basis is unchanged.
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "count_for_user", lambda db, user_id: 2)
+    monkeypatch.setattr(
+        cvs_endpoint.crud_cv, "create", lambda db, **kwargs: cv_data(is_default=kwargs.get("is_default", False))
+    )
+
+    triggered: list = []
+    monkeypatch.setattr(cvs_endpoint, "_enqueue_match_scoring", triggered.append)
+
+    files = {"file": ("resume.pdf", b"%PDF-1.4 content", "application/pdf")}
+    response = await request("POST", "/api/v1/cvs/upload", current_user=user(), files=files)
+
+    assert response.status_code == 201
+    assert triggered == []
 
 
 @pytest.mark.asyncio
