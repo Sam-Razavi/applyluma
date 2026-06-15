@@ -5,11 +5,13 @@ import uuid
 from typing import Any
 
 from sqlalchemy import desc, nullslast
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.application import Application
+from app.models.cv import CV
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
 from app.schemas.job import SaveJobRequest, UpdateSavedJobRequest
+from app.services.keyword_extractor import KeywordExtractor
 
 # ------------------------------------------------------------------
 # Jobs
@@ -25,6 +27,7 @@ def list_jobs(
     keywords: list[str] | None = None,
     source: str | None = None,
     match_score_min: float | None = None,
+    search: str | None = None,
     page: int = 1,
     limit: int = 20,
     sort: str = "score_desc",
@@ -32,6 +35,7 @@ def list_jobs(
     """Return a paginated list of jobs with match scores for the user."""
     q = (
         db.query(RawJobPosting, JobMatchingScore, Application, SavedJob)
+        .options(selectinload(RawJobPosting.keywords))
         .outerjoin(
             JobMatchingScore,
             (JobMatchingScore.raw_job_posting_id == RawJobPosting.id)
@@ -66,6 +70,11 @@ def list_jobs(
         q = q.filter(RawJobPosting.source == source)
     if match_score_min is not None:
         q = q.filter(JobMatchingScore.overall_score >= match_score_min)
+    if search:
+        q = q.filter(
+            RawJobPosting.title.ilike(f"%{search}%")
+            | RawJobPosting.company.ilike(f"%{search}%")
+        )
     if keywords:
         keyword_ids = (
             db.query(ExtractedKeyword.raw_job_posting_id)
@@ -86,7 +95,9 @@ def list_jobs(
 
     results = []
     for posting, score, application, saved_job in rows:
-        results.append(_job_to_dict(posting, score, application, saved_job))
+        results.append(
+            _job_to_dict(posting, score, application, saved_job, keywords=posting.keywords)
+        )
     return results
 
 
@@ -120,7 +131,17 @@ def get_job_with_score(
         return None
 
     posting, score, application, saved_job = row
-    return _job_to_dict(posting, score, application, saved_job, include_description=True)
+    matched_skills, missing_skills = _compute_skill_gap(db, user_id, posting)
+    return _job_to_dict(
+        posting,
+        score,
+        application,
+        saved_job,
+        include_description=True,
+        keywords=posting.keywords,
+        matched_skills=matched_skills,
+        missing_skills=missing_skills,
+    )
 
 
 def get_job_keywords(
@@ -248,12 +269,50 @@ def delete_saved_job(db: Session, saved: SavedJob) -> None:
 # Private helpers
 # ------------------------------------------------------------------
 
+def _compute_skill_gap(
+    db: Session,
+    user_id: uuid.UUID,
+    posting: RawJobPosting,
+) -> tuple[list[str], list[str]]:
+    """Partition the job's extracted keywords into matched/missing vs the user's CV.
+
+    Reuses the persisted ``extracted_keywords`` for the job (no re-extraction) and
+    compares them against the skills extracted from the user's default CV. Mirrors
+    the skill comparison in ``matching_service.calculate_match_score``.
+    """
+    job_keywords = [kw.keyword for kw in posting.keywords]
+    if not job_keywords:
+        return [], []
+
+    cv = (
+        db.query(CV)
+        .filter(CV.user_id == user_id, CV.is_default.is_(True))
+        .first()
+    )
+    if not cv or not cv.content:
+        return [], []
+
+    extracted = KeywordExtractor().extract_keywords(cv.content)
+    cv_skills: set[str] = {
+        item["keyword"].lower()
+        for items in extracted.values()
+        for item in items
+    }
+
+    matched = [kw for kw in job_keywords if kw.lower() in cv_skills]
+    missing = [kw for kw in job_keywords if kw.lower() not in cv_skills]
+    return matched, missing
+
+
 def _job_to_dict(
     posting: RawJobPosting,
     score: JobMatchingScore | None,
     application: Application | None = None,
     saved_job: SavedJob | None = None,
     include_description: bool = False,
+    keywords: list[ExtractedKeyword] | None = None,
+    matched_skills: list[str] | None = None,
+    missing_skills: list[str] | None = None,
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
         "job_id": posting.id,
@@ -274,7 +333,7 @@ def _job_to_dict(
         "education_match": score.education_match if score else None,
         "location_match": score.location_match if score else None,
         "explanation": score.explanation if score else None,
-        "keywords": [],
+        "keywords": keywords or [],
         "is_saved": saved_job is not None,
         "saved_job_id": saved_job.id if saved_job else None,
         "application_status": application.status if application else None,
@@ -282,6 +341,6 @@ def _job_to_dict(
     }
     if include_description:
         data["description"] = posting.description
-        data["matched_skills"] = []
-        data["missing_skills"] = []
+        data["matched_skills"] = matched_skills or []
+        data["missing_skills"] = missing_skills or []
     return data

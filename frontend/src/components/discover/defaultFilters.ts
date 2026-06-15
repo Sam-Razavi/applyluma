@@ -1,6 +1,7 @@
 import type { JobFilters } from '../../types/jobDiscovery'
 
 export const DEFAULT_FILTERS: JobFilters = {
+  search: '',
   location: '',
   salary_min: '',
   salary_max: '',
