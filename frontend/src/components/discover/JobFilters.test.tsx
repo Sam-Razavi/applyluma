@@ -4,6 +4,7 @@ import JobFilters from './JobFilters'
 import type { JobFilters as JobFiltersType } from '../../types/jobDiscovery'
 
 const defaultFilters: JobFiltersType = {
+  search: '',
   location: '',
   salary_min: '',
   salary_max: '',
@@ -101,8 +102,8 @@ describe('JobFilters', () => {
     const onChange = vi.fn()
     render(<JobFilters filters={defaultFilters} onChange={onChange} onReset={vi.fn()} />)
     const selects = screen.getAllByRole('combobox')
-    fireEvent.change(selects[1], { target: { value: 'platsbanken' } })
-    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, source: 'platsbanken' })
+    fireEvent.change(selects[1], { target: { value: 'the_muse' } })
+    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, source: 'the_muse' })
   })
 
   it('calls onChange when salary_min input changes', () => {
