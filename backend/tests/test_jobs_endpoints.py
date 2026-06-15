@@ -160,6 +160,21 @@ async def test_list_jobs_parses_comma_separated_keywords(monkeypatch: pytest.Mon
 
 
 @pytest.mark.asyncio
+async def test_list_jobs_passes_search_filter(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_list_jobs(db, user_id, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(jobs_endpoint.crud_job, "list_jobs", fake_list_jobs)
+
+    resp = await _request("GET", "/api/v1/jobs?search=python%20developer")
+    assert resp.status_code == 200
+    assert captured["search"] == "python developer"
+
+
+@pytest.mark.asyncio
 async def test_list_jobs_pagination(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
@@ -191,6 +206,23 @@ async def test_get_job_detail_returns_200(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 @pytest.mark.asyncio
+async def test_get_job_detail_surfaces_skill_gap(monkeypatch: pytest.MonkeyPatch) -> None:
+    detail = {
+        **_job_dict(),
+        "description": "Full job description here.",
+        "matched_skills": ["Python", "FastAPI"],
+        "missing_skills": ["Rust"],
+    }
+    monkeypatch.setattr(jobs_endpoint.crud_job, "get_job_with_score", lambda *a, **kw: detail)
+
+    resp = await _request("GET", f"/api/v1/jobs/{JOB_ID}")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["matched_skills"] == ["Python", "FastAPI"]
+    assert body["missing_skills"] == ["Rust"]
+
+
+@pytest.mark.asyncio
 async def test_get_job_detail_returns_404_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(jobs_endpoint.crud_job, "get_job_with_score", lambda *a, **kw: None)
 
@@ -211,6 +243,20 @@ async def test_get_job_keywords_returns_grouped_keywords(monkeypatch: pytest.Mon
     assert resp.status_code == 200
     assert "Python" in resp.json()["technical_skills"]
     assert "FastAPI" in resp.json()["frameworks"]
+
+
+@pytest.mark.asyncio
+async def test_get_job_keywords_requires_auth(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(jobs_endpoint.crud_job, "get_job_keywords", lambda *a, **kw: {})
+
+    # Override only get_db — leave get_current_user to the real dependency.
+    app.dependency_overrides[get_db] = lambda: FakeDb()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get(f"/api/v1/jobs/{JOB_ID}/keywords")
+    assert resp.status_code == 401
 
 
 # ------------------------------------------------------------------

@@ -108,6 +108,21 @@ describe('Discover page', () => {
     })
   })
 
+  it('passes the search term to fetchDiscoveredJobs', async () => {
+    vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockResolvedValue([])
+    renderDiscover()
+    await waitFor(() => expect(jobDiscoveryApi.fetchDiscoveredJobs).toHaveBeenCalled())
+
+    const searchInput = screen.getByPlaceholderText('Job title or company')
+    fireEvent.change(searchInput, { target: { value: 'python' } })
+
+    await waitFor(() => {
+      expect(jobDiscoveryApi.fetchDiscoveredJobs).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'python', page: 1 }),
+      )
+    })
+  })
+
   it('shows error toast when job loading fails', async () => {
     vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockRejectedValue(new Error('Network error'))
     renderDiscover()

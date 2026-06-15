@@ -21,6 +21,7 @@ def list_jobs(
     keywords: Annotated[str | None, Query(description="Comma-separated keywords")] = None,
     source: str | None = None,
     match_score_min: float | None = None,
+    search: Annotated[str | None, Query(description="Search job title or company")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     sort: Annotated[str, Query(pattern="^(score_desc|salary_desc|date_posted)$")] = "score_desc",
@@ -37,6 +38,7 @@ def list_jobs(
         keywords=keyword_list,
         source=source,
         match_score_min=match_score_min,
+        search=search,
         page=page,
         limit=limit,
         sort=sort,
@@ -58,6 +60,7 @@ def get_job_detail(
 @router.get("/{job_id}/keywords", response_model=KeywordsByTypeSchema)
 def get_job_keywords(
     job_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     return crud_job.get_job_keywords(db, job_id=job_id)
