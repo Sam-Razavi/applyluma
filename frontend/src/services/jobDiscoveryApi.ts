@@ -12,6 +12,7 @@ export function fetchDiscoveredJobs(filters: Partial<JobFilters> & { page?: numb
   return client
     .get<DiscoveredJob[]>('/api/v1/jobs', {
       params: {
+        search: filters.search || undefined,
         location: filters.location || undefined,
         salary_min: filters.salary_min || undefined,
         salary_max: filters.salary_max || undefined,

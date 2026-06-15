@@ -62,6 +62,7 @@ export interface SavedJob {
 }
 
 export interface JobFilters {
+  search: string
   location: string
   salary_min: string
   salary_max: string
