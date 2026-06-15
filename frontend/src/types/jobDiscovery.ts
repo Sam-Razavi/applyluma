@@ -72,11 +72,11 @@ export interface JobFilters {
   sort: string
 }
 
-export const JOB_SOURCES = ['platsbanken', 'jobbsafari', 'indeed_se'] as const
+export const JOB_SOURCES = ['JobSearch API', 'the_muse', 'remotive'] as const
 export type JobSource = (typeof JOB_SOURCES)[number]
 
 export const SOURCE_LABELS: Record<string, string> = {
-  platsbanken: 'Platsbanken',
-  jobbsafari: 'Jobbsafari',
-  indeed_se: 'Indeed.se',
+  'JobSearch API': 'JobSearch',
+  the_muse: 'The Muse',
+  remotive: 'Remotive',
 }

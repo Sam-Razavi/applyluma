@@ -38,6 +38,22 @@ def _resolve_extension(content_type: str, original_filename: str) -> str | None:
     return ext if ext in _ALLOWED_EXTENSIONS else None
 
 
+def _enqueue_match_scoring(user_id: uuid.UUID) -> None:
+    """Best-effort: enqueue background match-score computation for the user.
+
+    Match scores power the Discover score breakdown and are otherwise produced
+    only by the scheduled Airflow matching DAG. Triggering here lets a freshly
+    uploaded or newly defaulted CV get scored without waiting for the next run.
+    Any failure (e.g. Celery broker unavailable) must never break the CV request.
+    """
+    try:
+        from app.tasks.matching import compute_job_matching_scores
+
+        compute_job_matching_scores.delay(str(user_id))
+    except Exception:  # noqa: BLE001 — scoring is best-effort, never block the request
+        pass
+
+
 def _check_magic_bytes(data: bytes, ext: str) -> bool:
     signature = _MAGIC_BYTES.get(ext)
     return signature is not None and data[: len(signature)] == signature
@@ -180,6 +196,9 @@ async def upload_cv(
         content=content,
         is_default=is_first,
     )
+    # The default CV is the basis for match scoring; (re)compute when it changes.
+    if is_first:
+        _enqueue_match_scoring(current_user.id)
     return cv
 
 
@@ -268,7 +287,10 @@ def set_default_cv(
     cv = crud_cv.get_by_id(db, cv_id, current_user.id)
     if not cv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
-    return crud_cv.set_default(db, cv)
+    updated = crud_cv.set_default(db, cv)
+    # Default CV changed → refresh match scores against the new comparison basis.
+    _enqueue_match_scoring(current_user.id)
+    return updated
 
 
 @router.get("/{cv_id}/download")
