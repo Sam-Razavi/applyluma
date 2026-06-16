@@ -1,6 +1,5 @@
-import { BookmarkIcon as BookmarkOutline, ClipboardDocumentIcon } from '@heroicons/react/24/outline'
+import { BookmarkIcon as BookmarkOutline } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolid, MapPinIcon, CurrencyDollarIcon, BriefcaseIcon } from '@heroicons/react/24/solid'
-import toast from 'react-hot-toast'
 import type { DiscoveredJob } from '../../types/jobDiscovery'
 import { SOURCE_LABELS } from '../../types/jobDiscovery'
 
@@ -73,20 +72,6 @@ export default function JobCard({ job, onClick, onSave }: Props) {
               {job.application_status ? job.application_status.replace('_', ' ') : 'Applied'}
             </span>
           )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              navigator.clipboard.writeText(job.url).then(
-                () => toast.success('Link copied!'),
-                () => toast.error('Failed to copy link'),
-              )
-            }}
-            className="rounded-lg p-1 text-white/30 transition-colors hover:text-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            aria-label="Copy job link"
-          >
-            <ClipboardDocumentIcon className="h-5 w-5" />
-          </button>
           <button
             type="button"
             onClick={(e) => {
