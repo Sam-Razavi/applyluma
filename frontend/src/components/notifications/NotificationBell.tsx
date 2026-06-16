@@ -40,7 +40,7 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-white/55 transition-colors duration-200 hover:bg-white/[0.06] hover:text-white/90 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         aria-label="Notifications"
         aria-expanded={open}
       >

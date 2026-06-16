@@ -31,7 +31,7 @@ export default function HiringPatternsChart({ data }: Props) {
               <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
           <XAxis dataKey="period" tickFormatter={formatPeriod} tick={CHART_AXIS_TICK} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
           <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
           <Tooltip

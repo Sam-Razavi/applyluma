@@ -113,17 +113,17 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
 
   return (
     <Dialog open={open} onClose={close} className="relative z-50">
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center sm:p-4">
-        <DialogPanel className="flex h-full w-full flex-col rounded-none bg-white shadow-xl sm:h-auto sm:max-h-[90vh] sm:w-[600px] sm:rounded-lg">
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-            <DialogTitle className="text-base font-semibold text-gray-900">
+        <DialogPanel className="flex h-full w-full flex-col rounded-none bg-[#0C1218] shadow-2xl sm:h-auto sm:max-h-[90vh] sm:w-[600px] sm:rounded-lg">
+          <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+            <DialogTitle className="text-base font-semibold text-white/90">
               Add Application
             </DialogTitle>
             <button
               type="button"
               onClick={close}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white/55"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>
@@ -280,7 +280,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
                 type="button"
                 onClick={close}
                 disabled={submitting}
-                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:opacity-50"
+                className="rounded-lg bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/55 transition hover:bg-white/[0.08] disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -310,7 +310,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-gray-700">
+      <span className="mb-1 block text-xs font-medium text-white/55">
         {label}
         {required && <span className="text-red-500"> *</span>}
       </span>

@@ -43,21 +43,21 @@ export default function JobResultCard({ job, onTrack }: Props) {
   }
 
   return (
-    <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
+    <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-sm transition hover:border-primary-600/40 hover:shadow-md">
       <div className="flex items-start gap-4">
-        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50">
-          <BriefcaseIcon className="h-6 w-6 text-brand-600" />
+        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary-900/20">
+          <BriefcaseIcon className="h-6 w-6 text-primary-400" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-base font-semibold text-gray-900">{job.title}</h2>
-          <p className="mt-0.5 text-sm text-gray-500">{job.company_name}</p>
+          <h2 className="text-base font-semibold text-white/90">{job.title}</h2>
+          <p className="mt-0.5 text-sm text-white/30">{job.company_name}</p>
         </div>
         {job.redirect_url && (
           <a
             href={job.redirect_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white/55"
             aria-label="Open job"
           >
             <ArrowTopRightOnSquareIcon className="h-4 w-4" />
@@ -67,23 +67,23 @@ export default function JobResultCard({ job, onTrack }: Props) {
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
         {job.location && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-700">
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2.5 py-1 font-medium text-white/55">
             <MapPinIcon className="h-3.5 w-3.5" />
             {job.location}
           </span>
         )}
-        <span className="rounded-full bg-green-50 px-2.5 py-1 font-medium text-green-700">
+        <span className="rounded-full bg-[rgba(52,195,143,0.14)] px-2.5 py-1 font-medium text-emerald-300">
           {formatSalary(job.salary_min, job.salary_max)}
         </span>
         {job.contract_type && (
-          <span className="rounded-full bg-blue-50 px-2.5 py-1 font-medium text-blue-700">
+          <span className="rounded-full bg-[rgba(8,145,178,0.15)] px-2.5 py-1 font-medium text-cyan-300">
             {job.contract_type}
           </span>
         )}
       </div>
 
       {description && (
-        <p className="mt-4 line-clamp-3 text-sm leading-6 text-gray-600">
+        <p className="mt-4 line-clamp-3 text-sm leading-6 text-white/55">
           {description.slice(0, 320)}
           {description.length > 320 ? '...' : ''}
         </p>

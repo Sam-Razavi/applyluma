@@ -24,7 +24,7 @@ export default function TrendingSkillsChart({ data }: Props) {
       <div className="h-48 w-full md:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 24, left: 80, bottom: 5 }}>
-          <XAxis type="number" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
+          <XAxis type="number" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.35)' }} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
           <YAxis type="category" dataKey="name" width={110} tick={CHART_DARK_AXIS_TICK} axisLine={false} tickLine={false} />
           <Tooltip
             formatter={(value, _name, props) => [

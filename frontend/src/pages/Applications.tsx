@@ -121,8 +121,8 @@ export default function Applications() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-white/90">Applications</h1>
+          <p className="mt-1 text-sm text-white/30">
             Track every opportunity from wishlist to offer.
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function Applications() {
             <button
               type="button"
               onClick={() => exportApplicationsToCsv(applications)}
-              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white/55 transition hover:bg-white/[0.04]"
               title="Export all applications to CSV"
             >
               <ArrowDownTrayIcon className="h-4 w-4" />
@@ -144,8 +144,8 @@ export default function Applications() {
               onClick={toggleSelectMode}
               className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
                 isSelectMode
-                  ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] text-red-300 hover:bg-[rgba(229,72,77,0.12)]'
+                  : 'border-white/15 bg-white/[0.04] text-white/55 hover:bg-white/[0.04]'
               }`}
             >
               {isSelectMode ? (
@@ -174,7 +174,7 @@ export default function Applications() {
         </div>
       </div>
 
-      <div className="flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+      <div className="flex rounded-xl border border-white/10 bg-white/[0.04] p-1 shadow-sm">
         {[
           { id: 'board', label: 'Board' },
           { id: 'stats', label: 'My Stats' },
@@ -186,7 +186,7 @@ export default function Applications() {
             className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
               activeTab === tab.id
                 ? 'bg-brand-600 text-white shadow-sm'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                : 'text-white/30 hover:bg-white/[0.04] hover:text-white/90'
             }`}
           >
             {tab.label}
@@ -200,14 +200,14 @@ export default function Applications() {
         <>
           <ApplicationStats stats={stats} />
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
               <input
                 value={filters.search}
                 onChange={(e) => setFilters({ search: e.target.value })}
                 placeholder="Search by company, role, location, or source..."
-                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -217,7 +217,7 @@ export default function Applications() {
                   setFilters({ status: e.target.value as ApplicationStatus | '' })
                   queueMicrotask(() => void fetchApplications())
                 }}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">All statuses</option>
                 {APPLICATION_STATUSES.map((status) => (
@@ -231,8 +231,8 @@ export default function Applications() {
                 onClick={() => setStaleFilter((prev) => !prev)}
                 className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
                   staleFilter
-                    ? 'border-amber-400 bg-amber-50 text-amber-700'
-                    : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                    ? 'border-amber-400 bg-[rgba(245,158,11,0.14)] text-amber-300'
+                    : 'border-white/10 bg-white/[0.04] text-white/30 hover:bg-white/[0.04] hover:text-white/55'
                 }`}
                 title={`Show applications with no activity in ${STALE_DAYS}+ days`}
               >
@@ -241,7 +241,7 @@ export default function Applications() {
                 {staleCount > 0 && (
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${
-                      staleFilter ? 'bg-amber-200 text-amber-800' : 'bg-gray-100 text-gray-600'
+                      staleFilter ? 'bg-amber-200 text-amber-300' : 'bg-white/[0.04] text-white/55'
                     }`}
                   >
                     {staleCount}
@@ -252,14 +252,14 @@ export default function Applications() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="flex items-center gap-2 rounded-xl border border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] px-4 py-3 text-sm text-red-300">
               <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
               {error}
             </div>
           )}
 
           {isSelectMode && (
-            <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+            <div className="flex items-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-3 text-sm text-primary-400">
               <CheckCircleIcon className="h-4 w-4 flex-shrink-0" />
               Click cards to select them, then use the action bar to delete.
             </div>
@@ -268,19 +268,19 @@ export default function Applications() {
           {isLoading ? (
             <div className="grid gap-4 md:grid-cols-3">
               {[...Array(6)].map((_, index) => (
-                <div key={index} className="h-36 animate-pulse rounded-2xl bg-gray-100" />
+                <div key={index} className="h-36 animate-pulse rounded-2xl bg-white/[0.04]" />
               ))}
             </div>
           ) : filteredApplications.length === 0 ? (
-            <div className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center">
-              <h2 className="text-sm font-semibold text-gray-900">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+              <h2 className="text-sm font-semibold text-white/90">
                 {staleFilter
                   ? 'No stale applications'
                   : filters.search
                     ? 'No matching applications'
                     : 'No applications yet'}
               </h2>
-              <p className="mt-1 text-sm text-gray-400">
+              <p className="mt-1 text-sm text-white/30">
                 {staleFilter
                   ? `All active applications have had activity in the last ${STALE_DAYS} days.`
                   : filters.search
@@ -291,7 +291,7 @@ export default function Applications() {
                 <button
                   type="button"
                   onClick={() => setAddOpen(true)}
-                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-400 transition hover:text-primary-300"
                 >
                   <PlusIcon className="h-4 w-4" />
                   Add an application
@@ -322,16 +322,16 @@ export default function Applications() {
 
       {/* Bulk action bar */}
       {isSelectMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white px-4 py-4 shadow-xl">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-white/[0.04] px-4 py-4 shadow-xl">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-            <span className="text-sm font-semibold text-gray-700">
+            <span className="text-sm font-semibold text-white/55">
               {selectedIds.size} application{selectedIds.size > 1 ? 's' : ''} selected
             </span>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-sm text-white/30 hover:text-white/55"
               >
                 Clear
               </button>

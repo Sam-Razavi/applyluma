@@ -193,11 +193,11 @@ export default function CoverLetter() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-          <PencilSquareIcon className="h-7 w-7 text-brand-500" />
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-white/90">
+          <PencilSquareIcon className="h-7 w-7 text-primary-400" />
           Cover Letter Generator
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-white/30">
           Generate a tailored cover letter for any job description, then edit and save it.
         </p>
       </div>
@@ -281,9 +281,9 @@ function UsageBanner({ usage }: { usage: CoverLetterUsage }) {
       : `${usage.used_today} of ${usage.daily_limit} cover letters used today.`
 
   return (
-    <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
-      <p className="text-sm font-medium text-brand-900">{label}</p>
-      <p className="mt-0.5 text-xs text-brand-700">Resets at {resetTime} UTC.</p>
+    <div className="rounded-xl border border-brand-100 bg-primary-900/20 px-4 py-3">
+      <p className="text-sm font-medium text-white/90">{label}</p>
+      <p className="mt-0.5 text-xs text-primary-400">Resets at {resetTime} UTC.</p>
     </div>
   )
 }
@@ -320,21 +320,21 @@ function SelectStep({
   atLimit,
 }: SelectStepProps) {
   return (
-    <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6">
+    <div className="space-y-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
       <div>
-        <h2 className="text-sm font-semibold text-gray-700">Select CV and job description</h2>
-        <p className="mt-1 text-xs text-gray-400">
+        <h2 className="text-sm font-semibold text-white/55">Select CV and job description</h2>
+        <p className="mt-1 text-xs text-white/30">
           The AI will read your CV and the job description to generate a personalised cover letter.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-gray-600">Your CV</label>
+          <label className="block text-xs font-medium text-white/55">Your CV</label>
           {loading ? (
-            <div className="h-10 animate-pulse rounded-lg bg-gray-100" />
+            <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
           ) : cvs.length === 0 ? (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-white/30">
               No CVs found.{' '}
               <a href="/cvs" className="underline">
                 Upload one
@@ -358,11 +358,11 @@ function SelectStep({
         </div>
 
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-gray-600">Target job</label>
+          <label className="block text-xs font-medium text-white/55">Target job</label>
           {loading ? (
-            <div className="h-10 animate-pulse rounded-lg bg-gray-100" />
+            <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
           ) : jobs.length === 0 ? (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-white/30">
               No job descriptions found.{' '}
               <a href="/jobs" className="underline">
                 Add one
@@ -386,7 +386,7 @@ function SelectStep({
       </div>
 
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-gray-600">Tone</label>
+        <label className="block text-xs font-medium text-white/55">Tone</label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {TONE_OPTIONS.map((option) => (
             <button
@@ -395,12 +395,12 @@ function SelectStep({
               onClick={() => onToneChange(option.value)}
               className={`rounded-xl border p-3 text-left transition-colors ${
                 tone === option.value
-                  ? 'border-brand-400 bg-brand-50 ring-1 ring-brand-400'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-primary-500/50 bg-primary-900/20 ring-1 ring-brand-400'
+                  : 'border-white/10 bg-white/[0.04] hover:border-white/20'
               }`}
             >
-              <p className="text-sm font-semibold text-gray-800">{option.label}</p>
-              <p className="mt-0.5 text-xs text-gray-500">{option.description}</p>
+              <p className="text-sm font-semibold text-white/90">{option.label}</p>
+              <p className="mt-0.5 text-xs text-white/30">{option.description}</p>
             </button>
           ))}
         </div>
@@ -426,7 +426,7 @@ function SelectStep({
       </button>
 
       {atLimit && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-red-300">
           Daily limit reached. Try again after the reset time or upgrade to premium.
         </p>
       )}
@@ -454,8 +454,8 @@ function ProcessingStep() {
   }, [])
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-8">
-      <h2 className="mb-6 text-base font-semibold text-gray-900">Generating your cover letter</h2>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8">
+      <h2 className="mb-6 text-base font-semibold text-white/90">Generating your cover letter</h2>
       <ol className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {steps.map((s, index) => {
           const done = index < activeStep
@@ -464,7 +464,7 @@ function ProcessingStep() {
             <li key={s.label} className="flex min-w-0 items-start gap-3 sm:flex-1">
               <div
                 className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                  done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-gray-200'
+                  done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-white/[0.06]'
                 }`}
               >
                 {done && (
@@ -474,10 +474,10 @@ function ProcessingStep() {
                 )}
               </div>
               <div>
-                <p className={`text-sm font-medium ${active ? 'text-gray-900' : done ? 'text-gray-500' : 'text-gray-400'}`}>
+                <p className={`text-sm font-medium ${active ? 'text-white/90' : done ? 'text-white/30' : 'text-white/30'}`}>
                   {s.label}
                 </p>
-                {active && <p className="mt-0.5 text-xs text-gray-400">{s.sublabel}</p>}
+                {active && <p className="mt-0.5 text-xs text-white/30">{s.sublabel}</p>}
               </div>
             </li>
           )
@@ -513,21 +513,21 @@ function EditStep({
   onBack,
 }: EditStepProps) {
   return (
-    <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6">
+    <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Edit your cover letter</h2>
-          <p className="mt-0.5 text-xs text-gray-400">
+          <h2 className="text-base font-semibold text-white/90">Edit your cover letter</h2>
+          <p className="mt-0.5 text-xs text-white/30">
             Review and refine before saving. Changes are only saved when you click Save.
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
+        <span className="shrink-0 rounded-full bg-white/[0.04] px-2.5 py-0.5 text-xs font-medium text-white/30">
           {wordCount} words
         </span>
       </div>
 
       <div className="space-y-1">
-        <label className="block text-xs font-medium text-gray-600">Title (optional)</label>
+        <label className="block text-xs font-medium text-white/55">Title (optional)</label>
         <input
           type="text"
           className="input w-full"
@@ -567,7 +567,7 @@ function EditStep({
         <button
           type="button"
           onClick={onCopy}
-          className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04]"
         >
           <ClipboardDocumentIcon className="h-4 w-4" />
           Copy
@@ -576,7 +576,7 @@ function EditStep({
         <button
           type="button"
           onClick={onDownload}
-          className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04]"
         >
           <DocumentTextIcon className="h-4 w-4" />
           Download .txt
@@ -585,7 +585,7 @@ function EditStep({
         <button
           type="button"
           onClick={onBack}
-          className="ml-auto text-sm text-gray-400 hover:text-gray-600"
+          className="ml-auto text-sm text-white/30 hover:text-white/55"
         >
           Start over
         </button>
@@ -604,16 +604,16 @@ interface DoneStepProps {
 
 function DoneStep({ letterTitle, savedText, onReset, onCopy, onDownload }: DoneStepProps) {
   return (
-    <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6">
+    <div className="space-y-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
       <div className="flex items-center gap-3">
         <CheckCircleIcon className="h-8 w-8 text-green-500" />
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Cover letter saved!</h2>
-          {letterTitle && <p className="text-sm text-gray-500">{letterTitle}</p>}
+          <h2 className="text-base font-semibold text-white/90">Cover letter saved!</h2>
+          {letterTitle && <p className="text-sm text-white/30">{letterTitle}</p>}
         </div>
       </div>
 
-      <pre className="max-h-[400px] overflow-y-auto whitespace-pre-wrap rounded-xl bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+      <pre className="max-h-[400px] overflow-y-auto whitespace-pre-wrap rounded-xl bg-white/[0.03] p-4 text-sm leading-relaxed text-white/55">
         {savedText}
       </pre>
 
@@ -621,7 +621,7 @@ function DoneStep({ letterTitle, savedText, onReset, onCopy, onDownload }: DoneS
         <button
           type="button"
           onClick={onCopy}
-          className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04]"
         >
           <ClipboardDocumentIcon className="h-4 w-4" />
           Copy
@@ -630,7 +630,7 @@ function DoneStep({ letterTitle, savedText, onReset, onCopy, onDownload }: DoneS
         <button
           type="button"
           onClick={onDownload}
-          className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04]"
         >
           <DocumentTextIcon className="h-4 w-4" />
           Download .txt
@@ -659,30 +659,30 @@ function HistorySection({ history, loading, onDelete }: HistorySectionProps) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between px-6 py-4 text-sm font-semibold text-gray-700"
+        className="flex w-full items-center justify-between px-6 py-4 text-sm font-semibold text-white/55"
       >
         <span>History ({history.length})</span>
-        <span className="text-gray-400">{open ? '▲' : '▼'}</span>
+        <span className="text-white/30">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
-        <div className="divide-y divide-gray-100 border-t border-gray-100">
+        <div className="divide-y divide-white/10 border-t border-white/10">
           {loading ? (
-            <div className="px-6 py-4 text-sm text-gray-400">Loading…</div>
+            <div className="px-6 py-4 text-sm text-white/30">Loading…</div>
           ) : history.length === 0 ? (
-            <div className="px-6 py-4 text-sm text-gray-400">No cover letters yet.</div>
+            <div className="px-6 py-4 text-sm text-white/30">No cover letters yet.</div>
           ) : (
             history.map((job) => (
               <div key={job.id} className="flex items-center justify-between gap-4 px-6 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-gray-800">
+                  <p className="truncate text-sm font-medium text-white/90">
                     {job.title || 'Untitled cover letter'}
                   </p>
-                  <p className="mt-0.5 text-xs text-gray-400">
+                  <p className="mt-0.5 text-xs text-white/30">
                     {job.tone} · {job.status} ·{' '}
                     {new Date(job.created_at).toLocaleDateString()}
                   </p>
@@ -690,7 +690,7 @@ function HistorySection({ history, loading, onDelete }: HistorySectionProps) {
                 <button
                   type="button"
                   onClick={() => onDelete(job.id)}
-                  className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                  className="shrink-0 rounded-lg p-1.5 text-white/30 hover:bg-[rgba(229,72,77,0.12)] text-red-300"
                   title="Delete"
                 >
                   <TrashIcon className="h-4 w-4" />
