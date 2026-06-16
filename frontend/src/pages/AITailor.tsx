@@ -165,11 +165,11 @@ export default function AITailor() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-          <SparklesIcon className="h-7 w-7 text-brand-500" />
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-white/90">
+          <SparklesIcon className="h-7 w-7 text-primary-400" />
           AI CV Tailor
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-white/30">
           Rewrite your CV for a specific job, review every section, and save a tailored PDF.
         </p>
       </div>
@@ -239,9 +239,9 @@ function UsageBanner({ usage }: { usage: TailorUsage }) {
       : `${usage.used_today} of ${usage.daily_limit} tailoring runs used today.`
 
   return (
-    <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
-      <p className="text-sm font-medium text-brand-900">{label}</p>
-      <p className="mt-0.5 text-xs text-brand-700">Resets at {resetTime} UTC.</p>
+    <div className="rounded-xl border border-brand-100 bg-primary-900/20 px-4 py-3">
+      <p className="text-sm font-medium text-white/90">{label}</p>
+      <p className="mt-0.5 text-xs text-primary-400">Resets at {resetTime} UTC.</p>
     </div>
   )
 }
@@ -286,10 +286,10 @@ function SelectStep({
   atLimit,
 }: SelectStepProps) {
   return (
-    <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6">
+    <div className="space-y-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
       <div>
-        <h2 className="text-sm font-semibold text-gray-700">Select source CV and target job</h2>
-        <p className="mt-1 text-xs text-gray-400">
+        <h2 className="text-sm font-semibold text-white/55">Select source CV and target job</h2>
+        <p className="mt-1 text-xs text-white/30">
           The original CV remains unchanged. A tailored copy is created only after you save.
         </p>
       </div>
@@ -309,9 +309,9 @@ function SelectStep({
           }))}
         />
         {rawJobPostingId ? (
-          <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-2.5">
-            <p className="text-xs font-medium uppercase tracking-wide text-brand-700">Target job</p>
-            <p className="mt-1 text-sm font-semibold text-brand-900">
+          <div className="rounded-lg border border-brand-100 bg-primary-900/20 px-3 py-2.5">
+            <p className="text-xs font-medium uppercase tracking-wide text-primary-400">Target job</p>
+            <p className="mt-1 text-sm font-semibold text-white/90">
               {rawJob ? `${rawJob.title} @ ${rawJob.company}` : 'Loading discovered job'}
             </p>
           </div>
@@ -341,7 +341,7 @@ function SelectStep({
       )}
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700">Tailoring intensity</h3>
+        <h3 className="text-sm font-semibold text-white/55">Tailoring intensity</h3>
         <IntensitySelector value={intensity} onChange={onIntensityChange} />
       </div>
 
@@ -365,7 +365,7 @@ function SelectStep({
       </button>
 
       {atLimit && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-red-300">
           Daily tailoring limit reached. Try again after the reset time.
         </p>
       )}
@@ -396,13 +396,13 @@ function Selector({
 }: SelectorProps) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wide text-gray-600">{label}</label>
+      <label className="text-xs font-medium uppercase tracking-wide text-white/55">{label}</label>
       {loading ? (
-        <div className="h-10 animate-pulse rounded-lg bg-gray-100" />
+        <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
       ) : options.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-sm text-gray-400">
+        <div className="flex items-center gap-2 rounded-lg border border-dashed border-white/15 px-3 py-2.5 text-sm text-white/30">
           {emptyMessage}
-          <Link to={emptyHref} className="text-brand-600 hover:underline">
+          <Link to={emptyHref} className="text-primary-400 hover:underline">
             {emptyLinkLabel}
           </Link>
         </div>
@@ -410,7 +410,7 @@ function Selector({
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         >
           <option value="">Choose...</option>
           {options.map((option) => (
@@ -426,7 +426,7 @@ function Selector({
 
 function Pill({ children }: { children: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-900/20 px-2.5 py-1 text-xs font-medium text-primary-400">
       <CheckCircleIcon className="h-3.5 w-3.5" />
       {children}
     </span>
@@ -458,12 +458,12 @@ function PreviewStep({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Review section changes</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <h2 className="text-base font-semibold text-white/90">Review section changes</h2>
+          <p className="mt-1 text-sm text-white/30">
             Accepted sections use tailored text. Rejected sections keep the original text.
           </p>
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-white/30">
           {acceptedIds.size} of {preview.sections.length} accepted
         </div>
       </div>
@@ -479,22 +479,22 @@ function PreviewStep({
         ))}
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <label className="text-xs font-medium uppercase tracking-wide text-gray-600">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+        <label className="text-xs font-medium uppercase tracking-wide text-white/55">
           Saved CV title
         </label>
         <input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Tailored CV"
-          className="mt-1.5 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="mt-1.5 w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={onBack}
             disabled={saving}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+            className="rounded-lg bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.08] disabled:opacity-50"
           >
             Start over
           </button>
@@ -537,12 +537,12 @@ function DoneStep({
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-green-50">
-        <DocumentTextIcon className="h-6 w-6 text-green-600" />
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[rgba(52,195,143,0.14)]">
+        <DocumentTextIcon className="h-6 w-6 text-emerald-300" />
       </div>
-      <h2 className="mt-4 text-lg font-semibold text-gray-900">Tailored CV saved</h2>
-      <p className="mt-1 text-sm text-gray-500">
+      <h2 className="mt-4 text-lg font-semibold text-white/90">Tailored CV saved</h2>
+      <p className="mt-1 text-sm text-white/30">
         Your tailored PDF was saved as a new CV. The original remains unchanged.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -561,14 +561,14 @@ function DoneStep({
         </button>
         <Link
           to="/cvs"
-          className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+          className="rounded-lg bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.08]"
         >
           View in My CVs
         </Link>
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+          className="rounded-lg bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.08]"
         >
           Tailor another
         </button>

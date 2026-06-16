@@ -33,12 +33,12 @@ export function IntensitySelector({ value, onChange }: Props) {
           onClick={() => onChange(option.value)}
           className={`min-h-[112px] rounded-xl border-2 p-4 text-left transition-colors ${
             value === option.value
-              ? 'border-brand-500 bg-brand-50'
-              : 'border-gray-200 bg-white hover:border-gray-300'
+              ? 'border-brand-500 bg-primary-900/20'
+              : 'border-white/10 bg-white/[0.04] hover:border-white/20'
           }`}
         >
-          <p className="text-sm font-semibold text-gray-900">{option.label}</p>
-          <p className="mt-1 text-xs leading-5 text-gray-500">{option.description}</p>
+          <p className="text-sm font-semibold text-white/90">{option.label}</p>
+          <p className="mt-1 text-xs leading-5 text-white/30">{option.description}</p>
         </button>
       ))}
     </div>

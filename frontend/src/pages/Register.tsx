@@ -28,7 +28,7 @@ const schema = z
 type FormData = z.infer<typeof schema>
 
 const inputClass =
-  'w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition'
+  'w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -55,9 +55,9 @@ export default function Register() {
     const capped = Math.min(score, 3)
     const meta = [
       { label: '', textColor: '' },
-      { label: 'Weak', textColor: 'text-red-600' },
-      { label: 'Fair', textColor: 'text-amber-600' },
-      { label: 'Strong', textColor: 'text-green-600' },
+      { label: 'Weak', textColor: 'text-red-300' },
+      { label: 'Fair', textColor: 'text-amber-300' },
+      { label: 'Strong', textColor: 'text-emerald-300' },
     ][capped]
     return { score: capped, ...meta }
   }, [passwordValue])
@@ -80,19 +80,19 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white/[0.03] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link to="/" className="text-3xl font-bold text-gray-900 tracking-tight hover:text-primary-600 transition-colors">ApplyLuma</Link>
-        <p className="mt-2 text-gray-500">Create your free account</p>
+        <Link to="/" className="text-3xl font-bold text-white/90 tracking-tight hover:text-primary-300 transition-colors">ApplyLuma</Link>
+        <p className="mt-2 text-white/30">Create your free account</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-8 shadow-sm rounded-2xl border border-gray-200">
+        <div className="bg-white/[0.04] py-8 px-8 shadow-sm rounded-2xl border border-white/10">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
             <div>
-              <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="full_name" className="block text-sm font-medium text-white/55 mb-1">
                 Full name{' '}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                <span className="text-white/30 font-normal">(optional)</span>
               </label>
               <input
                 id="full_name"
@@ -103,12 +103,12 @@ export default function Register() {
                 className={inputClass}
               />
               {errors.full_name && (
-                <p className="mt-1 text-xs text-red-600">{errors.full_name.message}</p>
+                <p className="mt-1 text-xs text-red-300">{errors.full_name.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-white/55 mb-1">
                 Email
               </label>
               <input
@@ -120,12 +120,12 @@ export default function Register() {
                 className={inputClass}
               />
               {errors.email && (
-                <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-xs text-red-300">{errors.email.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-white/55 mb-1">
                 Password
               </label>
               <div className="relative">
@@ -140,7 +140,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/55"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
@@ -155,25 +155,25 @@ export default function Register() {
                         className={`h-1 flex-1 rounded-full transition-all duration-300 ${
                           strength.score >= level
                             ? level === 1 ? 'bg-red-500' : level === 2 ? 'bg-amber-500' : 'bg-green-500'
-                            : 'bg-gray-200'
+                            : 'bg-white/[0.06]'
                         }`}
                       />
                     ))}
                   </div>
                   {strength.label && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-white/30">
                       Strength: <span className={`font-medium ${strength.textColor}`}>{strength.label}</span>
                     </p>
                   )}
                 </div>
               )}
               {errors.password && (
-                <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-xs text-red-300">{errors.password.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="confirm_password" className="block text-sm font-medium text-white/55 mb-1">
                 Confirm password
               </label>
               <div className="relative">
@@ -188,14 +188,14 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => setShowConfirm((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/55"
                   aria-label={showConfirm ? 'Hide password' : 'Show password'}
                 >
                   {showConfirm ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
               {errors.confirm_password && (
-                <p className="mt-1 text-xs text-red-600">{errors.confirm_password.message}</p>
+                <p className="mt-1 text-xs text-red-300">{errors.confirm_password.message}</p>
               )}
             </div>
 
@@ -208,9 +208,9 @@ export default function Register() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500">
+          <p className="mt-6 text-center text-sm text-white/30">
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-brand-600 hover:underline">
+            <Link to="/login" className="font-medium text-primary-400 hover:underline">
               Sign in
             </Link>
           </p>

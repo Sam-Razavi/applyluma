@@ -24,22 +24,22 @@ export default function CheckEmail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white/[0.03] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-100">
-          <EnvelopeIcon className="h-8 w-8 text-brand-600" />
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-900/30">
+          <EnvelopeIcon className="h-8 w-8 text-primary-400" />
         </div>
-        <h1 className="mt-6 text-2xl font-bold text-gray-900">Check your email</h1>
-        <p className="mt-3 text-sm text-gray-500">
+        <h1 className="mt-6 text-2xl font-bold text-white/90">Check your email</h1>
+        <p className="mt-3 text-sm text-white/30">
           We sent a verification link to{' '}
-          {email ? <span className="font-medium text-gray-700">{email}</span> : 'your email address'}.
+          {email ? <span className="font-medium text-white/55">{email}</span> : 'your email address'}.
           Click it to activate your account.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-8 shadow-sm rounded-2xl border border-gray-200 text-center space-y-4">
-          <p className="text-sm text-gray-500">Didn't get it? Check your spam folder, or</p>
+        <div className="bg-white/[0.04] py-8 px-8 shadow-sm rounded-2xl border border-white/10 text-center space-y-4">
+          <p className="text-sm text-white/30">Didn't get it? Check your spam folder, or</p>
           <button
             type="button"
             onClick={handleResend}
@@ -48,9 +48,9 @@ export default function CheckEmail() {
           >
             {resent ? 'Email sent ✓' : resending ? 'Sending…' : 'Resend verification email'}
           </button>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-white/30">
             Already verified?{' '}
-            <Link to="/login" className="font-medium text-brand-600 hover:underline">
+            <Link to="/login" className="font-medium text-primary-400 hover:underline">
               Sign in
             </Link>
           </p>

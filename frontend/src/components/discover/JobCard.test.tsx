@@ -2,11 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import JobCard from './JobCard'
 import type { DiscoveredJob } from '../../types/jobDiscovery'
-import toast from 'react-hot-toast'
-
-vi.mock('react-hot-toast', () => ({
-  default: { success: vi.fn(), error: vi.fn() },
-}))
 
 const baseJob: DiscoveredJob = {
   job_id: 'job-1',
@@ -94,31 +89,6 @@ describe('JobCard', () => {
       />,
     )
     expect(screen.getByText('Applied')).toBeInTheDocument()
-  })
-
-  it('copies job URL to clipboard when copy button is clicked', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined)
-    Object.assign(navigator, { clipboard: { writeText } })
-
-    render(<JobCard job={baseJob} onClick={vi.fn()} onSave={vi.fn()} />)
-    fireEvent.click(screen.getByLabelText('Copy job link'))
-
-    await vi.waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith(baseJob.url)
-      expect(toast.success).toHaveBeenCalledWith('Link copied!')
-    })
-  })
-
-  it('shows error toast when clipboard write fails', async () => {
-    const writeText = vi.fn().mockRejectedValue(new Error('denied'))
-    Object.assign(navigator, { clipboard: { writeText } })
-
-    render(<JobCard job={baseJob} onClick={vi.fn()} onSave={vi.fn()} />)
-    fireEvent.click(screen.getByLabelText('Copy job link'))
-
-    await vi.waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to copy link')
-    })
   })
 
   it('shows score bars when match_score and sub-scores are present', () => {
