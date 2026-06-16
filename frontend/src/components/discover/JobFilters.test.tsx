@@ -114,7 +114,8 @@ describe('JobFilters', () => {
     const onChange = vi.fn()
     render(<JobFilters filters={defaultFilters} onChange={onChange} onReset={vi.fn()} />)
     const selects = screen.getAllByRole('combobox')
-    fireEvent.change(selects[1], { target: { value: 'the_muse' } })
+    // order: sort select [0], location combobox [1], source select [2]
+    fireEvent.change(selects[2], { target: { value: 'the_muse' } })
     expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, source: 'the_muse' })
   })
 
