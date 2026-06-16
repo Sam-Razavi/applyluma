@@ -67,14 +67,14 @@ def bookmark_external_job(
         except Exception:
             log.exception("Instant scoring failed for posting %s — skipping", posting.id)
 
-    return saved
+    return SavedJobSchema.model_validate(saved)
 
 
 @router.get("/saved-urls")
 def get_saved_urls(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict:
+) -> dict[str, list[str]]:
     """Return all job URLs the current user has bookmarked via the extension.
 
     Used by the extension background worker to populate the badge cache.
