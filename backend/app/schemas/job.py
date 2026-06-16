@@ -18,6 +18,7 @@ class RawJobPostingSummary(BaseModel):
     salary_max: int | None
     employment_type: str | None
     remote_allowed: bool
+    is_remote: bool
     url: str
     scraped_at: datetime
 
@@ -85,6 +86,7 @@ class JobWithScoreSchema(BaseModel):
     salary_max: int | None
     employment_type: str | None
     remote_allowed: bool
+    is_remote: bool
     url: str
     source: str
     scraped_at: datetime

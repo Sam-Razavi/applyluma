@@ -22,6 +22,7 @@ function hasActiveFilters(f: JobFilters): boolean {
     !!f.salary_max ||
     !!f.keywords ||
     !!f.source ||
+    f.remote_only ||
     !!f.match_score_min
   )
 }
@@ -29,7 +30,7 @@ function hasActiveFilters(f: JobFilters): boolean {
 export default function JobFilters({ filters, onChange, onReset }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  function set(key: keyof JobFilters, value: string) {
+  function set(key: keyof JobFilters, value: string | boolean) {
     onChange({ ...filters, [key]: value })
   }
 
@@ -149,6 +150,17 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
             ))}
           </select>
         </div>
+
+        {/* Remote only */}
+        <label className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-white/75">
+          <input
+            type="checkbox"
+            checked={filters.remote_only}
+            onChange={(e) => set('remote_only', e.target.checked)}
+            className="h-4 w-4 rounded border-white/20 text-primary-500 focus:ring-primary-500"
+          />
+          Remote only
+        </label>
 
         {/* Match score */}
         <div>

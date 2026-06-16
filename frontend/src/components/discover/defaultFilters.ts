@@ -7,6 +7,7 @@ export const DEFAULT_FILTERS: JobFilters = {
   salary_max: '',
   keywords: '',
   source: '',
+  remote_only: false,
   match_score_min: '',
   sort: 'score_desc',
 }

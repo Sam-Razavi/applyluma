@@ -18,6 +18,7 @@ export function fetchDiscoveredJobs(filters: Partial<JobFilters> & { page?: numb
         salary_max: filters.salary_max || undefined,
         keywords: filters.keywords || undefined,
         source: filters.source || undefined,
+        is_remote: filters.remote_only ? true : undefined,
         match_score_min: filters.match_score_min || undefined,
         sort: filters.sort || 'score_desc',
         page: filters.page ?? 1,

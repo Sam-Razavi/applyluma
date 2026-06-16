@@ -74,6 +74,7 @@ def _posting() -> SimpleNamespace:
         salary_max=None,
         employment_type=None,
         remote_allowed=False,
+        is_remote=False,
         scraped_at=NOW,
         created_at=NOW,
     )
