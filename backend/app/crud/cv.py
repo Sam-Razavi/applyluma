@@ -1,7 +1,6 @@
 import uuid
 from typing import Any
 
-from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.models.cv import CV
@@ -45,16 +44,13 @@ def create(
 
 
 def set_default(db: Session, cv: CV) -> CV:
-    # Single atomic UPDATE: set target CV to True, all others for this user to
-    # False. Using CASE avoids the check-then-set race condition that two
-    # separate UPDATE statements would have.
+    # Clear is_default on any other CV for this user, then set it on the target.
     db.query(CV).filter(
         CV.user_id == cv.user_id,
-        (CV.id == cv.id) | CV.is_default.is_(True),
-    ).update(
-        {"is_default": case((CV.id == cv.id, True), else_=False)},
-        synchronize_session="fetch",
-    )
+        CV.id != cv.id,
+        CV.is_default.is_(True),
+    ).update({"is_default": False}, synchronize_session="fetch")
+    cv.is_default = True
     db.commit()
     db.refresh(cv)
     return cv
