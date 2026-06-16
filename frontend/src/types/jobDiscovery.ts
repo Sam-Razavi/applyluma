@@ -74,11 +74,15 @@ export interface JobFilters {
   sort: string
 }
 
-export const JOB_SOURCES = ['Platsbanken', 'the_muse', 'remotive'] as const
+export const JOB_SOURCES = ['Platsbanken', 'the_muse', 'remotive', 'adzuna_remote', 'adzuna_de', 'adzuna_nl', 'adzuna_fr'] as const
 export type JobSource = (typeof JOB_SOURCES)[number]
 
 export const SOURCE_LABELS: Record<string, string> = {
   Platsbanken: 'Platsbanken',
   the_muse: 'The Muse',
   remotive: 'Remotive',
+  adzuna_remote: 'Remote (Adzuna)',
+  adzuna_de: 'Germany',
+  adzuna_nl: 'Netherlands',
+  adzuna_fr: 'France',
 }
