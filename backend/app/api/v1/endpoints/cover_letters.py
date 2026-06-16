@@ -61,7 +61,15 @@ def generate(
             detail="CV has no extractable text content",
         )
 
-    jd = crud_jd.get_by_id(db, body.job_description_id, current_user.id)
+    if body.raw_job_posting_id:
+        jd = crud_jd.get_or_create_from_raw_job(
+            db,
+            user_id=current_user.id,
+            raw_job_posting_id=body.raw_job_posting_id,
+        )
+    else:
+        jd = crud_jd.get_by_id(db, body.job_description_id, current_user.id)  # type: ignore[arg-type]
+
     if not jd:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job description not found")
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import type { AxiosError } from 'axios'
 import {
   ArrowPathIcon,
@@ -32,6 +33,18 @@ const TONE_OPTIONS: { value: CoverLetterTone; label: string; description: string
 ]
 
 export default function CoverLetter() {
+  const location = useLocation()
+  const locationState = location.state as {
+    rawJobPostingId?: string
+    jobTitle?: string
+    company?: string
+  } | null
+  const rawJobPostingId = locationState?.rawJobPostingId ?? null
+  const prefilledJobLabel =
+    rawJobPostingId && locationState?.jobTitle
+      ? `${locationState.jobTitle}${locationState.company ? ` at ${locationState.company}` : ''}`
+      : null
+
   const [step, setStep] = useState<Step>('select')
   const [cvs, setCvs] = useState<CV[]>([])
   const [jobs, setJobs] = useState<JobDescription[]>([])
@@ -89,12 +102,25 @@ export default function CoverLetter() {
   }, [])
 
   async function handleSubmit() {
-    if (!selectedCvId || !selectedJobId) return
+    if (!selectedCvId || (!rawJobPostingId && !selectedJobId)) return
     setSubmitting(true)
     try {
-      const job = await coverLetterApi.submit(selectedCvId, selectedJobId, tone)
+      const job = await coverLetterApi.submit(
+        selectedCvId,
+        rawJobPostingId ? null : selectedJobId,
+        tone,
+        rawJobPostingId ?? undefined,
+      )
       setJobId(job.id)
       setStep('processing')
+      if (!rawJobPostingId) {
+        const selectedJob = jobs.find((j) => j.id === selectedJobId)
+        if (selectedJob) {
+          setLetterTitle(`Cover letter for ${selectedJob.job_title} at ${selectedJob.company_name}`)
+        }
+      } else if (prefilledJobLabel) {
+        setLetterTitle(`Cover letter for ${prefilledJobLabel}`)
+      }
       startPolling(job.id)
     } catch (err: unknown) {
       const detail = (err as AxiosError<{ detail: string }>)?.response?.data?.detail
@@ -114,9 +140,11 @@ export default function CoverLetter() {
           const nextPreview = await coverLetterApi.getPreview(id)
           setPreview(nextPreview)
           setEditedText(nextPreview.generated_text)
-          const selectedJob = jobs.find((j) => j.id === selectedJobId)
-          if (selectedJob) {
-            setLetterTitle(`Cover letter for ${selectedJob.job_title} at ${selectedJob.company_name}`)
+          if (!rawJobPostingId) {
+            const selectedJob = jobs.find((j) => j.id === selectedJobId)
+            if (selectedJob) {
+              setLetterTitle(`Cover letter for ${selectedJob.job_title} at ${selectedJob.company_name}`)
+            }
           }
           setStep('edit')
           coverLetterApi.getUsage().then(setUsage).catch(() => undefined)
@@ -187,7 +215,9 @@ export default function CoverLetter() {
   }
 
   const atLimit = Boolean(usage && usage.daily_limit !== null && usage.used_today >= usage.daily_limit)
-  const canSubmit = Boolean(selectedCvId && selectedJobId && !submitting && !atLimit)
+  const canSubmit = Boolean(
+    selectedCvId && (rawJobPostingId || selectedJobId) && !submitting && !atLimit,
+  )
   const wordCount = editedText.trim() ? editedText.trim().split(/\s+/).length : 0
 
   return (
@@ -227,6 +257,7 @@ export default function CoverLetter() {
               canSubmit={canSubmit}
               submitting={submitting}
               atLimit={atLimit}
+              prefilledJobLabel={prefilledJobLabel}
             />
           )}
 
@@ -302,6 +333,7 @@ interface SelectStepProps {
   canSubmit: boolean
   submitting: boolean
   atLimit: boolean
+  prefilledJobLabel?: string | null
 }
 
 function SelectStep({
@@ -318,11 +350,14 @@ function SelectStep({
   canSubmit,
   submitting,
   atLimit,
+  prefilledJobLabel,
 }: SelectStepProps) {
   return (
     <div className="space-y-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
       <div>
-        <h2 className="text-sm font-semibold text-white/55">Select CV and job description</h2>
+        <h2 className="text-sm font-semibold text-white/55">
+          {prefilledJobLabel ? 'Select your CV' : 'Select CV and job description'}
+        </h2>
         <p className="mt-1 text-xs text-white/30">
           The AI will read your CV and the job description to generate a personalised cover letter.
         </p>
@@ -359,7 +394,12 @@ function SelectStep({
 
         <div className="space-y-1">
           <label className="block text-xs font-medium text-white/55">Target job</label>
-          {loading ? (
+          {prefilledJobLabel ? (
+            <div className="flex items-center gap-2 rounded-lg border border-primary-600/30 bg-primary-900/20 px-3 py-2">
+              <SparklesIcon className="h-4 w-4 shrink-0 text-primary-400" />
+              <span className="truncate text-sm text-white/80">{prefilledJobLabel}</span>
+            </div>
+          ) : loading ? (
             <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
           ) : jobs.length === 0 ? (
             <p className="text-xs text-white/30">

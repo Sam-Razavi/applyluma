@@ -11,7 +11,7 @@ import { useNotificationsStore } from '../../stores/notifications'
 const TABS = [
   { to: '/dashboard', label: 'Home', icon: HomeIcon },
   { to: '/discover', label: 'Discover', icon: Squares2X2Icon, pip: true },
-  { to: '/applications', label: 'Jobs', icon: BriefcaseIcon },
+  { to: '/jobs', label: 'Saved', icon: BriefcaseIcon },
   { to: '/ai-tailor', label: 'AI Tailor', icon: SparklesIcon },
   { to: '/settings', label: 'Profile', icon: UserCircleIcon },
 ]
