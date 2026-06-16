@@ -111,3 +111,8 @@ graphify-out/graph.html
 graphify-out/GRAPH_REPORT.md
 graphify-out/wiki/
 COMPLETE_PROJECT_SUMMARY.md
+
+# Local Claude Code tooling (skills, agent worktrees, design previews)
+.claude/skills/
+.claude/worktrees/
+design-preview/
