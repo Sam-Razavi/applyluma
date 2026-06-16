@@ -26,6 +26,7 @@ def list_jobs(
     salary_max: int | None = None,
     keywords: list[str] | None = None,
     source: str | None = None,
+    is_remote: bool | None = None,
     match_score_min: float | None = None,
     search: str | None = None,
     page: int = 1,
@@ -68,6 +69,8 @@ def list_jobs(
         )
     if source:
         q = q.filter(RawJobPosting.source == source)
+    if is_remote is True:
+        q = q.filter(RawJobPosting.is_remote.is_(True))
     if match_score_min is not None:
         q = q.filter(JobMatchingScore.overall_score >= match_score_min)
     if search:
@@ -430,6 +433,7 @@ def _job_to_dict(
         "salary_max": posting.salary_max,
         "employment_type": posting.employment_type,
         "remote_allowed": posting.remote_allowed,
+        "is_remote": posting.is_remote,
         "url": posting.url,
         "source": posting.source,
         "scraped_at": posting.scraped_at,
