@@ -83,11 +83,18 @@ export default function JobDetail({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4 bg-black/40"
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center px-4 pt-4 pb-24 sm:p-4"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white/[0.04] shadow-2xl"
+        className="relative w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/[0.08] shadow-2xl"
+        style={{
+          maxHeight: 'min(calc(100dvh - 7rem), 90vh)',
+          background: 'rgba(8,14,18,0.92)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
