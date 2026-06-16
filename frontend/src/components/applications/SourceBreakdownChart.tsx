@@ -44,7 +44,7 @@ export default function SourceBreakdownChart({ data }: Props) {
         <Legend
           verticalAlign="bottom"
           height={48}
-          wrapperStyle={{ fontSize: '12px', paddingTop: '12px' }}
+          wrapperStyle={{ fontSize: '12px', paddingTop: '12px', color: 'rgba(255,255,255,0.55)' }}
           iconType="circle"
         />
         </PieChart>

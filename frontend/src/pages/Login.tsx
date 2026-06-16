@@ -18,7 +18,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const inputClass =
-  'w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition'
+  'w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition'
 
 const loginNotices: Record<string, { title: string; message: string }> = {
   'session-expired': {
@@ -80,30 +80,30 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white/[0.03] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link to="/" className="text-3xl font-bold text-gray-900 tracking-tight hover:text-primary-600 transition-colors">ApplyLuma</Link>
-        <p className="mt-2 text-gray-500">Sign in to your account</p>
+        <Link to="/" className="text-3xl font-bold text-white/90 tracking-tight hover:text-primary-300 transition-colors">ApplyLuma</Link>
+        <p className="mt-2 text-white/30">Sign in to your account</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-8 shadow-sm rounded-2xl border border-gray-200">
+        <div className="bg-white/[0.04] py-8 px-8 shadow-sm rounded-2xl border border-white/10">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
             {serverError && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3">
-                <p className="text-sm text-red-700">{serverError}</p>
+              <div className="rounded-lg bg-[rgba(229,72,77,0.12)] border border-[rgba(229,72,77,0.18)] px-4 py-3">
+                <p className="text-sm text-red-300">{serverError}</p>
               </div>
             )}
 
             {loginNotice && !serverError && (
-              <div className="rounded-lg bg-warning-50 border border-warning-500/30 px-4 py-3">
-                <p className="text-sm font-medium text-warning-600">{loginNotice.title}</p>
-                <p className="mt-1 text-sm text-gray-600">{loginNotice.message}</p>
+              <div className="rounded-lg bg-[rgba(245,158,11,0.14)] border border-[rgba(245,158,11,0.20)] px-4 py-3">
+                <p className="text-sm font-medium text-amber-300">{loginNotice.title}</p>
+                <p className="mt-1 text-sm text-white/55">{loginNotice.message}</p>
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-white/55 mb-1">
                 Email
               </label>
               <input
@@ -115,12 +115,12 @@ export default function Login() {
                 className={inputClass}
               />
               {errors.email && (
-                <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-xs text-red-300">{errors.email.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-white/55 mb-1">
                 Password
               </label>
               <div className="relative">
@@ -135,17 +135,17 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/55"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-xs text-red-300">{errors.password.message}</p>
               )}
               <div className="mt-1 text-right">
-                <Link to="/forgot-password" className="text-xs text-brand-600 hover:underline">
+                <Link to="/forgot-password" className="text-xs text-primary-400 hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -160,9 +160,9 @@ export default function Login() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500">
+          <p className="mt-6 text-center text-sm text-white/30">
             Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-brand-600 hover:underline">
+            <Link to="/register" className="font-medium text-primary-400 hover:underline">
               Create one
             </Link>
           </p>

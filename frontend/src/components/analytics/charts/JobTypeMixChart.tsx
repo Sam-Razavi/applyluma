@@ -48,7 +48,7 @@ export default function JobTypeMixChart({ data }: Props) {
             ]}
             contentStyle={CHART_TOOLTIP_STYLE}
           />
-          <Legend verticalAlign="bottom" height={60} wrapperStyle={{ fontSize: '12px', paddingTop: '16px' }} iconType="circle" />
+          <Legend verticalAlign="bottom" height={60} wrapperStyle={{ fontSize: '12px', paddingTop: '16px', color: 'rgba(255,255,255,0.55)' }} iconType="circle" />
           </PieChart>
         </ResponsiveContainer>
       </div>

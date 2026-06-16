@@ -69,12 +69,19 @@ export const LOCATION_COLORS = [
 ]
 
 export const CHART_TOOLTIP_STYLE = {
-  backgroundColor: 'white',
-  border: '1px solid #e5e7eb',
+  background: '#0C1218',
+  border: '1px solid rgba(255,255,255,0.10)',
   borderRadius: '8px',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+  boxShadow: '0 8px 24px -6px rgba(0, 0, 0, 0.6)',
   padding: '12px',
+  color: 'rgba(255,255,255,0.9)',
 }
 
-export const CHART_AXIS_TICK = { fontSize: 12, fill: '#6b7280' }
-export const CHART_DARK_AXIS_TICK = { fontSize: 12, fill: '#374151' }
+export const CHART_TOOLTIP_LABEL_STYLE = { color: 'rgba(255,255,255,0.9)' }
+export const CHART_TOOLTIP_ITEM_STYLE = { color: 'rgba(255,255,255,0.7)' }
+
+export const CHART_GRID_STROKE = 'rgba(255,255,255,0.06)'
+export const CHART_AXIS_LINE = { stroke: 'rgba(255,255,255,0.10)' }
+export const CHART_AXIS_TICK = { fontSize: 12, fill: 'rgba(255,255,255,0.35)' }
+export const CHART_DARK_AXIS_TICK = { fontSize: 12, fill: 'rgba(255,255,255,0.35)' }
+export const CHART_LEGEND_STYLE = { color: 'rgba(255,255,255,0.55)', fontSize: '12px' }

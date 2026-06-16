@@ -24,7 +24,7 @@ function formatDate(value: string): string {
 export default function ApplicationTimeline({ events }: Props) {
   if (events.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-400">
+      <div className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/30">
         No timeline events yet.
       </div>
     )
@@ -34,19 +34,19 @@ export default function ApplicationTimeline({ events }: Props) {
     <div className="space-y-4">
       {events.map((event) => (
         <div key={event.id} className="flex gap-3">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-50">
-            <ClockIcon className="h-4 w-4 text-brand-600" />
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary-900/20">
+            <ClockIcon className="h-4 w-4 text-primary-400" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-white/90">
                 {formatEventType(event.event_type)}
               </p>
-              <time className="flex-shrink-0 text-xs text-gray-400">
+              <time className="flex-shrink-0 text-xs text-white/30">
                 {formatDate(event.event_date)}
               </time>
             </div>
-            <p className="mt-0.5 text-sm text-gray-500">
+            <p className="mt-0.5 text-sm text-white/30">
               {event.description ||
                 [event.old_value, event.new_value].filter(Boolean).join(' -> ') ||
                 'Application updated'}

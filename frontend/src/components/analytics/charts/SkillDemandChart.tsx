@@ -25,14 +25,14 @@ export default function SkillDemandChart({ data }: Props) {
       <div className="h-48 w-full md:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 24, left: 0, bottom: 28 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-          <XAxis dataKey="skill" angle={-25} textAnchor="end" interval={0} tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <XAxis dataKey="skill" angle={-25} textAnchor="end" interval={0} tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
           <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
           <Tooltip
             formatter={(value, name) => [formatNumber(Number(value)), name === 'thisWeek' ? 'This week' : 'Last week']}
             contentStyle={CHART_TOOLTIP_STYLE}
           />
-          <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} iconType="circle" />
+          <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'rgba(255,255,255,0.55)' }} iconType="circle" />
           <Line type="monotone" dataKey="thisWeek" name="This week" stroke={CHART_COLORS[0]} strokeWidth={2} dot={false} />
           <Line type="monotone" dataKey="lastWeek" name="Last week" stroke={CHART_COLORS[1]} strokeWidth={2} dot={false} />
           </LineChart>

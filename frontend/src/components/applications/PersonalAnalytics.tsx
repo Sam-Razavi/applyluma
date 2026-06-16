@@ -43,7 +43,7 @@ export default function PersonalAnalytics() {
     return (
       <div className="grid gap-4 lg:grid-cols-2">
         {[...Array(4)].map((_, index) => (
-          <section key={index} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <section key={index} className="rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-sm">
             <LoadingSkeleton />
           </section>
         ))}
@@ -53,18 +53,18 @@ export default function PersonalAnalytics() {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-10 text-center">
-        <h2 className="text-sm font-semibold text-red-800">Analytics unavailable</h2>
-        <p className="mt-1 text-sm text-red-700">{error}</p>
+      <div className="rounded-2xl border border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] px-6 py-10 text-center">
+        <h2 className="text-sm font-semibold text-red-300">Analytics unavailable</h2>
+        <p className="mt-1 text-sm text-red-300">{error}</p>
       </div>
     )
   }
 
   if (!analytics || totalApplications === 0) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center">
-        <h2 className="text-sm font-semibold text-gray-900">No personal stats yet</h2>
-        <p className="mt-1 text-sm text-gray-400">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+        <h2 className="text-sm font-semibold text-white/90">No personal stats yet</h2>
+        <p className="mt-1 text-sm text-white/30">
           Add applications to populate your funnel, response rates, and source breakdown.
         </p>
       </div>

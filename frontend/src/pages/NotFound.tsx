@@ -8,19 +8,19 @@ export default function NotFound() {
   const primaryLabel = token ? 'Go to dashboard' : 'Go home'
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-16 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white/[0.03] px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-lg flex-col items-center text-center">
-        <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-600 ring-1 ring-primary-100">
+        <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-900/20 text-primary-400 ring-1 ring-primary-100">
           <span className="text-lg font-bold">404</span>
         </div>
 
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary-600">
+        <p className="text-sm font-semibold uppercase tracking-wide text-primary-400">
           Page not found
         </p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-white/90 sm:text-4xl">
           This page is not available
         </h1>
-        <p className="mt-4 text-base leading-7 text-gray-500">
+        <p className="mt-4 text-base leading-7 text-white/30">
           The link may be broken, or the page may have moved. You can return to a safe place
           and keep working from there.
         </p>
@@ -40,7 +40,7 @@ export default function NotFound() {
           <button
             type="button"
             onClick={() => window.history.back()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white/55 shadow-sm transition-colors hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
           >
             <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
             Go back

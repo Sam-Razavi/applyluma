@@ -1,24 +1,24 @@
 export default function PrivacyPolicy() {
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-      <p className="text-sm text-gray-400 mb-10">Last updated: June 2026</p>
+      <h1 className="text-3xl font-bold text-white/90 mb-2">Privacy Policy</h1>
+      <p className="text-sm text-white/30 mb-10">Last updated: June 2026</p>
 
-      <div className="prose prose-gray max-w-none space-y-8 text-gray-700">
+      <div className="prose prose-gray max-w-none space-y-8 text-white/55">
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">1. Who We Are</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">1. Who We Are</h2>
           <p>
             ApplyLuma ("we", "us") operates the applyluma.com platform. We are the data
             controller for personal data processed through the Service. You can reach us at{' '}
-            <a href="mailto:support@applyluma.com" className="text-indigo-600 hover:underline">
+            <a href="mailto:support@applyluma.com" className="text-cyan-300 hover:underline">
               support@applyluma.com
             </a>.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">2. Data We Collect</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">2. Data We Collect</h2>
           <ul className="list-disc list-inside space-y-2">
             <li><strong>Account data:</strong> email address, full name, hashed password</li>
             <li><strong>CV and job data:</strong> resumes you upload, job descriptions you add, cover letters you generate</li>
@@ -29,7 +29,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">3. How We Use Your Data</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">3. How We Use Your Data</h2>
           <ul className="list-disc list-inside space-y-2">
             <li>To provide and improve the Service (legal basis: contract performance)</li>
             <li>To send transactional emails such as email verification and password reset (legal basis: contract performance)</li>
@@ -41,7 +41,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">4. Third-Party Services</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">4. Third-Party Services</h2>
           <p>We share data with the following processors to operate the Service:</p>
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li><strong>OpenAI</strong> — CV tailoring, cover letter generation, job match scoring</li>
@@ -57,7 +57,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">5. Data Retention</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">5. Data Retention</h2>
           <p>
             We retain your data for as long as your account is active. If you delete your
             account, your personal data is deleted within 30 days, except where we are
@@ -66,7 +66,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">6. Your Rights (GDPR)</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">6. Your Rights (GDPR)</h2>
           <p>If you are in the EU/EEA, you have the right to:</p>
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li><strong>Access</strong> — request a copy of the data we hold about you</li>
@@ -79,27 +79,27 @@ export default function PrivacyPolicy() {
           </ul>
           <p className="mt-3">
             To exercise any of these rights, email{' '}
-            <a href="mailto:support@applyluma.com" className="text-indigo-600 hover:underline">
+            <a href="mailto:support@applyluma.com" className="text-cyan-300 hover:underline">
               support@applyluma.com
             </a>. We will respond within 30 days.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">7. Cookies</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">7. Cookies</h2>
           <p className="mb-3">We use two categories of cookies:</p>
           <ul className="list-disc list-inside space-y-2">
             <li>
               <strong>Strictly necessary</strong> — httpOnly session cookies (
-              <code className="text-xs bg-gray-100 px-1 rounded">access_token</code>,{' '}
-              <code className="text-xs bg-gray-100 px-1 rounded">refresh_token</code>) and a
+              <code className="text-xs bg-white/[0.04] px-1 rounded">access_token</code>,{' '}
+              <code className="text-xs bg-white/[0.04] px-1 rounded">refresh_token</code>) and a
               CSRF security token are required for authentication and cannot be disabled.
             </li>
             <li>
               <strong>Analytics (optional, consent required)</strong> — We use{' '}
               <a
                 href="https://posthog.com"
-                className="text-indigo-600 hover:underline"
+                className="text-cyan-300 hover:underline"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -114,7 +114,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">8. Security</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">8. Security</h2>
           <p>
             We use industry-standard security measures including HTTPS, hashed passwords,
             JWT authentication, and role-based access control. No method of transmission over
@@ -123,7 +123,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">9. Changes to This Policy</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">9. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. Material changes will be
             communicated by email or via an in-app notice.
@@ -131,10 +131,10 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">10. Contact</h2>
+          <h2 className="text-xl font-semibold text-white/90 mb-3">10. Contact</h2>
           <p>
             For privacy questions or to exercise your rights, contact us at{' '}
-            <a href="mailto:support@applyluma.com" className="text-indigo-600 hover:underline">
+            <a href="mailto:support@applyluma.com" className="text-cyan-300 hover:underline">
               support@applyluma.com
             </a>.
           </p>
