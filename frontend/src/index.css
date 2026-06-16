@@ -38,6 +38,27 @@ h1, h2, h3, .font-display {
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
 }
 
+@layer base {
+  /* Dark-theme defaults for all form controls.
+     Prevents white-text-on-white-background on the dark glassmorphism theme.
+     Individual Tailwind utility classes always override these. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    color: rgba(255, 255, 255, 0.92);
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"])::placeholder,
+  textarea::placeholder {
+    color: rgba(255, 255, 255, 0.30);
+  }
+  /* Native select/datalist option dropdowns — Chromium respects this */
+  option {
+    background-color: #0C1218;
+    color: rgba(255, 255, 255, 0.92);
+  }
+}
+
 @layer components {
   .card {
     background: var(--glass-card);
