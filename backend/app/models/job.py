@@ -29,6 +29,7 @@ class RawJobPosting(Base):
     salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     employment_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
     remote_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_remote: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     extracted_skills: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     is_duplicate: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     raw_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)

@@ -7,6 +7,7 @@ export interface DiscoveredJob {
   salary_max: number | null
   employment_type: string | null
   remote_allowed: boolean
+  is_remote: boolean
   url: string
   source: string
   scraped_at: string
@@ -68,15 +69,16 @@ export interface JobFilters {
   salary_max: string
   keywords: string
   source: string
+  remote_only: boolean
   match_score_min: string
   sort: string
 }
 
-export const JOB_SOURCES = ['JobSearch API', 'the_muse', 'remotive'] as const
+export const JOB_SOURCES = ['Platsbanken', 'the_muse', 'remotive'] as const
 export type JobSource = (typeof JOB_SOURCES)[number]
 
 export const SOURCE_LABELS: Record<string, string> = {
-  'JobSearch API': 'JobSearch',
+  Platsbanken: 'Platsbanken',
   the_muse: 'The Muse',
   remotive: 'Remotive',
 }

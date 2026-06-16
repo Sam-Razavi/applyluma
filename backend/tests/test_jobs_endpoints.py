@@ -50,6 +50,7 @@ def _job_dict(job_id: uuid.UUID = JOB_ID, **extra: Any) -> dict[str, Any]:
         "salary_max": 90000,
         "employment_type": "full_time",
         "remote_allowed": False,
+        "is_remote": False,
         "url": "https://example.com/job/1",
         "source": "platsbanken",
         "scraped_at": NOW.isoformat(),
@@ -142,6 +143,21 @@ async def test_list_jobs_passes_match_score_filter(monkeypatch: pytest.MonkeyPat
     resp = await _request("GET", "/api/v1/jobs?match_score_min=80")
     assert resp.status_code == 200
     assert captured["match_score_min"] == 80.0
+
+
+@pytest.mark.asyncio
+async def test_list_jobs_passes_remote_filter(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_list_jobs(db, user_id, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(jobs_endpoint.crud_job, "list_jobs", fake_list_jobs)
+
+    resp = await _request("GET", "/api/v1/jobs?is_remote=true")
+    assert resp.status_code == 200
+    assert captured["is_remote"] is True
 
 
 @pytest.mark.asyncio

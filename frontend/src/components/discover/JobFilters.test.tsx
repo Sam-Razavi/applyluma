@@ -10,6 +10,7 @@ const defaultFilters: JobFiltersType = {
   salary_max: '',
   keywords: '',
   source: '',
+  remote_only: false,
   match_score_min: '',
   sort: 'score_desc',
 }
@@ -50,7 +51,18 @@ describe('JobFilters', () => {
   it('renders Reset button when source filter is active', () => {
     render(
       <JobFilters
-        filters={{ ...defaultFilters, source: 'platsbanken' }}
+        filters={{ ...defaultFilters, source: 'Platsbanken' }}
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Reset')).toBeInTheDocument()
+  })
+
+  it('renders Reset button when remote-only filter is active', () => {
+    render(
+      <JobFilters
+        filters={{ ...defaultFilters, remote_only: true }}
         onChange={vi.fn()}
         onReset={vi.fn()}
       />,
@@ -104,6 +116,13 @@ describe('JobFilters', () => {
     const selects = screen.getAllByRole('combobox')
     fireEvent.change(selects[1], { target: { value: 'the_muse' } })
     expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, source: 'the_muse' })
+  })
+
+  it('calls onChange when remote-only checkbox changes', () => {
+    const onChange = vi.fn()
+    render(<JobFilters filters={defaultFilters} onChange={onChange} onReset={vi.fn()} />)
+    fireEvent.click(screen.getByLabelText('Remote only'))
+    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, remote_only: true })
   })
 
   it('calls onChange when salary_min input changes', () => {
