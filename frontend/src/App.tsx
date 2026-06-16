@@ -36,6 +36,7 @@ import TermsOfService from './pages/TermsOfService'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import AdminRoute from './components/AdminRoute'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminPipeline from './pages/admin/AdminPipeline'
 import AdminUsers from './pages/admin/AdminUsers'
 import { useAuthStore } from './stores'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
@@ -93,6 +94,7 @@ export default function App() {
             <Route element={<AdminRoute />}>
               <Route path="admin" element={<AdminDashboard />} />
               <Route path="admin/users" element={<AdminUsers />} />
+              <Route path="admin/pipeline" element={<AdminPipeline />} />
             </Route>
           </Route>
         </Route>

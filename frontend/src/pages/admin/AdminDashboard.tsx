@@ -105,6 +105,12 @@ export default function AdminDashboard() {
           >
             Manage Users <ArrowRightIcon className="h-4 w-4" />
           </Link>
+          <Link
+            to="/admin/pipeline"
+            className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
+          >
+            Pipeline Health <ArrowRightIcon className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </FadeIn>

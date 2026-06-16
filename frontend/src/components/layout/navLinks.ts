@@ -1,6 +1,7 @@
 export const ADMIN_NAV_LINKS = [
   { to: '/admin', label: 'Overview' },
   { to: '/admin/users', label: 'Users' },
+  { to: '/admin/pipeline', label: 'Pipeline' },
 ]
 
 export const NAV_LINKS = [
