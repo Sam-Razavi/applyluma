@@ -23,11 +23,24 @@ export default function Discover() {
   const [initialLoad, setInitialLoad] = useState(true)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [searchInput, setSearchInput] = useState('')
   const savedJobMapRef = useRef<Map<string, string>>(new Map())
   const abortRef = useRef<AbortController | null>(null)
+  const filtersRef = useRef<Filters>(filters)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Keep a ref to the latest filters so the debounced search reads fresh values.
+  filtersRef.current = filters
 
   useEffect(() => {
     document.title = 'Discover Jobs | ApplyLuma'
+  }, [])
+
+  // Clear any pending debounce on unmount.
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    }
   }, [])
 
   const loadJobs = useCallback(
@@ -81,7 +94,16 @@ export default function Discover() {
   }
 
   function resetFilters() {
+    setSearchInput('')
     applyFilters(DEFAULT_FILTERS)
+  }
+
+  function handleSearchChange(value: string) {
+    setSearchInput(value)
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(() => {
+      applyFilters({ ...filtersRef.current, search: value })
+    }, 350)
   }
 
   function loadMore() {
@@ -129,8 +151,21 @@ export default function Discover() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Discover Jobs</h1>
         <p className="mt-1 text-sm text-gray-500">
-          AI-matched Swedish job listings from Platsbanken, Jobbsafari, and Indeed.se.
+          Search and explore job listings matched to your CV.
         </p>
+      </div>
+
+      {/* Search bar */}
+      <div className="relative">
+        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search jobs by title or company"
+          aria-label="Search jobs by title or company"
+          className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+        />
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">

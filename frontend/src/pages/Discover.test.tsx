@@ -113,7 +113,7 @@ describe('Discover page', () => {
     renderDiscover()
     await waitFor(() => expect(jobDiscoveryApi.fetchDiscoveredJobs).toHaveBeenCalled())
 
-    const searchInput = screen.getByPlaceholderText('Job title or company')
+    const searchInput = screen.getByPlaceholderText('Search jobs by title or company')
     fireEvent.change(searchInput, { target: { value: 'python' } })
 
     await waitFor(() => {
