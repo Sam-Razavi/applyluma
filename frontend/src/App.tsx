@@ -16,6 +16,7 @@ import CheckEmail from './pages/CheckEmail'
 import VerifyEmail from './pages/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import ExtensionAuth from './pages/ExtensionAuth'
 import Dashboard from './pages/Dashboard'
 import CVs from './pages/CVs'
 import Jobs from './pages/Jobs'
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="verify-email" element={<VerifyEmail />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
+        <Route path="extension-auth" element={<ExtensionAuth />} />
 
         {/* Protected app shell */}
         <Route element={<ProtectedRoute />}>
