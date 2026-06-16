@@ -120,6 +120,15 @@ class UpdateSavedJobRequest(BaseModel):
     starred: bool | None = None
 
 
+class ExternalJobBookmarkRequest(BaseModel):
+    title: str
+    company: str
+    url: str
+    description: str
+    source: str = "linkedin"
+    notes: str | None = None
+
+
 class KeywordsByTypeSchema(BaseModel):
     technical_skills: list[str] = Field(default_factory=list)
     frameworks: list[str] = Field(default_factory=list)
