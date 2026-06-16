@@ -8,7 +8,8 @@ from app.models.cover_letter_job import CoverLetterStatus, CoverLetterTone
 
 class CoverLetterSubmitRequest(BaseModel):
     cv_id: uuid.UUID
-    job_description_id: uuid.UUID
+    job_description_id: uuid.UUID | None = None
+    raw_job_posting_id: str | None = None
     tone: CoverLetterTone = CoverLetterTone.formal
 
 
