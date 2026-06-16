@@ -11,11 +11,18 @@ export const coverLetterApi = {
   getUsage: (): Promise<CoverLetterUsage> =>
     client.get<CoverLetterUsage>('/api/v1/cover-letters/usage').then((r) => r.data),
 
-  submit: (cvId: string, jobDescriptionId: string, tone: CoverLetterTone): Promise<CoverLetterJob> =>
+  submit: (
+    cvId: string,
+    jobDescriptionId: string | null,
+    tone: CoverLetterTone,
+    rawJobPostingId?: string,
+  ): Promise<CoverLetterJob> =>
     client
       .post<CoverLetterJob>('/api/v1/cover-letters/generate', {
         cv_id: cvId,
-        job_description_id: jobDescriptionId,
+        ...(rawJobPostingId
+          ? { raw_job_posting_id: rawJobPostingId }
+          : { job_description_id: jobDescriptionId }),
         tone,
       })
       .then((r) => r.data),
