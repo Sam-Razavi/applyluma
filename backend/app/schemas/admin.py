@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -70,3 +70,52 @@ class AdminNotifyRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     body: str = Field(min_length=1, max_length=2000)
     type: NotificationType = "admin_message"
+
+
+class PipelineStage(BaseModel):
+    name: str
+    count: int
+    last_run: datetime | None = None
+    healthy: bool
+
+
+class SourceHealth(BaseModel):
+    source: str
+    count: int
+    last_run: datetime | None = None
+    healthy: bool
+
+
+class PipelineHealthResponse(BaseModel):
+    raw_job_postings: PipelineStage
+    extracted_keywords: PipelineStage
+    job_market_metrics: PipelineStage
+    sources: list[SourceHealth] = Field(default_factory=list)
+
+
+class JobsOverTimePoint(BaseModel):
+    date: str
+    count: int
+
+
+class JobsBySourceItem(BaseModel):
+    source: str
+    count: int
+
+
+class TopSkillItem(BaseModel):
+    skill: str
+    count: int
+
+
+class TopCompanyItem(BaseModel):
+    company: str
+    count: int
+
+
+class PipelineMetricsResponse(BaseModel):
+    metric_date: date | None = None
+    total_jobs_scraped: int | None = None
+    remote_percentage: float | None = None
+    top_skills: list[TopSkillItem] = Field(default_factory=list)
+    top_companies: list[TopCompanyItem] = Field(default_factory=list)

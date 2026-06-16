@@ -33,6 +33,55 @@ export interface AdminUserListResponse {
   size: number
 }
 
+export interface PipelineStage {
+  name: string
+  count: number
+  last_run: string | null
+  healthy: boolean
+}
+
+export interface SourceHealth {
+  source: string
+  count: number
+  last_run: string | null
+  healthy: boolean
+}
+
+export interface PipelineHealth {
+  raw_job_postings: PipelineStage
+  extracted_keywords: PipelineStage
+  job_market_metrics: PipelineStage
+  sources: SourceHealth[]
+}
+
+export interface JobsOverTimePoint {
+  date: string
+  count: number
+}
+
+export interface JobsBySourceItem {
+  source: string
+  count: number
+}
+
+export interface TopSkillItem {
+  skill: string
+  count: number
+}
+
+export interface TopCompanyItem {
+  company: string
+  count: number
+}
+
+export interface PipelineMetrics {
+  metric_date: string | null
+  total_jobs_scraped: number | null
+  remote_percentage: number | null
+  top_skills: TopSkillItem[]
+  top_companies: TopCompanyItem[]
+}
+
 export const adminApi = {
   getStats(): Promise<AdminOverviewStats> {
     return client.get('/api/v1/admin/stats').then((r) => r.data)
@@ -59,5 +108,21 @@ export const adminApi = {
     return client
       .post(`/api/v1/admin/users/${userId}/notify`, { title, body })
       .then(() => undefined)
+  },
+
+  getPipelineHealth(): Promise<PipelineHealth> {
+    return client.get('/api/v1/admin/pipeline/health').then((r) => r.data)
+  },
+
+  getJobsOverTime(): Promise<JobsOverTimePoint[]> {
+    return client.get('/api/v1/admin/pipeline/jobs-over-time').then((r) => r.data)
+  },
+
+  getJobsBySource(): Promise<JobsBySourceItem[]> {
+    return client.get('/api/v1/admin/pipeline/jobs-by-source').then((r) => r.data)
+  },
+
+  getPipelineMetrics(): Promise<PipelineMetrics> {
+    return client.get('/api/v1/admin/pipeline/metrics').then((r) => r.data)
   },
 }
