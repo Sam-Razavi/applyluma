@@ -21,6 +21,7 @@ dependencies = [
     "python-multipart>=0.0.9",
     "redis>=5.0.0",
     "celery[redis]>=5.4.0",
+    "tzlocal>=4.0.0",
     "httpx>=0.27.0",
     "email-validator>=2.2.0",
     "pdfplumber>=0.11.0",
