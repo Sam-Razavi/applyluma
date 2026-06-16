@@ -46,7 +46,7 @@ Core capabilities:
 - Job description management
 - Stripe subscription billing (free, premium, admin tiers)
 - Market analytics dashboard
-- Daily Airflow and dbt data pipeline
+- Daily Astro Cloud Airflow and dbt data pipeline
 - GDPR-compliant cookie consent banner (optional analytics gated behind explicit consent)
 
 ## Tech Stack
@@ -68,7 +68,7 @@ Frontend:
 - Vercel
 
 Data:
-- Apache Airflow for orchestration
+- Apache Airflow on Astro Cloud for orchestration
 - dbt for transformations
 - Railway PostgreSQL for production analytics data
 
@@ -156,7 +156,6 @@ Local service URLs:
 - Backend API: http://localhost:8000
 - Frontend: http://localhost:5173
 - API docs: http://localhost:8000/docs
-- Airflow: http://localhost:8080
 
 Manual backend setup:
 ```bash
@@ -191,23 +190,35 @@ cd dbt && dbt deps --profiles-dir . && dbt parse --profiles-dir .
 
 ## Data Pipeline
 
-Airflow orchestrates daily scraping and dbt transformations against the Railway
-PostgreSQL database.
+### Migration from local Airflow to Astro Cloud
 
-Schedule:
+Airflow was originally run locally via `docker-compose` alongside the application
+stack. It was migrated to **Astro Cloud** (managed Apache Airflow by Astronomer)
+for the following reasons:
+
+- **Local overhead eliminated** — the previous setup required four Airflow
+  containers (`webserver`, `scheduler`, `worker`, `init`) in docker-compose, adding
+  significant memory and startup time for every developer working locally.
+- **Reliability** — Astro Cloud provides a managed, always-on scheduler with
+  built-in retries, alerting, and observability that is difficult to replicate
+  with a self-hosted setup.
+- **No local secrets management for production jobs** — scraping DAGs connect to
+  Railway PostgreSQL directly; keeping those credentials out of every developer's
+  local environment reduces the attack surface.
+- **Maintenance free** — Airflow version upgrades, plugin management, and
+  infrastructure patching are handled by Astronomer, not the engineering team.
+
+The `airflow/dags/` directory in this repo is still the source of truth for all
+DAG code. Astro Cloud syncs DAGs from this repository automatically.
+
+### Schedule
+
 - Job scraping (JobSearch API, The Muse, Remotive) and Adzuna: daily at 2 AM UTC
-- Keyword extraction and match score computation: daily at 3:30 AM UTC
 - dbt transforms: daily at 3 AM UTC
+- Keyword extraction and match score computation: daily at 3:30 AM UTC
 
-Useful commands:
-```bash
-./docker/start-airflow-railway.sh
-./docker/verify-railway-connection.sh
-docker-compose exec airflow-webserver airflow dags trigger scrape_jobs
-docker-compose exec airflow-webserver airflow dags trigger transform_jobs
-```
+### Production analytics health check
 
-Production analytics health check:
 ```bash
 curl https://applyluma-production.up.railway.app/api/v1/analytics/job-market-health
 ```
@@ -224,7 +235,7 @@ Completed:
 - Analytics API and dashboard
 - Stripe subscription billing (free / premium / admin tiers)
 - Production deployment on Railway + Vercel
-- Production data pipeline (Airflow + dbt, daily at 2–3 AM UTC)
+- Production data pipeline (Astro Cloud Airflow + dbt, daily at 2–3 AM UTC)
 - AI CV Tailor (Phase 9): async rewriting, section review, PDF save and download
 - Cover Letter Generator: AI-written letters with tone selection, PDF export
 - Authenticated CV download for all CVs (uploaded and tailored)
