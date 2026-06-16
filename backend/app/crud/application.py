@@ -39,6 +39,21 @@ class MissingApplicationFieldsError(ValueError):
     pass
 
 
+def list_applied_job_urls(db: Session, user_id: uuid.UUID) -> list[str]:
+    """Return URLs of jobs where the user has an application with status != wishlist."""
+    rows = (
+        db.query(RawJobPosting.url)
+        .join(Application, Application.raw_job_posting_id == RawJobPosting.id)
+        .filter(
+            Application.user_id == user_id,
+            Application.status != "wishlist",
+            Application.raw_job_posting_id.isnot(None),
+        )
+        .all()
+    )
+    return [r.url for r in rows]
+
+
 def create_application(db: Session, user_id: uuid.UUID, data: ApplicationCreate) -> Application:
     values = data.model_dump()
     raw_job_posting_id = values.get("raw_job_posting_id")

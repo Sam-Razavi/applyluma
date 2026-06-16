@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.dependencies import (
+    get_current_user,
     get_current_user_id,
     get_current_user_unverified,
     get_db,
@@ -135,6 +136,23 @@ def login(
     refresh_token = create_refresh_token(str(user.id))
     _set_auth_cookies(response, access_token, refresh_token)
     return TokenPair(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/extension-token", response_model=TokenPair)
+def extension_token(
+    current_user: User = Depends(get_current_user),
+) -> TokenPair:
+    """Mint a fresh bearer access+refresh token pair for the browser extension.
+
+    The web app is authenticated via httpOnly cookies, so its tokens aren't
+    readable by JavaScript and can't be handed to the extension. This endpoint
+    lets a cookie-authenticated (CSRF-protected) user obtain bearer tokens that
+    the extension stores in chrome.storage and sends via the Authorization header.
+    """
+    return TokenPair(
+        access_token=create_access_token(str(current_user.id)),
+        refresh_token=create_refresh_token(str(current_user.id)),
+    )
 
 
 @router.post("/token", response_model=Token)

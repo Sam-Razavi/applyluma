@@ -56,6 +56,11 @@ export const authApi = {
 
   me: (): Promise<User> =>
     client.get<User>('/api/v1/auth/me').then((r) => r.data),
+
+  // Mint bearer tokens for the browser extension (web app uses httpOnly cookies,
+  // so its tokens aren't readable by JS and can't be handed to the extension).
+  extensionToken: (): Promise<TokenPair> =>
+    client.post<TokenPair>('/api/v1/auth/extension-token').then((r) => r.data),
 }
 
 export const cvApi = {
