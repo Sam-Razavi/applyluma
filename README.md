@@ -15,13 +15,13 @@ AI-powered job search and resume optimization platform with production analytics
 - Production: https://applyluma.com
 - Backend API: https://applyluma-production.up.railway.app
 - API docs: https://applyluma-production.up.railway.app/docs
-- Current phase: Phase 10B complete — Discover integrations, job alerts, and mobile UX live in production
+- Current phase: Browser extension and all phases through 10B live in production
 
 All major features are working end-to-end: authentication with httpOnly cookie
 security, resume upload and AI analysis, AI CV Tailor, Cover Letter Generator,
-Job URL Scraper, Swedish job discovery with AI match scoring, saved jobs, job
-alert emails, application tracking, Stripe billing, and the market analytics
-dashboard.
+Job URL Scraper, job discovery with AI match scoring, saved jobs, job alert
+emails, application tracking, Stripe billing, the market analytics dashboard,
+and the MV3 browser extension for one-click job saving.
 
 ## Overview
 
@@ -35,11 +35,13 @@ Core capabilities:
 - Cover Letter Generator: AI-generated cover letters with tone selection (formal/friendly/concise)
 - Job URL Scraper: paste any job posting URL to auto-fill the job description form
 - Authenticated PDF download for all CVs (uploaded and tailored)
-- Swedish job discovery with AI match scoring against your CV
+- Job discovery with AI match scoring against your CV (skill-gap breakdown included)
 - Saved jobs collections with named lists, starring, and notes
 - Job alert emails for high-match jobs (configurable threshold and frequency)
 - One-click AI tailoring directly from discovered jobs
 - Application tracking with status history and analytics
+- Browser extension (Chrome/Firefox) — one-click save from LinkedIn, Indeed, Glassdoor,
+  and Arbetsformedlingen; badge showing saved count; `Alt+Shift+S` quick-save shortcut
 - Job search through Adzuna
 - Job description management
 - Stripe subscription billing (free, premium, admin tiers)
@@ -174,7 +176,7 @@ npm run dev
 ## Testing
 
 ```bash
-# Backend (181 tests)
+# Backend (356 tests)
 cd backend && python -m pytest
 
 # Frontend (38 tests)
@@ -193,7 +195,7 @@ Airflow orchestrates daily scraping and dbt transformations against the Railway
 PostgreSQL database.
 
 Schedule:
-- Job scraping (Platsbanken, Jobbsafari, Indeed.se, Adzuna): daily at 2 AM UTC
+- Job scraping (JobSearch API, The Muse, Remotive) and Adzuna: daily at 2 AM UTC
 - Keyword extraction and match score computation: daily at 3:30 AM UTC
 - dbt transforms: daily at 3 AM UTC
 
@@ -240,10 +242,18 @@ Completed:
   - High-match job alert emails (configurable threshold and daily/weekly frequency)
   - User alert preferences in the Settings page
 - Mobile UX: animated transitions, responsive navigation drawer, skeleton loading states
+- Browser extension (Chrome/Firefox MV3): one-click save from LinkedIn, Indeed SE,
+  Glassdoor, Arbetsformedlingen; badge with saved count; `Alt+Shift+S` quick-save;
+  auto-synced saved/applied URL lists; bearer token auth with auto-refresh;
+  `/extension-auth` page for setup
+- Prominent debounced search bar on Discover page (title/company, 350ms)
+- Skill-gap analysis in job detail (matched vs. missing skills against user's CV)
 - Security hardening: SSRF protection, per-user rate limiting, CORS tightening, httpOnly cookie auth, atomic Redis token denylist, admin audit logging, FK indexes, unique partial index for CV defaults
 - GDPR-compliant cookie consent banner — analytics (PostHog, Vercel) gated behind explicit user consent
 
-Next candidates (Phase 10C):
+Next candidates (Phase 11 / Phase 10C):
+- Admin Dashboard / Pipeline Health: `/admin/pipeline` page with per-stage health
+  indicators, jobs-over-time chart, jobs-by-source chart, top skills/companies, remote %
 - In-app notification surface for high-match job alerts
 - Discover filter for jobs already added to Applications
 - Richer alert preference options (source filters, keyword triggers)
@@ -253,14 +263,15 @@ Next candidates (Phase 10C):
 
 ```text
 applyluma/
-|-- backend/      FastAPI application, models, schemas, migrations, services, tests
-|-- frontend/     React + TypeScript application and component tests
-|-- airflow/      Airflow DAGs for scraping and transforms
-|-- dbt/          dbt analytics project
-|-- docker/       Local Docker support
-|-- deployment/   Deployment and production operation guides
-|-- docs/         Feature and deployment documentation
-`-- graphify-out/ Knowledge graph for codebase navigation (gitignored)
+|-- backend/               FastAPI application, models, schemas, migrations, services, tests
+|-- frontend/              React + TypeScript application and component tests
+|-- applyluma-extension/   MV3 browser extension (Chrome/Firefox)
+|-- airflow/               Airflow DAGs for scraping and transforms
+|-- dbt/                   dbt analytics project
+|-- docker/                Local Docker support
+|-- deployment/            Deployment and production operation guides
+|-- docs/                  Feature and deployment documentation
+`-- graphify-out/          Knowledge graph for codebase navigation (gitignored)
 ```
 
 ## Environment Variables
@@ -303,9 +314,9 @@ Never commit real secrets or production `.env` files.
 ## Limitations
 
 **Job market coverage**
-- Automated job scraping covers Swedish job boards only (Platsbanken, Jobbsafari,
-  Indeed.se). International job search uses the Adzuna API and is subject to
-  Adzuna's rate limits and regional coverage.
+- The Discover feed is populated from three aggregated sources: JobSearch API,
+  The Muse, and Remotive. International job search also uses the Adzuna API
+  (subject to Adzuna's rate limits and regional coverage).
 - The scraper runs once daily at 2 AM UTC, so newly posted jobs can take up to
   24 hours to appear in the Discover feed.
 
