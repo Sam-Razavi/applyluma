@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDownIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import type { JobFilters } from '../../types/jobDiscovery'
 import { JOB_SOURCES, SOURCE_LABELS } from '../../types/jobDiscovery'
@@ -15,6 +15,23 @@ const SORT_OPTIONS = [
   { value: 'date_posted', label: 'Most recent' },
 ]
 
+const LOCATION_SUGGESTIONS = [
+  'Remote',
+  'Stockholm', 'Göteborg', 'Malmö', 'Uppsala', 'Västerås',
+  'Örebro', 'Linköping', 'Helsingborg', 'Jönköping', 'Norrköping',
+  'Lund', 'Umeå', 'Gävle', 'Borås', 'Södertälje', 'Eskilstuna',
+  'Halmstad', 'Växjö', 'Karlstad', 'Sundsvall', 'Östersund',
+  'Skellefteå', 'Trollhättan', 'Kalmar', 'Falun',
+]
+
+const INPUT_CLS =
+  'w-full rounded-lg border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-white/90 ' +
+  'placeholder:text-white/30 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500'
+
+const SELECT_CLS =
+  'w-full rounded-lg border border-white/15 bg-[#0C1218] px-3 py-2 text-sm text-white/90 ' +
+  'focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500'
+
 function hasActiveFilters(f: JobFilters): boolean {
   return (
     !!f.location ||
@@ -24,6 +41,94 @@ function hasActiveFilters(f: JobFilters): boolean {
     !!f.source ||
     f.remote_only ||
     !!f.match_score_min
+  )
+}
+
+interface LocationInputProps {
+  value: string
+  onChange: (v: string) => void
+}
+
+function LocationInput({ value, onChange }: LocationInputProps) {
+  const [open, setOpen] = useState(false)
+  const [highlighted, setHighlighted] = useState(-1)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const suggestions = LOCATION_SUGGESTIONS.filter((l) =>
+    value.length === 0 ? true : l.toLowerCase().includes(value.toLowerCase()),
+  ).slice(0, 7)
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [])
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!open) {
+      if (e.key === 'ArrowDown') { setOpen(true); setHighlighted(0) }
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlighted((h) => Math.min(h + 1, suggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlighted((h) => Math.max(h - 1, 0))
+    } else if (e.key === 'Enter' && highlighted >= 0) {
+      e.preventDefault()
+      onChange(suggestions[highlighted])
+      setOpen(false)
+      setHighlighted(-1)
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); setHighlighted(-1) }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={handleKeyDown}
+        placeholder="e.g. Stockholm"
+        className={INPUT_CLS}
+        autoComplete="off"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        role="combobox"
+      />
+      {open && suggestions.length > 0 && (
+        <ul
+          role="listbox"
+          className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-white/10 py-1 shadow-xl"
+          style={{ background: 'rgba(8,14,18,0.97)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}
+        >
+          {suggestions.map((loc, i) => (
+            <li
+              key={loc}
+              role="option"
+              aria-selected={i === highlighted}
+              onMouseDown={() => { onChange(loc); setOpen(false); setHighlighted(-1) }}
+              onMouseEnter={() => setHighlighted(i)}
+              className={`cursor-pointer px-3 py-2 text-sm transition-colors ${
+                i === highlighted
+                  ? 'bg-primary-900/40 text-[var(--accent-text)]'
+                  : 'text-white/75 hover:bg-white/[0.05]'
+              }`}
+            >
+              {loc}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -76,26 +181,18 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
           <select
             value={filters.sort}
             onChange={(e) => set('sort', e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className={SELECT_CLS}
           >
             {SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
+              <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
         </div>
 
-        {/* Location */}
+        {/* Location with autocomplete */}
         <div>
           <label className="mb-1 block text-xs font-medium text-white/55">Location</label>
-          <input
-            type="text"
-            value={filters.location}
-            onChange={(e) => set('location', e.target.value)}
-            placeholder="e.g. Stockholm"
-            className="w-full rounded-lg border border-white/15 px-3 py-2 text-sm placeholder-white/30 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
+          <LocationInput value={filters.location} onChange={(v) => set('location', v)} />
         </div>
 
         {/* Salary range */}
@@ -108,7 +205,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
               onChange={(e) => set('salary_min', e.target.value)}
               placeholder="Min"
               min={0}
-              className="w-full rounded-lg border border-white/15 px-3 py-2 text-sm placeholder-white/30 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className={INPUT_CLS}
             />
             <input
               type="number"
@@ -116,7 +213,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
               onChange={(e) => set('salary_max', e.target.value)}
               placeholder="Max"
               min={0}
-              className="w-full rounded-lg border border-white/15 px-3 py-2 text-sm placeholder-white/30 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className={INPUT_CLS}
             />
           </div>
         </div>
@@ -129,7 +226,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
             value={filters.keywords}
             onChange={(e) => set('keywords', e.target.value)}
             placeholder="Python, React, Docker…"
-            className="w-full rounded-lg border border-white/15 px-3 py-2 text-sm placeholder-white/30 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className={INPUT_CLS}
           />
           <p className="mt-1 text-xs text-white/30">Comma-separated</p>
         </div>
@@ -140,13 +237,11 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
           <select
             value={filters.source}
             onChange={(e) => set('source', e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className={SELECT_CLS}
           >
             <option value="">All sources</option>
             {JOB_SOURCES.map((s) => (
-              <option key={s} value={s}>
-                {SOURCE_LABELS[s]}
-              </option>
+              <option key={s} value={s}>{SOURCE_LABELS[s]}</option>
             ))}
           </select>
         </div>
@@ -164,9 +259,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
 
         {/* Match score */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-white/55">
-            Min match score
-          </label>
+          <label className="mb-1 block text-xs font-medium text-white/55">Min match score</label>
           <input
             type="number"
             value={filters.match_score_min}
@@ -174,7 +267,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
             placeholder="e.g. 70"
             min={0}
             max={100}
-            className="w-full rounded-lg border border-white/15 px-3 py-2 text-sm placeholder-white/30 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className={INPUT_CLS}
           />
         </div>
       </div>
