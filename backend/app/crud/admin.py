@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.models.application import Application
@@ -92,3 +93,90 @@ def set_user_active(db: Session, user: User, is_active: bool) -> User:
     db.commit()
     db.refresh(user)
     return user
+
+
+_HEALTH_WINDOW = timedelta(hours=25)
+
+
+def _is_healthy(last_run: datetime | None) -> bool:
+    return last_run is not None and (datetime.now(UTC) - last_run) <= _HEALTH_WINDOW
+
+
+def get_pipeline_health(db: Session) -> dict[str, Any]:
+    rjp = db.execute(text("SELECT COUNT(*) AS c, MAX(scraped_at) AS m FROM raw_job_postings")).one()
+    ek = db.execute(text("SELECT COUNT(*) AS c, MAX(created_at) AS m FROM extracted_keywords")).one()
+    jmm = db.execute(text("SELECT COUNT(*) AS c, MAX(created_at) AS m FROM job_market_metrics")).one()
+    src = db.execute(
+        text(
+            "SELECT source, COUNT(*) AS c, MAX(scraped_at) AS m "
+            "FROM raw_job_postings GROUP BY source ORDER BY c DESC"
+        )
+    ).all()
+
+    def stage(name: str, row: Any) -> dict[str, Any]:
+        return {"name": name, "count": int(row.c or 0), "last_run": row.m, "healthy": _is_healthy(row.m)}
+
+    return {
+        "raw_job_postings": stage("raw_job_postings", rjp),
+        "extracted_keywords": stage("extracted_keywords", ek),
+        "job_market_metrics": stage("job_market_metrics", jmm),
+        "sources": [
+            {"source": r.source, "count": int(r.c or 0), "last_run": r.m, "healthy": _is_healthy(r.m)}
+            for r in src
+        ],
+    }
+
+
+def get_jobs_over_time(db: Session, days: int = 14) -> list[dict[str, Any]]:
+    cutoff = datetime.now(UTC) - timedelta(days=days)
+    rows = db.execute(
+        text(
+            "SELECT DATE(scraped_at) AS d, COUNT(*) AS c FROM raw_job_postings "
+            "WHERE scraped_at >= :cutoff GROUP BY DATE(scraped_at)"
+        ),
+        {"cutoff": cutoff},
+    ).all()
+    counts = {r.d.isoformat(): int(r.c) for r in rows}
+    today = datetime.now(UTC).date()
+    return [
+        {
+            "date": (today - timedelta(days=i)).isoformat(),
+            "count": counts.get((today - timedelta(days=i)).isoformat(), 0),
+        }
+        for i in range(days - 1, -1, -1)
+    ]
+
+
+def get_jobs_by_source(db: Session) -> list[dict[str, Any]]:
+    rows = db.execute(
+        text("SELECT source, COUNT(*) AS c FROM raw_job_postings GROUP BY source ORDER BY c DESC")
+    ).all()
+    return [{"source": r.source, "count": int(r.c)} for r in rows]
+
+
+def get_latest_market_metrics(db: Session) -> dict[str, Any] | None:
+    row = db.execute(
+        text(
+            "SELECT metric_date, total_jobs_scraped, top_skills, top_companies, remote_percentage "
+            "FROM job_market_metrics ORDER BY metric_date DESC, created_at DESC LIMIT 1"
+        )
+    ).first()
+    if row is None:
+        return None
+    top_skills = [
+        {"skill": s.get("skill", ""), "count": int(s.get("count", 0))}
+        for s in (row.top_skills or [])
+        if isinstance(s, dict)
+    ]
+    top_companies = [
+        {"company": c.get("company", ""), "count": int(c.get("count", 0))}
+        for c in (row.top_companies or [])
+        if isinstance(c, dict)
+    ]
+    return {
+        "metric_date": row.metric_date,
+        "total_jobs_scraped": row.total_jobs_scraped,
+        "remote_percentage": float(row.remote_percentage) if row.remote_percentage is not None else None,
+        "top_skills": top_skills,
+        "top_companies": top_companies,
+    }

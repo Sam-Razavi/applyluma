@@ -17,6 +17,10 @@ from app.schemas.admin import (
     AdminRoleUpdateRequest,
     AdminUserListResponse,
     AdminUserRow,
+    JobsBySourceItem,
+    JobsOverTimePoint,
+    PipelineHealthResponse,
+    PipelineMetricsResponse,
 )
 from app.services import notification_service
 
@@ -133,3 +137,24 @@ def send_notification(
         title=body.title,
         body=body.body,
     )
+
+
+@router.get("/pipeline/health", response_model=PipelineHealthResponse)
+def pipeline_health(admin: AdminUser, db: DbSession) -> PipelineHealthResponse:
+    return PipelineHealthResponse.model_validate(crud_admin.get_pipeline_health(db))
+
+
+@router.get("/pipeline/jobs-over-time", response_model=list[JobsOverTimePoint])
+def pipeline_jobs_over_time(admin: AdminUser, db: DbSession) -> list[JobsOverTimePoint]:
+    return [JobsOverTimePoint(**p) for p in crud_admin.get_jobs_over_time(db)]
+
+
+@router.get("/pipeline/jobs-by-source", response_model=list[JobsBySourceItem])
+def pipeline_jobs_by_source(admin: AdminUser, db: DbSession) -> list[JobsBySourceItem]:
+    return [JobsBySourceItem(**r) for r in crud_admin.get_jobs_by_source(db)]
+
+
+@router.get("/pipeline/metrics", response_model=PipelineMetricsResponse)
+def pipeline_metrics(admin: AdminUser, db: DbSession) -> PipelineMetricsResponse:
+    data = crud_admin.get_latest_market_metrics(db)
+    return PipelineMetricsResponse.model_validate(data) if data else PipelineMetricsResponse()
