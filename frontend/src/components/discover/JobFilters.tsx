@@ -17,7 +17,6 @@ const SORT_OPTIONS = [
 
 function hasActiveFilters(f: JobFilters): boolean {
   return (
-    !!f.search ||
     !!f.location ||
     !!f.salary_min ||
     !!f.salary_max ||
@@ -70,18 +69,6 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
       </div>
 
       <div className={`space-y-4 px-5 pb-5 ${mobileOpen ? 'block' : 'hidden'} lg:block`}>
-        {/* Search */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Search</label>
-          <input
-            type="text"
-            value={filters.search}
-            onChange={(e) => set('search', e.target.value)}
-            placeholder="Job title or company"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-        </div>
-
         {/* Sort */}
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">Sort by</label>
