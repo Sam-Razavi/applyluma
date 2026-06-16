@@ -3,7 +3,6 @@ import {
   ArrowTopRightOnSquareIcon,
   BookmarkIcon as BookmarkOutline,
   BriefcaseIcon,
-  ClipboardDocumentIcon,
   SparklesIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
@@ -223,19 +222,6 @@ export default function JobDetail({
                   {addingApplication ? 'Adding' : 'Add to Applications'}
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(job.url).then(
-                    () => toast.success('Link copied!'),
-                    () => toast.error('Failed to copy link'),
-                  )
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] sm:w-auto"
-              >
-                <ClipboardDocumentIcon className="h-4 w-4" />
-                Copy link
-              </button>
               <a
                 href={job.url}
                 target="_blank"
