@@ -39,14 +39,14 @@ export default function Home() {
 
       {/* Hero */}
       <div className="max-w-3xl mx-auto text-center pt-16">
-        <span className="inline-block rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 mb-6">
+        <span className="inline-block rounded-full bg-[rgba(8,145,178,0.15)] px-4 py-1.5 text-sm font-medium text-cyan-300 mb-6">
           Now in Beta — free to try
         </span>
-        <h1 className="text-5xl font-bold text-gray-900 mb-6 leading-tight">
+        <h1 className="text-5xl font-bold text-white/90 mb-6 leading-tight">
           Land your next job{' '}
-          <span className="text-indigo-600">faster with AI.</span>
+          <span className="text-cyan-300">faster with AI.</span>
         </h1>
-        <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto">
+        <p className="text-xl text-white/30 mb-10 max-w-2xl mx-auto">
           ApplyLuma tailors your CV, writes your cover letters, discovers matched jobs, and
           tracks every application — all in one place.
         </p>
@@ -59,7 +59,7 @@ export default function Home() {
           </Link>
           <Link
             to="/login"
-            className="inline-block bg-white text-gray-700 text-base font-semibold px-8 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+            className="inline-block bg-white/[0.04] text-white/55 text-base font-semibold px-8 py-3 rounded-xl border border-white/10 hover:bg-white/[0.04] transition-colors"
           >
             Sign in
           </Link>
@@ -68,16 +68,16 @@ export default function Home() {
 
       {/* Features */}
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">Everything you need to get hired</h2>
+        <h2 className="text-2xl font-bold text-white/90 text-center mb-10">Everything you need to get hired</h2>
         <div className="grid sm:grid-cols-2 gap-6">
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="bg-white rounded-2xl border border-gray-200 p-6 hover:border-indigo-200 hover:shadow-sm transition-all"
+              className="bg-white/[0.04] rounded-2xl border border-white/10 p-6 hover:border-indigo-200 hover:shadow-sm transition-all"
             >
               <div className="text-3xl mb-3">{f.icon}</div>
-              <h3 className="text-base font-semibold text-gray-900 mb-2">{f.title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{f.description}</p>
+              <h3 className="text-base font-semibold text-white/90 mb-2">{f.title}</h3>
+              <p className="text-sm text-white/30 leading-relaxed">{f.description}</p>
             </div>
           ))}
         </div>
@@ -85,15 +85,15 @@ export default function Home() {
 
       {/* How it works */}
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">How it works</h2>
+        <h2 className="text-2xl font-bold text-white/90 text-center mb-10">How it works</h2>
         <div className="grid sm:grid-cols-3 gap-8">
           {STEPS.map((s) => (
             <div key={s.number} className="text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 font-bold text-lg mb-4">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgba(8,145,178,0.15)] text-cyan-300 font-bold text-lg mb-4">
                 {s.number}
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">{s.title}</h3>
-              <p className="text-sm text-gray-500">{s.description}</p>
+              <h3 className="font-semibold text-white/90 mb-2">{s.title}</h3>
+              <p className="text-sm text-white/30">{s.description}</p>
             </div>
           ))}
         </div>
@@ -102,12 +102,12 @@ export default function Home() {
       {/* CTA */}
       <div className="max-w-2xl mx-auto text-center bg-indigo-600 rounded-3xl px-8 py-14">
         <h2 className="text-3xl font-bold text-white mb-4">Ready to apply smarter?</h2>
-        <p className="text-indigo-200 mb-8">
+        <p className="text-cyan-300 mb-8">
           Free during beta. No credit card required.
         </p>
         <Link
           to="/register"
-          className="inline-block bg-white text-indigo-600 font-semibold px-8 py-3 rounded-xl hover:bg-indigo-50 transition-colors"
+          className="inline-block bg-white/[0.04] text-cyan-300 font-semibold px-8 py-3 rounded-xl hover:bg-[rgba(8,145,178,0.15)] transition-colors"
         >
           Create your free account
         </Link>

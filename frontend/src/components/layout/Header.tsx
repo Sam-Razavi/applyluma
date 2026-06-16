@@ -2,15 +2,15 @@ import { Link } from 'react-router-dom'
 
 export default function Header() {
   return (
-    <header className="bg-white border-b border-gray-200">
+    <header className="bg-white/[0.04] border-b border-white/10">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold text-indigo-600 tracking-tight">
+        <Link to="/" className="text-xl font-bold text-cyan-300 tracking-tight">
           ApplyLuma
         </Link>
         <nav className="flex items-center gap-4">
           <Link
             to="/login"
-            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            className="text-sm text-white/55 hover:text-white/90 transition-colors"
           >
             Sign in
           </Link>

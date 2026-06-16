@@ -33,12 +33,12 @@ export default function ChartCard({
       role="region"
       aria-label={`${title} chart`}
       tabIndex={0}
-      className={`rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow duration-200 ease-in-out hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${className}`}
+      className={`rounded-lg border border-white/10 bg-white/[0.04] shadow-sm transition-shadow duration-200 ease-in-out hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${className}`}
     >
-      <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-6 py-4">
+      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
         <div className="min-w-0">
-          <h2 className="truncate text-base font-semibold text-gray-900">{title}</h2>
-          {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
+          <h2 className="truncate text-base font-semibold text-white/90">{title}</h2>
+          {subtitle && <p className="mt-1 text-xs text-white/30">{subtitle}</p>}
         </div>
         {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>

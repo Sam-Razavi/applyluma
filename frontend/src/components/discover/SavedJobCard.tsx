@@ -32,18 +32,18 @@ export default function SavedJobCard({
 
   return (
     <div
-      className="group relative flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
+      className="group relative flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
       onClick={() => onClick(saved.raw_job_posting_id)}
       data-testid="saved-job-card"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-gray-900 group-hover:text-primary-700">
+          <h3 className="truncate text-sm font-semibold text-white/90 group-hover:text-primary-700">
             {job?.title ?? 'Unknown job'}
           </h3>
           {job?.company && (
-            <p className="mt-0.5 truncate text-xs text-gray-500">{job.company}</p>
+            <p className="mt-0.5 truncate text-xs text-white/30">{job.company}</p>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -55,7 +55,7 @@ export default function SavedJobCard({
                 onAddToDescriptions(saved)
               }}
               disabled={addingToDescriptions}
-              className="rounded-lg p-1 text-gray-400 transition-colors hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-40"
+              className="rounded-lg p-1 text-white/30 transition-colors hover:text-primary-300 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-40"
               aria-label="Add to job descriptions"
               title="Add to Job Descriptions"
             >
@@ -75,7 +75,7 @@ export default function SavedJobCard({
               e.stopPropagation()
               onStar(saved.id, !saved.starred)
             }}
-            className="rounded-lg p-1 text-gray-400 transition-colors hover:text-yellow-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="rounded-lg p-1 text-white/30 transition-colors hover:text-yellow-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
             aria-label={saved.starred ? 'Unstar job' : 'Star job'}
           >
             {saved.starred ? (
@@ -90,7 +90,7 @@ export default function SavedJobCard({
               e.stopPropagation()
               onDelete(saved.id)
             }}
-            className="rounded-lg p-1 text-gray-400 transition-colors hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="rounded-lg p-1 text-white/30 transition-colors hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
             aria-label="Remove saved job"
           >
             <TrashIcon className="h-5 w-5" />
@@ -99,7 +99,7 @@ export default function SavedJobCard({
       </div>
 
       {/* Meta */}
-      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+      <div className="flex flex-wrap gap-3 text-xs text-white/30">
         {job?.location && (
           <span className="flex items-center gap-1">
             <MapPinIcon className="h-3.5 w-3.5" />
@@ -108,13 +108,13 @@ export default function SavedJobCard({
         )}
         {salary && <span>{salary}</span>}
         {job?.remote_allowed && (
-          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-blue-700">Remote</span>
+          <span className="rounded-full bg-[rgba(8,145,178,0.15)] px-2 py-0.5 text-cyan-300">Remote</span>
         )}
         {job?.employment_type && (
           <span>{job.employment_type.replace('_', ' ')}</span>
         )}
         {saved.list_name && (
-          <span className="ml-auto rounded-full bg-primary-50 px-2 py-0.5 text-primary-700">
+          <span className="ml-auto rounded-full bg-primary-900/20 px-2 py-0.5 text-primary-400">
             {saved.list_name}
           </span>
         )}
@@ -122,7 +122,7 @@ export default function SavedJobCard({
 
       {/* Notes */}
       {saved.notes && (
-        <p className="text-xs text-gray-500 line-clamp-2 border-t border-gray-100 pt-2">
+        <p className="text-xs text-white/30 line-clamp-2 border-t border-white/10 pt-2">
           {saved.notes}
         </p>
       )}

@@ -88,14 +88,14 @@ export default function JobDetail({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white/[0.04] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-white/30 hover:bg-white/[0.06] hover:text-white/55"
           aria-label="Close"
         >
           <XMarkIcon className="h-5 w-5" />
@@ -108,42 +108,42 @@ export default function JobDetail({
         )}
 
         {error && !loading && (
-          <div className="p-8 text-center text-sm text-red-600">{error}</div>
+          <div className="p-8 text-center text-sm text-red-300">{error}</div>
         )}
 
         {job && !loading && (
           <div className="p-6 space-y-5">
             {/* Header */}
             <div className="pr-8 space-y-1">
-              <h2 className="text-xl font-bold text-gray-900">{job.title}</h2>
-              <p className="text-sm text-gray-600">{job.company}</p>
+              <h2 className="text-xl font-bold text-white/90">{job.title}</h2>
+              <p className="text-sm text-white/55">{job.company}</p>
               <div className="flex flex-wrap gap-2 pt-1">
                 {job.location && (
-                  <Pill text={job.location} color="bg-gray-100 text-gray-600" />
+                  <Pill text={job.location} color="bg-white/[0.04] text-white/55" />
                 )}
                 {job.remote_allowed && (
-                  <Pill text="Remote" color="bg-blue-50 text-blue-700" />
+                  <Pill text="Remote" color="bg-[rgba(8,145,178,0.15)] text-cyan-300" />
                 )}
                 {job.employment_type && (
                   <Pill
                     text={job.employment_type.replace('_', ' ')}
-                    color="bg-gray-100 text-gray-600"
+                    color="bg-white/[0.04] text-white/55"
                   />
                 )}
                 <Pill
                   text={SOURCE_LABELS[job.source] ?? job.source}
-                  color="bg-gray-100 text-gray-500"
+                  color="bg-white/[0.04] text-white/30"
                 />
               </div>
             </div>
 
             {/* Match score summary */}
             {job.match_score !== null && (
-              <div className="rounded-xl border border-primary-100 bg-primary-50 p-4 space-y-2">
+              <div className="rounded-xl border border-primary-100 bg-primary-900/20 p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-primary-800">Match score</span>
                   <span
-                    className="text-lg font-bold text-primary-700"
+                    className="text-lg font-bold text-primary-400"
                     title="Weights: skills 40%, experience 30%, salary 15%, education 10%, location 5%"
                   >
                     {Math.round(job.match_score)}%
@@ -169,22 +169,22 @@ export default function JobDetail({
             {/* Description */}
             {job.description && (
               <div>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Job description</h3>
-                <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-line text-sm leading-relaxed">
+                <h3 className="mb-2 text-sm font-semibold text-white/90">Job description</h3>
+                <div className="prose prose-sm max-w-none text-white/55 whitespace-pre-line text-sm leading-relaxed">
                   {job.description}
                 </div>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:gap-3">
+            <div className="flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:gap-3">
               <button
                 type="button"
                 onClick={() => onSave(job.job_id)}
                 className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors sm:w-auto ${
                   isSaved
-                    ? 'bg-primary-100 text-primary-700 hover:bg-primary-200'
-                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'bg-primary-100 text-primary-400 hover:bg-primary-200'
+                    : 'border border-white/15 text-white/55 hover:bg-white/[0.04]'
                 }`}
               >
                 {isSaved ? (
@@ -202,13 +202,13 @@ export default function JobDetail({
               <button
                 type="button"
                 onClick={handleTailor}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100 sm:w-auto"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-2.5 text-sm font-medium text-primary-400 transition-colors hover:bg-brand-100 sm:w-auto"
               >
                 <SparklesIcon className="h-4 w-4" />
                 Tailor CV
               </button>
               {job.application_status ? (
-                <span className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700 sm:w-auto">
+                <span className="flex w-full items-center justify-center gap-2 rounded-xl bg-[rgba(52,195,143,0.14)] px-4 py-2.5 text-sm font-medium text-emerald-300 sm:w-auto">
                   <BriefcaseIcon className="h-4 w-4" />
                   {job.application_status.replace('_', ' ')}
                 </span>
@@ -217,7 +217,7 @@ export default function JobDetail({
                   type="button"
                   onClick={() => void handleAddApplication()}
                   disabled={addingApplication}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] disabled:opacity-50 sm:w-auto"
                 >
                   <BriefcaseIcon className="h-4 w-4" />
                   {addingApplication ? 'Adding' : 'Add to Applications'}
@@ -231,7 +231,7 @@ export default function JobDetail({
                     () => toast.error('Failed to copy link'),
                   )
                 }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 sm:w-auto"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] sm:w-auto"
               >
                 <ClipboardDocumentIcon className="h-4 w-4" />
                 Copy link

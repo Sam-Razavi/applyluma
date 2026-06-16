@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Bars3Icon, EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import Navbar from './Navbar'
+import { EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
 import { useInactivityLogout } from '../../hooks/useInactivityLogout'
 import { useNotificationsStore } from '../../stores/notifications'
@@ -21,7 +21,6 @@ const PAGE_TITLES: Record<string, string> = {
 
 export default function AppLayout() {
   useInactivityLogout()
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [bannerDismissed, setBannerDismissed] = useState(false)
   const [resending, setResending] = useState(false)
   const location = useLocation()
@@ -52,72 +51,64 @@ export default function AppLayout() {
   }, [location.pathname, unreadCount])
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {showVerifyBanner && (
-        <div className="flex items-center justify-between gap-3 bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-sm text-amber-800">
-          <div className="flex items-center gap-2">
-            <EnvelopeIcon className="h-4 w-4 shrink-0" />
-            <span>Please verify your email to enable job alerts.</span>
+    <div
+      className="flex min-h-dvh"
+      style={{
+        background: 'linear-gradient(140deg, #080E12 0%, #0A1118 55%, #070C10 100%)',
+      }}
+    >
+      <Sidebar />
+
+      <main className="flex-1 pb-24 pt-4 md:ml-[224px] md:pb-8 md:pt-0">
+        {showVerifyBanner && (
+          <div
+            className="mx-4 mt-2 flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm md:mx-8"
+            style={{
+              background: 'rgba(8,145,178,0.10)',
+              border: '1px solid rgba(8,145,178,0.25)',
+              color: 'var(--accent-text)',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <EnvelopeIcon className="h-4 w-4 shrink-0" />
+              <span>Please verify your email to enable job alerts.</span>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="font-semibold underline hover:opacity-80 disabled:opacity-60"
+              >
+                {resending ? 'Sending…' : 'Resend email'}
+              </button>
+            </div>
             <button
               type="button"
-              onClick={handleResend}
-              disabled={resending}
-              className="underline font-medium hover:text-amber-900 disabled:opacity-60"
+              onClick={() => setBannerDismissed(true)}
+              className="shrink-0 text-white/40 hover:text-white/70"
+              aria-label="Dismiss"
             >
-              {resending ? 'Sending…' : 'Resend email'}
+              <XMarkIcon className="h-4 w-4" />
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setBannerDismissed(true)}
-            className="shrink-0 text-amber-600 hover:text-amber-800"
-            aria-label="Dismiss"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
+        )}
+
+        <div className="px-4 py-6 md:p-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              className="mx-auto w-full min-w-0 max-w-7xl"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </div>
-      )}
-
-      <div className="hidden md:block">
-        <Navbar />
-      </div>
-
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white md:hidden dark:border-gray-700 dark:bg-gray-800">
-        <div className="flex h-16 items-center justify-between px-4">
-          <Link
-            to="/dashboard"
-            onClick={() => window.scrollTo(0, 0)}
-            className="text-xl font-bold tracking-tight text-primary-600"
-          >
-            ApplyLuma
-          </Link>
-          <button
-            type="button"
-            onClick={() => setMobileNavOpen(true)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:text-gray-300 dark:hover:bg-gray-700"
-            aria-label="Open navigation menu"
-          >
-            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-          </button>
-        </div>
-      </header>
-
-      <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
-
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:px-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            className="w-full min-w-0"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
       </main>
+
+      <MobileNav />
     </div>
   )
 }

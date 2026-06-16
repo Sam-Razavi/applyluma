@@ -28,8 +28,8 @@ export default function ResumeComparisonChart({ data }: Props) {
     return (
       <div className="flex h-48 items-center justify-center md:h-72">
         <div className="text-center">
-          <p className="text-sm text-gray-600">Upload a resume to see your skill comparison.</p>
-          <Link to="/cvs" className="mt-2 inline-block text-sm font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700">
+          <p className="text-sm text-white/55">Upload a resume to see your skill comparison.</p>
+          <Link to="/cvs" className="mt-2 inline-block text-sm font-medium text-primary-400 transition-colors duration-200 hover:text-primary-300">
             Upload resume
           </Link>
         </div>
@@ -40,29 +40,29 @@ export default function ResumeComparisonChart({ data }: Props) {
   return (
     <>
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg bg-gray-50 p-3">
-          <p className="text-xs font-medium text-gray-500">Alignment</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{Math.round(data.overall_market_alignment_score)}%</p>
+        <div className="rounded-lg bg-white/[0.03] p-3">
+          <p className="text-xs font-medium text-white/30">Alignment</p>
+          <p className="mt-1 text-2xl font-semibold text-white/90">{Math.round(data.overall_market_alignment_score)}%</p>
         </div>
-        <div className="rounded-lg bg-gray-50 p-3">
-          <p className="text-xs font-medium text-gray-500">Matched Skills</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{data.matched_skills.length}</p>
+        <div className="rounded-lg bg-white/[0.03] p-3">
+          <p className="text-xs font-medium text-white/30">Matched Skills</p>
+          <p className="mt-1 text-2xl font-semibold text-white/90">{data.matched_skills.length}</p>
         </div>
-        <div className="rounded-lg bg-gray-50 p-3">
-          <p className="text-xs font-medium text-gray-500">Market Coverage</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{Math.round(data.skills_market_coverage_pct)}%</p>
+        <div className="rounded-lg bg-white/[0.03] p-3">
+          <p className="text-xs font-medium text-white/30">Market Coverage</p>
+          <p className="mt-1 text-2xl font-semibold text-white/90">{Math.round(data.skills_market_coverage_pct)}%</p>
         </div>
       </div>
 
       <div className="h-48 w-full md:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={chartData}>
-          <PolarGrid stroke="#e5e7eb" />
+          <PolarGrid stroke="rgba(255,255,255,0.10)" />
           <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12 }} />
           <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 11 }} />
           <Radar name="Market Demand" dataKey="marketDemand" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} />
           <Radar name="Your Resume" dataKey="yourResume" stroke="#10b981" fill="#10b981" fillOpacity={0.3} strokeWidth={2} />
-          <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} iconType="circle" />
+          <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'rgba(255,255,255,0.55)' }} iconType="circle" />
           <Tooltip
             formatter={(value) => [`${value}%`, '']}
             contentStyle={CHART_TOOLTIP_STYLE}
@@ -73,10 +73,10 @@ export default function ResumeComparisonChart({ data }: Props) {
 
       {data.missing_high_demand_skills.length > 0 && (
         <div className="mt-4">
-          <p className="mb-2 text-xs font-medium uppercase text-gray-500">Missing high-demand skills</p>
+          <p className="mb-2 text-xs font-medium uppercase text-white/30">Missing high-demand skills</p>
           <div className="flex flex-wrap gap-2">
             {data.missing_high_demand_skills.slice(0, 10).map((skill) => (
-              <span key={skill} className="rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
+              <span key={skill} className="rounded-md bg-[rgba(245,158,11,0.14)] px-2 py-1 text-xs font-medium text-amber-300">
                 {skill}
               </span>
             ))}
