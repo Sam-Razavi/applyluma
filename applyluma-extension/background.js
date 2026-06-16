@@ -5,11 +5,14 @@ const ALARM_NAME = 'al-saved-urls';
 const REFRESH_MINUTES = 30;
 
 // Patterns for all supported job sites — used to broadcast badge updates.
+// Kept in sync with manifest host_permissions / content_scripts so tab queries
+// reach exactly the pages where content scripts run.
 const JOB_SITE_PATTERNS = [
   'https://www.linkedin.com/*',
   'https://www.indeed.com/*',
-  'https://uk.indeed.com/*',
+  'https://se.indeed.com/*',
   'https://www.glassdoor.com/*',
+  'https://arbetsformedlingen.se/*',
   'https://www.arbetsformedlingen.se/*',
 ];
 
