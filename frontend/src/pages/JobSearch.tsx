@@ -100,8 +100,8 @@ export default function JobSearch() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Job Search</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-white/90">Job Search</h1>
+        <p className="mt-1 text-sm text-white/30">
           Search live job listings and add promising roles to your application tracker.
         </p>
       </div>
@@ -110,11 +110,11 @@ export default function JobSearch() {
 
       {recentSearches.length > 0 && !hasSearched && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-gray-400">Recent:</span>
+          <span className="text-xs text-white/30">Recent:</span>
           {recentSearches.map((r, i) => (
             <span
               key={i}
-              className="group flex items-center gap-1 rounded-full border border-gray-200 bg-white pl-3 pr-1.5 py-1 text-xs text-gray-600 hover:border-primary-300 hover:text-primary-700 cursor-pointer transition-colors"
+              className="group flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] pl-3 pr-1.5 py-1 text-xs text-white/55 hover:border-primary-300 hover:text-primary-300 cursor-pointer transition-colors"
             >
               <button
                 type="button"
@@ -126,7 +126,7 @@ export default function JobSearch() {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); removeRecentSearch(i) }}
-                className="ml-0.5 rounded-full p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none"
+                className="ml-0.5 rounded-full p-0.5 text-white/30 hover:bg-white/[0.06] hover:text-white/55 focus:outline-none"
                 aria-label="Remove recent search"
               >
                 <XMarkIcon className="h-3 w-3" />
@@ -137,7 +137,7 @@ export default function JobSearch() {
       )}
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="flex items-center gap-2 rounded-xl border border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] px-4 py-3 text-sm text-red-300">
           <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
           {error}
         </div>
@@ -146,7 +146,7 @@ export default function JobSearch() {
       {loading ? (
         <div className="grid gap-4">
           {[...Array(4)].map((_, index) => (
-            <div key={index} className="h-44 animate-pulse rounded-2xl bg-gray-100" />
+            <div key={index} className="h-44 animate-pulse rounded-2xl bg-white/[0.04]" />
           ))}
         </div>
       ) : hasSearched && data.results.length > 0 ? (
@@ -156,14 +156,14 @@ export default function JobSearch() {
           onPageChange={(page) => void runSearch(query, location, page)}
         />
       ) : (
-        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50">
-            <MagnifyingGlassIcon className="h-6 w-6 text-brand-500" />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary-900/20">
+            <MagnifyingGlassIcon className="h-6 w-6 text-primary-400" />
           </div>
-          <h2 className="mt-4 text-sm font-semibold text-gray-900">
+          <h2 className="mt-4 text-sm font-semibold text-white/90">
             {hasSearched ? 'No jobs found' : 'Search for live job listings'}
           </h2>
-          <p className="mt-1 text-sm text-gray-400">
+          <p className="mt-1 text-sm text-white/30">
             {hasSearched
               ? 'Try a broader keyword or a different location.'
               : 'Start with a role, skill, or company keyword.'}
