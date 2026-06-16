@@ -69,6 +69,11 @@ describe('JobCard', () => {
     expect(screen.getByLabelText('Unsave job')).toBeInTheDocument()
   })
 
+  it('does not render a copy job link action', () => {
+    render(<JobCard job={baseJob} onClick={vi.fn()} onSave={vi.fn()} />)
+    expect(screen.queryByLabelText('Copy job link')).not.toBeInTheDocument()
+  })
+
   it('shows application status badge when application_id is present', () => {
     render(
       <JobCard
