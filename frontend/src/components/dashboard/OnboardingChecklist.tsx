@@ -57,13 +57,13 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
   if (allLoading || allDone) return null
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-5 dark:border-brand-900/40 dark:bg-gray-800 dark:from-gray-800 dark:to-gray-800">
+    <div className="rounded-2xl border border-primary-600/30 bg-gradient-to-br from-primary-900/20 to-white/[0.04] p-5 ">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+          <h2 className="text-sm font-bold text-white/90 ">
             Get started — {completedCount} of 3 done
           </h2>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-0.5 text-xs text-white/30 ">
             Complete these steps to get the most out of ApplyLuma.
           </p>
         </div>
@@ -72,7 +72,7 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
             <div
               key={i}
               className={`h-1.5 w-8 rounded-full transition-colors ${
-                i < completedCount ? 'bg-brand-500' : 'bg-gray-200 dark:bg-gray-700'
+                i < completedCount ? 'bg-brand-500' : 'bg-white/[0.06] '
               }`}
             />
           ))}
@@ -88,10 +88,10 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
               key={step.key}
               className={`flex items-start gap-3 rounded-xl border p-4 transition-all ${
                 isDone
-                  ? 'border-green-100 bg-green-50 opacity-70 dark:border-green-900/30 dark:bg-green-900/10'
+                  ? 'border-[rgba(52,195,143,0.22)] bg-[rgba(52,195,143,0.14)] opacity-70 '
                   : isNext
-                  ? 'border-brand-200 bg-white shadow-sm dark:border-brand-800 dark:bg-gray-750'
-                  : 'border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800'
+                  ? 'border-primary-600/30 bg-white/[0.04] shadow-sm '
+                  : 'border-white/10 bg-white/[0.04] '
               }`}
             >
               {/* Step indicator */}
@@ -103,7 +103,7 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
                     className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
                       isNext
                         ? 'bg-brand-600 text-white'
-                        : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                        : 'bg-white/[0.06] text-white/30 '
                     }`}
                   >
                     {step.number}
@@ -113,11 +113,11 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
 
               {/* Content */}
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-semibold ${isDone ? 'text-gray-500 line-through' : 'text-gray-900 dark:text-white'}`}>
+                <p className={`text-sm font-semibold ${isDone ? 'text-white/30 line-through' : 'text-white/90 '}`}>
                   {step.title}
                 </p>
                 {!isDone && (
-                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-0.5 text-xs text-white/30 ">
                     {step.description}
                   </p>
                 )}
@@ -130,7 +130,7 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
                   className={`shrink-0 self-center rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                     isNext
                       ? 'bg-brand-600 text-white hover:bg-brand-700'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                      : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08] '
                   }`}
                 >
                   <span className="flex items-center gap-1">

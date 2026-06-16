@@ -119,20 +119,20 @@ export default function ApplicationDrawer() {
 
   return (
     <Dialog open={!!application} onClose={() => setSelected(null)} className="relative z-50">
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
       <div className="fixed inset-x-0 bottom-0 flex max-h-[92vh] sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:max-w-full">
-        <DialogPanel className="flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none">
-          <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+        <DialogPanel className="flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-[#0C1218] shadow-2xl sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none">
+          <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
             <div className="min-w-0">
-              <DialogTitle className="truncate text-lg font-semibold text-gray-900">
+              <DialogTitle className="truncate text-lg font-semibold text-white/90">
                 {application.job_title}
               </DialogTitle>
-              <p className="truncate text-sm text-gray-500">{application.company_name}</p>
+              <p className="truncate text-sm text-white/30">{application.company_name}</p>
             </div>
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white/55"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>
@@ -171,7 +171,7 @@ export default function ApplicationDrawer() {
                       href={form.job_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition hover:bg-gray-200"
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white/[0.04] text-white/55 transition hover:bg-white/[0.08]"
                     >
                       <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                     </a>
@@ -308,12 +308,12 @@ export default function ApplicationDrawer() {
             </section>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-6 py-4">
+          <div className="flex items-center justify-between gap-3 border-t border-white/10 px-6 py-4">
             <button
               type="button"
               onClick={handleDelete}
               disabled={deleting}
-              className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-[rgba(229,72,77,0.12)] px-3 py-2 text-sm font-semibold text-red-300 transition hover:bg-[rgba(229,72,77,0.12)] disabled:opacity-50"
             >
               <TrashIcon className="h-4 w-4" />
               Delete
@@ -334,13 +334,13 @@ export default function ApplicationDrawer() {
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return <h3 className="text-sm font-semibold text-gray-900">{children}</h3>
+  return <h3 className="text-sm font-semibold text-white/90">{children}</h3>
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-gray-700">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-white/55">{label}</span>
       {children}
     </label>
   )

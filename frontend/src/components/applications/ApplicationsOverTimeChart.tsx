@@ -17,7 +17,7 @@ export default function ApplicationsOverTimeChart({ data }: Props) {
     <div className="h-48 w-full md:h-72">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
         <XAxis
           dataKey="week"
           tickFormatter={formatPeriod}

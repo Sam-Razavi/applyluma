@@ -43,16 +43,16 @@ function formatDate(s: string) {
 function SkeletonRow() {
   return (
     <div className="px-6 py-4 flex items-center gap-4 animate-pulse">
-      <div className="h-9 w-9 bg-gray-100 rounded-lg flex-shrink-0" />
+      <div className="h-9 w-9 bg-white/[0.04] rounded-lg flex-shrink-0" />
       <div className="flex-1 space-y-1.5">
-        <div className="h-3.5 bg-gray-100 rounded w-2/5" />
-        <div className="h-3 bg-gray-100 rounded w-1/4" />
+        <div className="h-3.5 bg-white/[0.04] rounded w-2/5" />
+        <div className="h-3 bg-white/[0.04] rounded w-1/4" />
       </div>
-      <div className="h-3 bg-gray-100 rounded w-14 hidden sm:block" />
-      <div className="h-3 bg-gray-100 rounded w-24 hidden md:block" />
+      <div className="h-3 bg-white/[0.04] rounded w-14 hidden sm:block" />
+      <div className="h-3 bg-white/[0.04] rounded w-24 hidden md:block" />
       <div className="flex gap-1.5">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-8 w-8 bg-gray-100 rounded-lg" />
+          <div key={i} className="h-8 w-8 bg-white/[0.04] rounded-lg" />
         ))}
       </div>
     </div>
@@ -146,52 +146,52 @@ export default function CVs() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">My CVs</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-white/90">My CVs</h1>
+        <p className="mt-1 text-sm text-white/30">
           Upload and manage your CVs for AI-powered tailoring.
         </p>
       </div>
 
       {/* Upload card */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-700">Upload a CV</h2>
+      <div className="bg-white/[0.04] rounded-2xl border border-white/10 p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-white/55">Upload a CV</h2>
 
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer select-none transition-colors sm:p-10 ${
             isDragActive
-              ? 'border-brand-400 bg-brand-50'
-              : 'border-gray-300 hover:border-brand-400 hover:bg-gray-50'
+              ? 'border-primary-500/50 bg-primary-900/20'
+              : 'border-white/15 hover:border-brand-400 hover:bg-white/[0.04]'
           } ${uploadPct !== null ? 'pointer-events-none opacity-60' : ''}`}
         >
           <input {...getInputProps()} />
-          <ArrowUpTrayIcon className="mx-auto h-8 w-8 text-gray-400 mb-3" />
+          <ArrowUpTrayIcon className="mx-auto h-8 w-8 text-white/30 mb-3" />
           {isDragActive ? (
-            <p className="text-sm font-medium text-brand-600">Drop your file here…</p>
+            <p className="text-sm font-medium text-primary-400">Drop your file here…</p>
           ) : (
             <>
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-white/55">
                 Drag & drop your CV here, or{' '}
-                <span className="text-brand-600">click to browse</span>
+                <span className="text-primary-400">click to browse</span>
               </p>
-              <p className="mt-1 text-xs text-gray-400">PDF or DOCX · max 10 MB</p>
+              <p className="mt-1 text-xs text-white/30">PDF or DOCX · max 10 MB</p>
             </>
           )}
         </div>
 
         {/* Pending file row */}
         {pendingFile && uploadPct === null && (
-          <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <DocumentTextIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+          <div className="flex flex-wrap items-center gap-3 p-4 bg-white/[0.03] rounded-xl border border-white/10">
+            <DocumentTextIcon className="h-5 w-5 text-white/30 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-700 truncate">{pendingFile.name}</p>
-              <p className="text-xs text-gray-400">{formatBytes(pendingFile.size)}</p>
+              <p className="text-sm font-medium text-white/55 truncate">{pendingFile.name}</p>
+              <p className="text-xs text-white/30">{formatBytes(pendingFile.size)}</p>
             </div>
             <input
               value={pendingTitle}
               onChange={(e) => setPendingTitle(e.target.value)}
               placeholder="CV title"
-              className="min-h-11 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 sm:w-44"
+              className="min-h-11 w-full rounded-lg border border-white/10 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 sm:w-44"
             />
             <div className="flex items-center gap-2">
               <button
@@ -203,7 +203,7 @@ export default function CVs() {
               </button>
               <button
                 onClick={() => setPendingFile(null)}
-                className="min-h-11 rounded-lg px-3 py-2.5 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                className="min-h-11 rounded-lg px-3 py-2.5 text-sm text-white/30 transition-colors hover:bg-white/[0.06] hover:text-white/55"
               >
                 Cancel
               </button>
@@ -214,11 +214,11 @@ export default function CVs() {
         {/* Upload progress */}
         {uploadPct !== null && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center justify-between text-xs text-white/30">
               <span className="truncate">Uploading {pendingFile?.name}</span>
               <span className="flex-shrink-0 ml-2">{uploadPct}%</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full bg-brand-500"
                 initial={{ width: 0 }}
@@ -231,65 +231,65 @@ export default function CVs() {
       </div>
 
       {/* CV list */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">
+      <div className="bg-white/[0.04] rounded-2xl border border-white/10 overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/10">
+          <h2 className="text-sm font-semibold text-white/55">
             Your CVs{' '}
             {!loading && cvs.length > 0 && (
-              <span className="font-normal text-gray-400">({cvs.length})</span>
+              <span className="font-normal text-white/30">({cvs.length})</span>
             )}
           </h2>
         </div>
 
         {loading ? (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-white/10">
             {[...Array(3)].map((_, i) => (
               <SkeletonRow key={i} />
             ))}
           </div>
         ) : cvs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-12 w-12 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
+            <div className="h-12 w-12 bg-[rgba(8,145,178,0.15)] rounded-xl flex items-center justify-center mb-3">
               <DocumentTextIcon className="h-6 w-6 text-blue-400" />
             </div>
-            <h3 className="text-sm font-medium text-gray-900">No CVs yet</h3>
-            <p className="mt-1 text-sm text-gray-400">
+            <h3 className="text-sm font-medium text-white/90">No CVs yet</h3>
+            <p className="mt-1 text-sm text-white/30">
               Upload your first CV above to get started.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-white/10">
             {cvs.map((cv) => (
               <div
                 key={cv.id}
-                className="flex items-start gap-4 px-6 py-4 transition-colors hover:bg-gray-50 sm:items-center"
+                className="flex items-start gap-4 px-6 py-4 transition-colors hover:bg-white/[0.04] sm:items-center"
               >
                 {/* Icon */}
-                <div className="h-9 w-9 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="h-9 w-9 bg-[rgba(8,145,178,0.15)] rounded-lg flex items-center justify-center flex-shrink-0">
                   <DocumentTextIcon className="h-5 w-5 text-blue-500" />
                 </div>
 
                 {/* Title + filename */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium text-gray-900 truncate">{cv.title}</p>
+                    <p className="text-sm font-medium text-white/90 truncate">{cv.title}</p>
                     {cv.is_default && (
-                      <span className="inline-flex items-center gap-0.5 text-xs bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                      <span className="inline-flex items-center gap-0.5 text-xs bg-primary-900/30 text-primary-400 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
                         <StarSolid className="h-2.5 w-2.5" />
                         Default
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 truncate">{cv.filename}</p>
+                  <p className="text-xs text-white/30 truncate">{cv.filename}</p>
                 </div>
 
                 {/* Size */}
-                <span className="text-xs text-gray-400 flex-shrink-0 hidden sm:block w-16 text-right">
+                <span className="text-xs text-white/30 flex-shrink-0 hidden sm:block w-16 text-right">
                   {formatBytes(cv.file_size)}
                 </span>
 
                 {/* Date */}
-                <span className="text-xs text-gray-400 flex-shrink-0 hidden md:block w-28 text-right">
+                <span className="text-xs text-white/30 flex-shrink-0 hidden md:block w-28 text-right">
                   {formatDate(cv.created_at)}
                 </span>
 
@@ -297,14 +297,14 @@ export default function CVs() {
                 <div className="flex flex-shrink-0 flex-col items-center gap-1 sm:flex-row">
                   <button
                     onClick={() => cvApi.view(cv.id).catch(() => toast.error('Could not open CV'))}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-white/30 transition-colors hover:bg-white/[0.06] hover:text-white/55"
                     title="View"
                   >
                     <EyeIcon className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => cvApi.download(cv.id, cv.filename).catch(() => toast.error('Could not download CV'))}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-white/30 transition-colors hover:bg-white/[0.06] hover:text-white/55"
                     title="Download"
                   >
                     <ArrowDownTrayIcon className="h-4 w-4" />
@@ -312,7 +312,7 @@ export default function CVs() {
                   {cv.is_tailored && (
                     <button
                       onClick={() => setHistoryTarget(cv)}
-                      className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-700"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-white/30 transition-colors hover:bg-primary-900/20 hover:text-primary-300"
                       title="Version History"
                     >
                       <ClockIcon className="h-4 w-4" />
@@ -324,8 +324,8 @@ export default function CVs() {
                     disabled={cv.is_default}
                     className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
                       cv.is_default
-                        ? 'text-brand-500 cursor-default'
-                        : 'text-gray-400 hover:text-brand-600 hover:bg-brand-50'
+                        ? 'text-primary-400 cursor-default'
+                        : 'text-white/30 hover:text-primary-300 hover:bg-primary-900/20'
                     }`}
                     title={cv.is_default ? 'Default CV' : 'Set as default'}
                   >
@@ -337,7 +337,7 @@ export default function CVs() {
                   </button>
                   <button
                     onClick={() => setDeleteTarget(cv)}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-white/30 transition-colors hover:bg-[rgba(229,72,77,0.12)] text-red-300"
                     title="Delete"
                   >
                     <TrashIcon className="h-4 w-4" />
@@ -355,18 +355,18 @@ export default function CVs() {
         onClose={() => !deleting && setDeleteTarget(null)}
         className="relative z-50"
       >
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+          <DialogPanel className="bg-white/[0.04] rounded-2xl shadow-xl max-w-sm w-full p-6">
             <div className="flex items-start gap-4">
-              <div className="h-10 w-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <ExclamationCircleIcon className="h-5 w-5 text-red-600" />
+              <div className="h-10 w-10 bg-[rgba(229,72,77,0.12)] rounded-xl flex items-center justify-center flex-shrink-0">
+                <ExclamationCircleIcon className="h-5 w-5 text-red-300" />
               </div>
               <div className="flex-1 min-w-0">
-                <DialogTitle className="text-base font-semibold text-gray-900">
+                <DialogTitle className="text-base font-semibold text-white/90">
                   Delete CV
                 </DialogTitle>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-white/30">
                   Are you sure you want to delete{' '}
                   <strong>"{deleteTarget?.title}"</strong>? This cannot be undone.
                 </p>
@@ -376,7 +376,7 @@ export default function CVs() {
               <button
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-white/55 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

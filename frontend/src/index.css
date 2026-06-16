@@ -2,16 +2,171 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-base:             #080E12;
+  --bg-raised:           #0C1218;
+  --glass-card:          rgba(255, 255, 255, 0.055);
+  --glass-hover:         rgba(255, 255, 255, 0.09);
+  --glass-border:        rgba(255, 255, 255, 0.08);
+  --glass-border-strong: rgba(255, 255, 255, 0.15);
+  --accent:              #0891B2;
+  --accent-hover:        #0E7490;
+  --accent-muted:        rgba(8, 145, 178, 0.14);
+  --accent-text:         #22D3EE;
+  --success:             #34C38F;
+  --error:               #E5484D;
+  --text-1:              rgba(255, 255, 255, 0.92);
+  --text-2:              rgba(255, 255, 255, 0.55);
+  --text-3:              rgba(255, 255, 255, 0.28);
+}
+
 html,
 body {
   overflow-x: hidden;
 }
 
+body {
+  background: linear-gradient(140deg, #080E12 0%, #0A1118 55%, #070C10 100%);
+  background-attachment: fixed;
+  color: var(--text-1);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
 @layer components {
+  .card {
+    background: var(--glass-card);
+    backdrop-filter: blur(14px) saturate(1.15);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 16px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-border-strong), transparent);
+    pointer-events: none;
+  }
+
+  .card-hover {
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+  .card-hover:hover {
+    background: var(--glass-hover);
+    border-color: var(--glass-border-strong);
+  }
+
   .input {
-    @apply min-h-11 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500;
+    @apply min-h-11 w-full rounded-lg px-3 py-2 text-base md:text-sm;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .input::placeholder {
+    color: rgba(255, 255, 255, 0.30);
+  }
+  .input:focus {
+    outline: none;
+    border-color: #0891B2;
+    box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.25);
+  }
+
+  .btn-primary {
+    background: #0891B2;
+    color: #fff;
+    font-weight: 700;
+    transition: background 140ms ease, transform 100ms ease;
+  }
+  .btn-primary:hover { background: #0E7490; }
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(8, 145, 178, 0.28);
+    color: #22D3EE;
+    font-weight: 600;
+    transition: background 140ms ease, transform 100ms ease;
+  }
+  .btn-ghost:hover { background: rgba(8, 145, 178, 0.10); }
+  .btn-ghost:active { transform: scale(0.97); }
+
+  /* Badges — 3 families + neutral */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-active {
+    background: rgba(8, 145, 178, 0.15);
+    color: #22D3EE;
+    border: 1px solid rgba(8, 145, 178, 0.28);
+  }
+  .badge-success {
+    background: rgba(52, 195, 143, 0.14);
+    color: #6ee7b7;
+    border: 1px solid rgba(52, 195, 143, 0.24);
+  }
+  .badge-error {
+    background: rgba(229, 72, 77, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(229, 72, 77, 0.22);
+  }
+  .badge-neutral {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .stat-value {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 300;
+    letter-spacing: -0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-label {
+    @apply text-xs font-semibold uppercase tracking-wide;
+    color: var(--text-2);
   }
 }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes barGrow {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to { transform: scaleY(1); }
+}
+
+.section-fade {
+  animation: fadeUp 260ms ease-out both;
+}
+
+/* Dark, minimal scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.18); }
+::-webkit-scrollbar-track { background: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -16,12 +16,12 @@ export default function BillingSuccess() {
   }, [setUser])
 
   return (
-    <div className="mx-auto max-w-xl rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-green-50">
-        <CheckCircleIcon className="h-7 w-7 text-green-600" />
+    <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-sm">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[rgba(52,195,143,0.14)]">
+        <CheckCircleIcon className="h-7 w-7 text-emerald-300" />
       </div>
-      <h1 className="mt-4 text-xl font-semibold text-gray-900">Premium activated</h1>
-      <p className="mt-2 text-sm text-gray-500">
+      <h1 className="mt-4 text-xl font-semibold text-white/90">Premium activated</h1>
+      <p className="mt-2 text-sm text-white/30">
         {loading
           ? 'Refreshing your account...'
           : 'Your account has been refreshed with the latest billing status.'}

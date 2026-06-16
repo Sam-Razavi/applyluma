@@ -149,22 +149,22 @@ export default function Discover() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Discover Jobs</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-white/90">Discover Jobs</h1>
+        <p className="mt-1 text-sm text-white/30">
           Search and explore job listings matched to your CV.
         </p>
       </div>
 
       {/* Search bar */}
       <div className="relative">
-        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/30" />
         <input
           type="search"
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search jobs by title or company"
           aria-label="Search jobs by title or company"
-          className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-12 pr-4 text-sm placeholder-white/30 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
 
@@ -181,12 +181,12 @@ export default function Discover() {
               ))}
             </div>
           ) : jobs.length === 0 ? (
-            <div className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50">
-                <MagnifyingGlassIcon className="h-6 w-6 text-gray-400" />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
+                <MagnifyingGlassIcon className="h-6 w-6 text-white/30" />
               </div>
-              <h2 className="mt-4 text-sm font-semibold text-gray-900">No jobs found</h2>
-              <p className="mt-1 text-sm text-gray-400">
+              <h2 className="mt-4 text-sm font-semibold text-white/90">No jobs found</h2>
+              <p className="mt-1 text-sm text-white/30">
                 Try adjusting your filters or check back after the next scraping run.
               </p>
             </div>
@@ -216,7 +216,7 @@ export default function Discover() {
                     type="button"
                     onClick={loadMore}
                     disabled={loading}
-                    className="rounded-xl border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                    className="rounded-xl border border-white/15 px-6 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] disabled:opacity-50"
                   >
                     {loading ? 'Loading…' : 'Load more'}
                   </button>

@@ -54,8 +54,8 @@ export default function SavedJobs() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Saved Jobs</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-white/90">Saved Jobs</h1>
+        <p className="mt-1 text-sm text-white/30">
           {saved.length} saved {saved.length === 1 ? 'job' : 'jobs'}
         </p>
       </div>
@@ -63,16 +63,16 @@ export default function SavedJobs() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-2xl bg-gray-100" />
+            <div key={i} className="h-36 animate-pulse rounded-2xl bg-white/[0.04]" />
           ))}
         </div>
       ) : saved.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50">
-            <BookmarkIcon className="h-6 w-6 text-gray-400" />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
+            <BookmarkIcon className="h-6 w-6 text-white/30" />
           </div>
-          <h2 className="mt-4 text-sm font-semibold text-gray-900">No saved jobs yet</h2>
-          <p className="mt-1 text-sm text-gray-400">
+          <h2 className="mt-4 text-sm font-semibold text-white/90">No saved jobs yet</h2>
+          <p className="mt-1 text-sm text-white/30">
             Browse the Discover page and save jobs you're interested in.
           </p>
           <Link
@@ -93,7 +93,7 @@ export default function SavedJobs() {
                 className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
                   activeCollection === null
                     ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
                 }`}
               >
                 All ({saved.length})
@@ -106,7 +106,7 @@ export default function SavedJobs() {
                   className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
                     activeCollection === col
                       ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
                   }`}
                 >
                   {col} ({saved.filter((s) => (s.list_name ?? 'Saved') === col).length})
