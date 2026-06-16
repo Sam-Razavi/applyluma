@@ -369,3 +369,125 @@ async def test_update_role_emits_audit_log(monkeypatch: pytest.MonkeyPatch) -> N
     assert any(r.getMessage() == "admin_role_changed" for r in log_records), (
         "Expected 'admin_role_changed' log record"
     )
+
+
+@pytest.mark.asyncio
+async def test_pipeline_health_requires_auth() -> None:
+    response = await request("GET", "/api/v1/admin/pipeline/health")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_pipeline_health_requires_admin_role() -> None:
+    response = await request("GET", "/api/v1/admin/pipeline/health", current_user=regular_user())
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_pipeline_health_returns_expected_shape(monkeypatch: pytest.MonkeyPatch) -> None:
+    sample = {
+        "raw_job_postings": {
+            "name": "raw_job_postings",
+            "count": 12,
+            "last_run": datetime(2026, 6, 16, tzinfo=UTC),
+            "healthy": True,
+        },
+        "extracted_keywords": {
+            "name": "extracted_keywords",
+            "count": 40,
+            "last_run": datetime(2026, 6, 15, tzinfo=UTC),
+            "healthy": True,
+        },
+        "job_market_metrics": {
+            "name": "job_market_metrics",
+            "count": 2,
+            "last_run": None,
+            "healthy": False,
+        },
+        "sources": [
+            {
+                "source": "the_muse",
+                "count": 7,
+                "last_run": datetime(2026, 6, 16, tzinfo=UTC),
+                "healthy": True,
+            }
+        ],
+    }
+    monkeypatch.setattr(admin_endpoint.crud_admin, "get_pipeline_health", lambda db: sample)
+
+    response = await request("GET", "/api/v1/admin/pipeline/health", current_user=admin_user())
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["raw_job_postings"]["healthy"] is True
+    assert data["job_market_metrics"]["healthy"] is False
+    assert data["sources"][0]["source"] == "the_muse"
+    assert data["sources"][0]["healthy"] is True
+
+
+@pytest.mark.asyncio
+async def test_pipeline_jobs_over_time_returns_points(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin,
+        "get_jobs_over_time",
+        lambda db: [{"date": "2026-06-16", "count": 5}],
+    )
+
+    response = await request("GET", "/api/v1/admin/pipeline/jobs-over-time", current_user=admin_user())
+
+    assert response.status_code == 200
+    assert response.json() == [{"date": "2026-06-16", "count": 5}]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_jobs_by_source_returns_items(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin,
+        "get_jobs_by_source",
+        lambda db: [{"source": "remotive", "count": 3}],
+    )
+
+    response = await request("GET", "/api/v1/admin/pipeline/jobs-by-source", current_user=admin_user())
+
+    assert response.status_code == 200
+    assert response.json() == [{"source": "remotive", "count": 3}]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_metrics_returns_latest_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin,
+        "get_latest_market_metrics",
+        lambda db: {
+            "metric_date": "2026-06-16",
+            "total_jobs_scraped": 25,
+            "remote_percentage": 42.5,
+            "top_skills": [{"skill": "Python", "count": 9}],
+            "top_companies": [{"company": "ApplyLuma", "count": 4}],
+        },
+    )
+
+    response = await request("GET", "/api/v1/admin/pipeline/metrics", current_user=admin_user())
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["metric_date"] == "2026-06-16"
+    assert data["remote_percentage"] == 42.5
+    assert data["top_skills"] == [{"skill": "Python", "count": 9}]
+    assert data["top_companies"] == [{"company": "ApplyLuma", "count": 4}]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_metrics_returns_empty_response_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(admin_endpoint.crud_admin, "get_latest_market_metrics", lambda db: None)
+
+    response = await request("GET", "/api/v1/admin/pipeline/metrics", current_user=admin_user())
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "metric_date": None,
+        "total_jobs_scraped": None,
+        "remote_percentage": None,
+        "top_skills": [],
+        "top_companies": [],
+    }
