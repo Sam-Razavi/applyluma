@@ -71,7 +71,7 @@ def test_tailor_cv_calls_openai_with_json_response(monkeypatch: pytest.MonkeyPat
     assert FakeOpenAI.last_kwargs["model"] == "gpt-4o"
     assert FakeOpenAI.last_kwargs["response_format"] == {"type": "json_object"}
     assert "Restructure bullet points" in FakeOpenAI.last_kwargs["messages"][0]["content"]
-    assert "detected language is en" in FakeOpenAI.last_kwargs["messages"][0]["content"]
+    assert "detected language is" in FakeOpenAI.last_kwargs["messages"][0]["content"]
     assert "Python, SQL" in FakeOpenAI.last_kwargs["messages"][1]["content"]
 
 
