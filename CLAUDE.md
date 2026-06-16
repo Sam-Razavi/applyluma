@@ -8,11 +8,11 @@ ApplyLuma repository.
 - ApplyLuma is an AI-powered job search and resume optimization platform.
 - Production frontend: https://applyluma.com
 - Production backend: https://applyluma-production.up.railway.app
-- Status: Phase 10B implemented on `dev` and ready for PR review. Production
-  remains on the last merged release until `dev` is merged to `main`.
+- Status: All phases through the browser extension are live in production on
+  `main`. `dev` is synced with `main`.
 - All major features are working, including authentication, resume analysis, job
-  search, job description management, the analytics dashboard, AI CV Tailor, and
-  Swedish job discovery with AI-powered match scoring.
+  search, job description management, the analytics dashboard, AI CV Tailor,
+  Swedish job discovery with AI-powered match scoring, and the browser extension.
 
 ## Current Phase
 
@@ -20,8 +20,10 @@ ApplyLuma repository.
 - Phase 9: ✅ COMPLETE
 - Test Infrastructure: ✅ COMPLETE
 - Phase 10A: ✅ COMPLETE — Swedish Job Discovery & AI-Powered Job Matching
-- Phase 10B: ✅ IMPLEMENTED ON DEV — Discover Integrations & Job Alerts
-- Mobile UX Enhancement: ✅ IMPLEMENTED ON DEV — Responsive polish and motion
+- Phase 10B: ✅ COMPLETE — Discover Integrations & Job Alerts
+- Mobile UX Enhancement: ✅ COMPLETE — Responsive polish and motion
+- Jobs Discovery Gap-fill & Search: ✅ COMPLETE — Search, skill gaps, bookmark API
+- Browser Extension: ✅ COMPLETE — MV3 Chrome/Firefox extension
 
 Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Celery worker tailors CV sections against a job description using OpenAI.
@@ -32,7 +34,8 @@ Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Alembic migrations for tailor_jobs table and user role column included.
 
 Phase 10A delivered Swedish job discovery end-to-end:
-  - Airflow scrapes Platsbanken, Jobbsafari, and Indeed.se daily at 2 AM UTC.
+  - Airflow scrapes job boards daily at 2 AM UTC. Production sources in DB:
+    `JobSearch API`, `the_muse`, `remotive`.
   - AI match scoring compares each job against the user's CV (skills, experience,
     salary, education, location) and caches results in Redis (24h TTL).
   - Keyword extraction (technical skills, frameworks, tools, soft skills, languages,
@@ -83,6 +86,32 @@ Mobile UX enhancement pass improves frontend responsiveness and interaction poli
   - Validation on 2026-05-16: frontend `npm run type-check` passed, `npm test`
     38 passed, `npm run build` passed. Bundle gzip increased by about 38.6 kB,
     within the mobile plan target.
+
+Jobs Discovery Gap-fill & Search delivered in June 2026:
+  - Backend `search` param on `GET /api/v1/jobs` (title/company ILIKE, debounced 350ms).
+  - Skill-gap analysis in job detail: `matched_skills` / `missing_skills` populated via
+    KeywordExtractor against the user's default CV.
+  - `POST /api/v1/jobs/bookmark` and `GET /api/v1/jobs/bookmark/saved-urls` endpoints.
+  - `GET /api/v1/auth/extension-token` — mints bearer TokenPair for cookie-authenticated
+    users (extension can't access httpOnly cookies directly).
+  - `GET /api/v1/applications/applied-urls` — list of job URLs already tracked.
+  - Production backfill: 808/810 jobs have `extracted_keywords`; 810 `job_matching_scores`
+    for the primary account.
+  - Data sources in `JOB_SOURCES` / `SOURCE_LABELS` updated to match actual DB values:
+    `JobSearch API`, `the_muse`, `remotive`.
+  - Prominent full-width debounced search bar added to Discover page (above filters).
+  - 3 new backend test files (see Test Infrastructure section).
+
+Browser Extension delivered in June 2026 (`applyluma-extension/`):
+  - MV3 Chrome/Firefox extension with popup, background service worker, and per-site
+    content scripts for LinkedIn, Indeed SE (`se.indeed.com`), Glassdoor, and
+    Arbetsformedlingen.
+  - Bearer token auth stored in `chrome.storage.local` with automatic refresh on 401.
+  - 30-minute alarm refreshes saved/applied URL sets; badge text shows saved-job count.
+  - `Alt+Shift+S` quick-save keyboard shortcut bookmarks the current job without popup.
+  - `/extension-auth` page in the web app mints a bearer token and auto-copies to clipboard.
+  - JOB_SITE_PATTERNS covers `se.indeed.com`, `arbetsformedlingen.se`, and
+    `www.arbetsformedlingen.se`.
 
 ## Git Workflow
 
@@ -212,6 +241,9 @@ Files:
 - `tests/test_health_endpoints.py` — health and detailed health checks
 - `tests/test_cv_history_endpoints.py` — CV history tree and diff endpoints
 - `tests/test_job_search_endpoints.py` — Adzuna job search + caching
+- `tests/test_job_crud.py` — `_compute_skill_gap` unit tests (matched/missing, no-CV, no-keywords)
+- `tests/test_job_bookmark_endpoint.py` — bookmark creation, idempotency, scoring, notes, saved-urls (14 tests)
+- `tests/test_extension_support.py` — extension-token and applied-urls endpoints (4 tests)
 - Phase 10B alert preference endpoints and high-match alert task are implemented;
   add focused endpoint/task tests when extending alert behavior further.
 
@@ -303,32 +335,36 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Known Issues
 
-- No known Phase 10B code issues after local validation.
+- 356 backend tests passing as of 2026-06-16. Frontend: 38 tests passing.
 - `npm install` reported 2 moderate frontend dependency vulnerabilities; do not
   run `npm audit fix --force` casually because it can introduce breaking
   dependency upgrades.
 - GitHub CLI (`gh`) is not installed in the local Codex environment; use the
   GitHub connector or install `gh` for CLI-based PR workflows.
+- `job_market_metrics` table is stale (last row 2026-05-10); the dbt pipeline
+  that populates it has not run since the Airflow scraper sources changed.
 
 ## Next Steps
 
-- PR #6 from `dev` to `main` is open for the mobile UX enhancements on top of
-  the merged Phase 10B baseline.
-- Review CI and mobile behavior, then merge `dev` to `main` when ready for
-  production deployment.
-- Phase 10C candidate areas: in-app surfacing for high-match notifications,
-  Discover filter for jobs already in Applications, richer alert preferences,
-  and additional frontend/backend tests for Phase 10B edge cases.
-- Continue using the `dev` -> `main` workflow.
-- Use feature branches for AI collaboration.
-- Run the relevant test suite before merging any future Phase 10C work.
+- `dev` is synced with `main`. Resume the standard `dev → feature branch → dev → main`
+  workflow for all new work.
+- Next planned feature: **Admin Dashboard / Pipeline Health** — a self-contained Codex
+  implementation prompt has been written. It adds `/admin/pipeline` with a health panel
+  (per-stage freshness + status), jobs-over-time line chart, jobs-by-source bar chart,
+  top skills/companies lists, and a remote-% stat card. New backend endpoints under
+  `/api/v1/admin/pipeline/` read `raw_job_postings`, `extracted_keywords`, and
+  `job_market_metrics` (read-only).
+- Phase 10C backlog: in-app notification surface for high-match alerts, Discover filter
+  for jobs already in Applications, richer alert preferences, additional Phase 10B edge-case
+  tests.
+- Run the full test suite (`pytest`, `npm test`) before merging any new feature work.
 
 ## AI Development Guidelines
 
 When working on this project:
-- Always work in `dev` or create a feature branch from `dev`.
-- Never push directly to `main` unless it is an emergency hotfix.
-- Test in `dev` before merging to `main`.
+- Always work in `dev` or create a feature branch from `dev`. `dev` is synced
+  with `main` as of 2026-06-16.
+- Test in `dev` before merging to `main`. Never push breaking changes to `main`.
 - Use Railway logs to verify backend deployments.
 - Check both Railway and Vercel for production status.
 - Remember that analytics endpoints require a populated database.
