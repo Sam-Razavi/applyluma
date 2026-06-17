@@ -95,14 +95,14 @@ export default function KanbanBoard({
                   <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-xs font-semibold text-white/55">
                     {statusApplications.length}
                   </span>
-                  <ToggleIcon className="h-4 w-4 text-white/30" />
+                  <ToggleIcon className="h-4 w-4 text-white/45" />
                 </span>
               </button>
 
               {isOpen && (
                 <div className="space-y-3 border-t border-white/10 bg-white/[0.03] p-3">
                   {statusApplications.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-6 text-center text-xs text-white/30">
+                    <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-6 text-center text-xs text-white/45">
                       No applications
                     </div>
                   ) : (
@@ -144,7 +144,7 @@ export default function KanbanBoard({
                           <span className="block truncate text-sm font-semibold text-white/90">
                             {application.job_title}
                           </span>
-                          <span className="mt-1 block truncate text-sm text-white/30">
+                          <span className="mt-1 block truncate text-sm text-white/45">
                             {application.company_name}
                           </span>
                         </div>

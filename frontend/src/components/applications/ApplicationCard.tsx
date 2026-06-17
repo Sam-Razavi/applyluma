@@ -175,7 +175,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
           <h3 className="truncate text-sm font-semibold text-white/90">
             {application.job_title}
           </h3>
-          <p className="truncate text-sm text-white/30">{application.company_name}</p>
+          <p className="truncate text-sm text-white/45">{application.company_name}</p>
         </div>
 
         {!isSelectMode && (
@@ -186,7 +186,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-primary-300"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-primary-300"
                 aria-label="Open job listing"
               >
                 <ArrowTopRightOnSquareIcon className="h-4 w-4" />
@@ -194,7 +194,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
             )}
             <button
               type="button"
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white/55"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-white/55"
               aria-label={`Drag ${application.job_title}`}
               onClick={(e) => e.stopPropagation()}
               {...attributes}
@@ -220,27 +220,27 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
             {application.source.replace('_', ' ')}
           </span>
         )}
-        <span className="ml-auto flex items-center gap-1 text-xs text-white/30">
+        <span className="ml-auto flex items-center gap-1 text-xs text-white/45">
           <ClockIcon className="h-3 w-3" />
           {age}
         </span>
       </div>
 
       {/* Info rows */}
-      <div className="mt-3 space-y-1.5 text-xs text-white/30">
+      <div className="mt-3 space-y-1.5 text-xs text-white/45">
         <div className="flex items-center gap-1.5">
-          <CalendarDaysIcon className="h-3.5 w-3.5 text-white/30" />
+          <CalendarDaysIcon className="h-3.5 w-3.5 text-white/45" />
           <span>{formatDate(application.applied_date)}</span>
         </div>
         {application.location && (
           <div className="flex items-center gap-1.5">
-            <MapPinIcon className="h-3.5 w-3.5 text-white/30" />
+            <MapPinIcon className="h-3.5 w-3.5 text-white/45" />
             <span className="truncate">{application.location}</span>
           </div>
         )}
         {salary && (
           <div className="flex items-center gap-1.5">
-            <BanknotesIcon className="h-3.5 w-3.5 text-white/30" />
+            <BanknotesIcon className="h-3.5 w-3.5 text-white/45" />
             <span>{salary}</span>
           </div>
         )}

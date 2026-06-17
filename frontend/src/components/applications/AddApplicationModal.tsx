@@ -123,7 +123,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
             <button
               type="button"
               onClick={close}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white/55"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-white/55"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>
