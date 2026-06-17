@@ -56,10 +56,10 @@ function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-xl border border-[rgba(8,145,178,0.20)] bg-white/[0.04] px-4 py-3 shadow-xl">
-      <p className="text-xs text-white/30">{formatWeek(String(label))}</p>
+      <p className="text-xs text-white/45">{formatWeek(String(label))}</p>
       <p className="mt-0.5 text-lg font-bold text-cyan-300">
         {payload[0].value as number}
-        <span className="ml-1 text-xs font-normal text-white/30">applications</span>
+        <span className="ml-1 text-xs font-normal text-white/45">applications</span>
       </p>
     </div>
   )
@@ -99,7 +99,7 @@ export default function DashboardActivityChart() {
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-sm font-semibold text-white/90 ">Activity</h2>
-          <p className="mt-0.5 text-xs text-white/30">Applications sent over the last 12 weeks</p>
+          <p className="mt-0.5 text-xs text-white/45">Applications sent over the last 12 weeks</p>
         </div>
         <Link
           to="/applications?tab=stats"
@@ -117,7 +117,7 @@ export default function DashboardActivityChart() {
           { label: 'Best week', value: bestWeek, icon: null },
         ].map(({ label, value }) => (
           <div key={label} className="px-4 first:pl-0 last:pr-0">
-            <p className="text-xs text-white/30">{label}</p>
+            <p className="text-xs text-white/45">{label}</p>
             <p className="mt-0.5 text-2xl font-bold text-white/90 ">
               {loading ? (
                 <span className="inline-block h-7 w-10 animate-pulse rounded bg-white/[0.04]" />
@@ -142,8 +142,8 @@ export default function DashboardActivityChart() {
         </div>
       ) : total === 0 ? (
         <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl bg-white/[0.03] ">
-          <ArrowTrendingUpIcon className="h-8 w-8 text-white/30" />
-          <p className="text-xs text-white/30">Start tracking applications to see your trend</p>
+          <ArrowTrendingUpIcon className="h-8 w-8 text-white/45" />
+          <p className="text-xs text-white/45">Start tracking applications to see your trend</p>
         </div>
       ) : (
         <div
