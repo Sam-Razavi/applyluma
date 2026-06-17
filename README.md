@@ -3,8 +3,8 @@
 [![CI](https://github.com/sam-razavi/applyluma/actions/workflows/ci.yml/badge.svg)](https://github.com/sam-razavi/applyluma/actions/workflows/ci.yml)
 [![Data Pipeline Tests](https://github.com/sam-razavi/applyluma/actions/workflows/data-pipeline-tests.yml/badge.svg)](https://github.com/sam-razavi/applyluma/actions/workflows/data-pipeline-tests.yml)
 [![API](https://img.shields.io/badge/api-railway-brightgreen?logo=railway&logoColor=white)](https://railway.app)
-[![Frontend](https://img.shields.io/website?url=https%3A%2F%2Fapplyluma.com&label=frontend&up_message=online&down_message=offline)](https://applyluma.com)
-[![Last Commit](https://img.shields.io/github/last-commit/sam-razavi/applyluma)](https://github.com/sam-razavi/applyluma/commits/main)
+[![Frontend](https://img.shields.io/badge/frontend-vercel-black?logo=vercel&logoColor=white)](https://applyluma.com)
+[![Last Commit](https://img.shields.io/github/last-commit/Sam-Razavi/applyluma)](https://github.com/Sam-Razavi/applyluma/commits/main)
 [![Python](https://img.shields.io/badge/python-3.11-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-22-green?logo=node.js&logoColor=white)](https://nodejs.org/)
 
