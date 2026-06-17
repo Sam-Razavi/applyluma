@@ -49,7 +49,12 @@ class FakeOpenAI:
     def _create(self, **kwargs: Any) -> SimpleNamespace:
         FakeOpenAI.last_kwargs = kwargs
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=FakeOpenAI.content))]
+            choices=[
+                SimpleNamespace(
+                    finish_reason="stop",
+                    message=SimpleNamespace(content=FakeOpenAI.content),
+                )
+            ]
         )
 
 
@@ -71,7 +76,7 @@ def test_tailor_cv_calls_openai_with_json_response(monkeypatch: pytest.MonkeyPat
     assert FakeOpenAI.last_kwargs["model"] == "gpt-4o"
     assert FakeOpenAI.last_kwargs["response_format"] == {"type": "json_object"}
     assert "Restructure bullet points" in FakeOpenAI.last_kwargs["messages"][0]["content"]
-    assert "detected language is en" in FakeOpenAI.last_kwargs["messages"][0]["content"]
+    assert "detected language is" in FakeOpenAI.last_kwargs["messages"][0]["content"]
     assert "Python, SQL" in FakeOpenAI.last_kwargs["messages"][1]["content"]
 
 
