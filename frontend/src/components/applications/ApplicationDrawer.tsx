@@ -127,12 +127,12 @@ export default function ApplicationDrawer() {
               <DialogTitle className="truncate text-lg font-semibold text-white/90">
                 {application.job_title}
               </DialogTitle>
-              <p className="truncate text-sm text-white/30">{application.company_name}</p>
+              <p className="truncate text-sm text-white/45">{application.company_name}</p>
             </div>
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white/55"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-white/55"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>

@@ -59,20 +59,20 @@ export default function ContactsList({ applicationId, contacts }: Props) {
     <div className="space-y-4">
       <div className="space-y-3">
         {contacts.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/30">
+          <div className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/45">
             No contacts saved for this application.
           </div>
         ) : (
           contacts.map((contact) => (
             <div key={contact.id} className="rounded-xl border border-white/10 p-3">
               <div className="flex items-start gap-3">
-                <UserCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-white/30" />
+                <UserCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-white/45" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-white/90">
                     {contact.name || 'Unnamed contact'}
                   </p>
-                  {contact.role && <p className="text-xs text-white/30">{contact.role}</p>}
-                  <div className="mt-2 space-y-1 text-xs text-white/30">
+                  {contact.role && <p className="text-xs text-white/45">{contact.role}</p>}
+                  <div className="mt-2 space-y-1 text-xs text-white/45">
                     {contact.email && (
                       <p className="flex items-center gap-1.5 truncate">
                         <EnvelopeIcon className="h-3.5 w-3.5" />
@@ -90,7 +90,7 @@ export default function ContactsList({ applicationId, contacts }: Props) {
                 <button
                   type="button"
                   onClick={() => handleDelete(contact.id)}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/30 transition hover:bg-[rgba(229,72,77,0.12)] text-red-300"
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/45 transition hover:bg-[rgba(229,72,77,0.12)] text-red-300"
                   aria-label="Delete contact"
                 >
                   <TrashIcon className="h-4 w-4" />

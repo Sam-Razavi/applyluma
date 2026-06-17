@@ -250,6 +250,18 @@ async def test_comparison_happy_path_with_authentication() -> None:
 
 
 @pytest.mark.asyncio
+async def test_comparison_coverage_uses_all_detected_resume_skills() -> None:
+    response = await request(COMPARISON_ENDPOINT.path, FakeDb(), authenticated=True)
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["resume_skill_count"] == 3
+    assert data["matched_skills"] == ["Python", "SQL"]
+    assert data["skills_market_coverage_pct"] == 66.7
+    assert data["overall_market_alignment_score"] == 76.7
+
+
+@pytest.mark.asyncio
 async def test_comparison_validation_with_authentication() -> None:
     response = await request(COMPARISON_ENDPOINT.invalid_path, FakeDb(), authenticated=True)
     assert response.status_code == 400

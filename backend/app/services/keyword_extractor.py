@@ -150,8 +150,10 @@ class KeywordExtractor:
         python -m spacy download sv_core_news_sm
     """
 
-    def __init__(self) -> None:
+    def __init__(self, enable_nlp: bool = True) -> None:
         self.nlp = None
+        if not enable_nlp:
+            return
         try:
             import spacy  # type: ignore[import-untyped]
             self.nlp = spacy.load("sv_core_news_sm")

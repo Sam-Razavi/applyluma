@@ -22,6 +22,7 @@ from app.db.queries.analytics_queries import (
     safe_execute,
 )
 from app.schemas.analytics import AnalyticsResponse, ResumeComparison
+from app.services.keyword_extractor import KeywordExtractor
 
 router = APIRouter()
 
@@ -70,30 +71,41 @@ def get_comparison(
                     ORDER BY total_job_mentions DESC
                 """)
             ).fetchall())
-            content = (resume_data.get("content") or "").lower()
+            content_text = resume_data.get("content") or ""
+            content = content_text.lower()
+            keyword_extractor = KeywordExtractor(enable_nlp=False)
+            extracted_resume_skills = keyword_extractor.keywords_as_flat_list(
+                keyword_extractor.extract_keywords(content_text)
+            )
+            resume_skill_names = list(dict.fromkeys(extracted_resume_skills))
             matched_skill_rows = [
                 skill for skill in skills
                 if re.search(rf"(?<!\w){re.escape(str(skill['skill_name']).lower())}(?!\w)", content)
             ]
             matched_names = [str(skill["skill_name"]) for skill in matched_skill_rows]
             matched_name_set = {name.lower() for name in matched_names}
+            resume_skill_name_set = {name.lower() for name in resume_skill_names}
+            for name in matched_names:
+                if name.lower() not in resume_skill_name_set:
+                    resume_skill_names.append(name)
+                    resume_skill_name_set.add(name.lower())
             missing = [
                 str(skill["skill_name"])
                 for skill in skills[:20]
-                if str(skill["skill_name"]).lower() not in matched_name_set
+                if str(skill["skill_name"]).lower() not in resume_skill_name_set
             ]
-            salary_benchmark = _salary_benchmark(db, matched_names)
+            salary_benchmark = _salary_benchmark(db, resume_skill_names)
             total_skills = max(len(skills), 1)
             demand_scores = [
                 1 - (int(skill["market_demand_rank"]) - 1) / total_skills
                 for skill in matched_skill_rows
             ]
             demand_score = sum(demand_scores) / len(demand_scores) if demand_scores else 0.0
-            coverage = len(matched_skill_rows) / max(len(matched_names), 1)
+            coverage = len(matched_name_set) / max(len(resume_skill_names), 1)
             return {
                 "resume_id": str(resume_uuid),
                 "resume_title": resume_data.get("title") or "Resume",
-                "resume_skill_count": len(matched_names),
+                "resume_skill_count": len(resume_skill_names),
                 "matched_skills": matched_names,
                 "missing_high_demand_skills": missing,
                 "skill_details": [

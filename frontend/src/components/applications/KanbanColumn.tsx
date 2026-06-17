@@ -58,7 +58,7 @@ export default function KanbanColumn({
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="rounded-md border border-white/10 bg-white/[0.04] py-0.5 pl-1.5 pr-5 text-xs text-white/30 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="rounded-md border border-white/10 bg-white/[0.04] py-0.5 pl-1.5 pr-5 text-xs text-white/45 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-400"
               aria-label="Sort column"
             >
               <option value="default">Default</option>
@@ -68,7 +68,7 @@ export default function KanbanColumn({
               <option value="company">Company A–Z</option>
             </select>
           )}
-          <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-xs font-semibold text-white/30 shadow-sm">
+          <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-xs font-semibold text-white/45 shadow-sm">
             {applications.length}
           </span>
         </div>
@@ -77,7 +77,7 @@ export default function KanbanColumn({
       <SortableContext items={sorted.map((application) => application.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 space-y-3 overflow-y-auto p-3">
           {sorted.length === 0 ? (
-            <div className="flex h-28 items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/70 px-4 text-center text-xs text-white/30">
+            <div className="flex h-28 items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 text-center text-xs text-white/45">
               Drop applications here
             </div>
           ) : (
