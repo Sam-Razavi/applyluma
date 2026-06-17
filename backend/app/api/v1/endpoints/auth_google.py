@@ -1,5 +1,6 @@
 import logging
 import secrets
+from typing import Any
 from urllib.parse import urlencode
 
 import httpx
@@ -30,7 +31,7 @@ def _prod() -> bool:
     return settings.ENVIRONMENT == "production"
 
 
-def _cookie_kwargs(max_age: int) -> dict:
+def _cookie_kwargs(max_age: int) -> dict[str, Any]:
     return {
         "httponly": True,
         "secure": _prod(),
@@ -147,7 +148,7 @@ def google_callback(
     return response
 
 
-def _exchange_code_for_tokens(code: str) -> dict:
+def _exchange_code_for_tokens(code: str) -> dict[str, Any]:
     with httpx.Client(timeout=10.0) as client:
         resp = client.post(
             GOOGLE_TOKEN_URL,
@@ -160,14 +161,16 @@ def _exchange_code_for_tokens(code: str) -> dict:
             },
         )
         resp.raise_for_status()
-        return resp.json()
+        data: dict[str, Any] = resp.json()
+        return data
 
 
-def _fetch_google_user_info(google_access_token: str) -> dict:
+def _fetch_google_user_info(google_access_token: str) -> dict[str, Any]:
     with httpx.Client(timeout=10.0) as client:
         resp = client.get(
             GOOGLE_USERINFO_URL,
             headers={"Authorization": f"Bearer {google_access_token}"},
         )
         resp.raise_for_status()
-        return resp.json()
+        data: dict[str, Any] = resp.json()
+        return data
