@@ -18,6 +18,60 @@ def get_by_verification_token(db: Session, token: str) -> User | None:
     return db.query(User).filter(User.verification_token == token).first()
 
 
+def get_by_google_id(db: Session, google_id: str) -> User | None:
+    return db.query(User).filter(User.google_id == google_id).first()
+
+
+def upsert_google_user(
+    db: Session,
+    *,
+    google_id: str,
+    email: str,
+    full_name: str | None = None,
+    avatar_url: str | None = None,
+) -> User:
+    """Resolve a Google-authenticated user, creating or linking as needed.
+
+    - If a user with this google_id exists, update the avatar and return it.
+    - Else if a user with this email exists, link the Google account to it.
+    - Else create a new passwordless, pre-verified Google user.
+    """
+    user = get_by_google_id(db, google_id)
+    if user:
+        user.avatar_url = avatar_url
+        if full_name and not user.full_name:
+            user.full_name = full_name
+        db.commit()
+        db.refresh(user)
+        return user
+
+    user = get_by_email(db, email)
+    if user:
+        user.google_id = google_id
+        user.auth_provider = "google"
+        user.avatar_url = avatar_url
+        user.is_verified = True
+        if full_name and not user.full_name:
+            user.full_name = full_name
+        db.commit()
+        db.refresh(user)
+        return user
+
+    user = User(
+        email=email,
+        google_id=google_id,
+        full_name=full_name,
+        avatar_url=avatar_url,
+        auth_provider="google",
+        is_active=True,
+        is_verified=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def get_by_id(db: Session, user_id: str) -> User | None:
     import uuid as _uuid
     try:
@@ -59,7 +113,8 @@ def refresh_verification_token(db: Session, user: User) -> str:
 
 def authenticate(db: Session, email: str, password: str) -> User | None:
     user = get_by_email(db, email)
-    if not user or not verify_password(password, user.hashed_password):
+    # OAuth-only users have no password and cannot authenticate via this path.
+    if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
         return None
     return user
 
