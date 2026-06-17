@@ -289,7 +289,7 @@ def tailor_cv(
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
-            max_tokens=4096,
+            max_tokens=16384,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -303,7 +303,10 @@ def tailor_cv(
     except Exception as exc:
         raise ValueError(f"AI API error: {exc}") from exc
 
-    raw = response.choices[0].message.content or ""
+    choice = response.choices[0]
+    if choice.finish_reason == "length":
+        raise ValueError("AI response was truncated (token limit reached)")
+    raw = choice.message.content or ""
     try:
         result = json.loads(raw)
     except json.JSONDecodeError as exc:
