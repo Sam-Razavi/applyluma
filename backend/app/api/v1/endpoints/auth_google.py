@@ -9,12 +9,42 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, get_redis_client
 from app.core.security import create_access_token, create_refresh_token
 from app.crud import user as crud_user
 
 router = APIRouter(prefix="/auth/google", tags=["auth"])
 logger = logging.getLogger(__name__)
+
+# Server-side state store. The state cookie can't be relied on alone because the
+# OAuth /login and /callback may be served on different hostnames (e.g. the
+# frontend hits the API on one domain while Google's redirect_uri points at
+# another), so the cookie set on /login isn't present on /callback. Storing the
+# state in Redis makes validation independent of cookies/domains.
+_STATE_PREFIX = "oauth_state:"
+
+
+def _store_state(state: str) -> None:
+    try:
+        get_redis_client().setex(f"{_STATE_PREFIX}{state}", _STATE_TTL_SECONDS, "1")
+    except Exception:
+        logger.warning("oauth_state_redis_store_failed", exc_info=True)
+
+
+def _consume_state(state: str | None, cookie_state: str | None) -> bool:
+    """Validate the returned state against the cookie OR the Redis store."""
+    if not state:
+        return False
+    if cookie_state and secrets.compare_digest(state, cookie_state):
+        return True
+    try:
+        redis_client = get_redis_client()
+        if redis_client.get(f"{_STATE_PREFIX}{state}"):
+            redis_client.delete(f"{_STATE_PREFIX}{state}")
+            return True
+    except Exception:
+        logger.warning("oauth_state_redis_check_failed", exc_info=True)
+    return False
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -73,6 +103,7 @@ def google_login() -> RedirectResponse:
         )
 
     state = secrets.token_urlsafe(32)
+    _store_state(state)
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
         "redirect_uri": settings.GOOGLE_REDIRECT_URI,
@@ -115,7 +146,7 @@ def google_callback(
         return _login_failed_redirect()
 
     cookie_state = request.cookies.get(_STATE_COOKIE)
-    if not state or not cookie_state or not secrets.compare_digest(state, cookie_state):
+    if not _consume_state(state, cookie_state):
         logger.warning("google_oauth_state_mismatch")
         return _login_failed_redirect()
 
