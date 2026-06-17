@@ -59,7 +59,7 @@ def _login_failed_redirect() -> RedirectResponse:
         url=f"{settings.FRONTEND_URL}/login?error=oauth_failed",
         status_code=status.HTTP_302_FOUND,
     )
-    response.delete_cookie(_STATE_COOKIE, secure=_prod(), samesite="none" if _prod() else "lax")
+    response.delete_cookie(_STATE_COOKIE, secure=_prod(), samesite="lax")
     return response
 
 
@@ -86,12 +86,16 @@ def google_login() -> RedirectResponse:
         url=f"{GOOGLE_AUTH_URL}?{urlencode(params)}",
         status_code=status.HTTP_302_FOUND,
     )
+    # The OAuth callback is a cross-site, top-level GET redirect from Google.
+    # SameSite=Lax cookies ARE sent on top-level navigations and are not subject
+    # to third-party-cookie blocking; SameSite=None would be dropped by browsers
+    # (Safari ITP / Chrome 3PC restrictions), breaking the state check.
     response.set_cookie(
         _STATE_COOKIE,
         state,
         httponly=True,
         secure=_prod(),
-        samesite="none" if _prod() else "lax",
+        samesite="lax",
         max_age=_STATE_TTL_SECONDS,
     )
     return response
@@ -144,7 +148,7 @@ def google_callback(
         status_code=status.HTTP_302_FOUND,
     )
     _set_auth_cookies(response, access_token, refresh_token)
-    response.delete_cookie(_STATE_COOKIE, secure=_prod(), samesite="none" if _prod() else "lax")
+    response.delete_cookie(_STATE_COOKIE, secure=_prod(), samesite="lax")
     return response
 
 
