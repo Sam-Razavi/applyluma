@@ -93,7 +93,42 @@ async def test_callback_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_callback_state_mismatch() -> None:
+async def test_callback_success_via_redis_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    """State validates against Redis when the cookie is absent (cross-domain case)."""
+
+    class FakeRedis:
+        def get(self, key: str) -> bytes | None:
+            return b"1" if key == "oauth_state:rstate" else None
+
+        def delete(self, key: str) -> None:
+            pass
+
+    monkeypatch.setattr(auth_google, "get_redis_client", lambda: FakeRedis())
+    monkeypatch.setattr(auth_google, "_exchange_code_for_tokens", lambda code: {"access_token": "ga"})
+    monkeypatch.setattr(
+        auth_google,
+        "_fetch_google_user_info",
+        lambda tok: {"id": "g1", "email": "r@example.com", "name": "R", "picture": "http://p"},
+    )
+    monkeypatch.setattr(
+        auth_google.crud_user, "upsert_google_user", lambda *a, **kw: SimpleNamespace(id=USER_ID)
+    )
+    # No oauth_state cookie sent — validation must fall back to Redis.
+    resp = await _get("/api/v1/auth/google/callback?code=abc&state=rstate")
+    assert resp.status_code == 302
+    assert "/auth/callback?token=" in resp.headers["location"]
+
+
+@pytest.mark.asyncio
+async def test_callback_state_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeRedis:
+        def get(self, key: str) -> bytes | None:
+            return None
+
+        def delete(self, key: str) -> None:
+            pass
+
+    monkeypatch.setattr(auth_google, "get_redis_client", lambda: FakeRedis())
     resp = await _get("/api/v1/auth/google/callback?code=abc&state=bad", cookies={"oauth_state": "good"})
     assert resp.status_code == 302
     assert "error=oauth_failed" in resp.headers["location"]
