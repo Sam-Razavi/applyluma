@@ -3,169 +3,159 @@
 [![CI](https://github.com/sam-razavi/applyluma/actions/workflows/ci.yml/badge.svg)](https://github.com/sam-razavi/applyluma/actions/workflows/ci.yml)
 [![Data Pipeline Tests](https://github.com/sam-razavi/applyluma/actions/workflows/data-pipeline-tests.yml/badge.svg)](https://github.com/sam-razavi/applyluma/actions/workflows/data-pipeline-tests.yml)
 [![API](https://img.shields.io/badge/api-railway-brightgreen?logo=railway&logoColor=white)](https://railway.app)
-[![Frontend](https://img.shields.io/website?url=https%3A%2F%2Fapplyluma.com&label=frontend&up_message=online&down_message=offline)](https://applyluma.com)
-[![Last Commit](https://img.shields.io/github/last-commit/sam-razavi/applyluma)](https://github.com/sam-razavi/applyluma/commits/main)
+[![Frontend](https://img.shields.io/badge/frontend-vercel-black?logo=vercel&logoColor=white)](https://applyluma.com)
+[![Last Commit](https://img.shields.io/github/last-commit/Sam-Razavi/applyluma)](https://github.com/Sam-Razavi/applyluma/commits/main)
 [![Python](https://img.shields.io/badge/python-3.11-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-22-green?logo=node.js&logoColor=white)](https://nodejs.org/)
 
-AI-powered job search and resume optimization platform with production analytics.
-
-## Status
+ApplyLuma is a production-deployed AI job-search platform that helps candidates discover matched jobs, tailor CVs, generate cover letters, track applications, and analyze job-market trends from one workspace.
 
 - Production: https://applyluma.com
 - Backend API: https://applyluma-production.up.railway.app
 - API docs: https://applyluma-production.up.railway.app/docs
-- Current phase: Browser extension and all phases through 10B live in production
+- Browser extension: `applyluma-extension/`
 
-All major features are working end-to-end: authentication with httpOnly cookie
-security, resume upload and AI analysis, AI CV Tailor, Cover Letter Generator,
-Job URL Scraper, job discovery with AI match scoring, saved jobs, job alert
-emails, application tracking, Stripe billing, the market analytics dashboard,
-and the MV3 browser extension for one-click job saving.
+## Product Preview
 
-## Overview
+### Market Intelligence Dashboard
 
-ApplyLuma helps job seekers search jobs, manage resumes, tailor CVs with AI,
-discover AI-matched Swedish jobs, and compare their profile against market analytics.
+![ApplyLuma market intelligence dashboard](docs/screenshots/dashboard-desktop.png)
 
-Core capabilities:
-- Secure authentication — JWT access tokens, httpOnly refresh cookies, CSRF protection, token denylist
-- Resume upload and AI resume analysis
-- AI CV Tailor: async section-by-section CV rewriting against a job description
-- Cover Letter Generator: AI-generated cover letters with tone selection (formal/friendly/concise)
-- Job URL Scraper: paste any job posting URL to auto-fill the job description form
-- Authenticated PDF download for all CVs (uploaded and tailored)
-- Job discovery with AI match scoring against your CV (skill-gap breakdown included)
-- Saved jobs collections with named lists, starring, and notes
-- Job alert emails for high-match jobs (configurable threshold and frequency)
-- One-click AI tailoring directly from discovered jobs
-- Application tracking with status history and analytics
-- Browser extension (Chrome/Firefox) — one-click save from LinkedIn, Indeed, Glassdoor,
-  and Arbetsformedlingen; badge showing saved count; `Alt+Shift+S` quick-save shortcut
-- Job search through Adzuna
-- Job description management
-- Stripe subscription billing (free, premium, admin tiers)
-- Market analytics dashboard
-- Daily Astro Cloud Airflow and dbt data pipeline
-- GDPR-compliant cookie consent banner (optional analytics gated behind explicit consent)
+### Analytics Details
+
+| Market KPIs and demand signals | Hiring trend and market health |
+| --- | --- |
+| ![Market KPIs, trending skills, salary insights, and top companies](docs/screenshots/analytics-kpis-and-skills.png) | ![Hiring patterns chart and market health cards](docs/screenshots/analytics-hiring-and-health.png) |
+
+### Breakdowns and Responsive Layouts
+
+| Market breakdowns | Tablet | Mobile |
+| --- | --- | --- |
+| ![Location, industry, experience, job type, and salary breakdowns](docs/screenshots/analytics-breakdowns.png) | ![Analytics dashboard tablet layout](docs/screenshots/dashboard-tablet.png) | ![Analytics dashboard mobile layout](docs/screenshots/dashboard-mobile.png) |
+
+## Why This Project Matters
+
+ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
+
+- Full-stack product delivery: React, TypeScript, FastAPI, PostgreSQL, Redis, Celery, Docker, Railway, and Vercel.
+- AI workflows: resume analysis, section-by-section CV tailoring, cover letter generation, job URL extraction, and match-score explanation.
+- Data engineering: scheduled job ingestion, dbt transformations, analytics APIs, and a production dashboard.
+- Security and operations: httpOnly cookie auth, CSRF protection, token denylist, rate limits, SSRF protection, admin audit logging, CI, and deployment docs.
+- Recruiter-visible product thinking: responsive UI, onboarding flows, job tracking, billing plans, alert preferences, and browser extension support.
+
+## Core Features
+
+### Candidate Workspace
+
+- Secure sign-up, login, password reset, email verification, and session handling.
+- CV upload, parsing, AI analysis, version history, and authenticated PDF downloads.
+- AI CV Tailor with asynchronous processing, section review, save, and export.
+- Cover Letter Generator with formal, friendly, and concise tones.
+- Job description manager with URL scraping for publicly accessible job posts.
+- Application tracker with status history, contact notes, timeline, and analytics.
+
+### Job Discovery
+
+- Swedish job discovery from Platsbanken, Jobbsafari, and Indeed.se integrations.
+- International job search through Adzuna.
+- AI match scoring against the user's CV with matched and missing skill breakdowns.
+- Saved jobs with collections, starring, notes, and detail views.
+- One-click actions from discovered jobs: tailor CV, save job, and add to applications.
+- Job alert emails for high-match roles with configurable threshold and frequency.
+
+### Analytics and Admin
+
+- Market intelligence dashboard for job volume, salary bands, remote share, growth, top companies, skills, location, seniority, and job-type mix.
+- Resume-vs-market comparison for authenticated users with uploaded CVs.
+- Admin screens for user management and pipeline health visibility.
+- Daily scraping and transform pipeline backed by Airflow, dbt, PostgreSQL, and Redis caching.
+
+### Browser Extension
+
+- Manifest V3 Chrome/Firefox extension in `applyluma-extension/`.
+- One-click save from LinkedIn, Indeed, Glassdoor, and Arbetsformedlingen job pages.
+- Badge state for saved/applied URLs and `Alt+Shift+S` quick-save.
+- Bearer-token extension auth flow through `/extension-auth`.
 
 ## Tech Stack
 
-Backend:
-- FastAPI
-- PostgreSQL
-- Redis
-- SQLAlchemy and Alembic
-- Celery for async tasks
-- Docker on Railway
+| Area | Tools |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, Tailwind CSS, Framer Motion, Zustand, Recharts |
+| Backend | FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, Celery |
+| AI | OpenAI API for resume analysis, CV tailoring, cover letters, extraction, and scoring |
+| Data | Apache Airflow on Astro Cloud, dbt, Railway PostgreSQL |
+| Extension | Manifest V3, content scripts, Chrome/Firefox storage APIs |
+| Infrastructure | Railway, Vercel, Docker, Namecheap DNS |
+| Payments and Email | Stripe, Resend |
+| Quality | Pytest, Vitest, GitHub Actions, ruff, type checks |
 
-Frontend:
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Framer Motion
-- Vercel
+## Architecture
 
-Data:
-- Apache Airflow on Astro Cloud for orchestration
-- dbt for transformations
-- Railway PostgreSQL for production analytics data
+```text
+applyluma/
+|-- backend/               FastAPI API, SQLAlchemy models, schemas, services, tasks, tests
+|-- frontend/              React + TypeScript app, pages, components, stores, tests
+|-- applyluma-extension/   MV3 browser extension for saving jobs from job boards
+|-- airflow/               DAGs for scraping, keyword extraction, and scoring jobs
+|-- dbt/                   Analytics transformations
+|-- deployment/            Railway, Vercel, DNS, Airflow, and test checklists
+|-- docs/                  Product and technical documentation
+`-- graphify-out/          Local knowledge graph for codebase navigation
+```
 
-AI and external APIs:
-- OpenAI API for resume analysis, CV tailoring, cover letter generation, and job match scoring
-- JobTech Dev API (Platsbanken) for Swedish job data — free, no key required
-- Adzuna API for international job search
-- Stripe for subscription billing
-- Celery + Redis for async tailoring jobs
-- ReportLab for PDF generation
+## Production Deployment
 
-## Deployment
-
-Production services:
 - Frontend: Vercel, https://applyluma.com
 - Backend: Railway, https://applyluma-production.up.railway.app
 - Database: Railway PostgreSQL
-- Cache: Railway Redis
-- Domain: Namecheap DNS pointed to Vercel
+- Cache and queue broker: Railway Redis
+- Data pipeline: Astro Cloud Airflow plus dbt
+- Domain: Namecheap DNS pointing to Vercel
 
-Deployment flow:
-- `main` is production and auto-deploys to Railway and Vercel.
-- `dev` is for development and integration testing.
-- Pushes to `main` usually reach production in about 3 minutes.
-- Railway runs `alembic upgrade head` automatically on each deploy before starting the server.
-
-Important deployment files:
-- `backend/Dockerfile`: Railway backend deployment
-- `backend/railway.json`: Railway Dockerfile builder configuration
-- `backend/app/main.py`: FastAPI app and CORS setup
-- `frontend/vercel.json`: Vercel routing and rewrites
-- `airflow/dags/`: Scraping and transform DAGs
+`main` is the production branch and auto-deploys to Railway and Vercel. Railway runs `alembic upgrade head` before starting the backend container.
 
 Deployment guides:
+
 - [Railway Backend Setup](deployment/RAILWAY_SETUP.md)
 - [Vercel Frontend Setup](deployment/VERCEL_SETUP.md)
 - [DNS Configuration](deployment/DNS_SETUP.md)
 - [Airflow Remote Connection](deployment/AIRFLOW_REMOTE.md)
 - [Testing Checklist](deployment/TESTING_CHECKLIST.md)
 
-## Git Workflow
-
-Branch structure:
-- `main`: production branch, auto-deploys on push
-- `dev`: development and integration branch
-
-Standard workflow:
-```bash
-git checkout dev
-git checkout -b feature/my-feature
-
-# make changes and test
-
-git checkout dev
-git merge feature/my-feature
-git push origin dev
-
-# when production-ready
-git checkout main
-git merge dev
-git push origin main
-git checkout dev
-```
-
-Rules:
-- Work in `dev` or a feature branch from `dev`.
-- Test before merging to `main`.
-- Never push breaking changes to `main`.
-- Use feature branches for parallel AI-assisted work.
-
 ## Local Development
 
 Prerequisites:
+
 - Docker Desktop
 - Node.js 22+
 - Python 3.11+
 - Git
 
-Start local services:
+Start the full local stack:
+
 ```bash
 docker-compose up
 ```
 
-Local service URLs:
-- Backend API: http://localhost:8000
+Local URLs:
+
 - Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
 - API docs: http://localhost:8000/docs
 
 Manual backend setup:
+
 ```bash
 cd backend
-pip install uv && uv pip install -e ".[dev]" --system
+pip install uv
+uv pip install -e ".[dev]" --system
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
 Manual frontend setup:
+
 ```bash
 cd frontend
 npm install
@@ -175,10 +165,10 @@ npm run dev
 ## Testing
 
 ```bash
-# Backend (356 tests)
+# Backend
 cd backend && python -m pytest
 
-# Frontend (38 tests)
+# Frontend
 cd frontend && npm test
 
 # Airflow DAG integrity
@@ -190,99 +180,18 @@ cd dbt && dbt deps --profiles-dir . && dbt parse --profiles-dir .
 
 ## Data Pipeline
 
-### Migration from local Airflow to Astro Cloud
+ApplyLuma uses Astro Cloud for managed Airflow scheduling. DAG code remains in `airflow/dags/`, while production runs on Astronomer-managed infrastructure.
 
-Airflow was originally run locally via `docker-compose` alongside the application
-stack. It was migrated to **Astro Cloud** (managed Apache Airflow by Astronomer)
-for the following reasons:
+Schedule:
 
-- **Local overhead eliminated** — the previous setup required four Airflow
-  containers (`webserver`, `scheduler`, `worker`, `init`) in docker-compose, adding
-  significant memory and startup time for every developer working locally.
-- **Reliability** — Astro Cloud provides a managed, always-on scheduler with
-  built-in retries, alerting, and observability that is difficult to replicate
-  with a self-hosted setup.
-- **No local secrets management for production jobs** — scraping DAGs connect to
-  Railway PostgreSQL directly; keeping those credentials out of every developer's
-  local environment reduces the attack surface.
-- **Maintenance free** — Airflow version upgrades, plugin management, and
-  infrastructure patching are handled by Astronomer, not the engineering team.
+- Job scraping: daily at 02:00 UTC
+- dbt transforms: daily at 03:00 UTC
+- Keyword extraction and match-score computation: daily at 03:30 UTC
 
-The `airflow/dags/` directory in this repo is still the source of truth for all
-DAG code. Astro Cloud syncs DAGs from this repository automatically.
-
-### Schedule
-
-- Job scraping (JobSearch API, The Muse, Remotive) and Adzuna: daily at 2 AM UTC
-- dbt transforms: daily at 3 AM UTC
-- Keyword extraction and match score computation: daily at 3:30 AM UTC
-
-### Production analytics health check
+Production health check:
 
 ```bash
 curl https://applyluma-production.up.railway.app/api/v1/analytics/job-market-health
-```
-
-## Features
-
-Completed:
-- User authentication — JWT tokens, httpOnly refresh cookies, CSRF protection, Redis token denylist
-- Resume upload and parsing
-- AI resume analysis
-- Job search through Adzuna
-- Job description management with URL scraping
-- Application tracking with status history
-- Analytics API and dashboard
-- Stripe subscription billing (free / premium / admin tiers)
-- Production deployment on Railway + Vercel
-- Production data pipeline (Astro Cloud Airflow + dbt, daily at 2–3 AM UTC)
-- AI CV Tailor (Phase 9): async rewriting, section review, PDF save and download
-- Cover Letter Generator: AI-written letters with tone selection, PDF export
-- Authenticated CV download for all CVs (uploaded and tailored)
-- Swedish job discovery (Phase 10A):
-  - Paginated, filterable job feed from Platsbanken, Jobbsafari, and Indeed.se
-  - AI match scoring against user's CV (skills, experience, salary, education, location)
-  - Keyword extraction with type classification and confidence scores
-  - Saved jobs with named collections, starring, notes, and detail modal
-  - Mobile-responsive filters (collapsible sidebar)
-  - Redis caching: 24h match scores, 7d keywords, 1h job feed
-- Discover integrations (Phase 10B):
-  - One-click CV tailoring directly from a discovered job
-  - One-click add to application tracking from discovered jobs
-  - Structured match score and skill breakdown in job detail
-  - High-match job alert emails (configurable threshold and daily/weekly frequency)
-  - User alert preferences in the Settings page
-- Mobile UX: animated transitions, responsive navigation drawer, skeleton loading states
-- Browser extension (Chrome/Firefox MV3): one-click save from LinkedIn, Indeed SE,
-  Glassdoor, Arbetsformedlingen; badge with saved count; `Alt+Shift+S` quick-save;
-  auto-synced saved/applied URL lists; bearer token auth with auto-refresh;
-  `/extension-auth` page for setup
-- Prominent debounced search bar on Discover page (title/company, 350ms)
-- Skill-gap analysis in job detail (matched vs. missing skills against user's CV)
-- Security hardening: SSRF protection, per-user rate limiting, CORS tightening, httpOnly cookie auth, atomic Redis token denylist, admin audit logging, FK indexes, unique partial index for CV defaults
-- GDPR-compliant cookie consent banner — analytics (PostHog, Vercel) gated behind explicit user consent
-
-Next candidates (Phase 11 / Phase 10C):
-- Admin Dashboard / Pipeline Health: `/admin/pipeline` page with per-stage health
-  indicators, jobs-over-time chart, jobs-by-source chart, top skills/companies, remote %
-- In-app notification surface for high-match job alerts
-- Discover filter for jobs already added to Applications
-- Richer alert preference options (source filters, keyword triggers)
-- Additional backend tests for Phase 10B edge cases
-
-## Project Structure
-
-```text
-applyluma/
-|-- backend/               FastAPI application, models, schemas, migrations, services, tests
-|-- frontend/              React + TypeScript application and component tests
-|-- applyluma-extension/   MV3 browser extension (Chrome/Firefox)
-|-- airflow/               Airflow DAGs for scraping and transforms
-|-- dbt/                   dbt analytics project
-|-- docker/                Local Docker support
-|-- deployment/            Deployment and production operation guides
-|-- docs/                  Feature and deployment documentation
-`-- graphify-out/          Knowledge graph for codebase navigation (gitignored)
 ```
 
 ## Environment Variables
@@ -290,75 +199,40 @@ applyluma/
 Backend variables are configured in Railway. Frontend variables are configured in Vercel.
 
 Key backend variables:
+
 - `PORT=8080`
 - `DATABASE_URL`
 - `REDIS_URL`
-- `SECRET_KEY` — JWT signing secret (generate with `openssl rand -hex 32`)
+- `SECRET_KEY`
 - `OPENAI_API_KEY`
-- `ADZUNA_APP_ID` / `ADZUNA_API_KEY`
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PREMIUM_PRICE_ID`
-- `RESEND_API_KEY` — transactional email
-- `SENTRY_DSN` — optional error tracking
-- `ENVIRONMENT=production` — enables Secure + SameSite=None cookies
+- `ADZUNA_APP_ID`
+- `ADZUNA_API_KEY`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PREMIUM_PRICE_ID`
+- `RESEND_API_KEY`
+- `SENTRY_DSN`
+- `ENVIRONMENT=production`
 
 Key frontend variables:
-- `VITE_API_URL` — Railway backend base URL
-- `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST` — optional analytics (only active after cookie consent)
-- `VITE_SENTRY_DSN` — optional error tracking
+
+- `VITE_API_URL`
+- `VITE_POSTHOG_KEY`
+- `VITE_POSTHOG_HOST`
+- `VITE_SENTRY_DSN`
 
 Never commit real secrets or production `.env` files.
 
-## Screenshots
+## Current Limitations
 
-### Analytics Dashboard — Desktop
-
-![Analytics Dashboard Desktop](docs/screenshots/dashboard-desktop.png)
-
-### Analytics Dashboard — Tablet
-
-![Analytics Dashboard Tablet](docs/screenshots/dashboard-tablet.png)
-
-### Analytics Dashboard — Mobile
-
-![Analytics Dashboard Mobile](docs/screenshots/dashboard-mobile.png)
-
-## Limitations
-
-**Job market coverage**
-- The Discover feed is populated from three aggregated sources: JobSearch API,
-  The Muse, and Remotive. International job search also uses the Adzuna API
-  (subject to Adzuna's rate limits and regional coverage).
-- The scraper runs once daily at 2 AM UTC, so newly posted jobs can take up to
-  24 hours to appear in the Discover feed.
-
-**AI features**
-- CV tailoring, cover letter generation, and job match scoring all require a
-  configured OpenAI API key and will not work in self-hosted deployments without one.
-- AI match scoring requires at least one uploaded CV; without one, match scores
-  cannot be calculated on the Discover feed.
-- Daily rate limits apply per user role:
-  - CV tailoring: 1/day (free), 10/day (premium), unlimited (admin)
-  - Cover letters: 2/day (free), 10/day (premium), unlimited (admin)
-- AI match score breakdowns are estimates and should be used as a guide, not a
-  guarantee of fit.
-- The Job URL Scraper works best on publicly accessible job pages. Pages behind
-  login walls, anti-bot protection, or heavy JavaScript rendering may not extract
-  correctly.
-
-**Email**
-- Transactional email (verification, password reset, job alerts) requires a
-  configured Resend API key and authenticated sending domain. Without it, emails
-  are silently skipped — users can still register and log in, but will not receive
-  verification or alert emails.
-
-**Infrastructure**
-- Redis is required for job feed caching, match score caching, Celery task
-  queuing, and the token denylist. Removing Redis will disable async tailoring,
-  logout revocation, and degrade Discover performance.
-- Frontend npm dependencies currently have no known vulnerabilities.
-
-**Platform**
-- No native mobile app; ApplyLuma is a responsive web application only.
+- The Discover feed depends on scheduled ingestion, so new jobs can take up to 24 hours to appear.
+- AI features require a configured OpenAI API key.
+- Match scoring requires at least one uploaded CV.
+- Free-tier users have daily limits for CV tailoring and cover-letter generation.
+- Job URL scraping works best on public pages without login walls or heavy anti-bot protection.
+- Transactional email requires a configured Resend API key and verified sending domain.
+- Redis is required for async jobs, match-score caching, job-feed caching, and token denylisting.
+- ApplyLuma is a responsive web application; there is no native mobile app.
 
 ## License
 
