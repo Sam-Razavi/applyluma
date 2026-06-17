@@ -17,6 +17,7 @@ import VerifyEmail from './pages/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import ExtensionAuth from './pages/ExtensionAuth'
+import AuthCallback from './pages/AuthCallback'
 import Dashboard from './pages/Dashboard'
 import CVs from './pages/CVs'
 import Jobs from './pages/Jobs'
@@ -73,6 +74,7 @@ export default function App() {
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="extension-auth" element={<ExtensionAuth />} />
+        <Route path="auth/callback" element={<AuthCallback />} />
 
         {/* Protected app shell */}
         <Route element={<ProtectedRoute />}>
