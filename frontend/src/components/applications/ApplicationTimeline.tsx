@@ -24,7 +24,7 @@ function formatDate(value: string): string {
 export default function ApplicationTimeline({ events }: Props) {
   if (events.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/30">
+      <div className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/45">
         No timeline events yet.
       </div>
     )
@@ -42,11 +42,11 @@ export default function ApplicationTimeline({ events }: Props) {
               <p className="text-sm font-medium text-white/90">
                 {formatEventType(event.event_type)}
               </p>
-              <time className="flex-shrink-0 text-xs text-white/30">
+              <time className="flex-shrink-0 text-xs text-white/45">
                 {formatDate(event.event_date)}
               </time>
             </div>
-            <p className="mt-0.5 text-sm text-white/30">
+            <p className="mt-0.5 text-sm text-white/45">
               {event.description ||
                 [event.old_value, event.new_value].filter(Boolean).join(' -> ') ||
                 'Application updated'}

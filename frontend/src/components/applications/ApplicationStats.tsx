@@ -24,7 +24,7 @@ export default function ApplicationStats({ stats }: Props) {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-white/90">Pipeline</h2>
-          <p className="text-xs text-white/30">{total} tracked applications</p>
+          <p className="text-xs text-white/45">{total} tracked applications</p>
         </div>
         <span className="rounded-full bg-primary-900/20 px-3 py-1 text-xs font-semibold text-primary-400">
           Live tracker

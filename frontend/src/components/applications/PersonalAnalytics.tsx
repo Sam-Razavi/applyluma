@@ -64,7 +64,7 @@ export default function PersonalAnalytics() {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
         <h2 className="text-sm font-semibold text-white/90">No personal stats yet</h2>
-        <p className="mt-1 text-sm text-white/30">
+        <p className="mt-1 text-sm text-white/45">
           Add applications to populate your funnel, response rates, and source breakdown.
         </p>
       </div>
