@@ -115,4 +115,5 @@ COMPLETE_PROJECT_SUMMARY.md
 # Local Claude Code tooling (skills, agent worktrees, design previews)
 .claude/skills/
 .claude/worktrees/
+.worktrees/
 design-preview/
