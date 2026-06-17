@@ -30,8 +30,11 @@ class User(Base, TimestampMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
-    hashed_password: Mapped[str] = mapped_column(String)
+    hashed_password: Mapped[str | None] = mapped_column(String, nullable=True)
     full_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    google_id: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    auth_provider: Mapped[str | None] = mapped_column(String, nullable=True, server_default="local")
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     is_verified: Mapped[bool] = mapped_column(default=False, server_default="false")
     verification_token: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
