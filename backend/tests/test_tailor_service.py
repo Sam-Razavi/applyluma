@@ -49,7 +49,12 @@ class FakeOpenAI:
     def _create(self, **kwargs: Any) -> SimpleNamespace:
         FakeOpenAI.last_kwargs = kwargs
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=FakeOpenAI.content))]
+            choices=[
+                SimpleNamespace(
+                    finish_reason="stop",
+                    message=SimpleNamespace(content=FakeOpenAI.content),
+                )
+            ]
         )
 
 
