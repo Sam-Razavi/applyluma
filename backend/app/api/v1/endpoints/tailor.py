@@ -207,6 +207,8 @@ def save_tailored_cv(
     for section in all_sections:
         use_tailored = accepted_ids is None or section["section_id"] in accepted_ids
         content = section["tailored"] if use_tailored else section["original"]
+        if not content or not content.strip():
+            continue
         pdf_sections.append({"section_name": section["section_name"], "content": content})
         full_text_parts.append(f"## {section['section_name']}\n{content}")
 
