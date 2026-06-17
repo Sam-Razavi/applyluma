@@ -30,12 +30,20 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    BACKEND_CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://applyluma.com",
+        "https://applyluma.vercel.app",
+    ]
 
     STORAGE_DIR: str = "/app/storage"
     MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MB
 
     OPENAI_API_KEY: str = ""
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
     ADZUNA_APP_ID: str = ""
     ADZUNA_API_KEY: str = ""
     ADZUNA_COUNTRY: str = "gb"
