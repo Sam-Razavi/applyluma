@@ -113,7 +113,8 @@ def refresh_verification_token(db: Session, user: User) -> str:
 
 def authenticate(db: Session, email: str, password: str) -> User | None:
     user = get_by_email(db, email)
-    if not user or not verify_password(password, user.hashed_password):
+    # OAuth-only users have no password and cannot authenticate via this path.
+    if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
         return None
     return user
 
