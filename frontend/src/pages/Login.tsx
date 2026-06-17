@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { authApi } from '../services/api'
 import { useAuthStore } from '../stores'
+import GoogleLoginButton from '../components/auth/GoogleLoginButton'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
 
@@ -29,6 +30,10 @@ const loginNotices: Record<string, { title: string; message: string }> = {
     title: 'Signed out for inactivity',
     message: 'We signed you out after a period of inactivity to keep your account safe.',
   },
+  oauth_failed: {
+    title: 'Google sign-in failed',
+    message: 'Something went wrong during Google sign-in. Please try again.',
+  },
 }
 
 function getSafeNextPath(nextPath: string | null) {
@@ -50,7 +55,7 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
-  const loginNotice = loginNotices[searchParams.get('reason') ?? '']
+  const loginNotice = loginNotices[searchParams.get('reason') ?? searchParams.get('error') ?? '']
 
   const {
     register,
@@ -159,6 +164,17 @@ export default function Login() {
               {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
+
+          <div className="mt-6">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-white/10" />
+              <span className="text-xs text-white/30">Or continue with</span>
+              <div className="h-px flex-1 bg-white/10" />
+            </div>
+            <div className="mt-4">
+              <GoogleLoginButton />
+            </div>
+          </div>
 
           <p className="mt-6 text-center text-sm text-white/30">
             Don't have an account?{' '}
