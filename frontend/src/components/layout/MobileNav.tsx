@@ -2,22 +2,38 @@ import { NavLink } from 'react-router-dom'
 import {
   BriefcaseIcon,
   HomeIcon,
+  ShieldCheckIcon,
   Squares2X2Icon,
   SparklesIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import { useNotificationsStore } from '../../stores/notifications'
+import { useAuthStore } from '../../stores'
 
-const TABS = [
+type Tab = {
+  to: string
+  label: string
+  icon: typeof HomeIcon
+  pip?: boolean
+}
+
+const BASE_TABS: Tab[] = [
   { to: '/dashboard', label: 'Home', icon: HomeIcon },
   { to: '/discover', label: 'Discover', icon: Squares2X2Icon, pip: true },
   { to: '/jobs', label: 'Saved', icon: BriefcaseIcon },
   { to: '/ai-tailor', label: 'AI Tailor', icon: SparklesIcon },
-  { to: '/settings', label: 'Profile', icon: UserCircleIcon },
 ]
+
+const ADMIN_TAB: Tab = { to: '/admin', label: 'Admin', icon: ShieldCheckIcon }
+const PROFILE_TAB: Tab = { to: '/settings', label: 'Profile', icon: UserCircleIcon }
 
 export default function MobileNav() {
   const unreadCount = useNotificationsStore((s) => s.unreadCount)
+  const user = useAuthStore((s) => s.user)
+
+  const tabs = user?.role === 'admin'
+    ? [...BASE_TABS, ADMIN_TAB, PROFILE_TAB]
+    : [...BASE_TABS, PROFILE_TAB]
 
   return (
     <nav
@@ -31,7 +47,7 @@ export default function MobileNav() {
       }}
       aria-label="Mobile navigation"
     >
-      {TABS.map(({ to, label, icon: Icon, pip }) => (
+      {tabs.map(({ to, label, icon: Icon, pip }) => (
         <NavLink
           key={to}
           to={to}
