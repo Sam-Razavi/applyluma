@@ -11,6 +11,7 @@ export interface AdzunaJobResult {
   redirect_url: string
   description: string
   created: string | null
+  source?: string
 }
 
 export interface JobSearchResponse {
@@ -25,6 +26,7 @@ export function searchJobs(
   location?: string,
   page = 1,
   resultsPerPage = 10,
+  source: 'all' | 'adzuna' | 'platsbanken' = 'all',
 ): Promise<JobSearchResponse> {
   return client
     .get<JobSearchResponse>('/api/v1/jobs/search', {
@@ -33,6 +35,7 @@ export function searchJobs(
         location: location || undefined,
         page,
         results_per_page: resultsPerPage,
+        source,
       },
     })
     .then((r) => r.data)
