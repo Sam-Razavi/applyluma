@@ -47,11 +47,15 @@ def jd_data(jd_id: uuid.UUID = JD_ID) -> SimpleNamespace:
     return SimpleNamespace(
         id=jd_id,
         user_id=USER_ID,
+        source_raw_job_posting_id=None,
         company_name="TechCorp",
         job_title="Python Developer",
         description="Write FastAPI apps and SQL queries.",
         url="https://example.com/jobs/1",
         keywords=["Python", "FastAPI", "SQL"],
+        starred=False,
+        notes=None,
+        list_name=None,
         created_at=CREATED_AT,
         updated_at=CREATED_AT,
     )
@@ -101,7 +105,7 @@ async def test_create_jd_extracts_keywords(monkeypatch: pytest.MonkeyPatch) -> N
 @pytest.mark.asyncio
 async def test_list_jds_returns_user_data(monkeypatch: pytest.MonkeyPatch) -> None:
     jds = [jd_data(), jd_data(uuid.uuid4())]
-    monkeypatch.setattr(jd_endpoint.crud_jd, "list_for_user", lambda db, user_id: jds)
+    monkeypatch.setattr(jd_endpoint.crud_jd, "list_for_user", lambda db, user_id, **kw: jds)
 
     response = await request("GET", "/api/v1/job-descriptions", current_user=user())
 
