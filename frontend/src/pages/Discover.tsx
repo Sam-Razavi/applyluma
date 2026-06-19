@@ -1,20 +1,69 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { useSearchParams } from 'react-router-dom'
+import { ExclamationTriangleIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import JobCard from '../components/discover/JobCard'
 import { DEFAULT_FILTERS } from '../components/discover/defaultFilters'
 import JobFilters from '../components/discover/JobFilters'
 import JobDetail from '../components/discover/JobDetail'
+import AddApplicationModal from '../components/applications/AddApplicationModal'
+import JobSearchBar, { type SearchSource } from '../components/jobs/JobSearchBar'
+import JobResultList from '../components/jobs/JobResultList'
 import { FadeIn } from '../components/ui/FadeIn'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { staggerItem } from '../lib/animations'
 import { deleteSavedJob, fetchDiscoveredJobs, saveJob } from '../services/jobDiscoveryApi'
+import { searchJobs, type JobSearchResponse } from '../services/jobSearchApi'
+import type { ApplicationCreate } from '../types/application'
 import type { DiscoveredJob, JobFilters as Filters } from '../types/jobDiscovery'
 
 const PAGE_SIZE = 20
 
+type Tab = 'for-you' | 'search'
+
+const RECENT_KEY = 'recent_job_searches'
+const MAX_RECENT = 5
+
+interface RecentSearch {
+  query: string
+  location: string
+}
+
+function loadRecentSearches(): RecentSearch[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as RecentSearch[]
+  } catch {
+    return []
+  }
+}
+
+function saveRecentSearch(query: string, location: string) {
+  const existing = loadRecentSearches().filter(
+    (r) => !(r.query === query && r.location === location),
+  )
+  const updated = [{ query, location }, ...existing].slice(0, MAX_RECENT)
+  localStorage.setItem(RECENT_KEY, JSON.stringify(updated))
+}
+
+const emptyResults: JobSearchResponse = {
+  results: [],
+  count: 0,
+  page: 1,
+  total_pages: 0,
+}
+
 export default function Discover() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = (searchParams.get('tab') as Tab) === 'search' ? 'search' : 'for-you'
+  const [tab, setTab] = useState<Tab>(initialTab)
+
+  function switchTab(t: Tab) {
+    setTab(t)
+    setSearchParams(t === 'for-you' ? {} : { tab: t }, { replace: true })
+  }
+
+  // ── For You state ─────────────────────────────────────────────────────
   const [jobs, setJobs] = useState<DiscoveredJob[]>([])
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
@@ -29,20 +78,31 @@ export default function Discover() {
   const filtersRef = useRef<Filters>(filters)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Keep a ref to the latest filters so the debounced search reads fresh values.
   filtersRef.current = filters
 
-  useEffect(() => {
-    document.title = 'Discover Jobs | ApplyLuma'
-  }, [])
+  // ── Search tab state ──────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchLocation, setSearchLocation] = useState('')
+  const [searchSource, setSearchSource] = useState<SearchSource>('all')
+  const [searchData, setSearchData] = useState<JobSearchResponse>(emptyResults)
+  const [hasSearched, setHasSearched] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [trackData, setTrackData] = useState<Partial<ApplicationCreate> | null>(null)
+  const [trackOpen, setTrackOpen] = useState(false)
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(loadRecentSearches)
 
-  // Clear any pending debounce on unmount.
+  useEffect(() => {
+    document.title = tab === 'search' ? 'Search Jobs | ApplyLuma' : 'Discover Jobs | ApplyLuma'
+  }, [tab])
+
   useEffect(() => {
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     }
   }, [])
 
+  // ── For You: load jobs ────────────────────────────────────────────────
   const loadJobs = useCallback(
     async (nextFilters: Filters, nextPage: number, replace: boolean) => {
       abortRef.current?.abort()
@@ -57,7 +117,6 @@ export default function Discover() {
         })
         setJobs((prev) => (replace ? results : [...prev, ...results]))
         setHasMore(results.length === PAGE_SIZE)
-        // Track which jobs are saved and their saved_job_id for unsaving
         setSavedIds((prev) => {
           const next = new Set(prev)
           results.forEach((j) => {
@@ -81,7 +140,6 @@ export default function Discover() {
     [],
   )
 
-  // Initial load
   useEffect(() => {
     void loadJobs(filters, 1, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,6 +202,51 @@ export default function Discover() {
 
   const selectedJobSaved = selectedJobId ? savedIds.has(selectedJobId) : false
 
+  // ── Search tab: run search ────────────────────────────────────────────
+  async function runSearch(nextQuery: string, nextLocation: string, nextPage = 1) {
+    if (!nextQuery.trim()) {
+      toast.error('Enter a role, skill, or keyword')
+      return
+    }
+
+    setSearchLoading(true)
+    setSearchError(null)
+    setHasSearched(true)
+    setSearchQuery(nextQuery)
+    setSearchLocation(nextLocation)
+
+    if (nextPage === 1) {
+      saveRecentSearch(nextQuery, nextLocation)
+      setRecentSearches(loadRecentSearches())
+    }
+
+    try {
+      setSearchData(await searchJobs(nextQuery, nextLocation, nextPage, 10, searchSource))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to search jobs'
+      setSearchError(message)
+      setSearchData(emptyResults)
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  function removeRecentSearch(index: number) {
+    const updated = recentSearches.filter((_, i) => i !== index)
+    localStorage.setItem(RECENT_KEY, JSON.stringify(updated))
+    setRecentSearches(updated)
+  }
+
+  function handleTrack(data: Partial<ApplicationCreate>) {
+    setTrackData(data)
+    setTrackOpen(true)
+  }
+
+  function closeTrackModal() {
+    setTrackOpen(false)
+    setTrackData(null)
+  }
+
   return (
     <FadeIn>
     <div className="space-y-6">
@@ -151,101 +254,207 @@ export default function Discover() {
       <div>
         <h1 className="text-2xl font-bold text-white/90">Discover Jobs</h1>
         <p className="mt-1 text-sm text-white/30">
-          Search and explore job listings matched to your CV.
+          {tab === 'search'
+            ? 'Search live job listings from Adzuna and Platsbanken.'
+            : 'Explore job listings matched to your CV.'}
         </p>
       </div>
 
-      {/* Search bar */}
-      <div className="relative">
-        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/30" />
-        <input
-          type="search"
-          value={searchInput}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder="Search jobs by title or company"
-          aria-label="Search jobs by title or company"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-12 pr-4 text-sm placeholder-white/30 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-        />
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl bg-white/[0.04] p-1 w-fit">
+        {([
+          { key: 'for-you' as Tab, label: 'For You' },
+          { key: 'search' as Tab, label: 'Search' },
+        ]).map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => switchTab(key)}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              tab === key
+                ? 'bg-white/[0.04] text-white/90 shadow-sm'
+                : 'text-white/30 hover:text-white/55'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        {/* Filters sidebar */}
-        <JobFilters filters={filters} onChange={applyFilters} onReset={resetFilters} />
+      {/* ── For You tab ──────────────────────────────────────────────────── */}
+      {tab === 'for-you' && (
+        <>
+          {/* Search bar */}
+          <div className="relative">
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/30" />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search jobs by title or company"
+              aria-label="Search jobs by title or company"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-12 pr-4 text-sm placeholder-white/30 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+          </div>
 
-        {/* Job list */}
-        <div className="w-full space-y-4 lg:flex-1 lg:min-w-0">
-          {initialLoad ? (
-            <div className="grid gap-4">
-              {[...Array(6)].map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          ) : jobs.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
-                <MagnifyingGlassIcon className="h-6 w-6 text-white/30" />
-              </div>
-              <h2 className="mt-4 text-sm font-semibold text-white/90">No jobs found</h2>
-              <p className="mt-1 text-sm text-white/30">
-                Try adjusting your filters or check back after the next scraping run.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="grid gap-4">
-                {jobs.map((job, index) => (
-                  <motion.div
-                    key={job.job_id}
-                    className="w-full min-w-0"
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={staggerItem(index % PAGE_SIZE)}
-                  >
-                    <JobCard
-                      job={{ ...job, is_saved: savedIds.has(job.job_id) }}
-                      onClick={(j) => setSelectedJobId(j.job_id)}
-                      onSave={handleSave}
-                    />
-                  </motion.div>
-                ))}
-              </div>
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            <JobFilters filters={filters} onChange={applyFilters} onReset={resetFilters} />
 
-              {hasMore && (
-                <div className="flex justify-center pt-2">
+            <div className="w-full space-y-4 lg:flex-1 lg:min-w-0">
+              {initialLoad ? (
+                <div className="grid gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </div>
+              ) : jobs.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
+                    <MagnifyingGlassIcon className="h-6 w-6 text-white/30" />
+                  </div>
+                  <h2 className="mt-4 text-sm font-semibold text-white/90">No jobs found</h2>
+                  <p className="mt-1 text-sm text-white/30">
+                    Try adjusting your filters or check back after the next scraping run.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4">
+                    {jobs.map((job, index) => (
+                      <motion.div
+                        key={job.job_id}
+                        className="w-full min-w-0"
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={staggerItem(index % PAGE_SIZE)}
+                      >
+                        <JobCard
+                          job={{ ...job, is_saved: savedIds.has(job.job_id) }}
+                          onClick={(j) => setSelectedJobId(j.job_id)}
+                          onSave={handleSave}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {hasMore && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        type="button"
+                        onClick={loadMore}
+                        disabled={loading}
+                        className="rounded-xl border border-white/15 px-6 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] disabled:opacity-50"
+                      >
+                        {loading ? 'Loading…' : 'Load more'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <JobDetail
+            jobId={selectedJobId}
+            isSaved={selectedJobSaved}
+            onClose={() => setSelectedJobId(null)}
+            onSave={(id) => {
+              const job = jobs.find((j) => j.job_id === id)
+              if (job) void handleSave(job)
+            }}
+            onApplicationCreated={(id, applicationId, status) => {
+              setJobs((prev) =>
+                prev.map((job) =>
+                  job.job_id === id
+                    ? { ...job, application_id: applicationId, application_status: status }
+                    : job,
+                ),
+              )
+            }}
+          />
+        </>
+      )}
+
+      {/* ── Search tab ───────────────────────────────────────────────────── */}
+      {tab === 'search' && (
+        <div className="space-y-6">
+          <JobSearchBar
+            loading={searchLoading}
+            source={searchSource}
+            onSourceChange={setSearchSource}
+            onSearch={(q, loc) => void runSearch(q, loc)}
+          />
+
+          {recentSearches.length > 0 && !hasSearched && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-white/30">Recent:</span>
+              {recentSearches.map((r, i) => (
+                <span
+                  key={i}
+                  className="group flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] pl-3 pr-1.5 py-1 text-xs text-white/55 hover:border-primary-300 hover:text-primary-300 cursor-pointer transition-colors"
+                >
                   <button
                     type="button"
-                    onClick={loadMore}
-                    disabled={loading}
-                    className="rounded-xl border border-white/15 px-6 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] disabled:opacity-50"
+                    className="focus:outline-none"
+                    onClick={() => void runSearch(r.query, r.location)}
                   >
-                    {loading ? 'Loading…' : 'Load more'}
+                    {r.query}{r.location ? ` · ${r.location}` : ''}
                   </button>
-                </div>
-              )}
-            </>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeRecentSearch(i) }}
+                    className="ml-0.5 rounded-full p-0.5 text-white/30 hover:bg-white/[0.06] hover:text-white/55 focus:outline-none"
+                    aria-label="Remove recent search"
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
           )}
-        </div>
-      </div>
 
-      {/* Detail modal */}
-      <JobDetail
-        jobId={selectedJobId}
-        isSaved={selectedJobSaved}
-        onClose={() => setSelectedJobId(null)}
-        onSave={(id) => {
-          const job = jobs.find((j) => j.job_id === id)
-          if (job) void handleSave(job)
-        }}
-        onApplicationCreated={(id, applicationId, status) => {
-          setJobs((prev) =>
-            prev.map((job) =>
-              job.job_id === id
-                ? { ...job, application_id: applicationId, application_status: status }
-                : job,
-            ),
-          )
-        }}
-      />
+          {searchError && (
+            <div className="flex items-center gap-2 rounded-xl border border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] px-4 py-3 text-sm text-red-300">
+              <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
+              {searchError}
+            </div>
+          )}
+
+          {searchLoading ? (
+            <div className="grid gap-4">
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="h-44 animate-pulse rounded-2xl bg-white/[0.04]" />
+              ))}
+            </div>
+          ) : hasSearched && searchData.results.length > 0 ? (
+            <JobResultList
+              data={searchData}
+              onTrack={handleTrack}
+              onPageChange={(p) => void runSearch(searchQuery, searchLocation, p)}
+            />
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary-900/20">
+                <MagnifyingGlassIcon className="h-6 w-6 text-primary-400" />
+              </div>
+              <h2 className="mt-4 text-sm font-semibold text-white/90">
+                {hasSearched ? 'No jobs found' : 'Search live job listings'}
+              </h2>
+              <p className="mt-1 text-sm text-white/30">
+                {hasSearched
+                  ? 'Try a broader keyword or a different location.'
+                  : 'Search Adzuna and Platsbanken for roles, skills, or companies.'}
+              </p>
+            </div>
+          )}
+
+          <AddApplicationModal
+            open={trackOpen}
+            onClose={closeTrackModal}
+            initialData={trackData}
+          />
+        </div>
+      )}
     </div>
     </FadeIn>
   )

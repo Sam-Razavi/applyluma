@@ -100,7 +100,7 @@ async def test_search_returns_results(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(job_search_endpoint.adzuna_service, "search_jobs", mock_search_jobs)
 
     response = await request(
-        "/api/v1/jobs/search?q=python&location=Stockholm&page=2&results_per_page=20",
+        "/api/v1/jobs/search?q=python&location=Stockholm&page=2&results_per_page=20&source=adzuna",
         current_user=user(),
         redis_client=FakeRedis(),
     )
@@ -129,12 +129,12 @@ async def test_search_returns_cached_results_on_second_call(monkeypatch: pytest.
     monkeypatch.setattr(job_search_endpoint.adzuna_service, "search_jobs", mock_search_jobs)
 
     first = await request(
-        "/api/v1/jobs/search?q=python&location=Stockholm",
+        "/api/v1/jobs/search?q=python&location=Stockholm&source=adzuna",
         current_user=user(),
         redis_client=fake_redis,
     )
     second = await request(
-        "/api/v1/jobs/search?q=python&location=Stockholm",
+        "/api/v1/jobs/search?q=python&location=Stockholm&source=adzuna",
         current_user=user(),
         redis_client=fake_redis,
     )
@@ -162,7 +162,7 @@ async def test_search_returns_empty_when_adzuna_app_id_is_blank(
     monkeypatch.setattr(job_search_endpoint.adzuna_service, "search_jobs", mock_search_jobs)
 
     response = await request(
-        "/api/v1/jobs/search?q=python",
+        "/api/v1/jobs/search?q=python&source=adzuna",
         current_user=user(),
         redis_client=FakeRedis(),
     )
@@ -170,6 +170,135 @@ async def test_search_returns_empty_when_adzuna_app_id_is_blank(
     assert response.status_code == 200
     assert response.json() == {"results": [], "count": 0, "page": 1, "total_pages": 0}
     assert called is False
+
+
+@pytest.mark.asyncio
+async def test_search_platsbanken_source(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, Any]] = []
+
+    async def mock_platsbanken(**kwargs):
+        calls.append(kwargs)
+        return JobSearchResponse(
+            results=[
+                AdzunaJobResult(
+                    id="pb-1",
+                    title="Python Developer",
+                    company_name="IKEA",
+                    location="Malmö",
+                    redirect_url="https://arbetsformedlingen.se/platsbanken/annonser/pb-1",
+                    description="Build systems with Python.",
+                    source="platsbanken",
+                )
+            ],
+            count=1,
+            page=1,
+            total_pages=1,
+        )
+
+    monkeypatch.setattr(
+        job_search_endpoint.platsbanken_search_service, "search_jobs", mock_platsbanken,
+    )
+
+    response = await request(
+        "/api/v1/jobs/search?q=python&source=platsbanken",
+        current_user=user(),
+        redis_client=FakeRedis(),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["results"]) == 1
+    assert data["results"][0]["source"] == "platsbanken"
+    assert data["results"][0]["company_name"] == "IKEA"
+    assert calls[0]["q"] == "python"
+
+
+@pytest.mark.asyncio
+async def test_search_all_sources_merges_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "ADZUNA_APP_ID", "app-id")
+    monkeypatch.setattr(settings, "ADZUNA_API_KEY", "app-key")
+
+    async def mock_adzuna(**kwargs):
+        return response_data(page=kwargs["page"])
+
+    async def mock_platsbanken(**kwargs):
+        return JobSearchResponse(
+            results=[
+                AdzunaJobResult(
+                    id="pb-2",
+                    title="Frontend Dev",
+                    company_name="Volvo",
+                    location="Gothenburg",
+                    redirect_url="https://arbetsformedlingen.se/platsbanken/annonser/pb-2",
+                    description="React and TypeScript.",
+                    source="platsbanken",
+                )
+            ],
+            count=1,
+            page=kwargs["page"],
+            total_pages=1,
+        )
+
+    monkeypatch.setattr(job_search_endpoint.adzuna_service, "search_jobs", mock_adzuna)
+    monkeypatch.setattr(
+        job_search_endpoint.platsbanken_search_service, "search_jobs", mock_platsbanken,
+    )
+
+    response = await request(
+        "/api/v1/jobs/search?q=developer&source=all",
+        current_user=user(),
+        redis_client=FakeRedis(),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 2
+    assert len(data["results"]) == 2
+    sources = {r["source"] for r in data["results"]}
+    assert sources == {"adzuna", "platsbanken"}
+
+
+@pytest.mark.asyncio
+async def test_search_all_graceful_degradation(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "ADZUNA_APP_ID", "app-id")
+    monkeypatch.setattr(settings, "ADZUNA_API_KEY", "app-key")
+
+    async def mock_adzuna(**kwargs):
+        raise RuntimeError("Adzuna down")
+
+    async def mock_platsbanken(**kwargs):
+        return JobSearchResponse(
+            results=[
+                AdzunaJobResult(
+                    id="pb-3",
+                    title="DevOps Engineer",
+                    company_name="Ericsson",
+                    location="Stockholm",
+                    redirect_url="https://arbetsformedlingen.se/platsbanken/annonser/pb-3",
+                    description="Kubernetes and Docker.",
+                    source="platsbanken",
+                )
+            ],
+            count=1,
+            page=kwargs["page"],
+            total_pages=1,
+        )
+
+    monkeypatch.setattr(job_search_endpoint.adzuna_service, "search_jobs", mock_adzuna)
+    monkeypatch.setattr(
+        job_search_endpoint.platsbanken_search_service, "search_jobs", mock_platsbanken,
+    )
+
+    response = await request(
+        "/api/v1/jobs/search?q=devops&source=all",
+        current_user=user(),
+        redis_client=FakeRedis(),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["results"]) == 1
+    assert data["results"][0]["source"] == "platsbanken"
 
 
 @pytest.mark.asyncio

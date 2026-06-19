@@ -27,18 +27,20 @@ function stripHtml(value: string): string {
 export default function JobResultCard({ job, onTrack }: Props) {
   const description = stripHtml(job.description)
 
+  const sourceName = job.source === 'platsbanken' ? 'Platsbanken' : 'Adzuna'
+
   function handleTrack() {
     onTrack({
       company_name: job.company_name,
       job_title: job.title,
       job_url: job.redirect_url,
       status: 'wishlist',
-      source: 'adzuna',
+      source: job.source ?? 'adzuna',
       salary_min: job.salary_min,
       salary_max: job.salary_max,
       location: job.location || null,
       priority: 1,
-      notes: description ? `From Adzuna:\n\n${description.slice(0, 1200)}` : null,
+      notes: description ? `From ${sourceName}:\n\n${description.slice(0, 1200)}` : null,
     })
   }
 
@@ -78,6 +80,11 @@ export default function JobResultCard({ job, onTrack }: Props) {
         {job.contract_type && (
           <span className="rounded-full bg-[rgba(8,145,178,0.15)] px-2.5 py-1 font-medium text-cyan-300">
             {job.contract_type}
+          </span>
+        )}
+        {job.source && (
+          <span className="rounded-full bg-[rgba(139,92,246,0.15)] px-2.5 py-1 font-medium text-violet-300">
+            {sourceName}
           </span>
         )}
       </div>
