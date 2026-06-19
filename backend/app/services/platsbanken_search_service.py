@@ -1,4 +1,5 @@
 import math
+from typing import Any
 
 import httpx
 
@@ -11,7 +12,7 @@ def _empty_response(page: int) -> JobSearchResponse:
     return JobSearchResponse(results=[], count=0, page=page, total_pages=0)
 
 
-def _map_result(hit: dict[str, object]) -> AdzunaJobResult:
+def _map_result(hit: dict[str, Any]) -> AdzunaJobResult:
     employer = hit.get("employer") or {}
     workplace = hit.get("workplace_address") or {}
 
@@ -59,7 +60,7 @@ async def search_jobs(
     results_per_page: int,
 ) -> JobSearchResponse:
     offset = (page - 1) * results_per_page
-    params: dict[str, object] = {
+    params: dict[str, Any] = {
         "q": f"{q} {location}".strip() if location else q,
         "limit": results_per_page,
         "offset": offset,
