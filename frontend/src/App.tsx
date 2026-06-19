@@ -22,7 +22,6 @@ import Dashboard from './pages/Dashboard'
 import CVs from './pages/CVs'
 import Jobs from './pages/Jobs'
 import Applications from './pages/Applications'
-import JobSearch from './pages/JobSearch'
 import AITailor from './pages/AITailor'
 import CoverLetter from './pages/CoverLetter'
 import Analytics from './pages/Analytics'
@@ -84,7 +83,7 @@ export default function App() {
             <Route path="jobs" element={<Jobs />} />
             <Route path="discover" element={<Discover />} />
             <Route path="saved-jobs" element={<Navigate to="/jobs" replace />} />
-            <Route path="job-search" element={<JobSearch />} />
+            <Route path="job-search" element={<Navigate to="/discover?tab=search" replace />} />
             <Route path="applications" element={<Applications />} />
             <Route path="ai-tailor" element={<AITailor />} />
             <Route path="cover-letter" element={<CoverLetter />} />

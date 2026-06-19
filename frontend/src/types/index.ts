@@ -72,6 +72,10 @@ export interface JobDescription {
   description: string
   url: string | null
   keywords: string[]
+  starred: boolean
+  notes: string | null
+  list_name: string | null
+  source_raw_job_posting_id: string | null
   created_at: string
   updated_at: string
 }

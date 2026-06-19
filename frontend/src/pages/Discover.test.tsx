@@ -88,13 +88,17 @@ describe('Discover page', () => {
     vi.mocked(jobDiscoveryApi.saveJob).mockResolvedValue({
       id: 'saved-1',
       user_id: 'user-1',
-      raw_job_posting_id: 'job-1',
-      list_name: null,
-      notes: null,
+      company_name: 'TechCorp',
+      job_title: 'Senior Python Developer',
+      description: 'A great job',
+      url: null,
+      keywords: [],
       starred: false,
+      notes: null,
+      list_name: null,
+      source_raw_job_posting_id: 'job-1',
       created_at: '2026-05-15T00:00:00Z',
       updated_at: '2026-05-15T00:00:00Z',
-      job: null,
     })
     renderDiscover()
 

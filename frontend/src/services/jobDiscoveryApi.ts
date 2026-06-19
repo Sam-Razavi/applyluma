@@ -1,4 +1,5 @@
 import client from '../api/client'
+import type { JobDescription } from '../types'
 import type { DiscoveredJob, DiscoveredJobDetail, JobFilters, KeywordsByType, SavedJob } from '../types/jobDiscovery'
 
 export interface JobsResponse {
@@ -42,8 +43,12 @@ export interface SaveJobPayload {
   notes?: string
 }
 
-export function saveJob(payload: SaveJobPayload): Promise<SavedJob> {
-  return client.post<SavedJob>('/api/v1/saved-jobs', payload).then((r) => r.data)
+export function saveJob(payload: SaveJobPayload): Promise<JobDescription> {
+  return client.post<JobDescription>('/api/v1/job-descriptions/from-discover', {
+    raw_job_posting_id: payload.job_id,
+    list_name: payload.list_name,
+    notes: payload.notes,
+  }).then((r) => r.data)
 }
 
 export function fetchSavedJobs(listName?: string): Promise<SavedJob[]> {
@@ -64,6 +69,6 @@ export function updateSavedJob(savedJobId: string, payload: UpdateSavedJobPayloa
   return client.patch<SavedJob>(`/api/v1/saved-jobs/${savedJobId}`, payload).then((r) => r.data)
 }
 
-export function deleteSavedJob(savedJobId: string): Promise<void> {
-  return client.delete(`/api/v1/saved-jobs/${savedJobId}`).then(() => undefined)
+export function deleteSavedJob(jdId: string): Promise<void> {
+  return client.delete(`/api/v1/job-descriptions/${jdId}`).then(() => undefined)
 }

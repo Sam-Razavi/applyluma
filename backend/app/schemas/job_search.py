@@ -12,6 +12,7 @@ class AdzunaJobResult(BaseModel):
     redirect_url: str
     description: str
     created: str | None = None
+    source: str = "adzuna"
 
 
 class JobSearchResponse(BaseModel):
