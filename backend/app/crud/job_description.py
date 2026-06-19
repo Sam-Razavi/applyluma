@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.job import ExtractedKeyword, RawJobPosting
 from app.models.job_description import JobDescription
-from app.schemas.job_description import JobDescriptionCreate
+from app.schemas.job_description import JobDescriptionCreate, JobDescriptionUpdate
 
 
 def get_by_id(db: Session, jd_id: uuid.UUID, user_id: uuid.UUID) -> JobDescription | None:
@@ -15,13 +15,21 @@ def get_by_id(db: Session, jd_id: uuid.UUID, user_id: uuid.UUID) -> JobDescripti
     )
 
 
-def list_for_user(db: Session, user_id: uuid.UUID) -> list[JobDescription]:
-    return (
-        db.query(JobDescription)
-        .filter(JobDescription.user_id == user_id)
-        .order_by(JobDescription.created_at.desc())
-        .all()
-    )
+def list_for_user(
+    db: Session,
+    user_id: uuid.UUID,
+    *,
+    list_name: str | None = None,
+    sort: str = "newest",
+) -> list[JobDescription]:
+    query = db.query(JobDescription).filter(JobDescription.user_id == user_id)
+    if list_name is not None:
+        query = query.filter(JobDescription.list_name == list_name)
+    if sort == "oldest":
+        query = query.order_by(JobDescription.created_at.asc())
+    else:
+        query = query.order_by(JobDescription.created_at.desc())
+    return query.all()
 
 
 def create(
@@ -45,13 +53,27 @@ def create(
     return jd
 
 
-def get_or_create_from_raw_job(
+def update(
     db: Session,
-    *,
+    jd: JobDescription,
+    updates: JobDescriptionUpdate,
+) -> JobDescription:
+    """Apply partial updates for starred, notes, and list_name."""
+    update_data = updates.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(jd, field, value)
+    db.commit()
+    db.refresh(jd)
+    return jd
+
+
+def get_by_source_raw_job(
+    db: Session,
     user_id: uuid.UUID,
     raw_job_posting_id: uuid.UUID,
 ) -> JobDescription | None:
-    existing = (
+    """Lookup a JD by its source_raw_job_posting_id for a given user."""
+    return (
         db.query(JobDescription)
         .filter(
             JobDescription.user_id == user_id,
@@ -59,6 +81,17 @@ def get_or_create_from_raw_job(
         )
         .first()
     )
+
+
+def get_or_create_from_raw_job(
+    db: Session,
+    *,
+    user_id: uuid.UUID,
+    raw_job_posting_id: uuid.UUID,
+    list_name: str | None = None,
+    notes: str | None = None,
+) -> JobDescription | None:
+    existing = get_by_source_raw_job(db, user_id, raw_job_posting_id)
     if existing:
         return existing
 
@@ -75,6 +108,8 @@ def get_or_create_from_raw_job(
         description=raw_job.description,
         url=raw_job.url,
         keywords=keywords,
+        list_name=list_name,
+        notes=notes,
     )
     db.add(jd)
     db.commit()
@@ -101,6 +136,23 @@ def _keywords_from_raw_job(db: Session, raw_job: RawJobPosting) -> list[str]:
         elif value:
             flattened.append(str(value))
     return list(dict.fromkeys(flattened))
+
+
+def list_saved_urls(db: Session, user_id: uuid.UUID) -> list[str]:
+    """Return URLs for JDs that originated from a raw job posting."""
+    rows = (
+        db.query(RawJobPosting.url)
+        .join(
+            JobDescription,
+            JobDescription.source_raw_job_posting_id == RawJobPosting.id,
+        )
+        .filter(
+            JobDescription.user_id == user_id,
+            JobDescription.source_raw_job_posting_id.isnot(None),
+        )
+        .all()
+    )
+    return [row[0] for row in rows if row[0]]
 
 
 def delete(db: Session, jd: JobDescription) -> None:

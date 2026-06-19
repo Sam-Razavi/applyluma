@@ -12,6 +12,8 @@ from app.schemas.job_description import (
     JobDescriptionCreate,
     JobDescriptionPublic,
     JobDescriptionSummary,
+    JobDescriptionUpdate,
+    SaveFromRawJobRequest,
 )
 from app.services.keyword_extractor import KeywordExtractor
 from app.services.url_scraper import scrape_job_url
@@ -64,12 +66,32 @@ def create_job_description(
     return crud_jd.create(db, user_id=current_user.id, body=body, keywords=keywords)
 
 
+@router.post("/from-discover", response_model=JobDescriptionPublic, status_code=status.HTTP_201_CREATED)
+def save_from_discover(
+    body: SaveFromRawJobRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JobDescriptionPublic:
+    jd = crud_jd.get_or_create_from_raw_job(
+        db,
+        user_id=current_user.id,
+        raw_job_posting_id=body.raw_job_posting_id,
+        list_name=body.list_name,
+        notes=body.notes,
+    )
+    if not jd:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job posting not found")
+    return jd
+
+
 @router.get("", response_model=list[JobDescriptionSummary])
 def list_job_descriptions(
+    list_name: str | None = None,
+    sort: str = "newest",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[JobDescriptionSummary]:
-    return crud_jd.list_for_user(db, current_user.id)
+    return crud_jd.list_for_user(db, current_user.id, list_name=list_name, sort=sort)
 
 
 @router.get("/{jd_id}", response_model=JobDescriptionPublic)
@@ -82,6 +104,19 @@ def get_job_description(
     if not jd:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job description not found")
     return jd
+
+
+@router.patch("/{jd_id}", response_model=JobDescriptionPublic)
+def update_job_description(
+    jd_id: uuid.UUID,
+    body: JobDescriptionUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JobDescriptionPublic:
+    jd = crud_jd.get_by_id(db, jd_id, current_user.id)
+    if not jd:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job description not found")
+    return crud_jd.update(db, jd, body)
 
 
 @router.delete("/{jd_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models.application import Application
 from app.models.cv import CV
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
+from app.models.job_description import JobDescription
 from app.schemas.job import ExternalJobBookmarkRequest, SaveJobRequest, UpdateSavedJobRequest
 from app.services.keyword_extractor import KeywordExtractor
 
@@ -35,7 +36,7 @@ def list_jobs(
 ) -> list[dict[str, Any]]:
     """Return a paginated list of jobs with match scores for the user."""
     q = (
-        db.query(RawJobPosting, JobMatchingScore, Application, SavedJob)
+        db.query(RawJobPosting, JobMatchingScore, Application, JobDescription)
         .options(selectinload(RawJobPosting.keywords))
         .outerjoin(
             JobMatchingScore,
@@ -48,9 +49,9 @@ def list_jobs(
             & (Application.user_id == user_id),
         )
         .outerjoin(
-            SavedJob,
-            (SavedJob.raw_job_posting_id == RawJobPosting.id)
-            & (SavedJob.user_id == user_id),
+            JobDescription,
+            (JobDescription.source_raw_job_posting_id == RawJobPosting.id)
+            & (JobDescription.user_id == user_id),
         )
         .filter(RawJobPosting.is_duplicate.is_(False))
     )
@@ -97,9 +98,9 @@ def list_jobs(
     rows = q.offset(offset).limit(limit).all()
 
     results = []
-    for posting, score, application, saved_job in rows:
+    for posting, score, application, jd in rows:
         results.append(
-            _job_to_dict(posting, score, application, saved_job, keywords=posting.keywords)
+            _job_to_dict(posting, score, application, jd, keywords=posting.keywords)
         )
     return results
 
@@ -111,7 +112,7 @@ def get_job_with_score(
 ) -> dict[str, Any] | None:
     """Return a job with its match score for the given user."""
     row = (
-        db.query(RawJobPosting, JobMatchingScore, Application, SavedJob)
+        db.query(RawJobPosting, JobMatchingScore, Application, JobDescription)
         .outerjoin(
             JobMatchingScore,
             (JobMatchingScore.raw_job_posting_id == RawJobPosting.id)
@@ -123,9 +124,9 @@ def get_job_with_score(
             & (Application.user_id == user_id),
         )
         .outerjoin(
-            SavedJob,
-            (SavedJob.raw_job_posting_id == RawJobPosting.id)
-            & (SavedJob.user_id == user_id),
+            JobDescription,
+            (JobDescription.source_raw_job_posting_id == RawJobPosting.id)
+            & (JobDescription.user_id == user_id),
         )
         .filter(RawJobPosting.id == job_id)
         .first()
@@ -133,13 +134,13 @@ def get_job_with_score(
     if not row:
         return None
 
-    posting, score, application, saved_job = row
+    posting, score, application, jd = row
     matched_skills, missing_skills = _compute_skill_gap(db, user_id, posting)
     return _job_to_dict(
         posting,
         score,
         application,
-        saved_job,
+        jd,
         include_description=True,
         keywords=posting.keywords,
         matched_skills=matched_skills,
@@ -418,7 +419,7 @@ def _job_to_dict(
     posting: RawJobPosting,
     score: JobMatchingScore | None,
     application: Application | None = None,
-    saved_job: SavedJob | None = None,
+    jd: JobDescription | None = None,
     include_description: bool = False,
     keywords: list[ExtractedKeyword] | None = None,
     matched_skills: list[str] | None = None,
@@ -445,8 +446,8 @@ def _job_to_dict(
         "location_match": score.location_match if score else None,
         "explanation": score.explanation if score else None,
         "keywords": keywords or [],
-        "is_saved": saved_job is not None,
-        "saved_job_id": saved_job.id if saved_job else None,
+        "is_saved": jd is not None,
+        "saved_job_id": jd.id if jd else None,
         "application_status": application.status if application else None,
         "application_id": application.id if application else None,
     }

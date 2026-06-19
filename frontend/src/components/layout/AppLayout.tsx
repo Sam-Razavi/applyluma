@@ -13,10 +13,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/applications': 'Applications',
   '/discover': 'Discover',
-  '/saved-jobs': 'Saved Jobs',
+  '/saved-jobs': 'My Jobs',
   '/settings': 'Settings',
   '/cv': 'My CVs',
-  '/jobs': 'Job Search',
+  '/jobs': 'My Jobs',
 }
 
 export default function AppLayout() {

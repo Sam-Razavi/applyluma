@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,14 +16,12 @@ import {
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
+import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
+import { StarIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
-import SavedJobCard from '../components/discover/SavedJobCard'
-import JobDetail from '../components/discover/JobDetail'
 import { jobApi } from '../services/api'
 import type { CreateJobDescriptionRequest } from '../services/api'
-import { fetchSavedJobs, fetchJobDetail, updateSavedJob, deleteSavedJob } from '../services/jobDiscoveryApi'
 import type { JobDescription } from '../types'
-import type { SavedJob } from '../types/jobDiscovery'
 
 const jobSchema = z.object({
   company_name: z.string().min(1, 'Company name is required'),
@@ -64,71 +62,17 @@ function JdSkeleton() {
   )
 }
 
-type Tab = 'saved' | 'descriptions'
-
 export default function Jobs() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const initialTab = (searchParams.get('tab') as Tab) ?? 'saved'
-  const [tab, setTab] = useState<Tab>(initialTab)
-
-  function switchTab(t: Tab) {
-    setTab(t)
-    setSearchParams(t === 'saved' ? {} : { tab: t }, { replace: true })
-  }
-
-  // ── Saved jobs ───────────────────────────────────────────────────────────
-  const [saved, setSaved] = useState<SavedJob[]>([])
-  const [savedLoading, setSavedLoading] = useState(true)
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
-  const [activeCollection, setActiveCollection] = useState<string | null>(null)
-
-  useEffect(() => {
-    document.title = 'Jobs | ApplyLuma'
-    fetchSavedJobs()
-      .then(setSaved)
-      .catch(() => toast.error('Failed to load saved jobs'))
-      .finally(() => setSavedLoading(false))
-  }, [])
-
-  async function handleStar(savedId: string, starred: boolean) {
-    setSaved((prev) => prev.map((s) => (s.id === savedId ? { ...s, starred } : s)))
-    try {
-      const updated = await updateSavedJob(savedId, { starred })
-      setSaved((prev) => prev.map((s) => (s.id === savedId ? updated : s)))
-    } catch {
-      setSaved((prev) => prev.map((s) => (s.id === savedId ? { ...s, starred: !starred } : s)))
-      toast.error('Failed to update')
-    }
-  }
-
-  async function handleDeleteSaved(savedId: string) {
-    const removed = saved.find((s) => s.id === savedId)
-    setSaved((prev) => prev.filter((s) => s.id !== savedId))
-    toast.success('Removed from saved jobs')
-    try {
-      await deleteSavedJob(savedId)
-    } catch {
-      if (removed) setSaved((prev) => [...prev, removed])
-      toast.error('Failed to remove')
-    }
-  }
-
-  const collections = [...new Set(saved.map((s) => s.list_name ?? 'Saved'))]
-  const displayedSaved =
-    activeCollection === null
-      ? saved
-      : saved.filter((s) => (s.list_name ?? 'Saved') === activeCollection)
-
-  // ── Job descriptions ─────────────────────────────────────────────────────
-  const [jds, setJds] = useState<JobDescription[]>([])
-  const [jdLoading, setJdLoading] = useState(true)
+  const [jobs, setJobs] = useState<JobDescription[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [activeCollection, setActiveCollection] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
   const [addOpen, setAddOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<JobDescription | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [addingFromSavedId, setAddingFromSavedId] = useState<string | null>(null)
   const [urlBarOpen, setUrlBarOpen] = useState(false)
   const [scrapeUrlValue, setScrapeUrlValue] = useState('')
   const [scraping, setScraping] = useState(false)
@@ -138,14 +82,19 @@ export default function Jobs() {
   })
 
   useEffect(() => {
+    document.title = 'My Jobs | ApplyLuma'
     jobApi
       .list()
-      .then(setJds)
-      .catch(() => toast.error('Failed to load job descriptions'))
-      .finally(() => setJdLoading(false))
+      .then(setJobs)
+      .catch(() => toast.error('Failed to load jobs'))
+      .finally(() => setLoading(false))
   }, [])
 
-  const filteredJds = jds.filter((j) => {
+  const collections = [...new Set(jobs.map((j) => j.list_name).filter(Boolean))] as string[]
+
+  const filtered = jobs.filter((j) => {
+    if (activeCollection !== null && (j.list_name ?? '') !== activeCollection) return false
+    if (!search) return true
     const q = search.toLowerCase()
     return (
       (j.company_name ?? '').toLowerCase().includes(q) ||
@@ -153,20 +102,13 @@ export default function Jobs() {
     )
   })
 
-  async function handleAddToDescriptions(saved: SavedJob) {
-    setAddingFromSavedId(saved.id)
+  async function handleStar(jdId: string, starred: boolean) {
+    setJobs((prev) => prev.map((j) => (j.id === jdId ? { ...j, starred } : j)))
     try {
-      const detail = await fetchJobDetail(saved.raw_job_posting_id)
-      reset()
-      setValue('company_name', detail.company ?? '')
-      setValue('job_title', detail.title ?? '')
-      setValue('description', detail.description ?? '')
-      if (detail.url) setValue('url', detail.url)
-      setAddOpen(true)
+      await jobApi.update(jdId, { starred })
     } catch {
-      toast.error('Failed to load job details')
-    } finally {
-      setAddingFromSavedId(null)
+      setJobs((prev) => prev.map((j) => (j.id === jdId ? { ...j, starred: !starred } : j)))
+      toast.error('Failed to update')
     }
   }
 
@@ -201,27 +143,27 @@ export default function Jobs() {
         ...(data.url ? { url: data.url } : {}),
       }
       const jd = await jobApi.create(payload)
-      setJds((prev) => [jd, ...prev])
-      toast.success('Job description added & keywords extracted!')
+      setJobs((prev) => [jd, ...prev])
+      toast.success('Job added & keywords extracted!')
       setAddOpen(false)
       reset()
     } catch {
-      toast.error('Failed to save job description')
+      toast.error('Failed to save job')
     } finally {
       setSubmitting(false)
     }
   }
 
-  async function handleDeleteJd() {
+  async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
       await jobApi.remove(deleteTarget.id)
-      setJds((prev) => prev.filter((j) => j.id !== deleteTarget.id))
-      toast.success('Job description deleted')
+      setJobs((prev) => prev.filter((j) => j.id !== deleteTarget.id))
+      toast.success('Job deleted')
       setDeleteTarget(null)
     } catch {
-      toast.error('Could not delete job description')
+      toast.error('Could not delete job')
     } finally {
       setDeleting(false)
     }
@@ -232,267 +174,224 @@ export default function Jobs() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white/90 ">Jobs</h1>
-          <p className="mt-1 text-sm text-white/30 ">
-            Saved jobs from Discover and your job description library.
+          <h1 className="text-2xl font-bold text-white/90">My Jobs</h1>
+          <p className="mt-1 text-sm text-white/30">
+            Your saved jobs and job descriptions — all ready for AI tailoring.
           </p>
         </div>
-        {tab === 'descriptions' && (
-          <div className="flex flex-col gap-2 self-start sm:self-auto">
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setUrlBarOpen((o) => !o); setScrapeUrlValue('') }}
-                className="inline-flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.04] text-white/55 text-sm font-semibold px-4 py-2.5 rounded-xl border border-white/10 transition-colors "
-              >
-                <LinkIcon className="h-4 w-4" />
-                Import from URL
-              </button>
-              <button
-                onClick={() => setAddOpen(true)}
-                className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add Manually
-              </button>
-            </div>
-            {urlBarOpen && (
-              <form onSubmit={handleScrapeUrl} className="flex gap-2">
-                <input
-                  type="url"
-                  value={scrapeUrlValue}
-                  onChange={(e) => setScrapeUrlValue(e.target.value)}
-                  placeholder="https://linkedin.com/jobs/view/…"
-                  required
-                  disabled={scraping}
-                  className="flex-1 px-3 py-2 border border-white/10 rounded-xl text-sm bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-brand-500 min-w-0"
-                />
-                <button
-                  type="submit"
-                  disabled={scraping || !scrapeUrlValue}
-                  className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl disabled:opacity-50 whitespace-nowrap"
-                >
-                  {scraping ? 'Extracting…' : 'Extract'}
-                </button>
-              </form>
-            )}
+        <div className="flex flex-col gap-2 self-start sm:self-auto">
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setUrlBarOpen((o) => !o); setScrapeUrlValue('') }}
+              className="inline-flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.08] text-white/55 text-sm font-semibold px-4 py-2.5 rounded-xl border border-white/10 transition-colors"
+            >
+              <LinkIcon className="h-4 w-4" />
+              Import from URL
+            </button>
+            <button
+              onClick={() => { reset(); setAddOpen(true) }}
+              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Add Manually
+            </button>
           </div>
-        )}
+          {urlBarOpen && (
+            <form onSubmit={handleScrapeUrl} className="flex gap-2">
+              <input
+                type="url"
+                value={scrapeUrlValue}
+                onChange={(e) => setScrapeUrlValue(e.target.value)}
+                placeholder="https://linkedin.com/jobs/view/…"
+                required
+                disabled={scraping}
+                className="flex-1 px-3 py-2 border border-white/10 rounded-xl text-sm bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-brand-500 min-w-0"
+              />
+              <button
+                type="submit"
+                disabled={scraping || !scrapeUrlValue}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl disabled:opacity-50 whitespace-nowrap"
+              >
+                {scraping ? 'Extracting…' : 'Extract'}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-white/[0.04] p-1 w-fit">
-        {([
-          { key: 'saved', label: 'Saved Jobs', count: saved.length },
-          { key: 'descriptions', label: 'Job Descriptions', count: jds.length },
-        ] as { key: Tab; label: string; count: number }[]).map(({ key, label, count }) => (
+      {/* Search */}
+      {(loading || jobs.length > 0) && (
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by company or job title…"
+            className="w-full pl-9 pr-4 py-2.5 border border-white/10 rounded-xl text-sm bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        </div>
+      )}
+
+      {/* Collection filters */}
+      {collections.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
           <button
-            key={key}
             type="button"
-            onClick={() => switchTab(key)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              tab === key
-                ? 'bg-white/[0.04] text-white/90 shadow-sm '
-                : 'text-white/30 hover:text-white/55 '
+            onClick={() => setActiveCollection(null)}
+            className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
+              activeCollection === null
+                ? 'bg-brand-600 text-white'
+                : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
             }`}
           >
-            {label}
-            {count > 0 && (
-              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
-                tab === key ? 'bg-white/[0.04] text-white/55 ' : 'bg-white/[0.06] text-white/30 '
-              }`}>
-                {count}
-              </span>
-            )}
+            All ({jobs.length})
           </button>
-        ))}
-      </div>
+          {collections.map((col) => (
+            <button
+              key={col}
+              type="button"
+              onClick={() => setActiveCollection(col)}
+              className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
+                activeCollection === col
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
+              }`}
+            >
+              {col} ({jobs.filter((j) => j.list_name === col).length})
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* ── Saved Jobs tab ───────────────────────────────────────────────── */}
-      {tab === 'saved' && (
-        <>
-          {savedLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-36 animate-pulse rounded-2xl bg-white/[0.04] " />
-              ))}
-            </div>
-          ) : saved.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center ">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03] ">
-                <BookmarkIcon className="h-6 w-6 text-white/30" />
-              </div>
-              <h2 className="mt-4 text-sm font-semibold text-white/90 ">No saved jobs yet</h2>
-              <p className="mt-1 text-sm text-white/30">
-                Browse Discover and bookmark jobs you're interested in.
-              </p>
+      {/* Job list */}
+      {loading ? (
+        <div className="grid gap-4">
+          {[...Array(3)].map((_, i) => <JdSkeleton key={i} />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white/[0.04] rounded-2xl border border-white/10 flex flex-col items-center justify-center py-16 px-6 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
+            {search || activeCollection ? (
+              <MagnifyingGlassIcon className="h-6 w-6 text-white/30" />
+            ) : (
+              <BookmarkIcon className="h-6 w-6 text-white/30" />
+            )}
+          </div>
+          <h2 className="mt-4 text-sm font-semibold text-white/90">
+            {search ? 'No results found' : activeCollection ? `No jobs in "${activeCollection}"` : 'No jobs yet'}
+          </h2>
+          <p className="mt-1 text-sm text-white/30">
+            {search
+              ? `No jobs match "${search}"`
+              : 'Save jobs from Discover or add a job description to get started.'}
+          </p>
+          {!search && !activeCollection && (
+            <div className="mt-4 flex gap-3">
               <Link
                 to="/discover"
-                className="mt-4 inline-block rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+                className="inline-block rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
               >
                 Discover Jobs
               </Link>
-            </div>
-          ) : (
-            <>
-              {collections.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  <button
-                    type="button"
-                    onClick={() => setActiveCollection(null)}
-                    className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
-                      activeCollection === null
-                        ? 'bg-brand-600 text-white'
-                        : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08] '
-                    }`}
-                  >
-                    All ({saved.length})
-                  </button>
-                  {collections.map((col) => (
-                    <button
-                      key={col}
-                      type="button"
-                      onClick={() => setActiveCollection(col)}
-                      className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
-                        activeCollection === col
-                          ? 'bg-brand-600 text-white'
-                          : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08] '
-                      }`}
-                    >
-                      {col} ({saved.filter((s) => (s.list_name ?? 'Saved') === col).length})
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {displayedSaved.map((s) => (
-                  <SavedJobCard
-                    key={s.id}
-                    saved={s}
-                    onClick={setSelectedJobId}
-                    onStar={handleStar}
-                    onDelete={handleDeleteSaved}
-                    onAddToDescriptions={handleAddToDescriptions}
-                    addingToDescriptions={addingFromSavedId === s.id}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-
-          <JobDetail
-            jobId={selectedJobId}
-            isSaved={true}
-            onClose={() => setSelectedJobId(null)}
-            onSave={() => {}}
-          />
-        </>
-      )}
-
-      {/* ── Job Descriptions tab ─────────────────────────────────────────── */}
-      {tab === 'descriptions' && (
-        <>
-          {(jdLoading || jds.length > 0) && (
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by company or job title…"
-                className="w-full pl-9 pr-4 py-2.5 border border-white/10 rounded-xl text-sm bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-brand-500 "
-              />
+              <button
+                onClick={() => { reset(); setAddOpen(true) }}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add manually
+              </button>
             </div>
           )}
-
-          {jdLoading ? (
-            <div className="grid gap-4">
-              {[...Array(3)].map((_, i) => <JdSkeleton key={i} />)}
-            </div>
-          ) : filteredJds.length === 0 ? (
-            <div className="bg-white/[0.04] rounded-2xl border border-white/10 flex flex-col items-center justify-center py-16 px-6 text-center ">
-              <div className="h-12 w-12 bg-[rgba(8,145,178,0.15)] rounded-xl flex items-center justify-center mb-3 ">
-                <BriefcaseIcon className="h-6 w-6 text-violet-400" />
-              </div>
-              <h3 className="text-sm font-medium text-white/90 ">
-                {search ? 'No results found' : 'No job descriptions yet'}
-              </h3>
-              <p className="mt-1 text-sm text-white/30">
-                {search ? `No jobs match "${search}"` : 'Add a job posting to extract keywords and tailor your CV.'}
-              </p>
-              {!search && (
-                <button
-                  onClick={() => setAddOpen(true)}
-                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  Add a job description
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {filteredJds.map((job) => {
-                const isExpanded = expandedId === job.id
-                const desc = job.description ?? ''
-                const hasLong = desc.length > 150
-                return (
-                  <div key={job.id} className="bg-white/[0.04] rounded-2xl border border-white/10 p-5 hover:border-white/20 transition-colors ">
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 bg-[rgba(8,145,178,0.15)] rounded-xl flex items-center justify-center flex-shrink-0 ">
-                        <BriefcaseIcon className="h-5 w-5 text-cyan-300 " />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-semibold text-white/90 ">{job.job_title}</h3>
-                        <p className="truncate text-sm text-white/30 ">{job.company_name}</p>
-                      </div>
-                      <div className="flex flex-shrink-0 items-center gap-2">
-                        <span className="text-xs text-white/30 hidden sm:block">{formatDate(job.created_at)}</span>
-                        <button
-                          onClick={() => setDeleteTarget(job)}
-                          className="h-8 w-8 flex items-center justify-center rounded-lg text-white/30 text-red-300 hover:bg-[rgba(229,72,77,0.12)] transition-colors"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="mt-3">
-                      <p className="text-sm text-white/55 whitespace-pre-line">
-                        {isExpanded ? desc : desc.slice(0, 150) + (hasLong ? '…' : '')}
-                      </p>
-                      {hasLong && (
-                        <button
-                          onClick={() => setExpandedId(isExpanded ? null : job.id)}
-                          className="mt-1 inline-flex items-center gap-0.5 text-xs text-primary-400 hover:text-primary-300"
-                        >
-                          {isExpanded ? <>Show less <ChevronUpIcon className="h-3 w-3" /></> : <>Read more <ChevronDownIcon className="h-3 w-3" /></>}
-                        </button>
-                      )}
-                    </div>
-
-                    {job.keywords && job.keywords.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {job.keywords.slice(0, 10).map((kw, i) => (
-                          <span key={kw} className={`text-xs font-medium px-2 py-0.5 rounded-full ${KEYWORD_COLORS[i % KEYWORD_COLORS.length]}`}>
-                            {kw}
-                          </span>
-                        ))}
-                        {job.keywords.length > 10 && (
-                          <span className="text-xs text-white/30 self-center">+{job.keywords.length - 10} more</span>
-                        )}
-                      </div>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filtered.map((job) => {
+            const isExpanded = expandedId === job.id
+            const desc = job.description ?? ''
+            const hasLong = desc.length > 150
+            return (
+              <div key={job.id} className="bg-white/[0.04] rounded-2xl border border-white/10 p-5 hover:border-white/20 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 bg-[rgba(8,145,178,0.15)] rounded-xl flex items-center justify-center flex-shrink-0">
+                    <BriefcaseIcon className="h-5 w-5 text-cyan-300" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-semibold text-white/90">{job.job_title}</h3>
+                    <p className="truncate text-sm text-white/30">{job.company_name}</p>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-1">
+                    {job.list_name && (
+                      <span className="text-xs rounded-full bg-primary-900/20 px-2 py-0.5 text-primary-400 hidden sm:inline-block">
+                        {job.list_name}
+                      </span>
                     )}
+                    <span className="text-xs text-white/30 hidden sm:block">{formatDate(job.created_at)}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleStar(job.id, !job.starred)}
+                      className="rounded-lg p-1 text-white/30 transition-colors hover:text-yellow-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      aria-label={job.starred ? 'Unstar job' : 'Star job'}
+                    >
+                      {job.starred ? (
+                        <StarSolid className="h-5 w-5 text-yellow-400" />
+                      ) : (
+                        <StarIcon className="h-5 w-5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(job)}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-white/30 hover:text-red-300 hover:bg-[rgba(229,72,77,0.12)] transition-colors"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
 
+                <div className="mt-3">
+                  <p className="text-sm text-white/55 whitespace-pre-line">
+                    {isExpanded ? desc : desc.slice(0, 150) + (hasLong ? '…' : '')}
+                  </p>
+                  {hasLong && (
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : job.id)}
+                      className="mt-1 inline-flex items-center gap-0.5 text-xs text-primary-400 hover:text-primary-300"
+                    >
+                      {isExpanded ? <>Show less <ChevronUpIcon className="h-3 w-3" /></> : <>Read more <ChevronDownIcon className="h-3 w-3" /></>}
+                    </button>
+                  )}
+                </div>
+
+                {job.keywords && job.keywords.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {job.keywords.slice(0, 10).map((kw, i) => (
+                      <span key={kw} className={`text-xs font-medium px-2 py-0.5 rounded-full ${KEYWORD_COLORS[i % KEYWORD_COLORS.length]}`}>
+                        {kw}
+                      </span>
+                    ))}
+                    {job.keywords.length > 10 && (
+                      <span className="text-xs text-white/30 self-center">+{job.keywords.length - 10} more</span>
+                    )}
+                  </div>
+                )}
+
+                {(job.url || job.notes) && (
+                  <div className="mt-2 flex flex-col gap-1">
                     {job.url && (
-                      <a href={job.url} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-primary-400 hover:underline truncate block">
+                      <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-400 hover:underline truncate block">
                         {job.url}
                       </a>
                     )}
+                    {job.notes && (
+                      <p className="text-xs text-white/30 line-clamp-2 border-t border-white/10 pt-1">
+                        {job.notes}
+                      </p>
+                    )}
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </>
+                )}
+              </div>
+            )
+          })}
+        </div>
       )}
 
       {/* Add Job Description modal */}
@@ -501,7 +400,7 @@ export default function Jobs() {
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <DialogPanel className="bg-white/[0.04] rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
-              <DialogTitle className="text-base font-semibold text-white/90">Add Job Description</DialogTitle>
+              <DialogTitle className="text-base font-semibold text-white/90">Add Job</DialogTitle>
               <button onClick={() => !submitting && (setAddOpen(false), reset())} className="h-8 w-8 flex items-center justify-center rounded-lg text-white/30 hover:text-white/55 hover:bg-white/[0.06]">
                 <XMarkIcon className="h-4 w-4" />
               </button>
@@ -540,7 +439,7 @@ export default function Jobs() {
         </div>
       </Dialog>
 
-      {/* Delete JD confirmation */}
+      {/* Delete confirmation */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} className="relative z-50">
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -550,7 +449,7 @@ export default function Jobs() {
                 <ExclamationCircleIcon className="h-5 w-5 text-red-300" />
               </div>
               <div>
-                <DialogTitle className="text-base font-semibold text-white/90">Delete Job Description</DialogTitle>
+                <DialogTitle className="text-base font-semibold text-white/90">Delete Job</DialogTitle>
                 <p className="mt-1 text-sm text-white/30">
                   Delete <strong>"{deleteTarget?.job_title}" at {deleteTarget?.company_name}</strong>? This cannot be undone.
                 </p>
@@ -558,7 +457,7 @@ export default function Jobs() {
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <button onClick={() => setDeleteTarget(null)} disabled={deleting} className="px-4 py-2 text-sm font-medium text-white/55 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg disabled:opacity-50">Cancel</button>
-              <button onClick={handleDeleteJd} disabled={deleting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50">
+              <button onClick={handleDelete} disabled={deleting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50">
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>
             </div>
