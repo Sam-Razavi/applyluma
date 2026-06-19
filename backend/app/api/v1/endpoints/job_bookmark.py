@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
 from app.crud import job as crud_job
+from app.crud import job_description as crud_jd
 from app.models.user import User
-from app.schemas.job import ExternalJobBookmarkRequest, SavedJobSchema, SaveJobRequest
+from app.schemas.job import ExternalJobBookmarkRequest
+from app.schemas.job_description import JobDescriptionPublic, JobDescriptionUpdate
 from app.services.matching_service import MatchingService
 
 log = logging.getLogger(__name__)
@@ -15,16 +17,16 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/jobs/bookmark", tags=["job-bookmark"])
 
 
-@router.post("", response_model=SavedJobSchema, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=JobDescriptionPublic, status_code=status.HTTP_201_CREATED)
 def bookmark_external_job(
     body: ExternalJobBookmarkRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> SavedJobSchema:
+) -> JobDescriptionPublic:
     """Save a job submitted from the browser extension.
 
     Creates a RawJobPosting if the URL hasn't been seen before, then
-    creates (or returns the existing) SavedJob for the current user.
+    creates (or returns the existing) JobDescription for the current user.
     Triggers an instant match score computation if none exists yet.
     Idempotent: re-bookmarking the same URL returns the existing record.
     """
@@ -32,20 +34,19 @@ def bookmark_external_job(
     if posting is None:
         posting = crud_job.create_raw_job_from_external(db, body)
 
-    saved = crud_job.get_saved_job_by_raw_id(db, current_user.id, posting.id)
-    if saved is None:
-        saved = crud_job.save_job(
-            db,
-            user_id=current_user.id,
-            body=SaveJobRequest(job_id=posting.id, list_name="Extension"),
-        )
+    jd = crud_jd.get_or_create_from_raw_job(
+        db,
+        user_id=current_user.id,
+        raw_job_posting_id=posting.id,
+        list_name="Extension",
+    )
 
     # Persist user's note if provided — wrapped so a DB hiccup never blocks the save.
-    if body.notes:
+    if body.notes and jd:
         try:
-            crud_job.update_saved_job_notes(db, saved.id, body.notes)
+            crud_jd.update(db, jd, JobDescriptionUpdate(notes=body.notes))
         except Exception:
-            log.exception("Failed to persist notes for saved job %s — skipping", saved.id)
+            log.exception("Failed to persist notes for job description %s — skipping", jd.id)
 
     # Compute match score synchronously if not already cached.
     if crud_job.get_job_matching_score(db, current_user.id, posting.id) is None:
@@ -67,7 +68,7 @@ def bookmark_external_job(
         except Exception:
             log.exception("Instant scoring failed for posting %s — skipping", posting.id)
 
-    return SavedJobSchema.model_validate(saved)
+    return JobDescriptionPublic.model_validate(jd)
 
 
 @router.get("/saved-urls")
@@ -75,9 +76,9 @@ def get_saved_urls(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict[str, list[str]]:
-    """Return all job URLs the current user has bookmarked via the extension.
+    """Return all job URLs the current user has saved as job descriptions.
 
     Used by the extension background worker to populate the badge cache.
     """
-    urls = crud_job.list_saved_job_urls(db, current_user.id)
+    urls = crud_jd.list_saved_urls(db, current_user.id)
     return {"urls": urls}

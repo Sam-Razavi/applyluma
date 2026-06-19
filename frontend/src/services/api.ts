@@ -130,8 +130,8 @@ export const jobApi = {
   create: (data: CreateJobDescriptionRequest): Promise<JobDescription> =>
     client.post<JobDescription>('/api/v1/job-descriptions', data).then((r) => r.data),
 
-  list: (): Promise<JobDescription[]> =>
-    client.get('/api/v1/job-descriptions').then((r) => {
+  list: (params?: { list_name?: string; sort?: string }): Promise<JobDescription[]> =>
+    client.get('/api/v1/job-descriptions', { params }).then((r) => {
       const d = r.data
       return Array.isArray(d) ? d : (d.items ?? [])
     }),
@@ -139,8 +139,14 @@ export const jobApi = {
   get: (jdId: string): Promise<JobDescription> =>
     client.get<JobDescription>(`/api/v1/job-descriptions/${jdId}`).then((r) => r.data),
 
+  update: (jdId: string, data: { starred?: boolean; notes?: string | null; list_name?: string | null }): Promise<JobDescription> =>
+    client.patch<JobDescription>(`/api/v1/job-descriptions/${jdId}`, data).then((r) => r.data),
+
   remove: (jdId: string): Promise<void> =>
     client.delete(`/api/v1/job-descriptions/${jdId}`).then(() => undefined),
+
+  saveFromDiscover: (data: { raw_job_posting_id: string; list_name?: string; notes?: string }): Promise<JobDescription> =>
+    client.post<JobDescription>('/api/v1/job-descriptions/from-discover', data).then((r) => r.data),
 
   scrapeUrl: (url: string): Promise<ScrapeUrlResult> =>
     client.post<ScrapeUrlResult>('/api/v1/job-descriptions/scrape-url', { url }).then((r) => r.data),

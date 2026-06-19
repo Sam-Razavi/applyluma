@@ -22,6 +22,9 @@ class JobDescriptionSummary(BaseModel):
     job_title: str
     url: str | None
     keywords: list[str]
+    starred: bool = False
+    notes: str | None = None
+    list_name: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -29,3 +32,17 @@ class JobDescriptionSummary(BaseModel):
 class JobDescriptionPublic(JobDescriptionSummary):
     """Detail view — includes full description text."""
     description: str
+
+
+class JobDescriptionUpdate(BaseModel):
+    """Partial update for starred, notes, and list_name."""
+    starred: bool | None = None
+    notes: str | None = None
+    list_name: str | None = None
+
+
+class SaveFromRawJobRequest(BaseModel):
+    """Save a raw job posting as a job description."""
+    raw_job_posting_id: uuid.UUID
+    list_name: str | None = None
+    notes: str | None = None

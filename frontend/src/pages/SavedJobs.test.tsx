@@ -1,86 +1,71 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
-import SavedJobs from './SavedJobs'
-import * as jobDiscoveryApi from '../services/jobDiscoveryApi'
+import Jobs from './Jobs'
+import * as api from '../services/api'
 import toast from 'react-hot-toast'
 
-vi.mock('../services/jobDiscoveryApi', () => ({
-  fetchSavedJobs: vi.fn(),
-  updateSavedJob: vi.fn(),
-  deleteSavedJob: vi.fn(),
-  fetchJobDetail: vi.fn(),
+vi.mock('../services/api', () => ({
+  jobApi: {
+    list: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    scrapeUrl: vi.fn(),
+    saveFromDiscover: vi.fn(),
+  },
+  CreateJobDescriptionRequest: {},
 }))
 
 vi.mock('react-hot-toast', () => ({
-  default: { success: vi.fn(), error: vi.fn() },
+  default: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
 }))
 
-const mockJob = {
-  job_id: 'job-1',
-  title: 'Senior Python Developer',
-  company: 'TechAB',
-  location: 'Stockholm',
-  salary_min: 60000,
-  salary_max: 90000,
-  employment_type: 'full_time',
-  remote_allowed: false,
-  is_remote: false,
-  url: 'https://example.com/job/1',
-  source: 'Platsbanken',
-  scraped_at: '2026-05-15T00:00:00Z',
-  match_score: 87,
-  skills_match: 90,
-  experience_match: 85,
-  salary_match_score: 80,
-  education_match: 100,
-  location_match: 80,
-  explanation: 'You have 5/6 required skills.',
-  keywords: [],
-  is_saved: true,
-}
-
-const mockSaved = {
-  id: 'saved-1',
+const mockJd = {
+  id: 'jd-1',
   user_id: 'user-1',
-  raw_job_posting_id: 'job-1',
-  list_name: 'Dream roles',
-  notes: 'Great company culture',
+  source_raw_job_posting_id: 'job-1',
+  company_name: 'TechAB',
+  job_title: 'Senior Python Developer',
+  description: 'Build scalable APIs with Python and FastAPI.',
+  url: 'https://example.com/job/1',
+  keywords: ['Python', 'FastAPI', 'PostgreSQL'],
   starred: false,
+  notes: 'Great company culture',
+  list_name: 'Dream roles',
   created_at: '2026-05-15T00:00:00Z',
   updated_at: '2026-05-15T00:00:00Z',
-  job: mockJob,
 }
 
 function renderPage() {
   return render(
     <BrowserRouter>
-      <SavedJobs />
+      <Jobs />
     </BrowserRouter>,
   )
 }
 
-describe('SavedJobs page', () => {
+describe('Jobs page (unified My Jobs)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('renders page heading', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([])
+    vi.mocked(api.jobApi.list).mockResolvedValue([])
     renderPage()
-    expect(screen.getByText('Saved Jobs')).toBeInTheDocument()
+    expect(screen.getByText('My Jobs')).toBeInTheDocument()
   })
 
-  it('shows empty state when no saved jobs', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([])
+  it('shows empty state when no jobs', async () => {
+    vi.mocked(api.jobApi.list).mockResolvedValue([])
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('No saved jobs yet')).toBeInTheDocument()
+      expect(screen.getByText('No jobs yet')).toBeInTheDocument()
     })
   })
 
-  it('renders saved job cards after loading', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
+  it('renders job cards after loading', async () => {
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd])
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('Senior Python Developer')).toBeInTheDocument()
@@ -88,8 +73,17 @@ describe('SavedJobs page', () => {
     })
   })
 
+  it('shows keywords on card', async () => {
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd])
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Python')).toBeInTheDocument()
+      expect(screen.getByText('FastAPI')).toBeInTheDocument()
+    })
+  })
+
   it('shows job notes on card', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd])
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('Great company culture')).toBeInTheDocument()
@@ -97,7 +91,7 @@ describe('SavedJobs page', () => {
   })
 
   it('shows list_name badge', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd])
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('Dream roles')).toBeInTheDocument()
@@ -105,66 +99,53 @@ describe('SavedJobs page', () => {
   })
 
   it('stars a job when star button clicked', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
-    vi.mocked(jobDiscoveryApi.updateSavedJob).mockResolvedValue({ ...mockSaved, starred: true })
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd])
+    vi.mocked(api.jobApi.update).mockResolvedValue({ ...mockJd, starred: true })
     renderPage()
 
     await waitFor(() => expect(screen.getByLabelText('Star job')).toBeInTheDocument())
     fireEvent.click(screen.getByLabelText('Star job'))
 
     await waitFor(() => {
-      expect(jobDiscoveryApi.updateSavedJob).toHaveBeenCalledWith('saved-1', { starred: true })
+      expect(api.jobApi.update).toHaveBeenCalledWith('jd-1', { starred: true })
     })
   })
 
-  it('deletes a saved job when delete button clicked', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
-    vi.mocked(jobDiscoveryApi.deleteSavedJob).mockResolvedValue()
-    renderPage()
-
-    await waitFor(() => expect(screen.getByLabelText('Remove saved job')).toBeInTheDocument())
-    fireEvent.click(screen.getByLabelText('Remove saved job'))
-
-    await waitFor(() => {
-      expect(jobDiscoveryApi.deleteSavedJob).toHaveBeenCalledWith('saved-1')
-      expect(toast.success).toHaveBeenCalledWith('Removed from saved jobs')
-    })
-  })
-
-  it('removes card from list after delete', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
-    vi.mocked(jobDiscoveryApi.deleteSavedJob).mockResolvedValue()
+  it('deletes a job after confirmation', async () => {
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd])
+    vi.mocked(api.jobApi.remove).mockResolvedValue(undefined)
     renderPage()
 
     await waitFor(() => expect(screen.getByText('Senior Python Developer')).toBeInTheDocument())
-    fireEvent.click(screen.getByLabelText('Remove saved job'))
+
+    const deleteButtons = screen.getAllByRole('button').filter((btn) =>
+      btn.querySelector('.h-4.w-4') && btn.className.includes('hover:text-red-300'),
+    )
+    fireEvent.click(deleteButtons[0])
+
+    await waitFor(() => expect(screen.getByText('Delete Job')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
-      expect(screen.queryByText('Senior Python Developer')).not.toBeInTheDocument()
+      expect(api.jobApi.remove).toHaveBeenCalledWith('jd-1')
+      expect(toast.success).toHaveBeenCalledWith('Job deleted')
     })
   })
 
-  it('shows collection tabs when multiple list_names exist', async () => {
-    const second = { ...mockSaved, id: 'saved-2', list_name: 'Backup options' }
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved, second])
+  it('shows collection filter tabs when multiple list_names exist', async () => {
+    const second = { ...mockJd, id: 'jd-2', list_name: 'Backup options', job_title: 'Junior Developer' }
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd, second])
     renderPage()
 
     await waitFor(() => {
-      // Collection tab buttons (not the card badges)
       const tabs = screen.getAllByRole('button', { name: /Dream roles|Backup options|All/ })
       expect(tabs.length).toBeGreaterThanOrEqual(3)
     })
   })
 
   it('filters jobs when a collection tab is clicked', async () => {
-    const second = {
-      ...mockSaved,
-      id: 'saved-2',
-      raw_job_posting_id: 'job-2',
-      list_name: 'Backup options',
-      job: { ...mockJob, job_id: 'job-2', title: 'Junior Developer' },
-    }
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved, second])
+    const second = { ...mockJd, id: 'jd-2', list_name: 'Backup options', job_title: 'Junior Developer' }
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd, second])
     renderPage()
 
     await waitFor(() => screen.getByText('Senior Python Developer'))
@@ -178,14 +159,8 @@ describe('SavedJobs page', () => {
   })
 
   it('shows all jobs when "All" tab is clicked after selecting a collection', async () => {
-    const second = {
-      ...mockSaved,
-      id: 'saved-2',
-      raw_job_posting_id: 'job-2',
-      list_name: 'Backup options',
-      job: { ...mockJob, job_id: 'job-2', title: 'Junior Developer' },
-    }
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved, second])
+    const second = { ...mockJd, id: 'jd-2', list_name: 'Backup options', job_title: 'Junior Developer' }
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd, second])
     renderPage()
 
     await waitFor(() => screen.getByText('Senior Python Developer'))
@@ -199,9 +174,9 @@ describe('SavedJobs page', () => {
     })
   })
 
-  it('reverts starred state when updateSavedJob throws', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
-    vi.mocked(jobDiscoveryApi.updateSavedJob).mockRejectedValue(new Error('Network error'))
+  it('reverts starred state when update throws', async () => {
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd])
+    vi.mocked(api.jobApi.update).mockRejectedValue(new Error('Network error'))
     renderPage()
 
     await waitFor(() => expect(screen.getByLabelText('Star job')).toBeInTheDocument())
@@ -212,32 +187,26 @@ describe('SavedJobs page', () => {
     })
   })
 
-  it('restores deleted job when deleteSavedJob throws', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
-    vi.mocked(jobDiscoveryApi.deleteSavedJob).mockRejectedValue(new Error('Network error'))
-    renderPage()
-
-    await waitFor(() => expect(screen.getByLabelText('Remove saved job')).toBeInTheDocument())
-    fireEvent.click(screen.getByLabelText('Remove saved job'))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to remove')
-    })
-  })
-
   it('shows error toast when loading fails', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockRejectedValue(new Error('Network error'))
+    vi.mocked(api.jobApi.list).mockRejectedValue(new Error('Network error'))
     renderPage()
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to load saved jobs')
+      expect(toast.error).toHaveBeenCalledWith('Failed to load jobs')
     })
   })
 
-  it('shows job count in heading', async () => {
-    vi.mocked(jobDiscoveryApi.fetchSavedJobs).mockResolvedValue([mockSaved])
+  it('filters by search text', async () => {
+    const second = { ...mockJd, id: 'jd-2', list_name: null, job_title: 'Junior Developer', company_name: 'OtherCo' }
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd, second])
     renderPage()
-    await waitFor(() => {
-      expect(screen.getByText('1 saved job')).toBeInTheDocument()
+
+    await waitFor(() => screen.getByText('Senior Python Developer'))
+
+    fireEvent.change(screen.getByPlaceholderText('Search by company or job title…'), {
+      target: { value: 'TechAB' },
     })
+
+    expect(screen.getByText('Senior Python Developer')).toBeInTheDocument()
+    expect(screen.queryByText('Junior Developer')).not.toBeInTheDocument()
   })
 })
