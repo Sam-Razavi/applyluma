@@ -20,7 +20,7 @@ from app.main import app
 
 USER_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 JOB_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-SAVED_ID = uuid.UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
+JD_ID = uuid.UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
 SCORE_ID = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
 NOW = datetime(2026, 6, 3, tzinfo=UTC)
 
@@ -80,17 +80,21 @@ def _posting() -> SimpleNamespace:
     )
 
 
-def _saved_job() -> SimpleNamespace:
+def _jd() -> SimpleNamespace:
     return SimpleNamespace(
-        id=SAVED_ID,
+        id=JD_ID,
         user_id=USER_ID,
-        raw_job_posting_id=JOB_ID,
-        list_name="Extension",
-        notes=None,
+        source_raw_job_posting_id=JOB_ID,
+        company_name="Acme AB",
+        job_title="Senior Python Developer",
+        description="We are looking for a senior Python developer.",
+        url="https://www.linkedin.com/jobs/view/1234567890/",
+        keywords=[],
         starred=False,
+        notes=None,
+        list_name="Extension",
         created_at=NOW,
         updated_at=NOW,
-        job=_posting(),
     )
 
 
@@ -131,23 +135,22 @@ async def _get(path: str) -> httpx.Response:
 
 @pytest.mark.asyncio
 async def test_bookmark_new_job_returns_201(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Creates a new RawJobPosting and SavedJob when URL is unseen."""
+    """Creates a new RawJobPosting and JobDescription when URL is unseen."""
     _stub_no_scoring(monkeypatch)
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: None)
     monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", lambda *a, **kw: _posting())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: None)
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
 
     resp = await _post(VALID_BODY)
     assert resp.status_code == 201
     body = resp.json()
     assert body["list_name"] == "Extension"
-    assert body["raw_job_posting_id"] == str(JOB_ID)
+    assert body["source_raw_job_posting_id"] == str(JOB_ID)
 
 
 @pytest.mark.asyncio
-async def test_bookmark_existing_url_returns_existing_saved_job(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns the existing SavedJob when the URL is already bookmarked."""
+async def test_bookmark_existing_url_returns_existing_jd(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Returns the existing JobDescription when the URL is already bookmarked."""
     _stub_no_scoring(monkeypatch)
     create_called = []
 
@@ -157,8 +160,7 @@ async def test_bookmark_existing_url_returns_existing_saved_job(monkeypatch: pyt
 
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: _posting())
     monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", fake_create)
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: _saved_job())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
 
     resp = await _post(VALID_BODY)
     assert resp.status_code == 201
@@ -184,8 +186,7 @@ async def test_bookmark_defaults_source_to_linkedin(monkeypatch: pytest.MonkeyPa
 
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: None)
     monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", fake_create)
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: None)
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
 
     body = {k: v for k, v in VALID_BODY.items() if k != "source"}
     resp = await _post(body)
@@ -213,8 +214,7 @@ async def test_bookmark_triggers_instant_scoring_for_new_job(monkeypatch: pytest
     monkeypatch.setattr(bookmark_endpoint, "MatchingService", FakeMatchingService)
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: None)
     monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", lambda *a, **kw: _posting())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: None)
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_job_matching_score", lambda *a, **kw: None)
     monkeypatch.setattr(
         bookmark_endpoint.crud_job,
@@ -244,8 +244,7 @@ async def test_bookmark_skips_scoring_when_score_already_exists(monkeypatch: pyt
     monkeypatch.setattr(bookmark_endpoint, "MatchingService", FakeMatchingService)
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: _posting())
     monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", lambda *a, **kw: _posting())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: _saved_job())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_job_matching_score", lambda *a, **kw: _score())
 
     resp = await _post(VALID_BODY)
@@ -266,8 +265,7 @@ async def test_bookmark_succeeds_even_if_scoring_raises(monkeypatch: pytest.Monk
     monkeypatch.setattr(bookmark_endpoint, "MatchingService", BrokenMatchingService)
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: None)
     monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", lambda *a, **kw: _posting())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: None)
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_job_matching_score", lambda *a, **kw: None)
 
     resp = await _post(VALID_BODY)
@@ -286,7 +284,7 @@ async def test_get_saved_urls_returns_url_list(monkeypatch: pytest.MonkeyPatch) 
         "https://www.linkedin.com/jobs/view/111/",
         "https://www.linkedin.com/jobs/view/222/",
     ]
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "list_saved_job_urls", lambda *a, **kw: fake_urls)
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "list_saved_urls", lambda *a, **kw: fake_urls)
 
     resp = await _get("/api/v1/jobs/bookmark/saved-urls")
     assert resp.status_code == 200
@@ -296,45 +294,43 @@ async def test_get_saved_urls_returns_url_list(monkeypatch: pytest.MonkeyPatch) 
 
 @pytest.mark.asyncio
 async def test_bookmark_persists_notes_when_provided(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Notes are saved to the SavedJob when the request includes a note."""
+    """Notes are saved to the JobDescription when the request includes a note."""
     _stub_no_scoring(monkeypatch)
-    notes_calls: list[str] = []
+    update_calls: list[Any] = []
 
-    def fake_update_notes(db, saved_job_id, notes):
-        notes_calls.append(notes)
-        return _saved_job()
+    def fake_update(db, jd, updates):
+        update_calls.append(updates.notes)
+        return _jd()
 
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: _posting())
     monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", lambda *a, **kw: _posting())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: None)
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "update_saved_job_notes", fake_update_notes)
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "update", fake_update)
 
     body = {**VALID_BODY, "notes": "Referred by John"}
     resp = await _post(body)
     assert resp.status_code == 201
-    assert notes_calls == ["Referred by John"]
+    assert update_calls == ["Referred by John"]
 
 
 @pytest.mark.asyncio
 async def test_bookmark_skips_notes_when_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
-    """update_saved_job_notes is not called when no note is provided."""
+    """crud_jd.update is not called for notes when no note is provided."""
     _stub_no_scoring(monkeypatch)
-    notes_calls: list[str] = []
+    update_calls: list[Any] = []
 
     monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda *a, **kw: _posting())
     monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", lambda *a, **kw: _posting())
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_saved_job_by_raw_id", lambda *a, **kw: None)
-    monkeypatch.setattr(bookmark_endpoint.crud_job, "save_job", lambda *a, **kw: _saved_job())
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
     monkeypatch.setattr(
-        bookmark_endpoint.crud_job,
-        "update_saved_job_notes",
-        lambda *a, **kw: notes_calls.append(True) or _saved_job(),
+        bookmark_endpoint.crud_jd,
+        "update",
+        lambda *a, **kw: update_calls.append(True) or _jd(),
     )
 
     resp = await _post(VALID_BODY)
     assert resp.status_code == 201
-    assert not notes_calls, "update_saved_job_notes must not be called when notes is absent"
+    assert not update_calls, "crud_jd.update must not be called when notes is absent"
 
 
 @pytest.mark.asyncio
