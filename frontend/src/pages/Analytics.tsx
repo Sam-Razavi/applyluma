@@ -1,7 +1,8 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import AnalyticsHeader from '../components/analytics/AnalyticsHeader'
 import ChartCard from '../components/analytics/ChartCard'
 import KPICard from '../components/analytics/KPICard'
+import { lazyWithRetry } from '../lib/lazyWithRetry'
 import { analyticsApi, cvApi } from '../services/api'
 import { useAuthStore } from '../stores'
 import type {
@@ -20,18 +21,18 @@ import type {
   SkillTrend,
 } from '../types'
 
-const TrendingSkillsChart = lazy(() => import('../components/analytics/charts/TrendingSkillsChart'))
-const SalaryInsightsChart = lazy(() => import('../components/analytics/charts/SalaryInsightsChart'))
-const HiringPatternsChart = lazy(() => import('../components/analytics/charts/HiringPatternsChart'))
-const CompanyInsightsChart = lazy(() => import('../components/analytics/charts/CompanyInsightsChart'))
-const JobMarketHealthCard = lazy(() => import('../components/analytics/charts/JobMarketHealthCard'))
-const SkillDemandChart = lazy(() => import('../components/analytics/charts/SkillDemandChart'))
-const LocationTrendsChart = lazy(() => import('../components/analytics/charts/LocationTrendsChart'))
-const IndustryBreakdownChart = lazy(() => import('../components/analytics/charts/IndustryBreakdownChart'))
-const ExperienceLevelsChart = lazy(() => import('../components/analytics/charts/ExperienceLevelsChart'))
-const JobTypeMixChart = lazy(() => import('../components/analytics/charts/JobTypeMixChart'))
-const SalaryBySkillChart = lazy(() => import('../components/analytics/charts/SalaryBySkillChart'))
-const ResumeComparisonChart = lazy(() => import('../components/analytics/charts/ResumeComparisonChart'))
+const TrendingSkillsChart = lazyWithRetry(() => import('../components/analytics/charts/TrendingSkillsChart'))
+const SalaryInsightsChart = lazyWithRetry(() => import('../components/analytics/charts/SalaryInsightsChart'))
+const HiringPatternsChart = lazyWithRetry(() => import('../components/analytics/charts/HiringPatternsChart'))
+const CompanyInsightsChart = lazyWithRetry(() => import('../components/analytics/charts/CompanyInsightsChart'))
+const JobMarketHealthCard = lazyWithRetry(() => import('../components/analytics/charts/JobMarketHealthCard'))
+const SkillDemandChart = lazyWithRetry(() => import('../components/analytics/charts/SkillDemandChart'))
+const LocationTrendsChart = lazyWithRetry(() => import('../components/analytics/charts/LocationTrendsChart'))
+const IndustryBreakdownChart = lazyWithRetry(() => import('../components/analytics/charts/IndustryBreakdownChart'))
+const ExperienceLevelsChart = lazyWithRetry(() => import('../components/analytics/charts/ExperienceLevelsChart'))
+const JobTypeMixChart = lazyWithRetry(() => import('../components/analytics/charts/JobTypeMixChart'))
+const SalaryBySkillChart = lazyWithRetry(() => import('../components/analytics/charts/SalaryBySkillChart'))
+const ResumeComparisonChart = lazyWithRetry(() => import('../components/analytics/charts/ResumeComparisonChart'))
 
 type LoadKey =
   | 'marketHealth'
