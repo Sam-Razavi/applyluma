@@ -17,6 +17,12 @@ ApplyLuma is a production-deployed AI job-search platform that helps candidates 
 
 ## Product Preview
 
+### Job Discovery and AI CV Tailoring
+
+| AI-matched job discovery | AI CV tailoring workflow |
+| --- | --- |
+| ![Discover jobs with CV match scores and filters](docs/screenshots/discover-jobs.png) | ![AI CV Tailor source selection and tailoring intensity](docs/screenshots/ai-tailor.png) |
+
 ### Market Intelligence Dashboard
 
 ![ApplyLuma market intelligence dashboard](docs/screenshots/dashboard-desktop.png)
