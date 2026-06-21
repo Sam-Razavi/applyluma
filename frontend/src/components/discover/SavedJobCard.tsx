@@ -1,4 +1,5 @@
-import { MapPinIcon, PlusCircleIcon, StarIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom'
+import { BriefcaseIcon, MapPinIcon, SparklesIcon, StarIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import type { SavedJob } from '../../types/jobDiscovery'
 
@@ -7,8 +8,8 @@ interface Props {
   onClick: (jobId: string) => void
   onStar: (savedId: string, starred: boolean) => void
   onDelete: (savedId: string) => void
-  onAddToDescriptions?: (saved: SavedJob) => void
-  addingToDescriptions?: boolean
+  onAddToApplications?: (saved: SavedJob) => void
+  addingToApplications?: boolean
 }
 
 function formatSalary(min: number | null | undefined, max: number | null | undefined): string | null {
@@ -24,9 +25,10 @@ export default function SavedJobCard({
   onClick,
   onStar,
   onDelete,
-  onAddToDescriptions,
-  addingToDescriptions = false,
+  onAddToApplications,
+  addingToApplications = false,
 }: Props) {
+  const navigate = useNavigate()
   const job = saved.job
   const salary = job ? formatSalary(job.salary_min, job.salary_max) : null
 
@@ -47,28 +49,6 @@ export default function SavedJobCard({
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {onAddToDescriptions && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onAddToDescriptions(saved)
-              }}
-              disabled={addingToDescriptions}
-              className="rounded-lg p-1 text-white/30 transition-colors hover:text-primary-300 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-40"
-              aria-label="Add to job descriptions"
-              title="Add to Job Descriptions"
-            >
-              {addingToDescriptions ? (
-                <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
-                </svg>
-              ) : (
-                <PlusCircleIcon className="h-5 w-5" />
-              )}
-            </button>
-          )}
           <button
             type="button"
             onClick={(e) => {
@@ -118,6 +98,40 @@ export default function SavedJobCard({
             {saved.list_name}
           </span>
         )}
+        {job?.application_status && (
+          <span className="rounded-full bg-[rgba(52,195,143,0.14)] px-2 py-0.5 text-xs font-medium text-emerald-300">
+            {job.application_status.replace('_', ' ')}
+          </span>
+        )}
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex gap-2 border-t border-white/10 pt-2">
+        {!job?.application_status && onAddToApplications && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onAddToApplications(saved)
+            }}
+            disabled={addingToApplications}
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/[0.08] hover:text-white/90 disabled:opacity-40"
+          >
+            <BriefcaseIcon className="h-3.5 w-3.5" />
+            {addingToApplications ? 'Adding...' : 'Add to Applications'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            navigate('/ai-tailor', { state: { rawJobPostingId: saved.raw_job_posting_id } })
+          }}
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/[0.08] hover:text-white/90"
+        >
+          <SparklesIcon className="h-3.5 w-3.5" />
+          Tailor CV
+        </button>
       </div>
 
       {/* Notes */}

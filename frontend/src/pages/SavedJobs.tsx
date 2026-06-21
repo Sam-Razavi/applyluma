@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BookmarkIcon } from '@heroicons/react/24/outline'
+import { BookmarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import SavedJobCard from '../components/discover/SavedJobCard'
 import JobDetail from '../components/discover/JobDetail'
 import { fetchSavedJobs, updateSavedJob, deleteSavedJob } from '../services/jobDiscoveryApi'
+import { createApplication } from '../services/applicationsApi'
 import type { SavedJob } from '../types/jobDiscovery'
 
 export default function SavedJobs() {
   const [saved, setSaved] = useState<SavedJob[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
-  const [activeCollection, setActiveCollection] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'date' | 'alpha'>('date')
+  const [addingAppFor, setAddingAppFor] = useState<string | null>(null)
 
   useEffect(() => {
     document.title = 'Saved Jobs | ApplyLuma'
@@ -20,6 +23,27 @@ export default function SavedJobs() {
       .catch(() => toast.error('Failed to load saved jobs'))
       .finally(() => setLoading(false))
   }, [])
+
+  const displayed = useMemo(() => {
+    let result = saved
+
+    const q = search.trim().toLowerCase()
+    if (q) {
+      result = result.filter((s) =>
+        [s.job?.title ?? '', s.job?.company ?? ''].some((v) =>
+          v.toLowerCase().includes(q),
+        ),
+      )
+    }
+
+    return [...result].sort((a, b) => {
+      if (a.starred !== b.starred) return a.starred ? -1 : 1
+      if (sortBy === 'alpha') {
+        return (a.job?.title ?? '').toLowerCase().localeCompare((b.job?.title ?? '').toLowerCase())
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+  }, [saved, search, sortBy])
 
   async function handleStar(savedId: string, starred: boolean) {
     setSaved((prev) => prev.map((s) => (s.id === savedId ? { ...s, starred } : s)))
@@ -44,11 +68,51 @@ export default function SavedJobs() {
     }
   }
 
-  const collections = [...new Set(saved.map((s) => s.list_name ?? 'Saved'))]
-  const displayed =
-    activeCollection === null
-      ? saved
-      : saved.filter((s) => (s.list_name ?? 'Saved') === activeCollection)
+  async function handleAddToApplications(item: SavedJob) {
+    setAddingAppFor(item.id)
+    try {
+      const application = await createApplication({
+        raw_job_posting_id: item.raw_job_posting_id,
+        status: 'wishlist',
+      })
+      setSaved((prev) =>
+        prev.map((s) =>
+          s.id === item.id && s.job
+            ? {
+                ...s,
+                job: {
+                  ...s.job,
+                  application_id: application.id,
+                  application_status: application.status,
+                },
+              }
+            : s,
+        ),
+      )
+      toast.success('Added to applications')
+    } catch {
+      toast.error('Failed to add application')
+    } finally {
+      setAddingAppFor(null)
+    }
+  }
+
+  function handleApplicationCreated(jobId: string, applicationId: string, status: string) {
+    setSaved((prev) =>
+      prev.map((s) =>
+        s.raw_job_posting_id === jobId && s.job
+          ? {
+              ...s,
+              job: {
+                ...s.job,
+                application_id: applicationId,
+                application_status: status,
+              },
+            }
+          : s,
+      ),
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -56,7 +120,9 @@ export default function SavedJobs() {
       <div>
         <h1 className="text-2xl font-bold text-white/90">Saved Jobs</h1>
         <p className="mt-1 text-sm text-white/30">
-          {saved.length} saved {saved.length === 1 ? 'job' : 'jobs'}
+          {search.trim()
+            ? `${displayed.length} of ${saved.length} saved ${saved.length === 1 ? 'job' : 'jobs'}`
+            : `${saved.length} saved ${saved.length === 1 ? 'job' : 'jobs'}`}
         </p>
       </div>
 
@@ -84,36 +150,26 @@ export default function SavedJobs() {
         </div>
       ) : (
         <>
-          {/* Collection tabs */}
-          {collections.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              <button
-                type="button"
-                onClick={() => setActiveCollection(null)}
-                className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
-                  activeCollection === null
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
-                }`}
-              >
-                All ({saved.length})
-              </button>
-              {collections.map((col) => (
-                <button
-                  key={col}
-                  type="button"
-                  onClick={() => setActiveCollection(col)}
-                  className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
-                    activeCollection === col
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
-                  }`}
-                >
-                  {col} ({saved.filter((s) => (s.list_name ?? 'Saved') === col).length})
-                </button>
-              ))}
+          {/* Search + sort toolbar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by title or company..."
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-4 text-sm text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
             </div>
-          )}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'date' | 'alpha')}
+              className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="date">Newest saved</option>
+              <option value="alpha">A–Z by title</option>
+            </select>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             {displayed.map((s) => (
@@ -123,6 +179,8 @@ export default function SavedJobs() {
                 onClick={setSelectedJobId}
                 onStar={handleStar}
                 onDelete={handleDelete}
+                onAddToApplications={handleAddToApplications}
+                addingToApplications={addingAppFor === s.id}
               />
             ))}
           </div>
@@ -135,6 +193,7 @@ export default function SavedJobs() {
         isSaved={true}
         onClose={() => setSelectedJobId(null)}
         onSave={() => {}}
+        onApplicationCreated={handleApplicationCreated}
       />
     </div>
   )

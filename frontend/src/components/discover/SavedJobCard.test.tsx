@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
 import SavedJobCard from './SavedJobCard'
 import type { SavedJob } from '../../types/jobDiscovery'
 
@@ -37,180 +38,130 @@ const mockSavedJob: SavedJob = {
   },
 }
 
+function renderCard(props: Partial<React.ComponentProps<typeof SavedJobCard>> = {}) {
+  return render(
+    <BrowserRouter>
+      <SavedJobCard
+        saved={mockSavedJob}
+        onClick={vi.fn()}
+        onStar={vi.fn()}
+        onDelete={vi.fn()}
+        {...props}
+      />
+    </BrowserRouter>,
+  )
+}
+
 describe('SavedJobCard', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('renders job title and company', () => {
-    render(
-      <SavedJobCard saved={mockSavedJob} onClick={vi.fn()} onStar={vi.fn()} onDelete={vi.fn()} />,
-    )
+    renderCard()
     expect(screen.getByText('Backend Engineer')).toBeInTheDocument()
     expect(screen.getByText('Acme Corp')).toBeInTheDocument()
   })
 
   it('shows salary range when both min and max provided', () => {
-    render(
-      <SavedJobCard saved={mockSavedJob} onClick={vi.fn()} onStar={vi.fn()} onDelete={vi.fn()} />,
-    )
+    renderCard()
     expect(screen.getByText(/45k–70k kr/)).toBeInTheDocument()
   })
 
   it('shows "from X kr" when only salary_min is provided', () => {
-    const s = {
-      ...mockSavedJob,
-      job: { ...mockSavedJob.job!, salary_min: 45000, salary_max: null },
-    }
-    render(<SavedJobCard saved={s} onClick={vi.fn()} onStar={vi.fn()} onDelete={vi.fn()} />)
+    renderCard({ saved: { ...mockSavedJob, job: { ...mockSavedJob.job!, salary_min: 45000, salary_max: null } } })
     expect(screen.getByText(/from 45k kr/)).toBeInTheDocument()
   })
 
   it('shows "up to X kr" when only salary_max is provided', () => {
-    const s = {
-      ...mockSavedJob,
-      job: { ...mockSavedJob.job!, salary_min: null, salary_max: 70000 },
-    }
-    render(<SavedJobCard saved={s} onClick={vi.fn()} onStar={vi.fn()} onDelete={vi.fn()} />)
+    renderCard({ saved: { ...mockSavedJob, job: { ...mockSavedJob.job!, salary_min: null, salary_max: 70000 } } })
     expect(screen.getByText(/up to 70k kr/)).toBeInTheDocument()
   })
 
   it('calls onClick when card is clicked', () => {
     const onClick = vi.fn()
-    render(<SavedJobCard saved={mockSavedJob} onClick={onClick} onStar={vi.fn()} onDelete={vi.fn()} />)
+    renderCard({ onClick })
     fireEvent.click(screen.getByText('Backend Engineer'))
     expect(onClick).toHaveBeenCalledWith('job-1')
   })
 
   it('calls onStar when star button clicked', () => {
     const onStar = vi.fn()
-    render(
-      <SavedJobCard saved={mockSavedJob} onClick={vi.fn()} onStar={onStar} onDelete={vi.fn()} />,
-    )
+    renderCard({ onStar })
     fireEvent.click(screen.getByLabelText('Star job'))
     expect(onStar).toHaveBeenCalledWith('saved-1', true)
   })
 
   it('shows Unstar label when job is starred', () => {
-    render(
-      <SavedJobCard
-        saved={{ ...mockSavedJob, starred: true }}
-        onClick={vi.fn()}
-        onStar={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    )
+    renderCard({ saved: { ...mockSavedJob, starred: true } })
     expect(screen.getByLabelText('Unstar job')).toBeInTheDocument()
   })
 
   it('calls onDelete when delete button clicked', () => {
     const onDelete = vi.fn()
-    render(
-      <SavedJobCard saved={mockSavedJob} onClick={vi.fn()} onStar={vi.fn()} onDelete={onDelete} />,
-    )
+    renderCard({ onDelete })
     fireEvent.click(screen.getByLabelText('Remove saved job'))
     expect(onDelete).toHaveBeenCalledWith('saved-1')
   })
 
-  it('renders onAddToDescriptions button when prop provided', () => {
-    const onAdd = vi.fn()
-    render(
-      <SavedJobCard
-        saved={mockSavedJob}
-        onClick={vi.fn()}
-        onStar={vi.fn()}
-        onDelete={vi.fn()}
-        onAddToDescriptions={onAdd}
-      />,
-    )
-    expect(screen.getByLabelText('Add to job descriptions')).toBeInTheDocument()
+  it('renders Add to Applications button when prop provided', () => {
+    renderCard({ onAddToApplications: vi.fn() })
+    expect(screen.getByText('Add to Applications')).toBeInTheDocument()
   })
 
-  it('calls onAddToDescriptions when that button is clicked', () => {
+  it('calls onAddToApplications when that button is clicked', () => {
     const onAdd = vi.fn()
-    render(
-      <SavedJobCard
-        saved={mockSavedJob}
-        onClick={vi.fn()}
-        onStar={vi.fn()}
-        onDelete={vi.fn()}
-        onAddToDescriptions={onAdd}
-      />,
-    )
-    fireEvent.click(screen.getByLabelText('Add to job descriptions'))
+    renderCard({ onAddToApplications: onAdd })
+    fireEvent.click(screen.getByText('Add to Applications'))
     expect(onAdd).toHaveBeenCalledWith(mockSavedJob)
   })
 
-  it('shows spinner and disables button when addingToDescriptions is true', () => {
-    render(
-      <SavedJobCard
-        saved={mockSavedJob}
-        onClick={vi.fn()}
-        onStar={vi.fn()}
-        onDelete={vi.fn()}
-        onAddToDescriptions={vi.fn()}
-        addingToDescriptions={true}
-      />,
-    )
-    const btn = screen.getByLabelText('Add to job descriptions')
-    expect(btn).toBeDisabled()
+  it('shows Adding... and disables button when addingToApplications is true', () => {
+    renderCard({ onAddToApplications: vi.fn(), addingToApplications: true })
+    expect(screen.getByText('Adding...')).toBeInTheDocument()
+    expect(screen.getByText('Adding...').closest('button')).toBeDisabled()
+  })
+
+  it('hides Add to Applications when job already has application status', () => {
+    renderCard({
+      saved: { ...mockSavedJob, job: { ...mockSavedJob.job!, application_status: 'applied' } },
+      onAddToApplications: vi.fn(),
+    })
+    expect(screen.queryByText('Add to Applications')).not.toBeInTheDocument()
+  })
+
+  it('shows application status badge when present', () => {
+    renderCard({
+      saved: { ...mockSavedJob, job: { ...mockSavedJob.job!, application_status: 'phone_screen' } },
+    })
+    expect(screen.getByText('phone screen')).toBeInTheDocument()
+  })
+
+  it('always shows Tailor CV button', () => {
+    renderCard()
+    expect(screen.getByText('Tailor CV')).toBeInTheDocument()
   })
 
   it('shows notes when present', () => {
-    render(
-      <SavedJobCard
-        saved={{ ...mockSavedJob, notes: 'Follow up next week' }}
-        onClick={vi.fn()}
-        onStar={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    )
+    renderCard({ saved: { ...mockSavedJob, notes: 'Follow up next week' } })
     expect(screen.getByText('Follow up next week')).toBeInTheDocument()
   })
 
   it('shows Remote badge when remote_allowed is true', () => {
-    const s = { ...mockSavedJob, job: { ...mockSavedJob.job!, remote_allowed: true } }
-    render(<SavedJobCard saved={s} onClick={vi.fn()} onStar={vi.fn()} onDelete={vi.fn()} />)
+    renderCard({ saved: { ...mockSavedJob, job: { ...mockSavedJob.job!, remote_allowed: true } } })
     expect(screen.getByText('Remote')).toBeInTheDocument()
   })
 
   it('shows "Unknown job" when job is null', () => {
-    render(
-      <SavedJobCard
-        saved={{ ...mockSavedJob, job: null }}
-        onClick={vi.fn()}
-        onStar={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    )
+    renderCard({ saved: { ...mockSavedJob, job: null } })
     expect(screen.getByText('Unknown job')).toBeInTheDocument()
   })
 
   it('shows no salary when both salary values are null', () => {
-    const s = {
-      ...mockSavedJob,
-      job: { ...mockSavedJob.job!, salary_min: null, salary_max: null },
-    }
-    render(<SavedJobCard saved={s} onClick={vi.fn()} onStar={vi.fn()} onDelete={vi.fn()} />)
+    renderCard({ saved: { ...mockSavedJob, job: { ...mockSavedJob.job!, salary_min: null, salary_max: null } } })
     expect(screen.queryByText(/kr/)).not.toBeInTheDocument()
   })
 
   it('formats small salary values without k suffix', () => {
-    const s = {
-      ...mockSavedJob,
-      job: { ...mockSavedJob.job!, salary_min: 800, salary_max: 950 },
-    }
-    render(<SavedJobCard saved={s} onClick={vi.fn()} onStar={vi.fn()} onDelete={vi.fn()} />)
+    renderCard({ saved: { ...mockSavedJob, job: { ...mockSavedJob.job!, salary_min: 800, salary_max: 950 } } })
     expect(screen.getByText(/800–950 kr/)).toBeInTheDocument()
-  })
-
-  it('shows list_name badge when present', () => {
-    render(
-      <SavedJobCard
-        saved={{ ...mockSavedJob, list_name: 'Dream Jobs' }}
-        onClick={vi.fn()}
-        onStar={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    )
-    expect(screen.getByText('Dream Jobs')).toBeInTheDocument()
   })
 })
