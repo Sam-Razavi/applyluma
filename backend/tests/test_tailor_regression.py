@@ -550,16 +550,20 @@ class TestSwedishStopHeadings:
 
 
 class TestContactExtractionSafeguards:
-    def test_cid_artifacts_return_empty(self) -> None:
+    def test_cid_artifacts_stripped_before_extraction(self) -> None:
         cv_text = (
-            "(cid:42)(cid:81)(cid:74)(cid:76)(cid:79)(cid:72)\n"
+            "Sam Developer\n"
             "sam@example.com\n"
-            "+46 70 123 4567\n"
-            "(cid:54)(cid:88)(cid:80)(cid:80)(cid:68)(cid:85)(cid:92)\n"
-            "Some summary text here."
+            "+46 70 123 4567\n\n"
+            "(cid:127) Built REST APIs using FastAPI\n"
+            "(cid:127) Developed React components"
         )
         contact = _extract_contact_information(cv_text)
-        assert contact == ""
+        assert "Sam Developer" in contact
+        assert "sam@example.com" in contact
+        assert "+46 70 123 4567" in contact
+        assert "(cid:" not in contact
+        assert "Built REST APIs" not in contact
 
     def test_max_lines_prevents_over_extraction(self) -> None:
         lines = ["Sam Developer", "sam@example.com", "+46 70 123 4567"]
