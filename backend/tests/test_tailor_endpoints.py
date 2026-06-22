@@ -290,6 +290,11 @@ async def test_save_accepts_section_selection(
             tailor_job_id=None,
         )
 
+    monkeypatch.setattr(
+        tailor_endpoint.crud_cv,
+        "get_by_id",
+        lambda db, cv_id, user_id: SimpleNamespace(content="Source CV content\nsource@example.com"),
+    )
     monkeypatch.setattr(tailor_endpoint.crud_cv, "create", create_cv)
     monkeypatch.setattr(
         tailor_endpoint.crud_tailor,
