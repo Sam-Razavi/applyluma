@@ -8,6 +8,7 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { authApi } from '../services/api'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
+import GoogleLoginButton from '../components/auth/GoogleLoginButton'
 
 const schema = z
   .object({
@@ -207,6 +208,17 @@ export default function Register() {
               {isSubmitting ? 'Creating account…' : 'Create account'}
             </button>
           </form>
+
+          <div className="mt-6">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-line" />
+              <span className="text-xs text-fg-subtle">Or continue with</span>
+              <div className="h-px flex-1 bg-line" />
+            </div>
+            <div className="mt-4">
+              <GoogleLoginButton />
+            </div>
+          </div>
 
           <p className="mt-6 text-center text-sm text-fg-subtle">
             Already have an account?{' '}
