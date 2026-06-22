@@ -57,12 +57,12 @@ export default function ResumeComparisonChart({ data }: Props) {
       <div className="h-48 w-full md:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={chartData}>
-          <PolarGrid stroke="rgba(255,255,255,0.10)" />
+          <PolarGrid stroke="var(--track)" />
           <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12 }} />
           <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 11 }} />
           <Radar name="Market Demand" dataKey="marketDemand" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} />
           <Radar name="Your Resume" dataKey="yourResume" stroke="#10b981" fill="#10b981" fillOpacity={0.3} strokeWidth={2} />
-          <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'rgba(255,255,255,0.55)' }} iconType="circle" />
+          <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'var(--text-2)' }} iconType="circle" />
           <Tooltip
             formatter={(value) => [`${value}%`, '']}
             contentStyle={CHART_TOOLTIP_STYLE}
