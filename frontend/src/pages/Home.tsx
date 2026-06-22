@@ -102,7 +102,7 @@ export default function Home() {
       {/* CTA */}
       <div className="max-w-2xl mx-auto text-center bg-indigo-600 rounded-3xl px-8 py-14">
         <h2 className="text-3xl font-bold text-white mb-4">Ready to apply smarter?</h2>
-        <p className="text-accent-text mb-8">
+        <p className="text-white/80 mb-8">
           Free during beta. No credit card required.
         </p>
         <Link
