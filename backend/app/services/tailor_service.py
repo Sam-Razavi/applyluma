@@ -70,8 +70,13 @@ CORE RULES — NON-NEGOTIABLE
 - Active verbs, quantified bullets, and measurable impact wherever the source CV supports it.
 - NEVER fabricate numbers, companies, titles, dates, credentials, employers, technologies,
   or courses.
-- Mirror terminology from the job description, but only where it is truthfully supported by
-  the candidate's experience.
+- NEVER ADD any skill, technology, tool, programming language, framework, library, platform,
+  or certification that does not EXPLICITLY appear in the source CV. If the job description
+  asks for a technology the candidate did not list (e.g. Java, Azure DevOps), do NOT add it
+  to the Skills section or anywhere else. Omission is correct; fabrication is disqualifying.
+- Mirror terminology from the job description, but ONLY for skills and experience that already
+  exist verbatim in the source CV. You may use synonyms (e.g. "JS" → "JavaScript") but never
+  introduce an entirely new technology.
 - Use standard, ATS-recognised section headings (e.g. "Summary", "Skills", "Experience",
   "Projects", "Education", "Certifications"). Never use creative headings like "My Journey"
   or "The Toolkit".
@@ -106,6 +111,12 @@ CAREER-LEVEL SECTION ORDERING
 CONTENT-PRESERVATION RULES
 - For junior CVs, the Projects section is REQUIRED and must appear in the order above.
   Never remove it.
+- ALL projects from the source CV must appear in the tailored output. You may reword
+  descriptions but NEVER drop a project entirely. The tailored output must have the same
+  number of projects as the source CV.
+- ALL education entries from the source CV must appear in the tailored output. Preserve
+  thesis titles, dates, credits, and any detail present in the source. Never strip or
+  summarise education entries into fewer entries than the source.
 - Never remove projects or experience that demonstrate the job's core required skills,
   even to save space — compress them instead. Always preserve the 2–3 most role-relevant
   projects.
@@ -155,8 +166,11 @@ OUTPUT REQUIREMENTS
 - The first section MUST be contact_information, with original and tailored values identical
   unless the source CV has no contact details.
 - Include each section's original text verbatim in the "original" field. The "original" field
-  is for diffing and preview ONLY and MUST NOT be rendered into the final PDF. The rendered
-  PDF is built EXCLUSIVELY from "tailored" values. Never render both.
+  is for diffing and preview ONLY and MUST NOT be rendered into the final PDF.
+- The "tailored" field must contain ONLY the rewritten replacement text for that section.
+  It must NOT contain the original text followed by the tailored text. It must NOT
+  duplicate or repeat the original content. The rendered PDF is built EXCLUSIVELY from
+  "tailored" values — if you concatenate original+tailored, the PDF will contain duplicates.
 - Include a tailored rewrite for each accepted section in "tailored".
 - Include "changes" as the "Changes made" explanation: what changed and why.
 - If a section should be removed for the target role, return an empty "tailored" value and
@@ -264,6 +278,114 @@ def _preserve_contact_section(result: dict, cv_content: str) -> dict:
     return result
 
 
+_SKILL_SECTION_TERMS = {"skills", "technical skills", "technologies", "tech stack", "tools"}
+
+_KNOWN_TECH_RE = re.compile(
+    r"\b("
+    r"[A-Z][A-Za-z0-9#+.]*(?:\s*[A-Z][A-Za-z0-9#+.]*){0,2}"
+    r"|[a-z][a-z0-9]*(?:[._-][a-z][a-z0-9]*)*"
+    r")\b"
+)
+
+_NON_TECH_WORDS = frozenset({
+    "and", "or", "the", "for", "with", "using", "such", "like", "other",
+    "strong", "good", "excellent", "proficient", "experienced", "knowledge",
+    "skills", "technical", "technologies", "tools", "frameworks", "libraries",
+    "platforms", "languages", "databases", "devops", "cloud", "testing",
+    "familiar", "advanced", "basic", "intermediate", "understanding",
+    "development", "engineering", "software", "web", "mobile", "backend",
+    "frontend", "fullstack", "full", "stack", "data", "machine", "learning",
+    "deep", "artificial", "intelligence", "systems", "design", "architecture",
+    "agile", "scrum", "kanban", "methodology", "methodologies", "version",
+    "control", "management", "project", "team", "communication",
+})
+
+
+def _extract_skills_from_text(text: str) -> set[str]:
+    tokens = set()
+    for line in text.splitlines():
+        for part in re.split(r"[,;|•·–—/]", line):
+            part = part.strip().strip("-").strip()
+            if not part or len(part) < 2 or len(part) > 40:
+                continue
+            normalized = part.lower()
+            if normalized not in _NON_TECH_WORDS:
+                tokens.add(normalized)
+    return tokens
+
+
+def _skill_present_in_source(skill: str, source_lower: str) -> bool:
+    pattern = re.compile(r"(?<![a-z])" + re.escape(skill) + r"(?![a-z])", re.IGNORECASE)
+    return bool(pattern.search(source_lower))
+
+
+def _validate_no_fabricated_skills(result: dict, cv_content: str) -> list[str]:
+    source_lower = cv_content.lower()
+
+    tailored_skills: set[str] = set()
+    for section in result.get("sections", []):
+        section_name = (section.get("section_name") or "").lower()
+        if any(term in section_name for term in _SKILL_SECTION_TERMS):
+            tailored_text = section.get("tailored") or ""
+            tailored_skills = _extract_skills_from_text(tailored_text)
+
+    fabricated = []
+    for skill in tailored_skills:
+        if not _skill_present_in_source(skill, source_lower):
+            fabricated.append(skill)
+    return fabricated
+
+
+def _remove_fabricated_skills(result: dict, cv_content: str) -> list[str]:
+    fabricated = _validate_no_fabricated_skills(result, cv_content)
+    if not fabricated:
+        return []
+
+    for section in result.get("sections", []):
+        section_name = (section.get("section_name") or "").lower()
+        if not any(term in section_name for term in _SKILL_SECTION_TERMS):
+            continue
+        tailored = section.get("tailored") or ""
+        for skill in fabricated:
+            pattern = re.compile(
+                r",?\s*(?<![a-z])" + re.escape(skill) + r"(?![a-z])\s*,?",
+                re.IGNORECASE,
+            )
+            lines = tailored.splitlines()
+            cleaned_lines = []
+            for line in lines:
+                cleaned = pattern.sub(",", line)
+                cleaned = re.sub(r",\s*,", ",", cleaned)
+                cleaned = re.sub(r"^\s*,\s*", "", cleaned)
+                cleaned = re.sub(r"\s*,\s*$", "", cleaned)
+                cleaned = cleaned.strip()
+                if cleaned and cleaned not in (",", "-", "•", "|"):
+                    cleaned_lines.append(cleaned)
+            section["tailored"] = "\n".join(cleaned_lines)
+            tailored = section["tailored"]
+            changes = section.get("changes")
+            if isinstance(changes, list):
+                changes.append(f"Removed fabricated skill: {skill}")
+
+    return fabricated
+
+
+def _strip_concatenated_originals(result: dict) -> None:
+    """Remove duplicated original content from tailored fields.
+
+    Some LLM responses concatenate original + tailored text in the tailored
+    field.  When the tailored text starts with the original, strip the
+    original prefix so the PDF contains only the rewrite.
+    """
+    for section in result.get("sections", []):
+        original = (section.get("original") or "").strip()
+        tailored = (section.get("tailored") or "").strip()
+        if not original or not tailored:
+            continue
+        if len(original) > 20 and tailored.startswith(original):
+            section["tailored"] = tailored[len(original):].strip()
+
+
 def tailor_cv(
     cv_content: str,
     jd_description: str,
@@ -312,4 +434,6 @@ def tailor_cv(
     except json.JSONDecodeError as exc:
         raise ValueError(f"OpenAI returned non-JSON: {exc}") from exc
     result["language"] = result.get("language") or detected_language
+    _strip_concatenated_originals(result)
+    _remove_fabricated_skills(result, cv_content)
     return _preserve_contact_section(result, cv_content)
