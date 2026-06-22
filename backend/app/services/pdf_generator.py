@@ -49,7 +49,7 @@ def _is_contact_section(section_name: str) -> bool:
 
 def _render_contact_block(content: str, styles: dict) -> list:
     story: list = []
-    lines = [l.strip() for l in content.splitlines() if l.strip()]
+    lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
     if not lines:
         return story
 
