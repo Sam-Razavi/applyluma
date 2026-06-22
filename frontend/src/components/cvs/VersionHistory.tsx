@@ -46,18 +46,18 @@ export default function VersionHistory({ cv, open, onClose, onViewDiff }: Props)
     <Dialog open={open} onClose={onClose} className="relative z-40">
       <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
       <div className="fixed inset-y-0 right-0 flex w-full justify-end sm:w-auto">
-        <DialogPanel className="h-full w-full max-w-xl overflow-y-auto bg-[#0C1218] shadow-2xl">
-          <div className="sticky top-0 z-10 flex items-start justify-between border-b border-white/10 bg-[#0C1218] px-6 py-5">
+        <DialogPanel className="h-full w-full max-w-xl overflow-y-auto bg-raised shadow-2xl">
+          <div className="sticky top-0 z-10 flex items-start justify-between border-b border-line bg-raised px-6 py-5">
             <div className="min-w-0">
-              <DialogTitle className="text-base font-semibold text-white/90">
+              <DialogTitle className="text-base font-semibold text-fg">
                 Version History
               </DialogTitle>
-              <p className="mt-1 truncate text-sm text-white/30">{cv?.title}</p>
+              <p className="mt-1 truncate text-sm text-fg-subtle">{cv?.title}</p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white/55"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-subtle transition hover:bg-surface-strong hover:text-fg-muted"
               aria-label="Close version history"
             >
               <XMarkIcon className="h-4 w-4" />
@@ -66,13 +66,13 @@ export default function VersionHistory({ cv, open, onClose, onViewDiff }: Props)
 
           <div className="space-y-4 p-6">
             {loading && (
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/30">
+              <div className="rounded-xl border border-line bg-surface p-4 text-sm text-fg-subtle">
                 Loading version tree...
               </div>
             )}
 
             {error && (
-              <div className="rounded-xl border border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] p-4 text-sm text-red-300">
+              <div className="rounded-xl border border-chip-danger bg-chip-danger p-4 text-sm text-chip-danger-fg">
                 {error}
               </div>
             )}
@@ -84,12 +84,12 @@ export default function VersionHistory({ cv, open, onClose, onViewDiff }: Props)
             )}
 
             {!loading && !error && !tree && (
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/30">
+              <div className="rounded-xl border border-line bg-surface p-4 text-sm text-fg-subtle">
                 No version history found.
               </div>
             )}
 
-            <p className="text-xs text-white/30">
+            <p className="text-xs text-fg-subtle">
               Tailored versions can be opened to review section-level changes.
             </p>
           </div>

@@ -44,21 +44,21 @@ export default function KanbanColumn({
   return (
     <section
       ref={setNodeRef}
-      className={`flex h-auto min-h-[18rem] w-72 flex-shrink-0 flex-col rounded-2xl border border-white/10 bg-white/[0.03] transition md:h-[calc(100vh-17rem)] md:min-h-[28rem] ${
+      className={`flex h-auto min-h-[18rem] w-72 flex-shrink-0 flex-col rounded-2xl border border-line bg-surface transition md:h-[calc(100vh-17rem)] md:min-h-[28rem] ${
         isOver ? 'border-brand-300 bg-primary-900/20' : ''
       }`}
     >
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-line px-4 py-3">
         <div className="flex items-center gap-2">
           <span className={`h-2.5 w-2.5 rounded-full ${colorClass}`} />
-          <h2 className="text-sm font-semibold text-white/90">{label}</h2>
+          <h2 className="text-sm font-semibold text-fg">{label}</h2>
         </div>
         <div className="flex items-center gap-1.5">
           {!isSelectMode && (
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="rounded-md border border-white/10 bg-white/[0.04] py-0.5 pl-1.5 pr-5 text-xs text-white/45 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="rounded-md border border-line bg-surface py-0.5 pl-1.5 pr-5 text-xs text-fg-muted shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-400"
               aria-label="Sort column"
             >
               <option value="default">Default</option>
@@ -68,7 +68,7 @@ export default function KanbanColumn({
               <option value="company">Company A–Z</option>
             </select>
           )}
-          <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-xs font-semibold text-white/45 shadow-sm">
+          <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-fg-muted shadow-sm">
             {applications.length}
           </span>
         </div>
@@ -77,7 +77,7 @@ export default function KanbanColumn({
       <SortableContext items={sorted.map((application) => application.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 space-y-3 overflow-y-auto p-3">
           {sorted.length === 0 ? (
-            <div className="flex h-28 items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 text-center text-xs text-white/45">
+            <div className="flex h-28 items-center justify-center rounded-xl border border-dashed border-line-strong bg-surface px-4 text-center text-xs text-fg-muted">
               Drop applications here
             </div>
           ) : (

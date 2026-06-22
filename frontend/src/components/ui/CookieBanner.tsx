@@ -10,12 +10,12 @@ export function CookieBanner({ consent, onAccept, onDecline }: Props) {
   if (consent !== null) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-white/[0.04] shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-surface shadow-lg">
       <div className="mx-auto flex max-w-7xl flex-col items-start gap-4 px-4 py-4 sm:flex-row sm:items-center">
-        <p className="flex-1 text-sm text-white/55">
+        <p className="flex-1 text-sm text-fg-muted">
           We use optional analytics cookies (PostHog, Vercel) to understand how the app is
           used and improve it.{' '}
-          <a href="/privacy" className="text-cyan-300 hover:underline">
+          <a href="/privacy" className="text-accent-text hover:underline">
             Learn more
           </a>
           .
@@ -23,7 +23,7 @@ export function CookieBanner({ consent, onAccept, onDecline }: Props) {
         <div className="flex shrink-0 gap-3">
           <button
             onClick={onDecline}
-            className="rounded-lg bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.08]"
+            className="rounded-lg bg-surface px-4 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong"
           >
             Decline optional
           </button>

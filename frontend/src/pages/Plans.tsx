@@ -48,8 +48,8 @@ export default function Plans() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white/90">Plans</h1>
-        <p className="mt-1 text-sm text-white/30">
+        <h1 className="text-2xl font-bold text-fg">Plans</h1>
+        <p className="mt-1 text-sm text-fg-subtle">
           Choose the plan that fits your job search workflow.
         </p>
       </div>
@@ -76,8 +76,8 @@ export default function Plans() {
       </div>
 
       {isPremium && (
-        <div className="rounded-2xl border border-[rgba(52,195,143,0.22)] bg-[rgba(52,195,143,0.14)] px-5 py-4">
-          <p className="text-sm font-medium text-emerald-300">
+        <div className="rounded-2xl border border-chip-success bg-chip-success px-5 py-4">
+          <p className="text-sm font-medium text-chip-success-fg">
             Your account is currently on {user?.role === 'admin' ? 'admin' : 'premium'} access.
           </p>
         </div>

@@ -13,14 +13,23 @@ function applyClass(dark: boolean) {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      dark: false,
+      dark: true,
       toggle: () => {
         const next = !get().dark
         applyClass(next)
         set({ dark: next })
       },
     }),
-    { name: 'theme' },
+    {
+      name: 'theme',
+      version: 1,
+      // Light mode did not exist before v1, so any value persisted earlier
+      // was never a real choice. Force those users to dark; light is opt-in.
+      migrate: (persisted, version) => {
+        if (version < 1) return { dark: true } as ThemeState
+        return persisted as ThemeState
+      },
+    },
   ),
 )
 

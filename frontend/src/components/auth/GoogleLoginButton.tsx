@@ -9,7 +9,7 @@ export default function GoogleLoginButton() {
     <button
       type="button"
       onClick={handleClick}
-      className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-white/15 rounded-lg text-sm font-medium text-white/90 hover:bg-white/[0.06] transition-colors"
+      className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-line-strong rounded-lg text-sm font-medium text-fg hover:bg-surface-strong transition-colors"
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
         <path

@@ -23,7 +23,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const inputClass =
-  'w-full rounded-lg border border-white/15 px-3 py-2.5 text-sm placeholder-white/30 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition'
+  'w-full rounded-lg border border-line-strong px-3 py-2.5 text-sm placeholder-fg-subtle shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition'
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
@@ -76,8 +76,8 @@ export default function Contact() {
     <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       {/* Page header */}
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white/90">Contact us</h1>
-        <p className="mt-3 text-lg text-white/30">
+        <h1 className="text-4xl font-bold tracking-tight text-fg">Contact us</h1>
+        <p className="mt-3 text-lg text-fg-subtle">
           Have a question or feedback? We'd love to hear from you.
         </p>
       </div>
@@ -86,15 +86,15 @@ export default function Contact() {
         {/* ── Left: form ── */}
         <div className="lg:col-span-3">
           {submitted ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-[rgba(52,195,143,0.22)] bg-[rgba(52,195,143,0.14)] px-8 py-16 text-center">
-              <CheckCircleIcon className="h-14 w-14 text-green-500" />
-              <h2 className="mt-4 text-xl font-semibold text-white/90">Message sent!</h2>
-              <p className="mt-2 text-white/30">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-chip-success bg-chip-success px-8 py-16 text-center">
+              <CheckCircleIcon className="h-14 w-14 text-chip-success-fg" />
+              <h2 className="mt-4 text-xl font-semibold text-fg">Message sent!</h2>
+              <p className="mt-2 text-fg-subtle">
                 We'll be in touch within 24 hours.
               </p>
               <button
                 onClick={handleSendAnother}
-                className="mt-6 text-sm font-medium text-primary-400 hover:text-primary-800 transition-colors"
+                className="mt-6 text-sm font-medium text-accent-text hover:text-primary-800 transition-colors"
               >
                 Send another message →
               </button>
@@ -102,17 +102,17 @@ export default function Contact() {
           ) : (
             <form
               onSubmit={handleSubmit(onSubmit)}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-sm "
+              className="rounded-2xl border border-line bg-surface p-8 shadow-sm "
             >
-              <h2 className="mb-6 text-lg font-semibold text-white/90 ">
+              <h2 className="mb-6 text-lg font-semibold text-fg ">
                 Get in touch
               </h2>
 
               {/* Name + Email row */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-white/55 ">
-                    Name <span className="text-red-500">*</span>
+                  <label className="mb-1.5 block text-sm font-medium text-fg-muted ">
+                    Name <span className="text-chip-danger-fg">*</span>
                   </label>
                   <input
                     {...register('name')}
@@ -120,13 +120,13 @@ export default function Contact() {
                     className={inputClass}
                   />
                   {errors.name && (
-                    <p className="mt-1 text-xs text-red-300">{errors.name.message}</p>
+                    <p className="mt-1 text-xs text-chip-danger-fg">{errors.name.message}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-white/55 ">
-                    Email <span className="text-red-500">*</span>
+                  <label className="mb-1.5 block text-sm font-medium text-fg-muted ">
+                    Email <span className="text-chip-danger-fg">*</span>
                   </label>
                   <input
                     {...register('email')}
@@ -135,14 +135,14 @@ export default function Contact() {
                     className={inputClass}
                   />
                   {errors.email && (
-                    <p className="mt-1 text-xs text-red-300">{errors.email.message}</p>
+                    <p className="mt-1 text-xs text-chip-danger-fg">{errors.email.message}</p>
                   )}
                 </div>
               </div>
 
               {/* Subject */}
               <div className="mt-4">
-                <label className="mb-1.5 block text-sm font-medium text-white/55 ">
+                <label className="mb-1.5 block text-sm font-medium text-fg-muted ">
                   Subject
                 </label>
                 <input
@@ -154,8 +154,8 @@ export default function Contact() {
 
               {/* Message */}
               <div className="mt-4">
-                <label className="mb-1.5 block text-sm font-medium text-white/55 ">
-                  Message <span className="text-red-500">*</span>
+                <label className="mb-1.5 block text-sm font-medium text-fg-muted ">
+                  Message <span className="text-chip-danger-fg">*</span>
                 </label>
                 <textarea
                   {...register('message')}
@@ -164,7 +164,7 @@ export default function Contact() {
                   className={`${inputClass} resize-none`}
                 />
                 {errors.message && (
-                  <p className="mt-1 text-xs text-red-300">{errors.message.message}</p>
+                  <p className="mt-1 text-xs text-chip-danger-fg">{errors.message.message}</p>
                 )}
               </div>
 
@@ -205,27 +205,27 @@ export default function Contact() {
 
         {/* ── Right: info panel ── */}
         <aside className="lg:col-span-2">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-sm ">
+          <div className="rounded-2xl border border-line bg-surface p-8 shadow-sm ">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100">
-              <EnvelopeIcon className="h-6 w-6 text-primary-400" />
+              <EnvelopeIcon className="h-6 w-6 text-accent-text" />
             </div>
 
-            <h3 className="mt-4 text-base font-semibold text-white/90 ">
+            <h3 className="mt-4 text-base font-semibold text-fg ">
               We're here to help
             </h3>
-            <p className="mt-2 text-sm text-white/30 ">
+            <p className="mt-2 text-sm text-fg-subtle ">
               Whether it's a question about pricing, a feature request, or just feedback — send us a
               message and we'll get back to you.
             </p>
 
-            <div className="mt-6 space-y-4 border-t border-white/10 pt-6 ">
+            <div className="mt-6 space-y-4 border-t border-line pt-6 ">
               <div className="flex items-start gap-3">
-                <EnvelopeIcon className="mt-0.5 h-5 w-5 shrink-0 text-white/30" />
+                <EnvelopeIcon className="mt-0.5 h-5 w-5 shrink-0 text-fg-subtle" />
                 <div>
-                  <p className="text-xs font-medium text-white/30 ">Email us at</p>
+                  <p className="text-xs font-medium text-fg-subtle ">Email us at</p>
                   <a
                     href="mailto:sam@samincodes.com"
-                    className="text-sm font-medium text-primary-400 hover:text-primary-800 transition-colors"
+                    className="text-sm font-medium text-accent-text hover:text-primary-800 transition-colors"
                   >
                     sam@samincodes.com
                   </a>
@@ -233,18 +233,18 @@ export default function Contact() {
               </div>
 
               <div className="flex items-start gap-3">
-                <svg className="mt-0.5 h-5 w-5 shrink-0 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="mt-0.5 h-5 w-5 shrink-0 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="text-xs font-medium text-white/30 ">Response time</p>
-                  <p className="text-sm text-white/55 ">Within 24 hours</p>
+                  <p className="text-xs font-medium text-fg-subtle ">Response time</p>
+                  <p className="text-sm text-fg-muted ">Within 24 hours</p>
                 </div>
               </div>
             </div>
 
             <div className="mt-6 rounded-xl bg-primary-900/20 p-4 ">
-              <p className="text-xs text-primary-400 ">
+              <p className="text-xs text-accent-text ">
                 Looking for help with the app? Check the{' '}
                 <Link to="/dashboard" className="font-semibold underline underline-offset-2">
                   dashboard

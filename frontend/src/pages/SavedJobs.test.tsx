@@ -119,7 +119,7 @@ describe('Jobs page (unified My Jobs)', () => {
     await waitFor(() => expect(screen.getByText('Senior Python Developer')).toBeInTheDocument())
 
     const deleteButtons = screen.getAllByRole('button').filter((btn) =>
-      btn.querySelector('.h-4.w-4') && btn.className.includes('hover:text-red-300'),
+      btn.querySelector('.h-4.w-4') && btn.className.includes('hover:text-chip-danger-fg'),
     )
     fireEvent.click(deleteButtons[0])
 

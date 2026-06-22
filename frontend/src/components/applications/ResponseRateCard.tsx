@@ -25,9 +25,9 @@ export default function ResponseRateCard({
         format="percentage"
         icon="briefcase"
       />
-      <div className="md:col-span-2 rounded-lg border border-white/10 bg-white/[0.04] p-4 text-sm text-white/45 shadow-sm">
+      <div className="md:col-span-2 rounded-lg border border-line bg-surface p-4 text-sm text-fg-muted shadow-sm">
         Average response time:{' '}
-        <span className="font-semibold text-white/90">
+        <span className="font-semibold text-fg">
           {averageResponseDays == null ? 'n/a' : `${averageResponseDays.toFixed(1)} days`}
         </span>
       </div>

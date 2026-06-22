@@ -22,10 +22,10 @@ interface Props {
   onToggleSelect?: (id: string) => void
 }
 
-const BADGE_ACTIVE = 'bg-[rgba(8,145,178,0.15)] text-cyan-300 border border-[rgba(8,145,178,0.28)]'
-const BADGE_SUCCESS = 'bg-[rgba(52,195,143,0.14)] text-emerald-300 border border-[rgba(52,195,143,0.22)]'
-const BADGE_ERROR = 'bg-[rgba(229,72,77,0.12)] text-red-300 border border-[rgba(229,72,77,0.18)]'
-const BADGE_NEUTRAL = 'bg-white/[0.06] text-white/55 border border-white/10'
+const BADGE_ACTIVE = 'bg-chip-accent text-accent-text border border-accent-muted'
+const BADGE_SUCCESS = 'bg-chip-success text-chip-success-fg border border-chip-success'
+const BADGE_ERROR = 'bg-chip-danger text-chip-danger-fg border border-chip-danger'
+const BADGE_NEUTRAL = 'bg-surface text-fg-muted border border-line'
 
 const STATUS_BADGE: Record<ApplicationStatus, string> = {
   wishlist: BADGE_NEUTRAL,
@@ -112,7 +112,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
     deadlineDays !== null && deadlineDays < 0 ? 'Deadline passed' :
     `Deadline in ${deadlineDays} days`
   const deadlineClass =
-    deadlineDays !== null && deadlineDays <= 1 ? 'bg-[rgba(229,72,77,0.12)] text-red-300' : 'bg-[rgba(245,158,11,0.14)] text-amber-300'
+    deadlineDays !== null && deadlineDays <= 1 ? 'bg-chip-danger text-chip-danger-fg' : 'bg-chip-warn text-chip-warn-fg'
 
   const salary = formatSalary(application.salary_min, application.salary_max)
   const age = ageLabel(application.created_at)
@@ -145,12 +145,12 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
           setSelected(application)
         }
       }}
-      className={`group relative rounded-xl border bg-white/[0.04] p-4 shadow-sm transition ${
+      className={`group relative rounded-xl border bg-surface p-4 shadow-sm transition ${
         isSelectMode
           ? isSelected
             ? 'cursor-pointer border-primary-500/50 ring-2 ring-primary-600/30'
-            : 'cursor-pointer border-white/10 hover:border-primary-600/40'
-          : `border-white/10 hover:border-primary-600/40 hover:shadow-md ${isDragging ? 'opacity-70 ring-2 ring-primary-500/40' : ''}`
+            : 'cursor-pointer border-line hover:border-primary-600/40'
+          : `border-line hover:border-primary-600/40 hover:shadow-md ${isDragging ? 'opacity-70 ring-2 ring-primary-500/40' : ''}`
       }`}
     >
       {/* Selection checkbox */}
@@ -161,21 +161,21 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
             checked={isSelected ?? false}
             onChange={() => onToggleSelect?.(application.id)}
             onClick={(e) => e.stopPropagation()}
-            className="h-4 w-4 rounded border-white/15 text-primary-400 focus:ring-brand-500"
+            className="h-4 w-4 rounded border-line-strong text-accent-text focus:ring-brand-500"
           />
         </div>
       )}
 
       <div className={`flex items-start gap-3 ${isSelectMode ? 'pl-6' : ''}`}>
         <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-900/20">
-          <BriefcaseIcon className="h-5 w-5 text-primary-400" />
+          <BriefcaseIcon className="h-5 w-5 text-accent-text" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-white/90">
+          <h3 className="truncate text-sm font-semibold text-fg">
             {application.job_title}
           </h3>
-          <p className="truncate text-sm text-white/45">{application.company_name}</p>
+          <p className="truncate text-sm text-fg-muted">{application.company_name}</p>
         </div>
 
         {!isSelectMode && (
@@ -186,7 +186,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-primary-300"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-strong hover:text-accent-text"
                 aria-label="Open job listing"
               >
                 <ArrowTopRightOnSquareIcon className="h-4 w-4" />
@@ -194,7 +194,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
             )}
             <button
               type="button"
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-white/55"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-strong hover:text-fg-muted"
               aria-label={`Drag ${application.job_title}`}
               onClick={(e) => e.stopPropagation()}
               {...attributes}
@@ -216,31 +216,31 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
           {priorityLabels[application.priority] ?? 'Low'}
         </span>
         {application.source && (
-          <span className="rounded-full bg-[rgba(8,145,178,0.15)] px-2 py-0.5 text-xs font-medium text-cyan-300">
+          <span className="rounded-full bg-chip-accent px-2 py-0.5 text-xs font-medium text-accent-text">
             {application.source.replace('_', ' ')}
           </span>
         )}
-        <span className="ml-auto flex items-center gap-1 text-xs text-white/45">
+        <span className="ml-auto flex items-center gap-1 text-xs text-fg-muted">
           <ClockIcon className="h-3 w-3" />
           {age}
         </span>
       </div>
 
       {/* Info rows */}
-      <div className="mt-3 space-y-1.5 text-xs text-white/45">
+      <div className="mt-3 space-y-1.5 text-xs text-fg-muted">
         <div className="flex items-center gap-1.5">
-          <CalendarDaysIcon className="h-3.5 w-3.5 text-white/45" />
+          <CalendarDaysIcon className="h-3.5 w-3.5 text-fg-muted" />
           <span>{formatDate(application.applied_date)}</span>
         </div>
         {application.location && (
           <div className="flex items-center gap-1.5">
-            <MapPinIcon className="h-3.5 w-3.5 text-white/45" />
+            <MapPinIcon className="h-3.5 w-3.5 text-fg-muted" />
             <span className="truncate">{application.location}</span>
           </div>
         )}
         {salary && (
           <div className="flex items-center gap-1.5">
-            <BanknotesIcon className="h-3.5 w-3.5 text-white/45" />
+            <BanknotesIcon className="h-3.5 w-3.5 text-fg-muted" />
             <span>{salary}</span>
           </div>
         )}
@@ -255,7 +255,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
       {showNudge && (
         <div
           className={`mt-3 rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-            nudgeUrgent ? 'bg-[rgba(229,72,77,0.12)] text-red-300' : 'bg-[rgba(245,158,11,0.14)] text-amber-300'
+            nudgeUrgent ? 'bg-chip-danger text-chip-danger-fg' : 'bg-chip-warn text-chip-warn-fg'
           }`}
         >
           {nudgeUrgent ? '⚠️' : '💬'} {days}d since applied — consider following up
@@ -264,7 +264,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
 
       {/* Quick status change */}
       {!isSelectMode && (
-        <div className="mt-3 border-t border-white/10 pt-2">
+        <div className="mt-3 border-t border-line pt-2">
           <select
             value={application.status}
             onChange={handleStatusChange}
