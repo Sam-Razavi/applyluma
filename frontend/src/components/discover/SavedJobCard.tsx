@@ -34,18 +34,18 @@ export default function SavedJobCard({
 
   return (
     <div
-      className="group relative flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
+      className="group relative flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
       onClick={() => onClick(saved.raw_job_posting_id)}
       data-testid="saved-job-card"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-white/90 group-hover:text-primary-700">
+          <h3 className="truncate text-sm font-semibold text-fg group-hover:text-accent-text">
             {job?.title ?? 'Unknown job'}
           </h3>
           {job?.company && (
-            <p className="mt-0.5 truncate text-xs text-white/30">{job.company}</p>
+            <p className="mt-0.5 truncate text-xs text-fg-subtle">{job.company}</p>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -55,11 +55,11 @@ export default function SavedJobCard({
               e.stopPropagation()
               onStar(saved.id, !saved.starred)
             }}
-            className="rounded-lg p-1 text-white/30 transition-colors hover:text-yellow-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="rounded-lg p-1 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
             aria-label={saved.starred ? 'Unstar job' : 'Star job'}
           >
             {saved.starred ? (
-              <StarSolid className="h-5 w-5 text-yellow-400" />
+              <StarSolid className="h-5 w-5 text-chip-warn-fg" />
             ) : (
               <StarIcon className="h-5 w-5" />
             )}
@@ -70,7 +70,7 @@ export default function SavedJobCard({
               e.stopPropagation()
               onDelete(saved.id)
             }}
-            className="rounded-lg p-1 text-white/30 transition-colors hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="rounded-lg p-1 text-fg-subtle transition-colors hover:text-chip-danger-fg focus:outline-none focus:ring-2 focus:ring-red-500"
             aria-label="Remove saved job"
           >
             <TrashIcon className="h-5 w-5" />
@@ -79,7 +79,7 @@ export default function SavedJobCard({
       </div>
 
       {/* Meta */}
-      <div className="flex flex-wrap gap-3 text-xs text-white/30">
+      <div className="flex flex-wrap gap-3 text-xs text-fg-subtle">
         {job?.location && (
           <span className="flex items-center gap-1">
             <MapPinIcon className="h-3.5 w-3.5" />
@@ -88,25 +88,25 @@ export default function SavedJobCard({
         )}
         {salary && <span>{salary}</span>}
         {job?.remote_allowed && (
-          <span className="rounded-full bg-[rgba(8,145,178,0.15)] px-2 py-0.5 text-cyan-300">Remote</span>
+          <span className="rounded-full bg-chip-accent px-2 py-0.5 text-accent-text">Remote</span>
         )}
         {job?.employment_type && (
           <span>{job.employment_type.replace('_', ' ')}</span>
         )}
         {saved.list_name && (
-          <span className="ml-auto rounded-full bg-primary-900/20 px-2 py-0.5 text-primary-400">
+          <span className="ml-auto rounded-full bg-primary-900/20 px-2 py-0.5 text-accent-text">
             {saved.list_name}
           </span>
         )}
         {job?.application_status && (
-          <span className="rounded-full bg-[rgba(52,195,143,0.14)] px-2 py-0.5 text-xs font-medium text-emerald-300">
+          <span className="rounded-full bg-chip-success px-2 py-0.5 text-xs font-medium text-chip-success-fg">
             {job.application_status.replace('_', ' ')}
           </span>
         )}
       </div>
 
       {/* Quick actions */}
-      <div className="flex gap-2 border-t border-white/10 pt-2">
+      <div className="flex gap-2 border-t border-line pt-2">
         {!job?.application_status && onAddToApplications && (
           <button
             type="button"
@@ -115,7 +115,7 @@ export default function SavedJobCard({
               onAddToApplications(saved)
             }}
             disabled={addingToApplications}
-            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/[0.08] hover:text-white/90 disabled:opacity-40"
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg disabled:opacity-40"
           >
             <BriefcaseIcon className="h-3.5 w-3.5" />
             {addingToApplications ? 'Adding...' : 'Add to Applications'}
@@ -127,7 +127,7 @@ export default function SavedJobCard({
             e.stopPropagation()
             navigate('/ai-tailor', { state: { rawJobPostingId: saved.raw_job_posting_id } })
           }}
-          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/[0.08] hover:text-white/90"
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg"
         >
           <SparklesIcon className="h-3.5 w-3.5" />
           Tailor CV
@@ -136,7 +136,7 @@ export default function SavedJobCard({
 
       {/* Notes */}
       {saved.notes && (
-        <p className="text-xs text-white/30 line-clamp-2 border-t border-white/10 pt-2">
+        <p className="text-xs text-fg-subtle line-clamp-2 border-t border-line pt-2">
           {saved.notes}
         </p>
       )}

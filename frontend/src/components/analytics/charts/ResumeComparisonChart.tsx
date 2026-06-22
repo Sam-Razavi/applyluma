@@ -28,8 +28,8 @@ export default function ResumeComparisonChart({ data }: Props) {
     return (
       <div className="flex h-48 items-center justify-center md:h-72">
         <div className="text-center">
-          <p className="text-sm text-white/55">Upload a resume to see your skill comparison.</p>
-          <Link to="/cvs" className="mt-2 inline-block text-sm font-medium text-primary-400 transition-colors duration-200 hover:text-primary-300">
+          <p className="text-sm text-fg-muted">Upload a resume to see your skill comparison.</p>
+          <Link to="/cvs" className="mt-2 inline-block text-sm font-medium text-accent-text transition-colors duration-200 hover:text-accent-text">
             Upload resume
           </Link>
         </div>
@@ -40,17 +40,17 @@ export default function ResumeComparisonChart({ data }: Props) {
   return (
     <>
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg bg-white/[0.03] p-3">
-          <p className="text-xs font-medium text-white/30">Alignment</p>
-          <p className="mt-1 text-2xl font-semibold text-white/90">{Math.round(data.overall_market_alignment_score)}%</p>
+        <div className="rounded-lg bg-surface p-3">
+          <p className="text-xs font-medium text-fg-subtle">Alignment</p>
+          <p className="mt-1 text-2xl font-semibold text-fg">{Math.round(data.overall_market_alignment_score)}%</p>
         </div>
-        <div className="rounded-lg bg-white/[0.03] p-3">
-          <p className="text-xs font-medium text-white/30">Matched Skills</p>
-          <p className="mt-1 text-2xl font-semibold text-white/90">{data.matched_skills.length}</p>
+        <div className="rounded-lg bg-surface p-3">
+          <p className="text-xs font-medium text-fg-subtle">Matched Skills</p>
+          <p className="mt-1 text-2xl font-semibold text-fg">{data.matched_skills.length}</p>
         </div>
-        <div className="rounded-lg bg-white/[0.03] p-3">
-          <p className="text-xs font-medium text-white/30">Market Coverage</p>
-          <p className="mt-1 text-2xl font-semibold text-white/90">{Math.round(data.skills_market_coverage_pct)}%</p>
+        <div className="rounded-lg bg-surface p-3">
+          <p className="text-xs font-medium text-fg-subtle">Market Coverage</p>
+          <p className="mt-1 text-2xl font-semibold text-fg">{Math.round(data.skills_market_coverage_pct)}%</p>
         </div>
       </div>
 
@@ -73,10 +73,10 @@ export default function ResumeComparisonChart({ data }: Props) {
 
       {data.missing_high_demand_skills.length > 0 && (
         <div className="mt-4">
-          <p className="mb-2 text-xs font-medium uppercase text-white/30">Missing high-demand skills</p>
+          <p className="mb-2 text-xs font-medium uppercase text-fg-subtle">Missing high-demand skills</p>
           <div className="flex flex-wrap gap-2">
             {data.missing_high_demand_skills.slice(0, 10).map((skill) => (
-              <span key={skill} className="rounded-md bg-[rgba(245,158,11,0.14)] px-2 py-1 text-xs font-medium text-amber-300">
+              <span key={skill} className="rounded-md bg-chip-warn px-2 py-1 text-xs font-medium text-chip-warn-fg">
                 {skill}
               </span>
             ))}

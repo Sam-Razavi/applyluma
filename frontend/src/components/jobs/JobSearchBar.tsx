@@ -47,7 +47,7 @@ export default function JobSearchBar({
                 'rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors',
                 source === opt.value
                   ? 'bg-brand-600 text-white'
-                  : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08] hover:text-white/75',
+                  : 'bg-surface text-fg-muted hover:bg-surface-strong hover:text-fg',
               ].join(' ')}
             >
               {opt.label}
@@ -58,11 +58,11 @@ export default function JobSearchBar({
 
       <form
         onSubmit={handleSubmit}
-        className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-sm"
+        className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
       >
         <div className="grid gap-3 md:grid-cols-[1fr_260px_auto]">
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}

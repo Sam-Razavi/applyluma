@@ -118,8 +118,8 @@ export default function SavedJobs() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white/90">Saved Jobs</h1>
-        <p className="mt-1 text-sm text-white/30">
+        <h1 className="text-2xl font-bold text-fg">Saved Jobs</h1>
+        <p className="mt-1 text-sm text-fg-subtle">
           {search.trim()
             ? `${displayed.length} of ${saved.length} saved ${saved.length === 1 ? 'job' : 'jobs'}`
             : `${saved.length} saved ${saved.length === 1 ? 'job' : 'jobs'}`}
@@ -129,16 +129,16 @@ export default function SavedJobs() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-2xl bg-white/[0.04]" />
+            <div key={i} className="h-36 animate-pulse rounded-2xl bg-track" />
           ))}
         </div>
       ) : saved.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
-            <BookmarkIcon className="h-6 w-6 text-white/30" />
+        <div className="rounded-2xl border border-line bg-surface px-6 py-16 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-surface">
+            <BookmarkIcon className="h-6 w-6 text-fg-subtle" />
           </div>
-          <h2 className="mt-4 text-sm font-semibold text-white/90">No saved jobs yet</h2>
-          <p className="mt-1 text-sm text-white/30">
+          <h2 className="mt-4 text-sm font-semibold text-fg">No saved jobs yet</h2>
+          <p className="mt-1 text-sm text-fg-subtle">
             Browse the Discover page and save jobs you're interested in.
           </p>
           <Link
@@ -153,18 +153,18 @@ export default function SavedJobs() {
           {/* Search + sort toolbar */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by title or company..."
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-4 text-sm text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-4 text-sm text-fg placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'date' | 'alpha')}
-              className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="date">Newest saved</option>
               <option value="alpha">A–Z by title</option>

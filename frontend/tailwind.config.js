@@ -12,6 +12,42 @@ export default {
         display: ['"Plus Jakarta Sans"', 'Inter', 'ui-sans-serif', 'sans-serif'],
       },
       colors: {
+        /* Semantic theme tokens — backed by CSS variables in index.css.
+           These flip automatically between light (:root) and dark (.dark). */
+        base: 'var(--bg-base)',
+        raised: 'var(--bg-raised)',
+        surface: {
+          DEFAULT: 'var(--glass-card)',
+          strong: 'var(--glass-hover)',
+        },
+        track: 'var(--track)',
+        line: {
+          DEFAULT: 'var(--glass-border)',
+          strong: 'var(--glass-border-strong)',
+        },
+        fg: {
+          DEFAULT: 'var(--text-1)',
+          muted: 'var(--text-2)',
+          subtle: 'var(--text-3)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          text: 'var(--accent-text)',
+          muted: 'var(--accent-muted)',
+        },
+        chip: {
+          accent: 'var(--chip-accent-bg)',
+          'accent-fg': 'var(--chip-accent-fg)',
+          success: 'var(--chip-success-bg)',
+          'success-fg': 'var(--chip-success-fg)',
+          warn: 'var(--chip-warn-bg)',
+          'warn-fg': 'var(--chip-warn-fg)',
+          danger: 'var(--chip-danger-bg)',
+          'danger-fg': 'var(--chip-danger-fg)',
+          neutral: 'var(--chip-neutral-bg)',
+          'neutral-fg': 'var(--chip-neutral-fg)',
+        },
         primary: {
           50:  '#ecfeff',
           100: '#cffafe',

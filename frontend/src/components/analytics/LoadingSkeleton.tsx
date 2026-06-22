@@ -5,14 +5,14 @@ export default function LoadingSkeleton() {
         {[40, 70, 50, 90, 60, 80, 45, 65].map((height, index) => (
           <div
             key={index}
-            className="flex-1 rounded-t bg-white/[0.06]"
+            className="flex-1 rounded-t bg-surface"
             style={{ height: `${height}%`, minHeight: '80px' }}
           />
         ))}
       </div>
       <div className="flex justify-between">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-          <div key={item} className="h-3 w-8 rounded bg-white/[0.06]" />
+          <div key={item} className="h-3 w-8 rounded bg-surface" />
         ))}
       </div>
     </div>

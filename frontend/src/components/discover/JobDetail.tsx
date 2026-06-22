@@ -100,7 +100,7 @@ export default function JobDetail({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/[0.08] shadow-2xl"
+        className="relative w-full max-w-2xl overflow-y-auto rounded-2xl border border-line shadow-2xl"
         style={{
           maxHeight: 'min(calc(100dvh - 7rem), 90vh)',
           background: 'rgba(8,14,18,0.92)',
@@ -113,7 +113,7 @@ export default function JobDetail({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-white/30 hover:bg-white/[0.06] hover:text-white/55"
+          className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-fg-subtle hover:bg-surface-strong hover:text-fg-muted"
           aria-label="Close"
         >
           <XMarkIcon className="h-5 w-5" />
@@ -126,31 +126,31 @@ export default function JobDetail({
         )}
 
         {error && !loading && (
-          <div className="p-8 text-center text-sm text-red-300">{error}</div>
+          <div className="p-8 text-center text-sm text-chip-danger-fg">{error}</div>
         )}
 
         {job && !loading && (
           <div className="p-6 space-y-5">
             {/* Header */}
             <div className="pr-8 space-y-1">
-              <h2 className="text-xl font-bold text-white/90">{job.title}</h2>
-              <p className="text-sm text-white/55">{job.company}</p>
+              <h2 className="text-xl font-bold text-fg">{job.title}</h2>
+              <p className="text-sm text-fg-muted">{job.company}</p>
               <div className="flex flex-wrap gap-2 pt-1">
                 {job.location && (
-                  <Pill text={job.location} color="bg-white/[0.04] text-white/55" />
+                  <Pill text={job.location} color="bg-surface text-fg-muted" />
                 )}
                 {job.remote_allowed && (
-                  <Pill text="Remote" color="bg-[rgba(8,145,178,0.15)] text-cyan-300" />
+                  <Pill text="Remote" color="bg-chip-accent text-accent-text" />
                 )}
                 {job.employment_type && (
                   <Pill
                     text={job.employment_type.replace('_', ' ')}
-                    color="bg-white/[0.04] text-white/55"
+                    color="bg-surface text-fg-muted"
                   />
                 )}
                 <Pill
                   text={SOURCE_LABELS[job.source] ?? job.source}
-                  color="bg-white/[0.04] text-white/30"
+                  color="bg-surface text-fg-subtle"
                 />
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function JobDetail({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-primary-800">Match score</span>
                   <span
-                    className="text-lg font-bold text-primary-400"
+                    className="text-lg font-bold text-accent-text"
                     title="Weights: skills 40%, experience 30%, salary 15%, education 10%, location 5%"
                   >
                     {Math.round(job.match_score)}%
@@ -187,22 +187,22 @@ export default function JobDetail({
             {/* Description */}
             {job.description && (
               <div>
-                <h3 className="mb-2 text-sm font-semibold text-white/90">Job description</h3>
-                <div className="prose prose-sm max-w-none text-white/55 whitespace-pre-line text-sm leading-relaxed">
+                <h3 className="mb-2 text-sm font-semibold text-fg">Job description</h3>
+                <div className="prose prose-sm max-w-none text-fg-muted whitespace-pre-line text-sm leading-relaxed">
                   {job.description}
                 </div>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:gap-3">
+            <div className="flex flex-col gap-2 border-t border-line pt-4 sm:flex-row sm:gap-3">
               <button
                 type="button"
                 onClick={() => onSave(job.job_id)}
                 className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors sm:w-auto ${
                   isSaved
-                    ? 'bg-primary-100 text-primary-400 hover:bg-primary-200'
-                    : 'border border-white/15 text-white/55 hover:bg-white/[0.04]'
+                    ? 'bg-primary-100 text-accent-text hover:bg-primary-200'
+                    : 'border border-line-strong text-fg-muted hover:bg-surface-strong'
                 }`}
               >
                 {isSaved ? (
@@ -220,7 +220,7 @@ export default function JobDetail({
               <button
                 type="button"
                 onClick={handleTailor}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-2.5 text-sm font-medium text-primary-400 transition-colors hover:bg-brand-100 sm:w-auto"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-2.5 text-sm font-medium text-accent-text transition-colors hover:bg-brand-100 sm:w-auto"
               >
                 <SparklesIcon className="h-4 w-4" />
                 Tailor CV
@@ -228,13 +228,13 @@ export default function JobDetail({
               <button
                 type="button"
                 onClick={handleCoverLetter}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-2.5 text-sm font-medium text-primary-400 transition-colors hover:bg-brand-100 sm:w-auto"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-2.5 text-sm font-medium text-accent-text transition-colors hover:bg-brand-100 sm:w-auto"
               >
                 <PencilSquareIcon className="h-4 w-4" />
                 Cover Letter
               </button>
               {job.application_status ? (
-                <span className="flex w-full items-center justify-center gap-2 rounded-xl bg-[rgba(52,195,143,0.14)] px-4 py-2.5 text-sm font-medium text-emerald-300 sm:w-auto">
+                <span className="flex w-full items-center justify-center gap-2 rounded-xl bg-chip-success px-4 py-2.5 text-sm font-medium text-chip-success-fg sm:w-auto">
                   <BriefcaseIcon className="h-4 w-4" />
                   {job.application_status.replace('_', ' ')}
                 </span>
@@ -243,7 +243,7 @@ export default function JobDetail({
                   type="button"
                   onClick={() => void handleAddApplication()}
                   disabled={addingApplication}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] disabled:opacity-50 sm:w-auto"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-line-strong px-4 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong disabled:opacity-50 sm:w-auto"
                 >
                   <BriefcaseIcon className="h-4 w-4" />
                   {addingApplication ? 'Adding' : 'Add to Applications'}

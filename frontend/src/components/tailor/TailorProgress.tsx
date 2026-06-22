@@ -21,8 +21,8 @@ export function TailorProgress() {
   }, [])
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8">
-      <h2 className="mb-6 text-base font-semibold text-white/90">Tailoring your CV</h2>
+    <div className="rounded-2xl border border-line bg-surface p-8">
+      <h2 className="mb-6 text-base font-semibold text-fg">Tailoring your CV</h2>
       <ol className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {STEPS.map((step, index) => {
           const done = index < activeStep
@@ -31,7 +31,7 @@ export function TailorProgress() {
             <li key={step.label} className="flex min-w-0 items-start gap-3 sm:flex-1">
               <div
                 className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                  done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-white/[0.06]'
+                  done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-track'
                 }`}
               >
                 {done && <CheckIcon className="h-3 w-3 text-white" />}
@@ -39,12 +39,12 @@ export function TailorProgress() {
               <div>
                 <p
                   className={`text-sm font-medium ${
-                    active ? 'text-white/90' : done ? 'text-white/30' : 'text-white/30'
+                    active ? 'text-fg' : done ? 'text-fg-subtle' : 'text-fg-subtle'
                   }`}
                 >
                   {step.label}
                 </p>
-                {active && <p className="mt-0.5 text-xs text-white/30">{step.sublabel}</p>}
+                {active && <p className="mt-0.5 text-xs text-fg-subtle">{step.sublabel}</p>}
               </div>
             </li>
           )

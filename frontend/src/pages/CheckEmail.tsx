@@ -24,22 +24,22 @@ export default function CheckEmail() {
   }
 
   return (
-    <div className="min-h-screen bg-white/[0.03] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-surface flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-900/30">
-          <EnvelopeIcon className="h-8 w-8 text-primary-400" />
+          <EnvelopeIcon className="h-8 w-8 text-accent-text" />
         </div>
-        <h1 className="mt-6 text-2xl font-bold text-white/90">Check your email</h1>
-        <p className="mt-3 text-sm text-white/30">
+        <h1 className="mt-6 text-2xl font-bold text-fg">Check your email</h1>
+        <p className="mt-3 text-sm text-fg-subtle">
           We sent a verification link to{' '}
-          {email ? <span className="font-medium text-white/55">{email}</span> : 'your email address'}.
+          {email ? <span className="font-medium text-fg-muted">{email}</span> : 'your email address'}.
           Click it to activate your account.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white/[0.04] py-8 px-8 shadow-sm rounded-2xl border border-white/10 text-center space-y-4">
-          <p className="text-sm text-white/30">Didn't get it? Check your spam folder, or</p>
+        <div className="bg-surface py-8 px-8 shadow-sm rounded-2xl border border-line text-center space-y-4">
+          <p className="text-sm text-fg-subtle">Didn't get it? Check your spam folder, or</p>
           <button
             type="button"
             onClick={handleResend}
@@ -48,9 +48,9 @@ export default function CheckEmail() {
           >
             {resent ? 'Email sent ✓' : resending ? 'Sending…' : 'Resend verification email'}
           </button>
-          <p className="text-xs text-white/30">
+          <p className="text-xs text-fg-subtle">
             Already verified?{' '}
-            <Link to="/login" className="font-medium text-primary-400 hover:underline">
+            <Link to="/login" className="font-medium text-accent-text hover:underline">
               Sign in
             </Link>
           </p>

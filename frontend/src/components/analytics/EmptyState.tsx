@@ -16,11 +16,11 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex h-48 flex-col items-center justify-center px-6 text-center md:h-72">
-      <div className="mb-4 rounded-full bg-white/[0.04] p-4">
-        <ChartBarIcon className="h-8 w-8 text-white/30" aria-hidden="true" />
+      <div className="mb-4 rounded-full bg-surface p-4">
+        <ChartBarIcon className="h-8 w-8 text-fg-subtle" aria-hidden="true" />
       </div>
-      <h3 className="text-sm font-semibold text-white/55">{title}</h3>
-      <p className="mt-1 max-w-sm text-xs text-white/30">{description}</p>
+      <h3 className="text-sm font-semibold text-fg-muted">{title}</h3>
+      <p className="mt-1 max-w-sm text-xs text-fg-subtle">{description}</p>
       {action && (
         <button
           type="button"

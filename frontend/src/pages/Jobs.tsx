@@ -32,13 +32,13 @@ const jobSchema = z.object({
 type JobFormData = z.infer<typeof jobSchema>
 
 const KEYWORD_COLORS = [
-  'bg-[rgba(8,145,178,0.15)] text-cyan-300',
-  'bg-[rgba(8,145,178,0.15)] text-cyan-300',
-  'bg-[rgba(52,195,143,0.14)] text-emerald-300',
-  'bg-[rgba(245,158,11,0.14)] text-amber-300',
-  'bg-[rgba(8,145,178,0.15)] text-pink-700',
+  'bg-chip-accent text-accent-text',
+  'bg-chip-accent text-accent-text',
+  'bg-chip-success text-chip-success-fg',
+  'bg-chip-warn text-chip-warn-fg',
+  'bg-chip-accent text-pink-700',
   'bg-cyan-100 text-cyan-700',
-  'bg-[rgba(245,158,11,0.14)] text-amber-300',
+  'bg-chip-warn text-chip-warn-fg',
 ]
 
 function formatDate(s: string) {
@@ -47,16 +47,16 @@ function formatDate(s: string) {
 
 function JdSkeleton() {
   return (
-    <div className="bg-white/[0.04] rounded-2xl border border-white/10 p-5 space-y-3 animate-pulse">
+    <div className="bg-track rounded-2xl border border-line p-5 space-y-3 animate-pulse">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 bg-white/[0.04] rounded-xl flex-shrink-0" />
+        <div className="h-10 w-10 bg-surface rounded-xl flex-shrink-0" />
         <div className="flex-1 space-y-1.5">
-          <div className="h-4 bg-white/[0.04] rounded w-1/3" />
-          <div className="h-3 bg-white/[0.04] rounded w-1/4" />
+          <div className="h-4 bg-surface rounded w-1/3" />
+          <div className="h-3 bg-surface rounded w-1/4" />
         </div>
       </div>
       <div className="flex gap-2">
-        {[...Array(4)].map((_, i) => <div key={i} className="h-5 w-16 bg-white/[0.04] rounded-full" />)}
+        {[...Array(4)].map((_, i) => <div key={i} className="h-5 w-16 bg-surface rounded-full" />)}
       </div>
     </div>
   )
@@ -174,8 +174,8 @@ export default function Jobs() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white/90">My Jobs</h1>
-          <p className="mt-1 text-sm text-white/30">
+          <h1 className="text-2xl font-bold text-fg">My Jobs</h1>
+          <p className="mt-1 text-sm text-fg-subtle">
             Your saved jobs and job descriptions — all ready for AI tailoring.
           </p>
         </div>
@@ -183,7 +183,7 @@ export default function Jobs() {
           <div className="flex gap-2">
             <button
               onClick={() => { setUrlBarOpen((o) => !o); setScrapeUrlValue('') }}
-              className="inline-flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.08] text-white/55 text-sm font-semibold px-4 py-2.5 rounded-xl border border-white/10 transition-colors"
+              className="inline-flex items-center gap-2 bg-surface hover:bg-surface-strong text-fg-muted text-sm font-semibold px-4 py-2.5 rounded-xl border border-line transition-colors"
             >
               <LinkIcon className="h-4 w-4" />
               Import from URL
@@ -205,7 +205,7 @@ export default function Jobs() {
                 placeholder="https://linkedin.com/jobs/view/…"
                 required
                 disabled={scraping}
-                className="flex-1 px-3 py-2 border border-white/10 rounded-xl text-sm bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-brand-500 min-w-0"
+                className="flex-1 px-3 py-2 border border-line rounded-xl text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-brand-500 min-w-0"
               />
               <button
                 type="submit"
@@ -222,12 +222,12 @@ export default function Jobs() {
       {/* Search */}
       {(loading || jobs.length > 0) && (
         <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fg-subtle" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by company or job title…"
-            className="w-full pl-9 pr-4 py-2.5 border border-white/10 rounded-xl text-sm bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full pl-9 pr-4 py-2.5 border border-line rounded-xl text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       )}
@@ -241,7 +241,7 @@ export default function Jobs() {
             className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
               activeCollection === null
                 ? 'bg-brand-600 text-white'
-                : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
+                : 'bg-surface text-fg-muted hover:bg-surface-strong'
             }`}
           >
             All ({jobs.length})
@@ -254,7 +254,7 @@ export default function Jobs() {
               className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
                 activeCollection === col
                   ? 'bg-brand-600 text-white'
-                  : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
+                  : 'bg-surface text-fg-muted hover:bg-surface-strong'
               }`}
             >
               {col} ({jobs.filter((j) => j.list_name === col).length})
@@ -269,18 +269,18 @@ export default function Jobs() {
           {[...Array(3)].map((_, i) => <JdSkeleton key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white/[0.04] rounded-2xl border border-white/10 flex flex-col items-center justify-center py-16 px-6 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
+        <div className="bg-surface rounded-2xl border border-line flex flex-col items-center justify-center py-16 px-6 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-surface">
             {search || activeCollection ? (
-              <MagnifyingGlassIcon className="h-6 w-6 text-white/30" />
+              <MagnifyingGlassIcon className="h-6 w-6 text-fg-subtle" />
             ) : (
-              <BookmarkIcon className="h-6 w-6 text-white/30" />
+              <BookmarkIcon className="h-6 w-6 text-fg-subtle" />
             )}
           </div>
-          <h2 className="mt-4 text-sm font-semibold text-white/90">
+          <h2 className="mt-4 text-sm font-semibold text-fg">
             {search ? 'No results found' : activeCollection ? `No jobs in "${activeCollection}"` : 'No jobs yet'}
           </h2>
-          <p className="mt-1 text-sm text-white/30">
+          <p className="mt-1 text-sm text-fg-subtle">
             {search
               ? `No jobs match "${search}"`
               : 'Save jobs from Discover or add a job description to get started.'}
@@ -295,7 +295,7 @@ export default function Jobs() {
               </Link>
               <button
                 onClick={() => { reset(); setAddOpen(true) }}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-text hover:text-accent-text transition-colors"
               >
                 <PlusIcon className="h-4 w-4" />
                 Add manually
@@ -310,37 +310,37 @@ export default function Jobs() {
             const desc = job.description ?? ''
             const hasLong = desc.length > 150
             return (
-              <div key={job.id} className="bg-white/[0.04] rounded-2xl border border-white/10 p-5 hover:border-white/20 transition-colors">
+              <div key={job.id} className="bg-surface rounded-2xl border border-line p-5 hover:border-line-strong transition-colors">
                 <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 bg-[rgba(8,145,178,0.15)] rounded-xl flex items-center justify-center flex-shrink-0">
-                    <BriefcaseIcon className="h-5 w-5 text-cyan-300" />
+                  <div className="h-10 w-10 bg-chip-accent rounded-xl flex items-center justify-center flex-shrink-0">
+                    <BriefcaseIcon className="h-5 w-5 text-accent-text" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-sm font-semibold text-white/90">{job.job_title}</h3>
-                    <p className="truncate text-sm text-white/30">{job.company_name}</p>
+                    <h3 className="truncate text-sm font-semibold text-fg">{job.job_title}</h3>
+                    <p className="truncate text-sm text-fg-subtle">{job.company_name}</p>
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-1">
                     {job.list_name && (
-                      <span className="text-xs rounded-full bg-primary-900/20 px-2 py-0.5 text-primary-400 hidden sm:inline-block">
+                      <span className="text-xs rounded-full bg-primary-900/20 px-2 py-0.5 text-accent-text hidden sm:inline-block">
                         {job.list_name}
                       </span>
                     )}
-                    <span className="text-xs text-white/30 hidden sm:block">{formatDate(job.created_at)}</span>
+                    <span className="text-xs text-fg-subtle hidden sm:block">{formatDate(job.created_at)}</span>
                     <button
                       type="button"
                       onClick={() => handleStar(job.id, !job.starred)}
-                      className="rounded-lg p-1 text-white/30 transition-colors hover:text-yellow-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="rounded-lg p-1 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       aria-label={job.starred ? 'Unstar job' : 'Star job'}
                     >
                       {job.starred ? (
-                        <StarSolid className="h-5 w-5 text-yellow-400" />
+                        <StarSolid className="h-5 w-5 text-chip-warn-fg" />
                       ) : (
                         <StarIcon className="h-5 w-5" />
                       )}
                     </button>
                     <button
                       onClick={() => setDeleteTarget(job)}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-white/30 hover:text-red-300 hover:bg-[rgba(229,72,77,0.12)] transition-colors"
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-fg-subtle hover:text-chip-danger-fg hover:bg-chip-danger transition-colors"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
@@ -348,13 +348,13 @@ export default function Jobs() {
                 </div>
 
                 <div className="mt-3">
-                  <p className="text-sm text-white/55 whitespace-pre-line">
+                  <p className="text-sm text-fg-muted whitespace-pre-line">
                     {isExpanded ? desc : desc.slice(0, 150) + (hasLong ? '…' : '')}
                   </p>
                   {hasLong && (
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : job.id)}
-                      className="mt-1 inline-flex items-center gap-0.5 text-xs text-primary-400 hover:text-primary-300"
+                      className="mt-1 inline-flex items-center gap-0.5 text-xs text-accent-text hover:text-accent-text"
                     >
                       {isExpanded ? <>Show less <ChevronUpIcon className="h-3 w-3" /></> : <>Read more <ChevronDownIcon className="h-3 w-3" /></>}
                     </button>
@@ -369,7 +369,7 @@ export default function Jobs() {
                       </span>
                     ))}
                     {job.keywords.length > 10 && (
-                      <span className="text-xs text-white/30 self-center">+{job.keywords.length - 10} more</span>
+                      <span className="text-xs text-fg-subtle self-center">+{job.keywords.length - 10} more</span>
                     )}
                   </div>
                 )}
@@ -377,12 +377,12 @@ export default function Jobs() {
                 {(job.url || job.notes) && (
                   <div className="mt-2 flex flex-col gap-1">
                     {job.url && (
-                      <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-400 hover:underline truncate block">
+                      <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent-text hover:underline truncate block">
                         {job.url}
                       </a>
                     )}
                     {job.notes && (
-                      <p className="text-xs text-white/30 line-clamp-2 border-t border-white/10 pt-1">
+                      <p className="text-xs text-fg-subtle line-clamp-2 border-t border-line pt-1">
                         {job.notes}
                       </p>
                     )}
@@ -398,38 +398,38 @@ export default function Jobs() {
       <Dialog open={addOpen} onClose={() => !submitting && (setAddOpen(false), reset())} className="relative z-50">
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="bg-white/[0.04] rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
-              <DialogTitle className="text-base font-semibold text-white/90">Add Job</DialogTitle>
-              <button onClick={() => !submitting && (setAddOpen(false), reset())} className="h-8 w-8 flex items-center justify-center rounded-lg text-white/30 hover:text-white/55 hover:bg-white/[0.06]">
+          <DialogPanel className="bg-surface rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-line flex-shrink-0">
+              <DialogTitle className="text-base font-semibold text-fg">Add Job</DialogTitle>
+              <button onClick={() => !submitting && (setAddOpen(false), reset())} className="h-8 w-8 flex items-center justify-center rounded-lg text-fg-subtle hover:text-fg-muted hover:bg-surface-strong">
                 <XMarkIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-white/55 mb-1">Company name <span className="text-red-500">*</span></label>
-                  <input {...register('company_name')} placeholder="Acme Corp" className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-                  {errors.company_name && <p className="mt-1 text-xs text-red-300">{errors.company_name.message}</p>}
+                  <label className="block text-xs font-medium text-fg-muted mb-1">Company name <span className="text-chip-danger-fg">*</span></label>
+                  <input {...register('company_name')} placeholder="Acme Corp" className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                  {errors.company_name && <p className="mt-1 text-xs text-chip-danger-fg">{errors.company_name.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/55 mb-1">Job title <span className="text-red-500">*</span></label>
-                  <input {...register('job_title')} placeholder="Senior Engineer" className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-                  {errors.job_title && <p className="mt-1 text-xs text-red-300">{errors.job_title.message}</p>}
+                  <label className="block text-xs font-medium text-fg-muted mb-1">Job title <span className="text-chip-danger-fg">*</span></label>
+                  <input {...register('job_title')} placeholder="Senior Engineer" className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                  {errors.job_title && <p className="mt-1 text-xs text-chip-danger-fg">{errors.job_title.message}</p>}
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-white/55 mb-1">Job URL <span className="text-white/30 font-normal">(optional)</span></label>
-                <input {...register('url')} type="url" placeholder="https://jobs.example.com/…" className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-                {errors.url && <p className="mt-1 text-xs text-red-300">{errors.url.message}</p>}
+                <label className="block text-xs font-medium text-fg-muted mb-1">Job URL <span className="text-fg-subtle font-normal">(optional)</span></label>
+                <input {...register('url')} type="url" placeholder="https://jobs.example.com/…" className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                {errors.url && <p className="mt-1 text-xs text-chip-danger-fg">{errors.url.message}</p>}
               </div>
               <div>
-                <label className="block text-xs font-medium text-white/55 mb-1">Job description <span className="text-red-500">*</span></label>
-                <textarea {...register('description')} rows={9} placeholder="Paste the full job description here. Keywords will be automatically extracted on save." className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
-                {errors.description && <p className="mt-1 text-xs text-red-300">{errors.description.message}</p>}
+                <label className="block text-xs font-medium text-fg-muted mb-1">Job description <span className="text-chip-danger-fg">*</span></label>
+                <textarea {...register('description')} rows={9} placeholder="Paste the full job description here. Keywords will be automatically extracted on save." className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                {errors.description && <p className="mt-1 text-xs text-chip-danger-fg">{errors.description.message}</p>}
               </div>
               <div className="flex justify-end gap-2 pt-1">
-                <button type="button" onClick={() => !submitting && (setAddOpen(false), reset())} disabled={submitting} className="px-4 py-2 text-sm font-medium text-white/55 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg disabled:opacity-50">Cancel</button>
+                <button type="button" onClick={() => !submitting && (setAddOpen(false), reset())} disabled={submitting} className="px-4 py-2 text-sm font-medium text-fg-muted bg-surface hover:bg-surface-strong rounded-lg disabled:opacity-50">Cancel</button>
                 <button type="submit" disabled={submitting} className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg disabled:opacity-50">
                   {submitting ? 'Saving…' : 'Save & Extract Keywords'}
                 </button>
@@ -443,20 +443,20 @@ export default function Jobs() {
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} className="relative z-50">
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="bg-white/[0.04] rounded-2xl shadow-xl max-w-sm w-full p-6">
+          <DialogPanel className="bg-surface rounded-2xl shadow-xl max-w-sm w-full p-6">
             <div className="flex items-start gap-4">
-              <div className="h-10 w-10 bg-[rgba(229,72,77,0.12)] rounded-xl flex items-center justify-center flex-shrink-0">
-                <ExclamationCircleIcon className="h-5 w-5 text-red-300" />
+              <div className="h-10 w-10 bg-chip-danger rounded-xl flex items-center justify-center flex-shrink-0">
+                <ExclamationCircleIcon className="h-5 w-5 text-chip-danger-fg" />
               </div>
               <div>
-                <DialogTitle className="text-base font-semibold text-white/90">Delete Job</DialogTitle>
-                <p className="mt-1 text-sm text-white/30">
+                <DialogTitle className="text-base font-semibold text-fg">Delete Job</DialogTitle>
+                <p className="mt-1 text-sm text-fg-subtle">
                   Delete <strong>"{deleteTarget?.job_title}" at {deleteTarget?.company_name}</strong>? This cannot be undone.
                 </p>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
-              <button onClick={() => setDeleteTarget(null)} disabled={deleting} className="px-4 py-2 text-sm font-medium text-white/55 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg disabled:opacity-50">Cancel</button>
+              <button onClick={() => setDeleteTarget(null)} disabled={deleting} className="px-4 py-2 text-sm font-medium text-fg-muted bg-surface hover:bg-surface-strong rounded-lg disabled:opacity-50">Cancel</button>
               <button onClick={handleDelete} disabled={deleting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50">
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>
