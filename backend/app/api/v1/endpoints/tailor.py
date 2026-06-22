@@ -26,6 +26,7 @@ from app.schemas.tailor import (
     TailorUsageResponse,
 )
 from app.services.pdf_generator import generate_cv_pdf
+from app.services.tailor_service import _extract_contact_information, _is_contact_section
 from app.tasks.tailor import run_tailoring
 
 router = APIRouter(prefix="/tailor", tags=["tailor"])
@@ -202,11 +203,25 @@ def save_tailored_cv(
     all_sections = result.get("sections", [])
     accepted_ids = set(body.accepted_section_ids) if body.accepted_section_ids is not None else None
 
+    source_cv = crud_cv.get_by_id(db, job.cv_id, current_user.id)
+    source_cv_content = source_cv.content if source_cv else ""
+
+    contact_text = _extract_contact_information(source_cv_content) if source_cv_content else ""
+
     pdf_sections = []
     full_text_parts = []
+
+    if contact_text:
+        pdf_sections.append({"section_name": "Contact Information", "content": contact_text})
+        full_text_parts.append(f"## Contact Information\n{contact_text}")
+
     for section in all_sections:
+        if _is_contact_section(section):
+            continue
         use_tailored = accepted_ids is None or section["section_id"] in accepted_ids
         content = section["tailored"] if use_tailored else section["original"]
+        if not content or not content.strip():
+            content = section.get("original") or ""
         if not content or not content.strip():
             continue
         pdf_sections.append({"section_name": section["section_name"], "content": content})
