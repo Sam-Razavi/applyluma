@@ -542,3 +542,40 @@ class TestSwedishStopHeadings:
         assert "github.com/samdev" in contact
         assert "Sammanfattning" not in contact
         assert "Kompetenser" not in contact
+
+
+# ---------------------------------------------------------------------------
+# Round 2: CID artifact and over-extraction safeguards
+# ---------------------------------------------------------------------------
+
+
+class TestContactExtractionSafeguards:
+    def test_cid_artifacts_return_empty(self) -> None:
+        cv_text = (
+            "(cid:42)(cid:81)(cid:74)(cid:76)(cid:79)(cid:72)\n"
+            "sam@example.com\n"
+            "+46 70 123 4567\n"
+            "(cid:54)(cid:88)(cid:80)(cid:80)(cid:68)(cid:85)(cid:92)\n"
+            "Some summary text here."
+        )
+        contact = _extract_contact_information(cv_text)
+        assert contact == ""
+
+    def test_max_lines_prevents_over_extraction(self) -> None:
+        lines = ["Sam Developer", "sam@example.com", "+46 70 123 4567"]
+        lines += [f"Extra line {i}" for i in range(20)]
+        cv_text = "\n".join(lines)
+        contact = _extract_contact_information(cv_text)
+        assert contact != ""
+        assert contact.count("\n") < 12
+
+    def test_no_blank_lines_still_limited(self) -> None:
+        cv_text = (
+            "Sam Developer\nsam@example.com\n+46 70 123 4567\n"
+            "Stockholm\ngithub.com/samdev\nlinkedin.com/in/samdev\n"
+            "Line 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\n"
+            "Line 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18"
+        )
+        contact = _extract_contact_information(cv_text)
+        assert "Line 13" not in contact
+        assert "Line 18" not in contact
