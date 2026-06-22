@@ -42,6 +42,8 @@ export default function AITailor() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [preview, setPreview] = useState<TailorPreview | null>(null)
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set())
+  const [editedContent, setEditedContent] = useState<Map<string, string>>(new Map())
+  const [sectionOrder, setSectionOrder] = useState<string[]>([])
   const [savedCvId, setSavedCvId] = useState<string | null>(null)
   const [savedTitle, setSavedTitle] = useState<string>('')
   const [saving, setSaving] = useState(false)
@@ -103,6 +105,8 @@ export default function AITailor() {
           const nextPreview = await tailorApi.getPreview(id)
           setPreview(nextPreview)
           setAcceptedIds(new Set(nextPreview.sections.map((section) => section.section_id)))
+          setSectionOrder(nextPreview.sections.map((section) => section.section_id))
+          setEditedContent(new Map())
           setStep('preview')
         } else if (status.status === 'failed') {
           if (pollRef.current) window.clearInterval(pollRef.current)
@@ -124,14 +128,41 @@ export default function AITailor() {
     })
   }
 
+  function editSection(id: string, text: string) {
+    setEditedContent((prev) => {
+      const next = new Map(prev)
+      next.set(id, text)
+      return next
+    })
+  }
+
+  function moveSection(id: string, direction: -1 | 1) {
+    setSectionOrder((prev) => {
+      const idx = prev.indexOf(id)
+      if (idx < 0) return prev
+      const targetIdx = idx + direction
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev
+      const next = [...prev]
+      next[idx] = next[targetIdx]
+      next[targetIdx] = id
+      return next
+    })
+  }
+
   async function handleSave(cvTitle?: string) {
     if (!jobId || !preview) return
     setSaving(true)
     try {
+      const overrides: Record<string, string> = {}
+      for (const [sid, text] of editedContent) {
+        overrides[sid] = text
+      }
       const result = await tailorApi.save(
         jobId,
         acceptedIds.size === preview.sections.length ? null : [...acceptedIds],
         cvTitle,
+        Object.keys(overrides).length > 0 ? overrides : undefined,
+        sectionOrder.length > 0 ? sectionOrder : undefined,
       )
       setSavedCvId(result.cv_id)
       setSavedTitle(result.title)
@@ -151,6 +182,8 @@ export default function AITailor() {
     setJobId(null)
     setPreview(null)
     setAcceptedIds(new Set())
+    setEditedContent(new Map())
+    setSectionOrder([])
     setSavedCvId(null)
     setSavedTitle('')
   }
@@ -212,7 +245,11 @@ export default function AITailor() {
             <PreviewStep
               preview={preview}
               acceptedIds={acceptedIds}
+              editedContent={editedContent}
+              sectionOrder={sectionOrder}
               onToggle={toggleSection}
+              onEdit={editSection}
+              onMove={moveSection}
               onSave={handleSave}
               onBack={handleReset}
               saving={saving}
@@ -436,7 +473,11 @@ function Pill({ children }: { children: string }) {
 interface PreviewStepProps {
   preview: TailorPreview
   acceptedIds: Set<string>
+  editedContent: Map<string, string>
+  sectionOrder: string[]
   onToggle: (sectionId: string) => void
+  onEdit: (id: string, text: string) => void
+  onMove: (id: string, direction: -1 | 1) => void
   onSave: (cvTitle?: string) => void
   onBack: () => void
   saving: boolean
@@ -445,12 +486,21 @@ interface PreviewStepProps {
 function PreviewStep({
   preview,
   acceptedIds,
+  editedContent,
+  sectionOrder,
   onToggle,
+  onEdit,
+  onMove,
   onSave,
   onBack,
   saving,
 }: PreviewStepProps) {
   const [title, setTitle] = useState('')
+
+  const sectionMap = new Map(preview.sections.map((s) => [s.section_id, s]))
+  const orderedSections = sectionOrder
+    .map((id) => sectionMap.get(id))
+    .filter((s): s is NonNullable<typeof s> => s !== undefined)
 
   return (
     <div className="space-y-5">
@@ -460,7 +510,7 @@ function PreviewStep({
         <div>
           <h2 className="text-base font-semibold text-fg">Review section changes</h2>
           <p className="mt-1 text-sm text-fg-subtle">
-            Accepted sections use tailored text. Rejected sections keep the original text.
+            Accept, edit, or reorder sections. Rejected sections keep the original text.
           </p>
         </div>
         <div className="text-sm text-fg-subtle">
@@ -469,12 +519,18 @@ function PreviewStep({
       </div>
 
       <div className="space-y-4">
-        {preview.sections.map((section) => (
+        {orderedSections.map((section, idx) => (
           <SectionDiff
             key={section.section_id}
             section={section}
             accepted={acceptedIds.has(section.section_id)}
             onToggle={() => onToggle(section.section_id)}
+            editedText={editedContent.get(section.section_id)}
+            onEdit={(text) => onEdit(section.section_id, text)}
+            onMoveUp={() => onMove(section.section_id, -1)}
+            onMoveDown={() => onMove(section.section_id, 1)}
+            isFirst={idx === 0}
+            isLast={idx === orderedSections.length - 1}
           />
         ))}
       </div>

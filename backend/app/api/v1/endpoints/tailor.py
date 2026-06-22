@@ -202,6 +202,14 @@ def save_tailored_cv(
     result = job.result_json or {}
     all_sections = result.get("sections", [])
     accepted_ids = set(body.accepted_section_ids) if body.accepted_section_ids is not None else None
+    overrides = body.section_overrides or {}
+
+    if body.section_order:
+        order_index = {sid: i for i, sid in enumerate(body.section_order)}
+        all_sections = sorted(
+            all_sections,
+            key=lambda s: order_index.get(s.get("section_id", ""), len(order_index)),
+        )
 
     source_cv = crud_cv.get_by_id(db, job.cv_id, current_user.id)
     source_cv_content = source_cv.content if source_cv else ""
@@ -218,8 +226,12 @@ def save_tailored_cv(
     for section in all_sections:
         if _is_contact_section(section):
             continue
-        use_tailored = accepted_ids is None or section["section_id"] in accepted_ids
-        content = section["tailored"] if use_tailored else section["original"]
+        sid = section["section_id"]
+        if sid in overrides:
+            content = overrides[sid]
+        else:
+            use_tailored = accepted_ids is None or sid in accepted_ids
+            content = section["tailored"] if use_tailored else section["original"]
         if not content or not content.strip():
             content = section.get("original") or ""
         if not content or not content.strip():
