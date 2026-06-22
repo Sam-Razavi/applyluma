@@ -1,13 +1,21 @@
+import re
 from pathlib import Path
 
 import pdfplumber
 from docx import Document
 
+_CID_RE = re.compile(r"\(cid:\d+\)")
+
+
+def _clean_extracted_text(text: str) -> str:
+    return _CID_RE.sub("", text)
+
 
 def parse_pdf(file_path: Path) -> str:
     with pdfplumber.open(file_path) as pdf:
         pages = [page.extract_text() or "" for page in pdf.pages]
-    return "\n".join(pages).strip()
+    raw = "\n".join(pages).strip()
+    return _clean_extracted_text(raw)
 
 
 def parse_docx(file_path: Path) -> str:

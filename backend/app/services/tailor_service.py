@@ -238,7 +238,15 @@ def _detect_language(text: str) -> str:
         return "en"
 
 
+_CID_RE = re.compile(r"\(cid:\d+\)")
+
+_MAX_CONTACT_LINES = 12
+
+
 def _extract_contact_information(cv_content: str) -> str:
+    if _CID_RE.search(cv_content):
+        return ""
+
     collected: list[str] = []
     has_contact_signal = False
 
@@ -255,6 +263,9 @@ def _extract_contact_information(cv_content: str) -> str:
 
         collected.append(stripped)
         has_contact_signal = has_contact_signal or bool(_CONTACT_SIGNAL_RE.search(stripped))
+
+        if len(collected) >= _MAX_CONTACT_LINES:
+            break
 
     if not has_contact_signal:
         return ""
