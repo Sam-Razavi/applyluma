@@ -108,7 +108,7 @@ function LocationInput({ value, onChange }: LocationInputProps) {
         <ul
           role="listbox"
           className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-line py-1 shadow-xl"
-          style={{ background: 'rgba(8,14,18,0.97)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}
+          style={{ background: 'var(--nav-bg)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}
         >
           {suggestions.map((loc, i) => (
             <li

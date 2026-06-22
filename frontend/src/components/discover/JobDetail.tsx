@@ -103,7 +103,7 @@ export default function JobDetail({
         className="relative w-full max-w-2xl overflow-y-auto rounded-2xl border border-line shadow-2xl"
         style={{
           maxHeight: 'min(calc(100dvh - 7rem), 90vh)',
-          background: 'rgba(8,14,18,0.92)',
+          background: 'var(--nav-bg)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
         }}

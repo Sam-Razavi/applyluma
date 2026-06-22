@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowPathIcon,
+  ArrowRightOnRectangleIcon,
   BellAlertIcon,
   CreditCardIcon,
   EyeIcon,
@@ -464,6 +465,29 @@ export default function Settings() {
             Update password
           </button>
         </form>
+      </section>
+
+      {/* ── Sign out ───────────────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-line bg-surface p-6 ">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-fg ">Sign out</h2>
+            <p className="mt-0.5 text-xs text-fg-subtle ">
+              Sign out of your account on this device.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              logout()
+              navigate('/login')
+            }}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-track px-4 py-2 text-sm font-semibold text-fg transition hover:bg-surface-strong"
+          >
+            <ArrowRightOnRectangleIcon className="h-4 w-4" />
+            Sign out
+          </button>
+        </div>
       </section>
 
       {/* ── Delete account ─────────────────────────────────────────────── */}
