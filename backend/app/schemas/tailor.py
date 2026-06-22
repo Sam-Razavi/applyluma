@@ -66,6 +66,8 @@ class TailorPreviewResponse(BaseModel):
 class TailorSaveRequest(BaseModel):
     accepted_section_ids: list[str] | None = None
     cv_title: str | None = None
+    section_overrides: dict[str, str] | None = None
+    section_order: list[str] | None = None
 
 
 class TailorSaveResponse(BaseModel):

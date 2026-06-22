@@ -52,11 +52,15 @@ export const tailorApi = {
     jobId: string,
     acceptedSectionIds: string[] | null,
     cvTitle?: string,
+    sectionOverrides?: Record<string, string>,
+    sectionOrder?: string[],
   ): Promise<{ cv_id: string; title: string; file_url: string | null }> =>
     client
       .post(`/api/v1/tailor/${jobId}/save`, {
         accepted_section_ids: acceptedSectionIds,
         cv_title: cvTitle,
+        section_overrides: sectionOverrides && Object.keys(sectionOverrides).length > 0 ? sectionOverrides : undefined,
+        section_order: sectionOrder,
       })
       .then((r) => r.data),
 
