@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { useForm } from 'react-hook-form'
@@ -66,7 +66,7 @@ export default function Jobs() {
   const [jobs, setJobs] = useState<JobDescription[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [activeCollection, setActiveCollection] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<'date' | 'alpha'>('date')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const [addOpen, setAddOpen] = useState(false)
@@ -90,17 +90,25 @@ export default function Jobs() {
       .finally(() => setLoading(false))
   }, [])
 
-  const collections = [...new Set(jobs.map((j) => j.list_name).filter(Boolean))] as string[]
+  const filtered = useMemo(() => {
+    let result = jobs
 
-  const filtered = jobs.filter((j) => {
-    if (activeCollection !== null && (j.list_name ?? '') !== activeCollection) return false
-    if (!search) return true
-    const q = search.toLowerCase()
-    return (
-      (j.company_name ?? '').toLowerCase().includes(q) ||
-      (j.job_title ?? '').toLowerCase().includes(q)
-    )
-  })
+    const q = search.trim().toLowerCase()
+    if (q) {
+      result = result.filter((j) =>
+        (j.company_name ?? '').toLowerCase().includes(q) ||
+        (j.job_title ?? '').toLowerCase().includes(q),
+      )
+    }
+
+    return [...result].sort((a, b) => {
+      if (a.starred !== b.starred) return a.starred ? -1 : 1
+      if (sortBy === 'alpha') {
+        return (a.job_title ?? '').toLowerCase().localeCompare((b.job_title ?? '').toLowerCase())
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+  }, [jobs, search, sortBy])
 
   async function handleStar(jdId: string, starred: boolean) {
     setJobs((prev) => prev.map((j) => (j.id === jdId ? { ...j, starred } : j)))
@@ -219,47 +227,26 @@ export default function Jobs() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search + sort toolbar */}
       {(loading || jobs.length > 0) && (
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by company or job title…"
-            className="w-full pl-9 pr-4 py-2.5 border border-white/10 rounded-xl text-sm bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-        </div>
-      )}
-
-      {/* Collection filters */}
-      {collections.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <button
-            type="button"
-            onClick={() => setActiveCollection(null)}
-            className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
-              activeCollection === null
-                ? 'bg-brand-600 text-white'
-                : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
-            }`}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by company or job title…"
+              className="w-full pl-9 pr-4 py-2.5 border border-white/10 rounded-xl text-sm bg-white/[0.04] text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'date' | 'alpha')}
+            className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
-            All ({jobs.length})
-          </button>
-          {collections.map((col) => (
-            <button
-              key={col}
-              type="button"
-              onClick={() => setActiveCollection(col)}
-              className={`rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
-                activeCollection === col
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'
-              }`}
-            >
-              {col} ({jobs.filter((j) => j.list_name === col).length})
-            </button>
-          ))}
+            <option value="date">Newest saved</option>
+            <option value="alpha">A–Z by title</option>
+          </select>
         </div>
       )}
 
@@ -271,21 +258,21 @@ export default function Jobs() {
       ) : filtered.length === 0 ? (
         <div className="bg-white/[0.04] rounded-2xl border border-white/10 flex flex-col items-center justify-center py-16 px-6 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
-            {search || activeCollection ? (
+            {search ? (
               <MagnifyingGlassIcon className="h-6 w-6 text-white/30" />
             ) : (
               <BookmarkIcon className="h-6 w-6 text-white/30" />
             )}
           </div>
           <h2 className="mt-4 text-sm font-semibold text-white/90">
-            {search ? 'No results found' : activeCollection ? `No jobs in "${activeCollection}"` : 'No jobs yet'}
+            {search ? 'No results found' : 'No jobs yet'}
           </h2>
           <p className="mt-1 text-sm text-white/30">
             {search
               ? `No jobs match "${search}"`
               : 'Save jobs from Discover or add a job description to get started.'}
           </p>
-          {!search && !activeCollection && (
+          {!search && (
             <div className="mt-4 flex gap-3">
               <Link
                 to="/discover"
