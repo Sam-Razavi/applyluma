@@ -36,7 +36,7 @@ export default function FunnelChart({ data }: Props) {
         <Tooltip
           formatter={(value) => [`${formatNumber(Number(value))} applications`, 'Count']}
           contentStyle={CHART_TOOLTIP_STYLE}
-          cursor={{ fill: '#f9fafb' }}
+          cursor={{ fill: 'var(--track)' }}
         />
         <Bar dataKey="count" radius={[8, 8, 0, 0]}>
           {chartData.map((entry) => (

@@ -14,6 +14,7 @@
   --bg-base:             #E7ECF2;
   --bg-raised:           #FFFFFF;
   --bg-gradient:         linear-gradient(140deg, #EDF1F6 0%, #E3E9F0 55%, #E9EEF4 100%);
+  --nav-bg:              rgba(255, 255, 255, 0.92);
   --glass-card:          rgba(255, 255, 255, 0.90);
   --glass-hover:         #FFFFFF;
   --glass-border:        rgba(15, 23, 42, 0.10);
@@ -57,6 +58,7 @@
   --bg-base:             #080E12;
   --bg-raised:           #0C1218;
   --bg-gradient:         linear-gradient(140deg, #080E12 0%, #0A1118 55%, #070C10 100%);
+  --nav-bg:              rgba(8, 14, 18, 0.92);
   --glass-card:          rgba(255, 255, 255, 0.055);
   --glass-hover:         rgba(255, 255, 255, 0.09);
   --glass-border:        rgba(255, 255, 255, 0.08);

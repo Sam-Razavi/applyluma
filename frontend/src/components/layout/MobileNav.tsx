@@ -39,7 +39,7 @@ export default function MobileNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 z-[100] flex md:hidden"
       style={{
-        background: 'rgba(8,14,18,0.92)',
+        background: 'var(--nav-bg)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
         borderTop: '1px solid var(--glass-border)',
