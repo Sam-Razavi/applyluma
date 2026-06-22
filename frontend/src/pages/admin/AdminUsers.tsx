@@ -4,9 +4,9 @@ import { FadeIn } from '../../components/ui/FadeIn'
 import { adminApi, type AdminUserRow } from '../../services/adminApi'
 
 const ROLE_BADGE: Record<AdminUserRow['role'], string> = {
-  user: 'bg-[rgba(8,145,178,0.15)] text-cyan-300',
-  premium: 'bg-[rgba(8,145,178,0.15)] text-cyan-300',
-  admin: 'bg-[rgba(229,72,77,0.12)] text-red-300',
+  user: 'bg-chip-accent text-accent-text',
+  premium: 'bg-chip-accent text-accent-text',
+  admin: 'bg-chip-danger text-chip-danger-fg',
 }
 
 interface NotifyModal {
@@ -110,8 +110,8 @@ export default function AdminUsers() {
     <FadeIn>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white/90 ">User Management</h1>
-          <p className="mt-1 text-sm text-white/30 ">
+          <h1 className="text-2xl font-bold text-fg ">User Management</h1>
+          <p className="mt-1 text-sm text-fg-subtle ">
             {total > 0 ? `${total.toLocaleString()} users` : 'Loading…'}
           </p>
         </div>
@@ -123,12 +123,12 @@ export default function AdminUsers() {
             placeholder="Search by email or name…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 rounded-lg border border-white/15 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
+            className="flex-1 rounded-lg border border-line-strong px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
           />
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="rounded-lg border border-white/15 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
+            className="rounded-lg border border-line-strong px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
           >
             <option value="">All roles</option>
             <option value="user">User</option>
@@ -138,36 +138,36 @@ export default function AdminUsers() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.04] ">
+        <div className="overflow-x-auto rounded-2xl border border-line bg-surface ">
           {loading ? (
             <div className="space-y-3 p-5">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-10 animate-pulse rounded-lg bg-white/[0.04] " />
+                <div key={i} className="h-10 animate-pulse rounded-lg bg-track " />
               ))}
             </div>
           ) : users.length === 0 ? (
-            <div className="py-12 text-center text-sm text-white/30">No users found.</div>
+            <div className="py-12 text-center text-sm text-fg-subtle">No users found.</div>
           ) : (
-            <table className="min-w-full divide-y divide-white/10 ">
-              <thead className="bg-white/[0.03] ">
+            <table className="min-w-full divide-y divide-line ">
+              <thead className="bg-surface ">
                 <tr>
                   {['Email', 'Name', 'Role', 'Status', 'Active', 'Joined', 'Actions'].map((h) => (
                     <th
                       key={h}
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-white/30 "
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle "
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/10 ">
+              <tbody className="divide-y divide-line ">
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-white/[0.04] transition-colors">
-                    <td className="px-4 py-3 text-sm text-white/90 max-w-[200px] truncate">
+                  <tr key={u.id} className="hover:bg-surface-strong transition-colors">
+                    <td className="px-4 py-3 text-sm text-fg max-w-[200px] truncate">
                       {u.email}
                     </td>
-                    <td className="px-4 py-3 text-sm text-white/55 max-w-[140px] truncate">
+                    <td className="px-4 py-3 text-sm text-fg-muted max-w-[140px] truncate">
                       {u.full_name ?? '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -181,26 +181,26 @@ export default function AdminUsers() {
                         <option value="admin">admin</option>
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/30 ">
+                    <td className="px-4 py-3 text-xs text-fg-subtle ">
                       {u.subscription_status ?? '—'}
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => handleActiveToggle(u.id, !u.is_active)}
                         className={`inline-flex h-5 w-9 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
-                          u.is_active ? 'bg-green-500' : 'bg-white/20 '
+                          u.is_active ? 'bg-green-500' : 'bg-track '
                         }`}
                         role="switch"
                         aria-checked={u.is_active}
                       >
                         <span
-                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white/[0.04] shadow ring-0 transition-transform ${
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${
                             u.is_active ? 'translate-x-4' : 'translate-x-0'
                           }`}
                         />
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/30">
+                    <td className="px-4 py-3 text-xs text-fg-subtle">
                       {new Date(u.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
@@ -212,7 +212,7 @@ export default function AdminUsers() {
                         onClick={() =>
                           setNotifyModal({ user: u, title: '', body: '', submitting: false })
                         }
-                        className="text-xs font-medium text-primary-400 hover:text-primary-800 transition-colors"
+                        className="text-xs font-medium text-accent-text hover:text-primary-800 transition-colors"
                       >
                         Notify
                       </button>
@@ -226,7 +226,7 @@ export default function AdminUsers() {
 
         {/* Pagination */}
         {total > size && (
-          <div className="flex items-center justify-between text-sm text-white/30">
+          <div className="flex items-center justify-between text-sm text-fg-subtle">
             <span>
               Showing {start}–{end} of {total.toLocaleString()} users
             </span>
@@ -234,7 +234,7 @@ export default function AdminUsers() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-40 "
+                className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-medium hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-40 "
               >
                 Previous
               </button>
@@ -244,7 +244,7 @@ export default function AdminUsers() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-40 "
+                className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-medium hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-40 "
               >
                 Next
               </button>
@@ -261,31 +261,31 @@ export default function AdminUsers() {
             if (e.target === e.currentTarget) setNotifyModal(null)
           }}
         >
-          <div className="w-full max-w-md rounded-2xl bg-white/[0.04] p-6 shadow-xl ">
-            <h3 className="mb-1 text-base font-semibold text-white/90 ">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ">
+            <h3 className="mb-1 text-base font-semibold text-fg ">
               Send Notification
             </h3>
-            <p className="mb-4 text-xs text-white/30 truncate">To: {notifyModal.user.email}</p>
+            <p className="mb-4 text-xs text-fg-subtle truncate">To: {notifyModal.user.email}</p>
             <div className="space-y-3">
               <input
                 type="text"
                 placeholder="Title"
                 value={notifyModal.title}
                 onChange={(e) => setNotifyModal((m) => m && { ...m, title: e.target.value })}
-                className="w-full rounded-lg border border-white/15 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
+                className="w-full rounded-lg border border-line-strong px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
               />
               <textarea
                 placeholder="Message body"
                 rows={4}
                 value={notifyModal.body}
                 onChange={(e) => setNotifyModal((m) => m && { ...m, body: e.target.value })}
-                className="w-full resize-none rounded-lg border border-white/15 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
+                className="w-full resize-none rounded-lg border border-line-strong px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
               />
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setNotifyModal(null)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-white/55 hover:bg-white/[0.06] "
+                className="rounded-lg px-4 py-2 text-sm font-medium text-fg-muted hover:bg-surface-strong "
               >
                 Cancel
               </button>

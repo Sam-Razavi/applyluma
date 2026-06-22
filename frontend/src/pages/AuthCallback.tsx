@@ -33,7 +33,7 @@ export default function AuthCallback() {
   }, [searchParams, login, setToken, navigate])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white/[0.03]">
+    <div className="min-h-screen flex items-center justify-center bg-surface">
       <div className="flex flex-col items-center gap-4">
         <svg
           className="h-10 w-10 animate-spin text-brand-500"
@@ -48,7 +48,7 @@ export default function AuthCallback() {
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
           />
         </svg>
-        <p className="text-sm text-white/50">Completing sign-in…</p>
+        <p className="text-sm text-fg-muted">Completing sign-in…</p>
       </div>
     </div>
   )

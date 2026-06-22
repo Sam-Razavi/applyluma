@@ -55,11 +55,11 @@ function GlowDot(props: any) {
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl border border-[rgba(8,145,178,0.20)] bg-white/[0.04] px-4 py-3 shadow-xl">
-      <p className="text-xs text-white/45">{formatWeek(String(label))}</p>
-      <p className="mt-0.5 text-lg font-bold text-cyan-300">
+    <div className="rounded-xl border border-accent-muted bg-raised px-4 py-3 shadow-xl">
+      <p className="text-xs text-fg-muted">{formatWeek(String(label))}</p>
+      <p className="mt-0.5 text-lg font-bold text-accent-text">
         {payload[0].value as number}
-        <span className="ml-1 text-xs font-normal text-white/45">applications</span>
+        <span className="ml-1 text-xs font-normal text-fg-muted">applications</span>
       </p>
     </div>
   )
@@ -95,32 +95,32 @@ export default function DashboardActivityChart() {
   const chartData = data.map((d, i) => ({ ...d, index: i, dataLength: data.length }))
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
+    <div className="rounded-2xl border border-line bg-surface p-5 ">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-white/90 ">Activity</h2>
-          <p className="mt-0.5 text-xs text-white/45">Applications sent over the last 12 weeks</p>
+          <h2 className="text-sm font-semibold text-fg ">Activity</h2>
+          <p className="mt-0.5 text-xs text-fg-muted">Applications sent over the last 12 weeks</p>
         </div>
         <Link
           to="/applications?tab=stats"
-          className="flex shrink-0 items-center gap-1 text-xs font-medium text-cyan-300 text-cyan-300"
+          className="flex shrink-0 items-center gap-1 text-xs font-medium text-accent-text"
         >
           Full stats <ArrowRightIcon className="h-3.5 w-3.5" />
         </Link>
       </div>
 
       {/* Summary stats */}
-      <div className="mb-5 grid grid-cols-3 divide-x divide-white/10 ">
+      <div className="mb-5 grid grid-cols-3 divide-x divide-line ">
         {[
           { label: 'Total sent', value: total, icon: null },
           { label: 'This week', value: thisWeek, icon: null },
           { label: 'Best week', value: bestWeek, icon: null },
         ].map(({ label, value }) => (
           <div key={label} className="px-4 first:pl-0 last:pr-0">
-            <p className="text-xs text-white/45">{label}</p>
-            <p className="mt-0.5 text-2xl font-bold text-white/90 ">
+            <p className="text-xs text-fg-muted">{label}</p>
+            <p className="mt-0.5 text-2xl font-bold text-fg ">
               {loading ? (
-                <span className="inline-block h-7 w-10 animate-pulse rounded bg-white/[0.04]" />
+                <span className="inline-block h-7 w-10 animate-pulse rounded bg-track" />
               ) : (
                 <AnimatedNumber value={value} />
               )}
@@ -135,15 +135,15 @@ export default function DashboardActivityChart() {
           {[40, 65, 30, 80, 55, 90, 45, 70, 60, 85, 50, 75].map((h, i) => (
             <div
               key={i}
-              className="flex-1 animate-pulse rounded-t-sm bg-[rgba(8,145,178,0.15)]"
+              className="flex-1 animate-pulse rounded-t-sm bg-chip-accent"
               style={{ height: `${h}%`, animationDelay: `${i * 60}ms` }}
             />
           ))}
         </div>
       ) : total === 0 ? (
-        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl bg-white/[0.03] ">
-          <ArrowTrendingUpIcon className="h-8 w-8 text-white/45" />
-          <p className="text-xs text-white/45">Start tracking applications to see your trend</p>
+        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl bg-track ">
+          <ArrowTrendingUpIcon className="h-8 w-8 text-fg-muted" />
+          <p className="text-xs text-fg-muted">Start tracking applications to see your trend</p>
         </div>
       ) : (
         <div
@@ -158,17 +158,17 @@ export default function DashboardActivityChart() {
                   <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--track)" vertical={false} />
               <XAxis
                 dataKey="week_start"
                 tickFormatter={formatWeek}
-                tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }}
+                tick={{ fontSize: 11, fill: 'var(--text-3)' }}
                 axisLine={false}
                 tickLine={false}
                 interval="preserveStartEnd"
               />
               <YAxis
-                tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }}
+                tick={{ fontSize: 11, fill: 'var(--text-3)' }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
@@ -186,7 +186,7 @@ export default function DashboardActivityChart() {
                 dot={(props) => (
                   <GlowDot key={props.index} {...props} dataLength={chartData.length} />
                 )}
-                activeDot={{ r: 5, fill: '#6366f1', stroke: 'white', strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: '#6366f1', stroke: 'var(--bg-raised)', strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -195,9 +195,9 @@ export default function DashboardActivityChart() {
 
       {/* Streak badge */}
       {streak >= 2 && (
-        <div className="mt-4 flex items-center gap-1.5 rounded-xl bg-[rgba(245,158,11,0.14)] px-3 py-2 ">
+        <div className="mt-4 flex items-center gap-1.5 rounded-xl bg-chip-warn px-3 py-2 ">
           <FireIcon className="h-4 w-4 text-orange-500" />
-          <p className="text-xs font-medium text-amber-300 ">
+          <p className="text-xs font-medium text-chip-warn-fg ">
             {streak}-week streak — keep it up!
           </p>
         </div>

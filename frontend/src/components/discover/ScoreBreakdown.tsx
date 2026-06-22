@@ -46,15 +46,15 @@ export default function ScoreBreakdown({
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+    <div className="rounded-xl border border-line bg-surface p-4">
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
         className="flex w-full items-center justify-between gap-3 text-left"
       >
-        <span className="text-sm font-semibold text-white/90">Score breakdown</span>
+        <span className="text-sm font-semibold text-fg">Score breakdown</span>
         <ChevronDownIcon
-          className={`h-4 w-4 text-white/30 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 text-fg-subtle transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -69,23 +69,23 @@ export default function ScoreBreakdown({
                 return (
                   <div key={row.key} className="space-y-1">
                     <div className="flex items-center justify-between gap-3 text-xs">
-                      <span className="font-medium text-white/55">
-                        {row.label} <span className="text-white/30">({MATCH_WEIGHTS[row.key]}%)</span>
+                      <span className="font-medium text-fg-muted">
+                        {row.label} <span className="text-fg-subtle">({MATCH_WEIGHTS[row.key]}%)</span>
                       </span>
-                      <span className="text-white/30">
+                      <span className="text-fg-subtle">
                         {scoreBand(value)} - {pct}%
                       </span>
                     </div>
-                    <div className="h-2 min-w-0 overflow-hidden rounded-full bg-white/[0.04]">
+                    <div className="h-2 min-w-0 overflow-hidden rounded-full bg-track">
                       <div className={`h-full rounded-full ${barColor(pct)}`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 )
               })}
-              {explanation && <p className="pt-1 text-xs text-white/30">{explanation}</p>}
+              {explanation && <p className="pt-1 text-xs text-fg-subtle">{explanation}</p>}
             </>
           ) : (
-            <p className="text-xs text-white/30">
+            <p className="text-xs text-fg-subtle">
               Score details unavailable — upload a CV so AI matching can run.
             </p>
           )}

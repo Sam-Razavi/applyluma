@@ -22,7 +22,7 @@ const schema = z
 type FormData = z.infer<typeof schema>
 
 const inputClass =
-  'w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition'
+  'w-full px-3 py-2.5 border border-line-strong rounded-lg text-sm placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -60,11 +60,11 @@ export default function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-white/[0.03] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-surface flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white/[0.04] py-8 px-8 shadow-sm rounded-2xl border border-white/10 text-center space-y-4">
-            <p className="text-sm text-red-300">This reset link is missing or invalid.</p>
-            <Link to="/forgot-password" className="text-sm text-primary-400 hover:underline font-medium">
+          <div className="bg-surface py-8 px-8 shadow-sm rounded-2xl border border-line text-center space-y-4">
+            <p className="text-sm text-chip-danger-fg">This reset link is missing or invalid.</p>
+            <Link to="/forgot-password" className="text-sm text-accent-text hover:underline font-medium">
               Request a new one
             </Link>
           </div>
@@ -74,17 +74,17 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-white/[0.03] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-surface flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <h1 className="text-3xl font-bold text-white/90 tracking-tight">ApplyLuma</h1>
-        <p className="mt-2 text-white/30">Set a new password</p>
+        <h1 className="text-3xl font-bold text-fg tracking-tight">ApplyLuma</h1>
+        <p className="mt-2 text-fg-subtle">Set a new password</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white/[0.04] py-8 px-8 shadow-sm rounded-2xl border border-white/10">
+        <div className="bg-surface py-8 px-8 shadow-sm rounded-2xl border border-line">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-white/55 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-fg-muted mb-1">
                 New password
               </label>
               <div className="relative">
@@ -99,19 +99,19 @@ export default function ResetPassword() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/55"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-xs text-red-300">{errors.password.message}</p>
+                <p className="mt-1 text-xs text-chip-danger-fg">{errors.password.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-white/55 mb-1">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-fg-muted mb-1">
                 Confirm new password
               </label>
               <div className="relative">
@@ -126,14 +126,14 @@ export default function ResetPassword() {
                 <button
                   type="button"
                   onClick={() => setShowConfirm((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/55"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted"
                   aria-label={showConfirm ? 'Hide password' : 'Show password'}
                 >
                   {showConfirm ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1 text-xs text-red-300">{errors.confirmPassword.message}</p>
+                <p className="mt-1 text-xs text-chip-danger-fg">{errors.confirmPassword.message}</p>
               )}
             </div>
 

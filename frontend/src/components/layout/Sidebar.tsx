@@ -67,7 +67,7 @@ function navClass({ isActive }: { isActive: boolean }) {
     'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
     isActive
       ? 'text-[var(--accent-text)]'
-      : 'text-white/55 hover:text-white/90 hover:bg-white/[0.04]',
+      : 'text-fg-muted hover:text-fg hover:bg-surface-strong',
   ].join(' ')
 }
 
@@ -99,7 +99,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 px-5">
         <Link to="/dashboard" className="flex items-center gap-2">
-          <span className="font-display text-lg font-bold tracking-tight text-white/92">
+          <span className="font-display text-lg font-bold tracking-tight text-fg">
             ApplyLuma
           </span>
           <span
@@ -118,7 +118,7 @@ export default function Sidebar() {
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
-            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/28">
+            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">
               {section.label}
             </p>
             <div className="space-y-0.5">
@@ -155,7 +155,7 @@ export default function Sidebar() {
 
         {user?.role === 'admin' && (
           <div>
-            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-white/28">
+            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">
               Admin
             </p>
             <div className="space-y-0.5">
@@ -169,7 +169,7 @@ export default function Sidebar() {
                       'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                       isActive
                         ? 'text-[var(--accent-text)] bg-[var(--accent-muted)]'
-                        : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04]',
+                        : 'text-fg-muted hover:text-fg hover:bg-surface-strong',
                     ].join(' ')
                   }
                 >
@@ -183,27 +183,27 @@ export default function Sidebar() {
       </nav>
 
       {/* User footer */}
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-line p-3">
         <Link
           to="/settings"
-          className="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white/[0.04]"
+          className="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-surface-strong"
         >
           <UserAvatar fullName={user?.full_name} email={user?.email} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white/90">
+            <p className="truncate text-sm font-medium text-fg">
               {user?.full_name ?? user?.email ?? 'Account'}
             </p>
-            <p className="truncate text-xs capitalize text-white/40">
+            <p className="truncate text-xs capitalize text-fg-subtle">
               {user?.role ?? 'user'} plan
             </p>
           </div>
-          <ChevronRightIcon className="h-4 w-4 shrink-0 text-white/30" />
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-fg-subtle" />
         </Link>
         <button
           type="button"
           onClick={handleLogout}
           disabled={signingOut}
-          className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/45 transition-colors hover:bg-white/[0.04] hover:text-white/80 disabled:opacity-60"
+          className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg disabled:opacity-60"
         >
           <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
           {signingOut ? 'Signing out…' : 'Sign out'}

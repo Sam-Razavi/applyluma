@@ -79,7 +79,7 @@ export default function KanbanBoard({
           const ToggleIcon = isOpen ? ChevronUpIcon : ChevronDownIcon
 
           return (
-            <section key={status} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+            <section key={status} className="overflow-hidden rounded-2xl border border-line bg-surface">
               <button
                 type="button"
                 onClick={() => toggleStatus(status)}
@@ -87,22 +87,22 @@ export default function KanbanBoard({
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${STATUS_META[status].color}`} />
-                  <span className="truncate text-sm font-semibold text-white/90">
+                  <span className="truncate text-sm font-semibold text-fg">
                     {STATUS_META[status].label}
                   </span>
                 </span>
                 <span className="flex flex-shrink-0 items-center gap-2">
-                  <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-xs font-semibold text-white/55">
+                  <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-fg-muted">
                     {statusApplications.length}
                   </span>
-                  <ToggleIcon className="h-4 w-4 text-white/45" />
+                  <ToggleIcon className="h-4 w-4 text-fg-muted" />
                 </span>
               </button>
 
               {isOpen && (
-                <div className="space-y-3 border-t border-white/10 bg-white/[0.03] p-3">
+                <div className="space-y-3 border-t border-line bg-surface p-3">
                   {statusApplications.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-6 text-center text-xs text-white/45">
+                    <div className="rounded-xl border border-dashed border-line-strong bg-surface px-4 py-6 text-center text-xs text-fg-muted">
                       No applications
                     </div>
                   ) : (
@@ -125,10 +125,10 @@ export default function KanbanBoard({
                             else setSelected(application)
                           }
                         }}
-                        className={`flex items-center gap-3 rounded-xl border bg-white/[0.04] p-4 text-left shadow-sm transition cursor-pointer ${
+                        className={`flex items-center gap-3 rounded-xl border bg-surface p-4 text-left shadow-sm transition cursor-pointer ${
                           isSelectMode && selectedIds?.has(application.id)
                             ? 'border-primary-500/50 ring-2 ring-primary-600/30'
-                            : 'border-white/10 hover:border-primary-600/40'
+                            : 'border-line hover:border-primary-600/40'
                         }`}
                       >
                         {isSelectMode && (
@@ -137,14 +137,14 @@ export default function KanbanBoard({
                             checked={selectedIds?.has(application.id) ?? false}
                             onChange={() => onToggleSelect?.(application.id)}
                             onClick={(e) => e.stopPropagation()}
-                            className="h-4 w-4 flex-shrink-0 rounded border-white/15 text-primary-400 focus:ring-brand-500"
+                            className="h-4 w-4 flex-shrink-0 rounded border-line-strong text-accent-text focus:ring-brand-500"
                           />
                         )}
                         <div className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-white/90">
+                          <span className="block truncate text-sm font-semibold text-fg">
                             {application.job_title}
                           </span>
-                          <span className="mt-1 block truncate text-sm text-white/45">
+                          <span className="mt-1 block truncate text-sm text-fg-muted">
                             {application.company_name}
                           </span>
                         </div>

@@ -16,14 +16,14 @@ function StatCard({
   sub?: string
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
-      <p className="text-xs font-medium text-white/30 ">{label}</p>
+    <div className="rounded-2xl border border-line bg-surface p-5 ">
+      <p className="text-xs font-medium text-fg-subtle ">{label}</p>
       {loading ? (
-        <div className="mt-1 h-8 w-16 animate-pulse rounded bg-white/[0.06] " />
+        <div className="mt-1 h-8 w-16 animate-pulse rounded bg-track " />
       ) : (
-        <p className="mt-1 text-3xl font-bold text-white/90 ">{value.toLocaleString()}</p>
+        <p className="mt-1 text-3xl font-bold text-fg ">{value.toLocaleString()}</p>
       )}
-      {sub && <p className="mt-0.5 text-xs text-white/30">{sub}</p>}
+      {sub && <p className="mt-0.5 text-xs text-fg-subtle">{sub}</p>}
     </div>
   )
 }
@@ -46,17 +46,17 @@ export default function AdminDashboard() {
     <FadeIn>
       <div className="space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-white/90 ">Admin Overview</h1>
-          <p className="mt-1 text-sm text-white/30 ">Platform-wide statistics at a glance.</p>
+          <h1 className="text-2xl font-bold text-fg ">Admin Overview</h1>
+          <p className="mt-1 text-sm text-fg-subtle ">Platform-wide statistics at a glance.</p>
         </div>
 
         {error && (
-          <div className="rounded-xl border border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] p-4 text-sm text-red-300">{error}</div>
+          <div className="rounded-xl border border-chip-danger bg-chip-danger p-4 text-sm text-chip-danger-fg">{error}</div>
         )}
 
         {/* Users */}
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-white/55 uppercase tracking-wide">
+          <h2 className="mb-3 text-sm font-semibold text-fg-muted uppercase tracking-wide">
             Users
           </h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
 
         {/* AI Usage */}
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-white/55 uppercase tracking-wide">
+          <h2 className="mb-3 text-sm font-semibold text-fg-muted uppercase tracking-wide">
             AI Usage
           </h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -87,7 +87,7 @@ export default function AdminDashboard() {
 
         {/* Content */}
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-white/55 uppercase tracking-wide">
+          <h2 className="mb-3 text-sm font-semibold text-fg-muted uppercase tracking-wide">
             Content
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

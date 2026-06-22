@@ -223,11 +223,11 @@ export default function CoverLetter() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-white/90">
-          <PencilSquareIcon className="h-7 w-7 text-primary-400" />
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-fg">
+          <PencilSquareIcon className="h-7 w-7 text-accent-text" />
           Cover Letter Generator
         </h1>
-        <p className="mt-1 text-sm text-white/30">
+        <p className="mt-1 text-sm text-fg-subtle">
           Generate a tailored cover letter for any job description, then edit and save it.
         </p>
       </div>
@@ -313,8 +313,8 @@ function UsageBanner({ usage }: { usage: CoverLetterUsage }) {
 
   return (
     <div className="rounded-xl border border-brand-100 bg-primary-900/20 px-4 py-3">
-      <p className="text-sm font-medium text-white/90">{label}</p>
-      <p className="mt-0.5 text-xs text-primary-400">Resets at {resetTime} UTC.</p>
+      <p className="text-sm font-medium text-fg">{label}</p>
+      <p className="mt-0.5 text-xs text-accent-text">Resets at {resetTime} UTC.</p>
     </div>
   )
 }
@@ -353,23 +353,23 @@ function SelectStep({
   prefilledJobLabel,
 }: SelectStepProps) {
   return (
-    <div className="space-y-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+    <div className="space-y-6 rounded-2xl border border-line bg-surface p-6">
       <div>
-        <h2 className="text-sm font-semibold text-white/55">
+        <h2 className="text-sm font-semibold text-fg-muted">
           {prefilledJobLabel ? 'Select your CV' : 'Select CV and job description'}
         </h2>
-        <p className="mt-1 text-xs text-white/30">
+        <p className="mt-1 text-xs text-fg-subtle">
           The AI will read your CV and the job description to generate a personalised cover letter.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-white/55">Your CV</label>
+          <label className="block text-xs font-medium text-fg-muted">Your CV</label>
           {loading ? (
-            <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
+            <div className="h-10 animate-pulse rounded-lg bg-track" />
           ) : cvs.length === 0 ? (
-            <p className="text-xs text-white/30">
+            <p className="text-xs text-fg-subtle">
               No CVs found.{' '}
               <a href="/cvs" className="underline">
                 Upload one
@@ -393,16 +393,16 @@ function SelectStep({
         </div>
 
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-white/55">Target job</label>
+          <label className="block text-xs font-medium text-fg-muted">Target job</label>
           {prefilledJobLabel ? (
             <div className="flex items-center gap-2 rounded-lg border border-primary-600/30 bg-primary-900/20 px-3 py-2">
-              <SparklesIcon className="h-4 w-4 shrink-0 text-primary-400" />
-              <span className="truncate text-sm text-white/80">{prefilledJobLabel}</span>
+              <SparklesIcon className="h-4 w-4 shrink-0 text-accent-text" />
+              <span className="truncate text-sm text-fg">{prefilledJobLabel}</span>
             </div>
           ) : loading ? (
-            <div className="h-10 animate-pulse rounded-lg bg-white/[0.04]" />
+            <div className="h-10 animate-pulse rounded-lg bg-track" />
           ) : jobs.length === 0 ? (
-            <p className="text-xs text-white/30">
+            <p className="text-xs text-fg-subtle">
               No job descriptions found.{' '}
               <a href="/jobs" className="underline">
                 Add one
@@ -426,7 +426,7 @@ function SelectStep({
       </div>
 
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-white/55">Tone</label>
+        <label className="block text-xs font-medium text-fg-muted">Tone</label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {TONE_OPTIONS.map((option) => (
             <button
@@ -436,11 +436,11 @@ function SelectStep({
               className={`rounded-xl border p-3 text-left transition-colors ${
                 tone === option.value
                   ? 'border-primary-500/50 bg-primary-900/20 ring-1 ring-brand-400'
-                  : 'border-white/10 bg-white/[0.04] hover:border-white/20'
+                  : 'border-line bg-surface hover:border-line-strong'
               }`}
             >
-              <p className="text-sm font-semibold text-white/90">{option.label}</p>
-              <p className="mt-0.5 text-xs text-white/30">{option.description}</p>
+              <p className="text-sm font-semibold text-fg">{option.label}</p>
+              <p className="mt-0.5 text-xs text-fg-subtle">{option.description}</p>
             </button>
           ))}
         </div>
@@ -466,7 +466,7 @@ function SelectStep({
       </button>
 
       {atLimit && (
-        <p className="text-sm text-red-300">
+        <p className="text-sm text-chip-danger-fg">
           Daily limit reached. Try again after the reset time or upgrade to premium.
         </p>
       )}
@@ -494,8 +494,8 @@ function ProcessingStep() {
   }, [])
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8">
-      <h2 className="mb-6 text-base font-semibold text-white/90">Generating your cover letter</h2>
+    <div className="rounded-2xl border border-line bg-surface p-8">
+      <h2 className="mb-6 text-base font-semibold text-fg">Generating your cover letter</h2>
       <ol className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {steps.map((s, index) => {
           const done = index < activeStep
@@ -504,7 +504,7 @@ function ProcessingStep() {
             <li key={s.label} className="flex min-w-0 items-start gap-3 sm:flex-1">
               <div
                 className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                  done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-white/[0.06]'
+                  done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-track'
                 }`}
               >
                 {done && (
@@ -514,10 +514,10 @@ function ProcessingStep() {
                 )}
               </div>
               <div>
-                <p className={`text-sm font-medium ${active ? 'text-white/90' : done ? 'text-white/30' : 'text-white/30'}`}>
+                <p className={`text-sm font-medium ${active ? 'text-fg' : done ? 'text-fg-subtle' : 'text-fg-subtle'}`}>
                   {s.label}
                 </p>
-                {active && <p className="mt-0.5 text-xs text-white/30">{s.sublabel}</p>}
+                {active && <p className="mt-0.5 text-xs text-fg-subtle">{s.sublabel}</p>}
               </div>
             </li>
           )
@@ -553,21 +553,21 @@ function EditStep({
   onBack,
 }: EditStepProps) {
   return (
-    <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+    <div className="space-y-4 rounded-2xl border border-line bg-surface p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-white/90">Edit your cover letter</h2>
-          <p className="mt-0.5 text-xs text-white/30">
+          <h2 className="text-base font-semibold text-fg">Edit your cover letter</h2>
+          <p className="mt-0.5 text-xs text-fg-subtle">
             Review and refine before saving. Changes are only saved when you click Save.
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-white/[0.04] px-2.5 py-0.5 text-xs font-medium text-white/30">
+        <span className="shrink-0 rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-fg-subtle">
           {wordCount} words
         </span>
       </div>
 
       <div className="space-y-1">
-        <label className="block text-xs font-medium text-white/55">Title (optional)</label>
+        <label className="block text-xs font-medium text-fg-muted">Title (optional)</label>
         <input
           type="text"
           className="input w-full"
@@ -607,7 +607,7 @@ function EditStep({
         <button
           type="button"
           onClick={onCopy}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04]"
+          className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-sm font-medium text-fg-muted hover:bg-surface-strong"
         >
           <ClipboardDocumentIcon className="h-4 w-4" />
           Copy
@@ -616,7 +616,7 @@ function EditStep({
         <button
           type="button"
           onClick={onDownload}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04]"
+          className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-sm font-medium text-fg-muted hover:bg-surface-strong"
         >
           <DocumentTextIcon className="h-4 w-4" />
           Download .txt
@@ -625,7 +625,7 @@ function EditStep({
         <button
           type="button"
           onClick={onBack}
-          className="ml-auto text-sm text-white/30 hover:text-white/55"
+          className="ml-auto text-sm text-fg-subtle hover:text-fg-muted"
         >
           Start over
         </button>
@@ -644,16 +644,16 @@ interface DoneStepProps {
 
 function DoneStep({ letterTitle, savedText, onReset, onCopy, onDownload }: DoneStepProps) {
   return (
-    <div className="space-y-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+    <div className="space-y-6 rounded-2xl border border-line bg-surface p-6">
       <div className="flex items-center gap-3">
-        <CheckCircleIcon className="h-8 w-8 text-green-500" />
+        <CheckCircleIcon className="h-8 w-8 text-chip-success-fg" />
         <div>
-          <h2 className="text-base font-semibold text-white/90">Cover letter saved!</h2>
-          {letterTitle && <p className="text-sm text-white/30">{letterTitle}</p>}
+          <h2 className="text-base font-semibold text-fg">Cover letter saved!</h2>
+          {letterTitle && <p className="text-sm text-fg-subtle">{letterTitle}</p>}
         </div>
       </div>
 
-      <pre className="max-h-[400px] overflow-y-auto whitespace-pre-wrap rounded-xl bg-white/[0.03] p-4 text-sm leading-relaxed text-white/55">
+      <pre className="max-h-[400px] overflow-y-auto whitespace-pre-wrap rounded-xl bg-surface p-4 text-sm leading-relaxed text-fg-muted">
         {savedText}
       </pre>
 
@@ -661,7 +661,7 @@ function DoneStep({ letterTitle, savedText, onReset, onCopy, onDownload }: DoneS
         <button
           type="button"
           onClick={onCopy}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04]"
+          className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-sm font-medium text-fg-muted hover:bg-surface-strong"
         >
           <ClipboardDocumentIcon className="h-4 w-4" />
           Copy
@@ -670,7 +670,7 @@ function DoneStep({ letterTitle, savedText, onReset, onCopy, onDownload }: DoneS
         <button
           type="button"
           onClick={onDownload}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04]"
+          className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-sm font-medium text-fg-muted hover:bg-surface-strong"
         >
           <DocumentTextIcon className="h-4 w-4" />
           Download .txt
@@ -699,30 +699,30 @@ function HistorySection({ history, loading, onDelete }: HistorySectionProps) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04]">
+    <div className="rounded-2xl border border-line bg-surface">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between px-6 py-4 text-sm font-semibold text-white/55"
+        className="flex w-full items-center justify-between px-6 py-4 text-sm font-semibold text-fg-muted"
       >
         <span>History ({history.length})</span>
-        <span className="text-white/30">{open ? '▲' : '▼'}</span>
+        <span className="text-fg-subtle">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
-        <div className="divide-y divide-white/10 border-t border-white/10">
+        <div className="divide-y divide-line border-t border-line">
           {loading ? (
-            <div className="px-6 py-4 text-sm text-white/30">Loading…</div>
+            <div className="px-6 py-4 text-sm text-fg-subtle">Loading…</div>
           ) : history.length === 0 ? (
-            <div className="px-6 py-4 text-sm text-white/30">No cover letters yet.</div>
+            <div className="px-6 py-4 text-sm text-fg-subtle">No cover letters yet.</div>
           ) : (
             history.map((job) => (
               <div key={job.id} className="flex items-center justify-between gap-4 px-6 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-white/90">
+                  <p className="truncate text-sm font-medium text-fg">
                     {job.title || 'Untitled cover letter'}
                   </p>
-                  <p className="mt-0.5 text-xs text-white/30">
+                  <p className="mt-0.5 text-xs text-fg-subtle">
                     {job.tone} · {job.status} ·{' '}
                     {new Date(job.created_at).toLocaleDateString()}
                   </p>
@@ -730,7 +730,7 @@ function HistorySection({ history, loading, onDelete }: HistorySectionProps) {
                 <button
                   type="button"
                   onClick={() => onDelete(job.id)}
-                  className="shrink-0 rounded-lg p-1.5 text-white/30 hover:bg-[rgba(229,72,77,0.12)] text-red-300"
+                  className="shrink-0 rounded-lg p-1.5 text-fg-subtle hover:bg-chip-danger text-chip-danger-fg"
                   title="Delete"
                 >
                   <TrashIcon className="h-4 w-4" />

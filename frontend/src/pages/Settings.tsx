@@ -145,23 +145,23 @@ export default function Settings() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-white/90 ">
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-fg ">
           Settings
         </h1>
-        <p className="mt-1 text-sm text-white/30 ">
+        <p className="mt-1 text-sm text-fg-subtle ">
           Manage your account and preferences.
         </p>
       </div>
 
       {/* ── Profile ──────────────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 ">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-white/90 ">
-          <UserCircleIcon className="h-4 w-4 text-white/30" />
+      <section className="rounded-2xl border border-line bg-surface p-6 ">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-fg ">
+          <UserCircleIcon className="h-4 w-4 text-fg-subtle" />
           Profile
         </h2>
         <form onSubmit={(e) => void handleSaveProfile(e)} className="mt-4 space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-white/55 ">
+            <label className="mb-1.5 block text-xs font-medium text-fg-muted ">
               Display name
             </label>
             <input
@@ -173,7 +173,7 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-white/55 ">
+            <label className="mb-1.5 block text-xs font-medium text-fg-muted ">
               Email
             </label>
             <input
@@ -195,15 +195,15 @@ export default function Settings() {
       </section>
 
       {!hasDefaultCv && (
-        <div className="rounded-xl border border-[rgba(245,158,11,0.20)] bg-[rgba(245,158,11,0.14)] px-4 py-3 text-sm text-amber-300">
+        <div className="rounded-xl border border-chip-warn bg-chip-warn px-4 py-3 text-sm text-chip-warn-fg">
           Set a default CV to receive useful high-match alerts.
         </div>
       )}
 
       {/* ── Account ──────────────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 ">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-white/90 ">
-          <CreditCardIcon className="h-4 w-4 text-white/30" />
+      <section className="rounded-2xl border border-line bg-surface p-6 ">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-fg ">
+          <CreditCardIcon className="h-4 w-4 text-fg-subtle" />
           Account
         </h2>
 
@@ -211,7 +211,7 @@ export default function Settings() {
           {/* Plan badge */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-white/30 ">Current plan</p>
+              <p className="text-xs font-medium text-fg-subtle ">Current plan</p>
               <div className="mt-1 flex items-center gap-2">
                 {user?.role === 'premium' || user?.role === 'admin' ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-500 to-indigo-600 px-3 py-0.5 text-xs font-bold text-white">
@@ -219,7 +219,7 @@ export default function Settings() {
                     {user.role === 'admin' ? 'Admin' : 'Premium'}
                   </span>
                 ) : (
-                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-0.5 text-xs font-semibold text-white/55 ">
+                  <span className="rounded-full border border-line bg-surface px-3 py-0.5 text-xs font-semibold text-fg-muted ">
                     Free
                   </span>
                 )}
@@ -239,22 +239,22 @@ export default function Settings() {
           {/* AI Tailor usage */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <p className="text-xs font-medium text-white/30 ">
+              <p className="text-xs font-medium text-fg-subtle ">
                 AI Tailor usage today
               </p>
               {loading || !usage ? (
-                <span className="h-4 w-16 animate-pulse rounded bg-white/[0.04] " />
+                <span className="h-4 w-16 animate-pulse rounded bg-track " />
               ) : usage.daily_limit === null ? (
-                <span className="text-xs font-semibold text-emerald-300">Unlimited</span>
+                <span className="text-xs font-semibold text-chip-success-fg">Unlimited</span>
               ) : (
-                <span className={`text-xs font-semibold ${usage.used_today >= usage.daily_limit ? 'text-red-300' : 'text-white/55 '}`}>
+                <span className={`text-xs font-semibold ${usage.used_today >= usage.daily_limit ? 'text-chip-danger-fg' : 'text-fg-muted '}`}>
                   {usage.used_today} / {usage.daily_limit} used
                 </span>
               )}
             </div>
             {!loading && usage && usage.daily_limit !== null && (
               <>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.04] ">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-track ">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       usage.used_today >= usage.daily_limit
@@ -267,7 +267,7 @@ export default function Settings() {
                   />
                 </div>
                 {usage.used_today >= usage.daily_limit && user?.role === 'user' && (
-                  <p className="mt-1.5 text-xs text-red-300">
+                  <p className="mt-1.5 text-xs text-chip-danger-fg">
                     Limit reached — resets at midnight.{' '}
                     <Link to="/plans" className="font-semibold underline underline-offset-2">
                       Upgrade for 10/day
@@ -281,22 +281,22 @@ export default function Settings() {
       </section>
 
       {/* ── Appearance ─────────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 ">
+      <section className="rounded-2xl border border-line bg-surface p-6 ">
         <div className="mb-4 flex items-center gap-2">
           {dark ? (
-            <MoonIcon className="h-5 w-5 text-primary-400" />
+            <MoonIcon className="h-5 w-5 text-accent-text" />
           ) : (
-            <SunIcon className="h-5 w-5 text-primary-400" />
+            <SunIcon className="h-5 w-5 text-accent-text" />
           )}
-          <h2 className="text-sm font-semibold text-white/90 ">Appearance</h2>
+          <h2 className="text-sm font-semibold text-fg ">Appearance</h2>
         </div>
 
-        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-3 ">
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-line px-4 py-3 ">
           <span>
-            <span className="block text-sm font-medium text-white/90 ">
+            <span className="block text-sm font-medium text-fg ">
               Dark mode
             </span>
-            <span className="block text-xs text-white/30 ">
+            <span className="block text-xs text-fg-subtle ">
               Switch between light and dark theme.
             </span>
           </span>
@@ -306,11 +306,11 @@ export default function Settings() {
             aria-checked={dark}
             onClick={toggleDark}
             className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
-              dark ? 'bg-brand-600' : 'bg-white/[0.06]'
+              dark ? 'bg-brand-600' : 'bg-track'
             }`}
           >
             <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white/[0.04] shadow ring-0 transition duration-200 ${
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
                 dark ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
@@ -319,26 +319,26 @@ export default function Settings() {
       </section>
 
       {/* ── Job match alerts ───────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 ">
+      <section className="rounded-2xl border border-line bg-surface p-6 ">
         <div className="mb-4 flex items-center gap-2">
-          <BellAlertIcon className="h-5 w-5 text-primary-400" />
-          <h2 className="text-sm font-semibold text-white/90 ">Job match alerts</h2>
+          <BellAlertIcon className="h-5 w-5 text-accent-text" />
+          <h2 className="text-sm font-semibold text-fg ">Job match alerts</h2>
         </div>
 
         {loading || !preferences ? (
-          <div className="h-40 animate-pulse rounded-xl bg-white/[0.04] " />
+          <div className="h-40 animate-pulse rounded-xl bg-track " />
         ) : (
           <div className="space-y-5">
-            <p className="text-xs text-white/30 ">
+            <p className="text-xs text-fg-subtle ">
               Receive a digest when newly scored jobs meet your match threshold.
             </p>
 
-            <label className="flex items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-3 ">
+            <label className="flex items-center justify-between gap-4 rounded-xl border border-line px-4 py-3 ">
               <span>
-                <span className="block text-sm font-medium text-white/90 ">
+                <span className="block text-sm font-medium text-fg ">
                   Enable alerts
                 </span>
-                <span className="block text-xs text-white/30 ">
+                <span className="block text-xs text-fg-subtle ">
                   Email notifications for high-match jobs.
                 </span>
               </span>
@@ -346,13 +346,13 @@ export default function Settings() {
                 type="checkbox"
                 checked={preferences.enabled}
                 onChange={(e) => setPreferences({ ...preferences, enabled: e.target.checked })}
-                className="h-5 w-5 rounded border-white/15 text-primary-400 focus:ring-brand-500"
+                className="h-5 w-5 rounded border-line-strong text-accent-text focus:ring-brand-500"
               />
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wide text-white/55 ">
+                <span className="text-xs font-medium uppercase tracking-wide text-fg-muted ">
                   Score threshold
                 </span>
                 <input
@@ -363,12 +363,12 @@ export default function Settings() {
                   onChange={(e) =>
                     setPreferences({ ...preferences, score_threshold: Number(e.target.value) })
                   }
-                  className="w-full rounded-lg border border-white/10 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 "
+                  className="w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 "
                 />
               </label>
 
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wide text-white/55 ">
+                <span className="text-xs font-medium uppercase tracking-wide text-fg-muted ">
                   Frequency
                 </span>
                 <select
@@ -379,7 +379,7 @@ export default function Settings() {
                       frequency: e.target.value as AlertPreferences['frequency'],
                     })
                   }
-                  className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 "
+                  className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 "
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -401,10 +401,10 @@ export default function Settings() {
       </section>
 
       {/* ── Change password ────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 ">
+      <section className="rounded-2xl border border-line bg-surface p-6 ">
         <div className="mb-4 flex items-center gap-2">
-          <KeyIcon className="h-5 w-5 text-primary-400" />
-          <h2 className="text-sm font-semibold text-white/90 ">Change password</h2>
+          <KeyIcon className="h-5 w-5 text-accent-text" />
+          <h2 className="text-sm font-semibold text-fg ">Change password</h2>
         </div>
 
         <form onSubmit={handleChangePassword} className="space-y-4">
@@ -432,7 +432,7 @@ export default function Settings() {
             },
           ].map(({ label, value, onChange, show, onToggle }) => (
             <label key={label} className="block space-y-1.5">
-              <span className="text-xs font-medium uppercase tracking-wide text-white/55 ">
+              <span className="text-xs font-medium uppercase tracking-wide text-fg-muted ">
                 {label}
               </span>
               <div className="relative">
@@ -441,12 +441,12 @@ export default function Settings() {
                   value={value}
                   onChange={(e) => onChange(e.target.value)}
                   required
-                  className="w-full rounded-lg border border-white/10 px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 "
+                  className="w-full rounded-lg border border-line px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 "
                 />
                 <button
                   type="button"
                   onClick={onToggle}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/55"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted"
                   tabIndex={-1}
                 >
                   {show ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
@@ -467,18 +467,18 @@ export default function Settings() {
       </section>
 
       {/* ── Delete account ─────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-[rgba(229,72,77,0.18)] bg-white/[0.04] p-6 ">
+      <section className="rounded-2xl border border-chip-danger bg-surface p-6 ">
         <div className="mb-4 flex items-center gap-2">
-          <TrashIcon className="h-5 w-5 text-red-500" />
-          <h2 className="text-sm font-semibold text-white/90 ">Delete account</h2>
+          <TrashIcon className="h-5 w-5 text-chip-danger-fg" />
+          <h2 className="text-sm font-semibold text-fg ">Delete account</h2>
         </div>
-        <p className="mb-4 text-sm text-white/30 ">
+        <p className="mb-4 text-sm text-fg-subtle ">
           Permanently deletes your account and all associated data. This cannot be undone.
         </p>
         <button
           type="button"
           onClick={() => setDeleteOpen(true)}
-          className="rounded-xl border border-[rgba(229,72,77,0.18)] px-5 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-[rgba(229,72,77,0.12)] "
+          className="rounded-xl border border-chip-danger px-5 py-2.5 text-sm font-semibold text-chip-danger-fg transition-colors hover:bg-chip-danger "
         >
           Delete my account
         </button>
@@ -487,13 +487,13 @@ export default function Settings() {
       {/* ── Delete confirmation modal ──────────────────────────────────── */}
       {deleteOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white/[0.04] p-6 shadow-xl ">
-            <h3 className="text-lg font-semibold text-white/90 ">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ">
+            <h3 className="text-lg font-semibold text-fg ">
               Delete account?
             </h3>
-            <p className="mt-2 text-sm text-white/30 ">
+            <p className="mt-2 text-sm text-fg-subtle ">
               This will permanently delete your account, CVs, applications, and all other data.
-              Type <strong className="text-white/90 ">DELETE</strong> to confirm.
+              Type <strong className="text-fg ">DELETE</strong> to confirm.
             </p>
             <input
               ref={deleteInputRef}
@@ -501,13 +501,13 @@ export default function Settings() {
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}
               placeholder="DELETE"
-              className="mt-4 w-full rounded-lg border border-white/10 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 "
+              className="mt-4 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 "
             />
             <div className="mt-5 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setDeleteOpen(false)}
-                className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-white/55 hover:bg-white/[0.04] "
+                className="rounded-xl border border-line px-4 py-2 text-sm font-medium text-fg-muted hover:bg-surface-strong "
               >
                 Cancel
               </button>

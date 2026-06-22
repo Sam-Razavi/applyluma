@@ -36,7 +36,7 @@ function statusLabel(row: PipelineStage | SourceHealth) {
 function HealthStatus({ row }: { row: PipelineStage | SourceHealth }) {
   const healthy = row.healthy
   return (
-    <div className={`flex items-center gap-2 text-sm font-semibold ${healthy ? 'text-emerald-300' : 'text-red-300'}`}>
+    <div className={`flex items-center gap-2 text-sm font-semibold ${healthy ? 'text-chip-success-fg' : 'text-chip-danger-fg'}`}>
       <span className={`h-2.5 w-2.5 rounded-full ${healthy ? 'bg-green-500' : 'bg-red-500'}`} />
       {statusLabel(row)}
     </div>
@@ -45,16 +45,16 @@ function HealthStatus({ row }: { row: PipelineStage | SourceHealth }) {
 
 function LoadingCard() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
-      <div className="h-5 w-36 animate-pulse rounded bg-white/[0.06] " />
-      <div className="mt-4 h-40 animate-pulse rounded-xl bg-white/[0.04] " />
+    <div className="rounded-2xl border border-line bg-surface p-5 ">
+      <div className="h-5 w-36 animate-pulse rounded bg-track " />
+      <div className="mt-4 h-40 animate-pulse rounded-xl bg-track " />
     </div>
   )
 }
 
 function CountBadge({ count }: { count: number }) {
   return (
-    <span className="rounded-full bg-primary-900/20 px-2.5 py-1 text-xs font-semibold text-primary-400 ">
+    <span className="rounded-full bg-primary-900/20 px-2.5 py-1 text-xs font-semibold text-accent-text ">
       {count.toLocaleString()}
     </span>
   )
@@ -100,14 +100,14 @@ export default function AdminPipeline() {
     <FadeIn>
       <div className="space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-white/90 ">Pipeline Health</h1>
-          <p className="mt-1 text-sm text-white/30 ">
+          <h1 className="text-2xl font-bold text-fg ">Pipeline Health</h1>
+          <p className="mt-1 text-sm text-fg-subtle ">
             Monitor job ingestion freshness, source coverage, and latest market metrics.
           </p>
         </div>
 
         {error && (
-          <div className="rounded-xl border border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] p-4 text-sm text-red-300">{error}</div>
+          <div className="rounded-xl border border-chip-danger bg-chip-danger p-4 text-sm text-chip-danger-fg">{error}</div>
         )}
 
         {loading ? (
@@ -119,21 +119,21 @@ export default function AdminPipeline() {
           </div>
         ) : (
           <>
-            <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/55 ">
+            <section className="rounded-2xl border border-line bg-surface p-5 ">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted ">
                 Pipeline Health
               </h2>
-              <div className="mt-4 divide-y divide-white/10 ">
+              <div className="mt-4 divide-y divide-line ">
                 {healthRows.map((row) => (
                   <div key={`${row.label}-${row.count}`} className="grid gap-3 py-4 sm:grid-cols-4 sm:items-center">
                     <div>
-                      <p className="font-semibold text-white/90 ">{row.label}</p>
+                      <p className="font-semibold text-fg ">{row.label}</p>
                       {'source' in row && (
-                        <p className="text-xs text-white/30 ">Source</p>
+                        <p className="text-xs text-fg-subtle ">Source</p>
                       )}
                     </div>
-                    <p className="text-sm text-white/55 ">{row.count.toLocaleString()} records</p>
-                    <p className="text-sm text-white/30 ">Last run: {formatLastRun(row.last_run)}</p>
+                    <p className="text-sm text-fg-muted ">{row.count.toLocaleString()} records</p>
+                    <p className="text-sm text-fg-subtle ">Last run: {formatLastRun(row.last_run)}</p>
                     <HealthStatus row={row} />
                   </div>
                 ))}
@@ -141,8 +141,8 @@ export default function AdminPipeline() {
             </section>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/55 ">
+              <section className="rounded-2xl border border-line bg-surface p-5 ">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted ">
                   Jobs Over Time
                 </h2>
                 <div className="mt-4">
@@ -158,8 +158,8 @@ export default function AdminPipeline() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/55 ">
+              <section className="rounded-2xl border border-line bg-surface p-5 ">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted ">
                   Jobs by Source
                 </h2>
                 <div className="mt-4">
@@ -177,40 +177,40 @@ export default function AdminPipeline() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
-              <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
-                <p className="text-sm font-semibold uppercase tracking-wide text-white/55 ">
+              <section className="rounded-2xl border border-line bg-surface p-5 ">
+                <p className="text-sm font-semibold uppercase tracking-wide text-fg-muted ">
                   Remote Percentage
                 </p>
-                <p className="mt-3 text-4xl font-bold text-primary-400 ">
+                <p className="mt-3 text-4xl font-bold text-accent-text ">
                   {metrics?.remote_percentage == null ? '—' : `${metrics.remote_percentage}%`}
                 </p>
-                <p className="mt-1 text-xs text-white/30 ">
+                <p className="mt-1 text-xs text-fg-subtle ">
                   Latest metric date: {metrics?.metric_date ?? 'none'}
                 </p>
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/55 ">
+              <section className="rounded-2xl border border-line bg-surface p-5 ">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted ">
                   Top Skills
                 </h2>
                 <div className="mt-4 space-y-3">
                   {(metrics?.top_skills ?? []).map((item) => (
                     <div key={item.skill} className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-white/90 ">{item.skill}</span>
+                      <span className="text-sm font-medium text-fg ">{item.skill}</span>
                       <CountBadge count={item.count} />
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 ">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/55 ">
+              <section className="rounded-2xl border border-line bg-surface p-5 ">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted ">
                   Top Companies
                 </h2>
                 <div className="mt-4 space-y-3">
                   {(metrics?.top_companies ?? []).map((item) => (
                     <div key={item.company} className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-white/90 ">{item.company}</span>
+                      <span className="text-sm font-medium text-fg ">{item.company}</span>
                       <CountBadge count={item.count} />
                     </div>
                   ))}

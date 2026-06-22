@@ -84,7 +84,7 @@ export default function AppLayout() {
             <button
               type="button"
               onClick={() => setBannerDismissed(true)}
-              className="shrink-0 text-white/40 hover:text-white/70"
+              className="shrink-0 text-fg-subtle hover:text-fg"
               aria-label="Dismiss"
             >
               <XMarkIcon className="h-4 w-4" />

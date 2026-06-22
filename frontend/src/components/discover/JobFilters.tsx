@@ -25,11 +25,11 @@ const LOCATION_SUGGESTIONS = [
 ]
 
 const INPUT_CLS =
-  'w-full rounded-lg border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-white/90 ' +
-  'placeholder:text-white/30 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500'
+  'w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg ' +
+  'placeholder:text-fg-subtle focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500'
 
 const SELECT_CLS =
-  'w-full rounded-lg border border-white/15 bg-[#0C1218] px-3 py-2 text-sm text-white/90 ' +
+  'w-full rounded-lg border border-line-strong bg-raised px-3 py-2 text-sm text-fg ' +
   'focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500'
 
 function hasActiveFilters(f: JobFilters): boolean {
@@ -107,7 +107,7 @@ function LocationInput({ value, onChange }: LocationInputProps) {
       {open && suggestions.length > 0 && (
         <ul
           role="listbox"
-          className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-white/10 py-1 shadow-xl"
+          className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-line py-1 shadow-xl"
           style={{ background: 'rgba(8,14,18,0.97)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}
         >
           {suggestions.map((loc, i) => (
@@ -120,7 +120,7 @@ function LocationInput({ value, onChange }: LocationInputProps) {
               className={`cursor-pointer px-3 py-2 text-sm transition-colors ${
                 i === highlighted
                   ? 'bg-primary-900/40 text-[var(--accent-text)]'
-                  : 'text-white/75 hover:bg-white/[0.05]'
+                  : 'text-fg hover:bg-surface-strong'
               }`}
             >
               {loc}
@@ -142,31 +142,31 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
   const active = hasActiveFilters(filters)
 
   return (
-    <aside className="w-full rounded-2xl border border-white/10 bg-white/[0.04] lg:w-64 lg:shrink-0">
+    <aside className="w-full rounded-2xl border border-line bg-surface lg:w-64 lg:shrink-0">
       {/* Header — always visible, toggles body on mobile */}
       <div className="flex items-center justify-between p-5">
         <button
           type="button"
           onClick={() => setMobileOpen((o) => !o)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-white/90 lg:cursor-default"
+          className="flex items-center gap-1.5 text-sm font-semibold text-fg lg:cursor-default"
           aria-expanded={mobileOpen}
         >
           <FunnelIcon className="h-4 w-4" />
           Filters
           {active && (
-            <span className="ml-1 rounded-full bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-400 lg:hidden">
+            <span className="ml-1 rounded-full bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-accent-text lg:hidden">
               On
             </span>
           )}
           <ChevronDownIcon
-            className={`h-4 w-4 text-white/30 transition-transform lg:hidden ${mobileOpen ? 'rotate-180' : ''}`}
+            className={`h-4 w-4 text-fg-subtle transition-transform lg:hidden ${mobileOpen ? 'rotate-180' : ''}`}
           />
         </button>
         {active && (
           <button
             type="button"
             onClick={onReset}
-            className="flex items-center gap-1 text-xs text-white/30 hover:text-white/55"
+            className="flex items-center gap-1 text-xs text-fg-subtle hover:text-fg-muted"
           >
             <XMarkIcon className="h-3.5 w-3.5" />
             Reset
@@ -177,7 +177,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
       <div className={`space-y-4 px-5 pb-5 ${mobileOpen ? 'block' : 'hidden'} lg:block`}>
         {/* Sort */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-white/55">Sort by</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Sort by</label>
           <select
             value={filters.sort}
             onChange={(e) => set('sort', e.target.value)}
@@ -191,13 +191,13 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
 
         {/* Location with autocomplete */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-white/55">Location</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Location</label>
           <LocationInput value={filters.location} onChange={(v) => set('location', v)} />
         </div>
 
         {/* Salary range */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-white/55">Salary (kr/month)</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Salary (kr/month)</label>
           <div className="flex gap-2">
             <input
               type="number"
@@ -220,7 +220,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
 
         {/* Keywords */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-white/55">Keywords</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Keywords</label>
           <input
             type="text"
             value={filters.keywords}
@@ -228,12 +228,12 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
             placeholder="Python, React, Docker…"
             className={INPUT_CLS}
           />
-          <p className="mt-1 text-xs text-white/30">Comma-separated</p>
+          <p className="mt-1 text-xs text-fg-subtle">Comma-separated</p>
         </div>
 
         {/* Source */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-white/55">Source</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Source</label>
           <select
             value={filters.source}
             onChange={(e) => set('source', e.target.value)}
@@ -247,19 +247,19 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
         </div>
 
         {/* Remote only */}
-        <label className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-white/75">
+        <label className="flex items-center gap-3 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg">
           <input
             type="checkbox"
             checked={filters.remote_only}
             onChange={(e) => set('remote_only', e.target.checked)}
-            className="h-4 w-4 rounded border-white/20 text-primary-500 focus:ring-primary-500"
+            className="h-4 w-4 rounded border-line-strong text-primary-500 focus:ring-primary-500"
           />
           Remote only
         </label>
 
         {/* Match score */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-white/55">Min match score</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Min match score</label>
           <input
             type="number"
             value={filters.match_score_min}

@@ -16,8 +16,8 @@ function SkillPill({
 }) {
   const classes =
     variant === 'matched'
-      ? 'bg-[rgba(52,195,143,0.14)] text-emerald-300'
-      : 'bg-[rgba(229,72,77,0.12)] text-red-300 hover:bg-[rgba(229,72,77,0.12)]'
+      ? 'bg-chip-success text-chip-success-fg'
+      : 'bg-chip-danger text-chip-danger-fg hover:bg-chip-danger'
 
   return (
     <button
@@ -34,9 +34,9 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills }: Props)
   const total = matchedSkills.length + missingSkills.length
   if (total === 0) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-        <h3 className="text-sm font-semibold text-white/90">Skills match</h3>
-        <p className="mt-2 text-xs text-white/30">
+      <div className="rounded-xl border border-line bg-surface p-4">
+        <h3 className="text-sm font-semibold text-fg">Skills match</h3>
+        <p className="mt-2 text-xs text-fg-subtle">
           Upload a CV so AI can compare your skills against this role.
         </p>
       </div>
@@ -49,25 +49,25 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills }: Props)
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-      <h3 className="text-sm font-semibold text-white/90">
+    <div className="rounded-xl border border-line bg-surface p-4">
+      <h3 className="text-sm font-semibold text-fg">
         {matchedSkills.length} of {total} required skills matched
       </h3>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <div>
-          <p className="mb-2 text-xs font-semibold text-emerald-300">Matched</p>
+          <p className="mb-2 text-xs font-semibold text-chip-success-fg">Matched</p>
           <div className="flex flex-wrap gap-1.5">
             {matchedSkills.length ? (
               matchedSkills.map((skill) => (
                 <SkillPill key={skill} skill={skill} variant="matched" />
               ))
             ) : (
-              <span className="text-xs text-white/30">None yet</span>
+              <span className="text-xs text-fg-subtle">None yet</span>
             )}
           </div>
         </div>
         <div>
-          <p className="mb-2 text-xs font-semibold text-red-300">Missing</p>
+          <p className="mb-2 text-xs font-semibold text-chip-danger-fg">Missing</p>
           <div className="flex flex-wrap gap-1.5">
             {missingSkills.length ? (
               missingSkills.map((skill) => (
@@ -79,7 +79,7 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills }: Props)
                 />
               ))
             ) : (
-              <span className="text-xs text-white/30">No gaps found</span>
+              <span className="text-xs text-fg-subtle">No gaps found</span>
             )}
           </div>
         </div>

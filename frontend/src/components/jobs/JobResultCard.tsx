@@ -45,21 +45,21 @@ export default function JobResultCard({ job, onTrack }: Props) {
   }
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-sm transition hover:border-primary-600/40 hover:shadow-md">
+    <article className="rounded-2xl border border-line bg-surface p-5 shadow-sm transition hover:border-primary-600/40 hover:shadow-md">
       <div className="flex items-start gap-4">
         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary-900/20">
-          <BriefcaseIcon className="h-6 w-6 text-primary-400" />
+          <BriefcaseIcon className="h-6 w-6 text-accent-text" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-base font-semibold text-white/90">{job.title}</h2>
-          <p className="mt-0.5 text-sm text-white/30">{job.company_name}</p>
+          <h2 className="text-base font-semibold text-fg">{job.title}</h2>
+          <p className="mt-0.5 text-sm text-fg-subtle">{job.company_name}</p>
         </div>
         {job.redirect_url && (
           <a
             href={job.redirect_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white/55"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-fg-subtle transition hover:bg-surface-strong hover:text-fg-muted"
             aria-label="Open job"
           >
             <ArrowTopRightOnSquareIcon className="h-4 w-4" />
@@ -69,16 +69,16 @@ export default function JobResultCard({ job, onTrack }: Props) {
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
         {job.location && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2.5 py-1 font-medium text-white/55">
+          <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 font-medium text-fg-muted">
             <MapPinIcon className="h-3.5 w-3.5" />
             {job.location}
           </span>
         )}
-        <span className="rounded-full bg-[rgba(52,195,143,0.14)] px-2.5 py-1 font-medium text-emerald-300">
+        <span className="rounded-full bg-chip-success px-2.5 py-1 font-medium text-chip-success-fg">
           {formatSalary(job.salary_min, job.salary_max)}
         </span>
         {job.contract_type && (
-          <span className="rounded-full bg-[rgba(8,145,178,0.15)] px-2.5 py-1 font-medium text-cyan-300">
+          <span className="rounded-full bg-chip-accent px-2.5 py-1 font-medium text-accent-text">
             {job.contract_type}
           </span>
         )}
@@ -90,7 +90,7 @@ export default function JobResultCard({ job, onTrack }: Props) {
       </div>
 
       {description && (
-        <p className="mt-4 line-clamp-3 text-sm leading-6 text-white/55">
+        <p className="mt-4 line-clamp-3 text-sm leading-6 text-fg-muted">
           {description.slice(0, 320)}
           {description.length > 320 ? '...' : ''}
         </p>

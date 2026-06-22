@@ -6,6 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApplyLuma — AI-powered job search &amp; CV tailoring</title>
 
+    <!-- Apply persisted theme before first paint to avoid a flash.
+         Defaults to dark when no preference is stored. -->
+    <script>
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem('theme'));
+          var honored = stored && stored.version >= 1 && stored.state;
+          var dark = honored ? stored.state.dark : true;
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+
     <!-- Primary meta -->
     <meta name="description" content="ApplyLuma helps you land your next job faster. AI-powered CV tailoring, cover letter generation, Swedish job discovery, and application tracking — all in one place." />
     <meta name="robots" content="index, follow" />

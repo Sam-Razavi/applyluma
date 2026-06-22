@@ -252,8 +252,8 @@ export default function Discover() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-white/90">Discover Jobs</h1>
-        <p className="mt-1 text-sm text-white/30">
+        <h1 className="text-2xl font-bold text-fg">Discover Jobs</h1>
+        <p className="mt-1 text-sm text-fg-subtle">
           {tab === 'search'
             ? 'Search live job listings from Adzuna and Platsbanken.'
             : 'Explore job listings matched to your CV.'}
@@ -261,7 +261,7 @@ export default function Discover() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-white/[0.04] p-1 w-fit">
+      <div className="flex gap-1 rounded-xl bg-surface p-1 w-fit">
         {([
           { key: 'for-you' as Tab, label: 'For You' },
           { key: 'search' as Tab, label: 'Search' },
@@ -272,8 +272,8 @@ export default function Discover() {
             onClick={() => switchTab(key)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               tab === key
-                ? 'bg-white/[0.04] text-white/90 shadow-sm'
-                : 'text-white/30 hover:text-white/55'
+                ? 'bg-surface text-fg shadow-sm'
+                : 'text-fg-subtle hover:text-fg-muted'
             }`}
           >
             {label}
@@ -286,14 +286,14 @@ export default function Discover() {
         <>
           {/* Search bar */}
           <div className="relative">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/30" />
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-fg-subtle" />
             <input
               type="search"
               value={searchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search jobs by title or company"
               aria-label="Search jobs by title or company"
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-12 pr-4 text-sm placeholder-white/30 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="w-full rounded-2xl border border-line bg-surface py-3 pl-12 pr-4 text-sm placeholder-fg-subtle shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
 
@@ -308,12 +308,12 @@ export default function Discover() {
                   ))}
                 </div>
               ) : jobs.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.03]">
-                    <MagnifyingGlassIcon className="h-6 w-6 text-white/30" />
+                <div className="rounded-2xl border border-line bg-surface px-6 py-16 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-surface">
+                    <MagnifyingGlassIcon className="h-6 w-6 text-fg-subtle" />
                   </div>
-                  <h2 className="mt-4 text-sm font-semibold text-white/90">No jobs found</h2>
-                  <p className="mt-1 text-sm text-white/30">
+                  <h2 className="mt-4 text-sm font-semibold text-fg">No jobs found</h2>
+                  <p className="mt-1 text-sm text-fg-subtle">
                     Try adjusting your filters or check back after the next scraping run.
                   </p>
                 </div>
@@ -343,7 +343,7 @@ export default function Discover() {
                         type="button"
                         onClick={loadMore}
                         disabled={loading}
-                        className="rounded-xl border border-white/15 px-6 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] disabled:opacity-50"
+                        className="rounded-xl border border-line-strong px-6 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong disabled:opacity-50"
                       >
                         {loading ? 'Loading…' : 'Load more'}
                       </button>
@@ -387,11 +387,11 @@ export default function Discover() {
 
           {recentSearches.length > 0 && !hasSearched && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-white/30">Recent:</span>
+              <span className="text-xs text-fg-subtle">Recent:</span>
               {recentSearches.map((r, i) => (
                 <span
                   key={i}
-                  className="group flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] pl-3 pr-1.5 py-1 text-xs text-white/55 hover:border-primary-300 hover:text-primary-300 cursor-pointer transition-colors"
+                  className="group flex items-center gap-1 rounded-full border border-line bg-surface pl-3 pr-1.5 py-1 text-xs text-fg-muted hover:border-primary-300 hover:text-accent-text cursor-pointer transition-colors"
                 >
                   <button
                     type="button"
@@ -403,7 +403,7 @@ export default function Discover() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); removeRecentSearch(i) }}
-                    className="ml-0.5 rounded-full p-0.5 text-white/30 hover:bg-white/[0.06] hover:text-white/55 focus:outline-none"
+                    className="ml-0.5 rounded-full p-0.5 text-fg-subtle hover:bg-surface-strong hover:text-fg-muted focus:outline-none"
                     aria-label="Remove recent search"
                   >
                     <XMarkIcon className="h-3 w-3" />
@@ -414,7 +414,7 @@ export default function Discover() {
           )}
 
           {searchError && (
-            <div className="flex items-center gap-2 rounded-xl border border-[rgba(229,72,77,0.18)] bg-[rgba(229,72,77,0.12)] px-4 py-3 text-sm text-red-300">
+            <div className="flex items-center gap-2 rounded-xl border border-chip-danger bg-chip-danger px-4 py-3 text-sm text-chip-danger-fg">
               <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
               {searchError}
             </div>
@@ -423,7 +423,7 @@ export default function Discover() {
           {searchLoading ? (
             <div className="grid gap-4">
               {[...Array(4)].map((_, index) => (
-                <div key={index} className="h-44 animate-pulse rounded-2xl bg-white/[0.04]" />
+                <div key={index} className="h-44 animate-pulse rounded-2xl bg-track" />
               ))}
             </div>
           ) : hasSearched && searchData.results.length > 0 ? (
@@ -433,14 +433,14 @@ export default function Discover() {
               onPageChange={(p) => void runSearch(searchQuery, searchLocation, p)}
             />
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+            <div className="rounded-2xl border border-line bg-surface px-6 py-16 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary-900/20">
-                <MagnifyingGlassIcon className="h-6 w-6 text-primary-400" />
+                <MagnifyingGlassIcon className="h-6 w-6 text-accent-text" />
               </div>
-              <h2 className="mt-4 text-sm font-semibold text-white/90">
+              <h2 className="mt-4 text-sm font-semibold text-fg">
                 {hasSearched ? 'No jobs found' : 'Search live job listings'}
               </h2>
-              <p className="mt-1 text-sm text-white/30">
+              <p className="mt-1 text-sm text-fg-subtle">
                 {hasSearched
                   ? 'Try a broader keyword or a different location.'
                   : 'Search Adzuna and Platsbanken for roles, skills, or companies.'}

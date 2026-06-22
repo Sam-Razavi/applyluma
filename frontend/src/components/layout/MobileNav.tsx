@@ -54,7 +54,7 @@ export default function MobileNav() {
           className={({ isActive }) =>
             [
               'relative flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
-              isActive ? 'text-[var(--accent-text)]' : 'text-white/45',
+              isActive ? 'text-[var(--accent-text)]' : 'text-fg-muted',
             ].join(' ')
           }
         >

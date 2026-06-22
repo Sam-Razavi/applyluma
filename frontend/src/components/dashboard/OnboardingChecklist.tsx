@@ -57,13 +57,13 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
   if (allLoading || allDone) return null
 
   return (
-    <div className="rounded-2xl border border-primary-600/30 bg-gradient-to-br from-primary-900/20 to-white/[0.04] p-5 ">
+    <div className="rounded-2xl border border-accent-muted bg-gradient-to-br from-accent-muted to-surface p-5 ">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-bold text-white/90 ">
+          <h2 className="text-sm font-bold text-fg ">
             Get started — {completedCount} of 3 done
           </h2>
-          <p className="mt-0.5 text-xs text-white/30 ">
+          <p className="mt-0.5 text-xs text-fg-subtle ">
             Complete these steps to get the most out of ApplyLuma.
           </p>
         </div>
@@ -72,7 +72,7 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
             <div
               key={i}
               className={`h-1.5 w-8 rounded-full transition-colors ${
-                i < completedCount ? 'bg-brand-500' : 'bg-white/[0.06] '
+                i < completedCount ? 'bg-accent' : 'bg-track '
               }`}
             />
           ))}
@@ -88,22 +88,22 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
               key={step.key}
               className={`flex items-start gap-3 rounded-xl border p-4 transition-all ${
                 isDone
-                  ? 'border-[rgba(52,195,143,0.22)] bg-[rgba(52,195,143,0.14)] opacity-70 '
+                  ? 'border-chip-success bg-chip-success opacity-70 '
                   : isNext
-                  ? 'border-primary-600/30 bg-white/[0.04] shadow-sm '
-                  : 'border-white/10 bg-white/[0.04] '
+                  ? 'border-accent-muted bg-surface shadow-sm '
+                  : 'border-line bg-surface '
               }`}
             >
               {/* Step indicator */}
               <div className="mt-0.5 shrink-0">
                 {isDone ? (
-                  <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                  <CheckCircleIcon className="h-5 w-5 text-chip-success-fg" />
                 ) : (
                   <div
                     className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
                       isNext
                         ? 'bg-brand-600 text-white'
-                        : 'bg-white/[0.06] text-white/30 '
+                        : 'bg-track text-fg-subtle '
                     }`}
                   >
                     {step.number}
@@ -113,11 +113,11 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
 
               {/* Content */}
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-semibold ${isDone ? 'text-white/30 line-through' : 'text-white/90 '}`}>
+                <p className={`text-sm font-semibold ${isDone ? 'text-fg-subtle line-through' : 'text-fg '}`}>
                   {step.title}
                 </p>
                 {!isDone && (
-                  <p className="mt-0.5 text-xs text-white/30 ">
+                  <p className="mt-0.5 text-xs text-fg-subtle ">
                     {step.description}
                   </p>
                 )}
@@ -130,7 +130,7 @@ export default function OnboardingChecklist({ hasCv, hasJd, loading }: Props) {
                   className={`shrink-0 self-center rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                     isNext
                       ? 'bg-brand-600 text-white hover:bg-brand-700'
-                      : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08] '
+                      : 'bg-track text-fg-muted hover:bg-surface-strong '
                   }`}
                 >
                   <span className="flex items-center gap-1">
