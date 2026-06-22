@@ -244,8 +244,7 @@ _MAX_CONTACT_LINES = 12
 
 
 def _extract_contact_information(cv_content: str) -> str:
-    if _CID_RE.search(cv_content):
-        return ""
+    cv_content = _CID_RE.sub("", cv_content)
 
     collected: list[str] = []
     has_contact_signal = False
