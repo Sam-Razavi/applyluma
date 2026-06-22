@@ -10,27 +10,27 @@
    chip-*, …) so both themes flip from this single source.
    ============================================================ */
 :root {
-  /* Light (default) */
-  --bg-base:             #F6F9FB;
+  /* Light (default) — cool slate base so white cards have real separation */
+  --bg-base:             #E7ECF2;
   --bg-raised:           #FFFFFF;
-  --bg-gradient:         linear-gradient(140deg, #F8FAFC 0%, #EEF4F7 55%, #F4F8FA 100%);
-  --glass-card:          rgba(255, 255, 255, 0.72);
-  --glass-hover:         rgba(255, 255, 255, 0.95);
-  --glass-border:        rgba(15, 23, 42, 0.08);
-  --glass-border-strong: rgba(15, 23, 42, 0.14);
-  --card-shadow:         0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
-  --track:               rgba(15, 23, 42, 0.06);
+  --bg-gradient:         linear-gradient(140deg, #EDF1F6 0%, #E3E9F0 55%, #E9EEF4 100%);
+  --glass-card:          rgba(255, 255, 255, 0.90);
+  --glass-hover:         #FFFFFF;
+  --glass-border:        rgba(15, 23, 42, 0.10);
+  --glass-border-strong: rgba(15, 23, 42, 0.16);
+  --card-shadow:         0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 30px -10px rgba(15, 23, 42, 0.14);
+  --track:               rgba(15, 23, 42, 0.07);
 
   --accent:              #0891B2;
   --accent-hover:        #0E7490;
-  --accent-muted:        rgba(8, 145, 178, 0.10);
+  --accent-muted:        rgba(8, 145, 178, 0.12);
   --accent-text:         #0E7490;
   --success:             #059669;
   --error:               #DC2626;
 
-  --text-1:              rgba(15, 23, 42, 0.92);
-  --text-2:              rgba(15, 23, 42, 0.60);
-  --text-3:              rgba(15, 23, 42, 0.42);
+  --text-1:              rgba(15, 23, 42, 0.94);
+  --text-2:              rgba(15, 23, 42, 0.66);
+  --text-3:              rgba(15, 23, 42, 0.50);
 
   --field-bg:            rgba(15, 23, 42, 0.04);
   --field-border:        rgba(15, 23, 42, 0.12);

@@ -54,7 +54,7 @@ export default function AppLayout() {
     <div
       className="flex min-h-dvh"
       style={{
-        background: 'linear-gradient(140deg, #080E12 0%, #0A1118 55%, #070C10 100%)',
+        background: 'var(--bg-gradient)',
       }}
     >
       <Sidebar />

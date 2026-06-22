@@ -148,9 +148,9 @@ export default function AdminPipeline() {
                 <div className="mt-4">
                   <ResponsiveContainer width="100%" height={280}>
                     <LineChart data={jobsOverTime} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.10)" />
-                      <XAxis dataKey="date" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }} tickLine={false} />
-                      <YAxis tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }} tickLine={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--track)" />
+                      <XAxis dataKey="date" tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} />
+                      <YAxis tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} />
                       <Tooltip />
                       <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} dot={false} />
                     </LineChart>
@@ -165,9 +165,9 @@ export default function AdminPipeline() {
                 <div className="mt-4">
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={jobsBySource} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.10)" />
-                      <XAxis dataKey="source" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }} tickLine={false} />
-                      <YAxis tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }} tickLine={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--track)" />
+                      <XAxis dataKey="source" tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} />
+                      <YAxis tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} />
                       <Tooltip />
                       <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
                     </BarChart>
