@@ -1,0 +1,15 @@
+{
+  "contact": {
+    "name": "Sam Utvecklare",
+    "email": "sam@example.com",
+    "phone": "+46 70 123 4567",
+    "website": "samcodes.com",
+    "github": "github.com/samdev",
+    "linkedin": "linkedin.com/in/samdev",
+    "location": "Stockholm, Sverige"
+  },
+  "cv_text": "Sam Utvecklare\nsam@example.com\n+46 70 123 4567\nsamcodes.com\ngithub.com/samdev\nlinkedin.com/in/samdev\nStockholm, Sverige\n\nSammanfattning\nFullstackutvecklare med erfarenhet av Python, React och TypeScript.\n\nKompetenser\nPython, JavaScript, TypeScript, React, Node.js, PostgreSQL, Docker, Git, HTML, CSS, Tailwind CSS, FastAPI, Redis\n\nErfarenhet\nFullstackutvecklare praktikant\nTech Corp, Stockholm\nJuni 2025 - Nu\n- Byggde REST-API:er med FastAPI och PostgreSQL\n- Utvecklade React-komponenter med TypeScript\n\nJuniorutvecklare\nStartup AB, Goteborg\nJan 2024 - Maj 2025\n- Underholl Node.js-backend\n- Skapade responsiva granssnitt med React och Tailwind CSS\n\nProjekt\nMemory Game\nEtt webbaserat minneskortspel byggt med vanilla JavaScript.\nTeknik: JavaScript, HTML, CSS\n\nExpense Tracker\nPersonlig ekonomisparare med diagram.\nTeknik: React, TypeScript, Chart.js\n\nApplyLuma\nAI-driven jobbansokningsplattform.\nTeknik: FastAPI, React, PostgreSQL, Redis\n\nUtbildning\nKandidat i datavetenskap\nGoteborgs universitet\n2021 - 2024\nExamensarbete: Machine Learning for CV-analys\n180 hp",
+  "skills": ["Python", "JavaScript", "TypeScript", "React", "Node.js", "PostgreSQL", "Docker", "Git", "HTML", "CSS", "Tailwind CSS", "FastAPI", "Redis"],
+  "projects": ["Memory Game", "Expense Tracker", "ApplyLuma"],
+  "education_entries": 1
+}
