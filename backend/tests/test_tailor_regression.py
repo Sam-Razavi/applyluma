@@ -20,12 +20,14 @@ from app.services import tailor_service
 from app.services.pdf_generator import generate_cv_pdf
 from app.services.tailor_service import (
     _extract_contact_information,
+    _is_contact_section,
     _remove_fabricated_skills,
     _strip_concatenated_originals,
     _validate_no_fabricated_skills,
 )
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "source_cv.json"
+SWEDISH_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "source_cv_swedish.json"
 
 
 @pytest.fixture()
@@ -412,3 +414,168 @@ class TestEndToEndTailoredPdf:
             cleaned = word.strip(".,;:()").lower()
             if len(cleaned) > 2 and cleaned.isalpha():
                 pass
+
+
+# ---------------------------------------------------------------------------
+# Round 2: Fuzzy concatenation stripping
+# ---------------------------------------------------------------------------
+
+
+class TestFuzzyConcatenationStripping:
+    def test_strip_with_whitespace_differences(self) -> None:
+        original = "Fullstack developer\n\nwith experience in Python,\nReact, and TypeScript."
+        tailored_actual = "Results-driven fullstack developer with strong Python and React skills."
+        tailored_with_prefix = (
+            "Fullstack developer\nwith experience in Python, React, and TypeScript.\n\n"
+            + tailored_actual
+        )
+        result = {
+            "sections": [
+                {
+                    "section_id": "summary",
+                    "section_name": "Summary",
+                    "original": original,
+                    "tailored": tailored_with_prefix,
+                }
+            ]
+        }
+        _strip_concatenated_originals(result)
+        tailored = result["sections"][0]["tailored"]
+        assert "Results-driven" in tailored
+        assert tailored.startswith("Results-driven") or len(tailored) < len(tailored_with_prefix)
+
+    def test_strip_with_minor_rewording(self) -> None:
+        original = (
+            "Experienced Python developer with background in web development "
+            "and database management. Skilled in FastAPI and PostgreSQL."
+        )
+        tailored_prefix = (
+            "Experienced Python developer with a background in web development "
+            "and database management. Skilled in FastAPI and PostgreSQL."
+        )
+        tailored_actual = "Backend engineer specializing in Python microservices."
+        combined = tailored_prefix + "\n\n" + tailored_actual
+        result = {
+            "sections": [
+                {
+                    "section_id": "summary",
+                    "section_name": "Summary",
+                    "original": original,
+                    "tailored": combined,
+                }
+            ]
+        }
+        _strip_concatenated_originals(result)
+        tailored = result["sections"][0]["tailored"]
+        assert len(tailored) < len(combined)
+
+    def test_no_false_positive_on_genuinely_different_text(self) -> None:
+        original = "Python developer with 3 years experience in web development."
+        tailored = "Backend engineer specializing in distributed systems and cloud architecture."
+        result = {
+            "sections": [
+                {
+                    "section_id": "summary",
+                    "section_name": "Summary",
+                    "original": original,
+                    "tailored": tailored,
+                }
+            ]
+        }
+        _strip_concatenated_originals(result)
+        assert result["sections"][0]["tailored"] == tailored
+
+
+# ---------------------------------------------------------------------------
+# Round 2: Swedish contact section matching
+# ---------------------------------------------------------------------------
+
+
+class TestSwedishContactMatching:
+    @pytest.mark.parametrize(
+        "section_name",
+        ["Kontaktuppgifter", "Personuppgifter", "Kontaktinformation", "Header", "Personal Details"],
+    )
+    def test_is_contact_section_matches(self, section_name: str) -> None:
+        section = {"section_id": "contact_info", "section_name": section_name}
+        assert _is_contact_section(section)
+
+    def test_non_contact_section_not_matched(self) -> None:
+        section = {"section_id": "skills", "section_name": "Kompetenser"}
+        assert not _is_contact_section(section)
+
+
+# ---------------------------------------------------------------------------
+# Round 2: Swedish stop headings in contact extraction
+# ---------------------------------------------------------------------------
+
+
+class TestSwedishStopHeadings:
+    def test_contact_extraction_stops_at_sammanfattning(self) -> None:
+        cv_text = (
+            "Sam Utvecklare\nsam@example.com\n+46 70 123 4567\n"
+            "Stockholm, Sverige\n\n"
+            "Sammanfattning\nFullstackutvecklare med erfarenhet av Python."
+        )
+        contact = _extract_contact_information(cv_text)
+        assert "Sam Utvecklare" in contact
+        assert "sam@example.com" in contact
+        assert "Sammanfattning" not in contact
+        assert "Fullstackutvecklare" not in contact
+
+    def test_contact_extraction_stops_at_kompetenser(self) -> None:
+        cv_text = (
+            "Sam Utvecklare\nsam@example.com\n+46 70 123 4567\n"
+            "Kompetenser\nPython, JavaScript, TypeScript"
+        )
+        contact = _extract_contact_information(cv_text)
+        assert "sam@example.com" in contact
+        assert "Kompetenser" not in contact
+        assert "Python" not in contact
+
+    def test_swedish_cv_contact_extraction_full(self) -> None:
+        fixture = json.loads(SWEDISH_FIXTURE_PATH.read_text(encoding="utf-8"))
+        contact = _extract_contact_information(fixture["cv_text"])
+        assert "Sam Utvecklare" in contact
+        assert "sam@example.com" in contact
+        assert "+46 70 123 4567" in contact
+        assert "github.com/samdev" in contact
+        assert "Sammanfattning" not in contact
+        assert "Kompetenser" not in contact
+
+
+# ---------------------------------------------------------------------------
+# Round 2: CID artifact and over-extraction safeguards
+# ---------------------------------------------------------------------------
+
+
+class TestContactExtractionSafeguards:
+    def test_cid_artifacts_return_empty(self) -> None:
+        cv_text = (
+            "(cid:42)(cid:81)(cid:74)(cid:76)(cid:79)(cid:72)\n"
+            "sam@example.com\n"
+            "+46 70 123 4567\n"
+            "(cid:54)(cid:88)(cid:80)(cid:80)(cid:68)(cid:85)(cid:92)\n"
+            "Some summary text here."
+        )
+        contact = _extract_contact_information(cv_text)
+        assert contact == ""
+
+    def test_max_lines_prevents_over_extraction(self) -> None:
+        lines = ["Sam Developer", "sam@example.com", "+46 70 123 4567"]
+        lines += [f"Extra line {i}" for i in range(20)]
+        cv_text = "\n".join(lines)
+        contact = _extract_contact_information(cv_text)
+        assert contact != ""
+        assert contact.count("\n") < 12
+
+    def test_no_blank_lines_still_limited(self) -> None:
+        cv_text = (
+            "Sam Developer\nsam@example.com\n+46 70 123 4567\n"
+            "Stockholm\ngithub.com/samdev\nlinkedin.com/in/samdev\n"
+            "Line 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\n"
+            "Line 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18"
+        )
+        contact = _extract_contact_information(cv_text)
+        assert "Line 13" not in contact
+        assert "Line 18" not in contact

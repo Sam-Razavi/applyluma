@@ -3,6 +3,7 @@ CV tailoring service: calls OpenAI and returns a structured section-by-section d
 """
 import json
 import re
+from difflib import SequenceMatcher
 
 from langdetect import LangDetectException, detect
 from openai import AuthenticationError, OpenAI, RateLimitError
@@ -38,7 +39,17 @@ _CONTACT_PRESERVATION_INSTRUCTION = (
     '(e.g. "github.com/name"), never hidden behind link text.'
 )
 
-_CONTACT_SECTION_TERMS = ("contact", "personal information", "candidate information")
+_CONTACT_SECTION_TERMS = (
+    "contact",
+    "personal information",
+    "candidate information",
+    "personal details",
+    "header",
+    "kontakt",
+    "personuppgifter",
+    "kontaktuppgifter",
+    "kontaktinformation",
+)
 _CONTACT_STOP_HEADINGS = {
     "summary",
     "profile",
@@ -49,6 +60,16 @@ _CONTACT_STOP_HEADINGS = {
     "technical skills",
     "projects",
     "education",
+    "sammanfattning",
+    "profil",
+    "erfarenhet",
+    "arbetslivserfarenhet",
+    "anstallning",
+    "kompetenser",
+    "tekniska kompetenser",
+    "fardigheter",
+    "projekt",
+    "utbildning",
 }
 _CONTACT_SIGNAL_RE = re.compile(
     r"@|\+?\d[\d\s().-]{6,}|linkedin|github|portfolio|https?://|www\.",
@@ -217,7 +238,15 @@ def _detect_language(text: str) -> str:
         return "en"
 
 
+_CID_RE = re.compile(r"\(cid:\d+\)")
+
+_MAX_CONTACT_LINES = 12
+
+
 def _extract_contact_information(cv_content: str) -> str:
+    if _CID_RE.search(cv_content):
+        return ""
+
     collected: list[str] = []
     has_contact_signal = False
 
@@ -234,6 +263,9 @@ def _extract_contact_information(cv_content: str) -> str:
 
         collected.append(stripped)
         has_contact_signal = has_contact_signal or bool(_CONTACT_SIGNAL_RE.search(stripped))
+
+        if len(collected) >= _MAX_CONTACT_LINES:
+            break
 
     if not has_contact_signal:
         return ""
@@ -370,20 +402,48 @@ def _remove_fabricated_skills(result: dict, cv_content: str) -> list[str]:
     return fabricated
 
 
-def _strip_concatenated_originals(result: dict) -> None:
-    """Remove duplicated original content from tailored fields.
+def _normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
 
-    Some LLM responses concatenate original + tailored text in the tailored
-    field.  When the tailored text starts with the original, strip the
-    original prefix so the PDF contains only the rewrite.
-    """
+
+def _find_split_point(tailored: str, ratio: float) -> int:
+    approx_end = int(len(tailored) * ratio)
+    window_start = max(0, approx_end - 50)
+    window_end = min(len(tailored), approx_end + 50)
+    window = tailored[window_start:window_end]
+    break_pos = window.find("\n\n")
+    if break_pos >= 0:
+        return window_start + break_pos
+    return approx_end
+
+
+def _strip_concatenated_originals(result: dict) -> None:
     for section in result.get("sections", []):
         original = (section.get("original") or "").strip()
         tailored = (section.get("tailored") or "").strip()
-        if not original or not tailored:
+        if not original or not tailored or len(original) < 20:
             continue
-        if len(original) > 20 and tailored.startswith(original):
+
+        if tailored.startswith(original):
             section["tailored"] = tailored[len(original):].strip()
+            continue
+
+        norm_orig = _normalize_whitespace(original)
+        norm_tail = _normalize_whitespace(tailored)
+
+        if norm_tail.startswith(norm_orig):
+            ratio = len(norm_orig) / len(norm_tail)
+            cut = _find_split_point(tailored, ratio)
+            section["tailored"] = tailored[cut:].strip()
+            continue
+
+        if len(norm_tail) > len(norm_orig) * 1.4:
+            candidate_prefix = norm_tail[: int(len(norm_orig) * 1.15)]
+            similarity = SequenceMatcher(None, norm_orig, candidate_prefix).ratio()
+            if similarity > 0.80:
+                ratio = len(norm_orig) / len(norm_tail)
+                cut = _find_split_point(tailored, ratio)
+                section["tailored"] = tailored[cut:].strip()
 
 
 def tailor_cv(
