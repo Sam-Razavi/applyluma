@@ -42,7 +42,8 @@ export default function MobileNav() {
         background: 'var(--nav-bg)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
-        borderTop: '1px solid var(--glass-border)',
+        borderTop: '1px solid var(--glass-border-strong)',
+        boxShadow: '0 -6px 20px -8px rgba(15, 23, 42, 0.18)',
         paddingBottom: 'env(safe-area-inset-bottom, 8px)',
       }}
       aria-label="Mobile navigation"
