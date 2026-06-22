@@ -19,6 +19,7 @@ import {
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import { StarIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
+import JobDetail from '../components/discover/JobDetail'
 import { jobApi } from '../services/api'
 import type { CreateJobDescriptionRequest } from '../services/api'
 import type { JobDescription } from '../types'
@@ -68,6 +69,7 @@ export default function Jobs() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'date' | 'alpha'>('date')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [detailJobId, setDetailJobId] = useState<string | null>(null)
 
   const [addOpen, setAddOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -109,6 +111,14 @@ export default function Jobs() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     })
   }, [jobs, search, sortBy])
+
+  function handleCardClick(job: JobDescription) {
+    if (job.source_raw_job_posting_id) {
+      setDetailJobId(job.source_raw_job_posting_id)
+    } else {
+      setExpandedId(expandedId === job.id ? null : job.id)
+    }
+  }
 
   async function handleStar(jdId: string, starred: boolean) {
     setJobs((prev) => prev.map((j) => (j.id === jdId ? { ...j, starred } : j)))
@@ -297,7 +307,7 @@ export default function Jobs() {
             const desc = job.description ?? ''
             const hasLong = desc.length > 150
             return (
-              <div key={job.id} className="bg-surface rounded-2xl border border-line p-5 hover:border-line-strong transition-colors">
+              <div key={job.id} onClick={() => handleCardClick(job)} className="bg-surface rounded-2xl border border-line p-5 hover:border-line-strong transition-colors cursor-pointer">
                 <div className="flex items-start gap-3">
                   <div className="h-10 w-10 bg-chip-accent rounded-xl flex items-center justify-center flex-shrink-0">
                     <BriefcaseIcon className="h-5 w-5 text-accent-text" />
@@ -315,7 +325,7 @@ export default function Jobs() {
                     <span className="text-xs text-fg-subtle hidden sm:block">{formatDate(job.created_at)}</span>
                     <button
                       type="button"
-                      onClick={() => handleStar(job.id, !job.starred)}
+                      onClick={(e) => { e.stopPropagation(); handleStar(job.id, !job.starred) }}
                       className="rounded-lg p-1 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       aria-label={job.starred ? 'Unstar job' : 'Star job'}
                     >
@@ -326,7 +336,7 @@ export default function Jobs() {
                       )}
                     </button>
                     <button
-                      onClick={() => setDeleteTarget(job)}
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(job) }}
                       className="h-8 w-8 flex items-center justify-center rounded-lg text-fg-subtle hover:text-chip-danger-fg hover:bg-chip-danger transition-colors"
                     >
                       <TrashIcon className="h-4 w-4" />
@@ -340,7 +350,7 @@ export default function Jobs() {
                   </p>
                   {hasLong && (
                     <button
-                      onClick={() => setExpandedId(isExpanded ? null : job.id)}
+                      onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : job.id) }}
                       className="mt-1 inline-flex items-center gap-0.5 text-xs text-accent-text hover:text-accent-text"
                     >
                       {isExpanded ? <>Show less <ChevronUpIcon className="h-3 w-3" /></> : <>Read more <ChevronDownIcon className="h-3 w-3" /></>}
@@ -364,7 +374,7 @@ export default function Jobs() {
                 {(job.url || job.notes) && (
                   <div className="mt-2 flex flex-col gap-1">
                     {job.url && (
-                      <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent-text hover:underline truncate block">
+                      <a href={job.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-xs text-accent-text hover:underline truncate block">
                         {job.url}
                       </a>
                     )}
@@ -425,6 +435,14 @@ export default function Jobs() {
           </DialogPanel>
         </div>
       </Dialog>
+
+      {/* Job detail modal (for discovered jobs) */}
+      <JobDetail
+        jobId={detailJobId}
+        isSaved={true}
+        onClose={() => setDetailJobId(null)}
+        onSave={() => {}}
+      />
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} className="relative z-50">
