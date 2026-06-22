@@ -132,46 +132,29 @@ describe('Jobs page (unified My Jobs)', () => {
     })
   })
 
-  it('shows collection filter tabs when multiple list_names exist', async () => {
-    const second = { ...mockJd, id: 'jd-2', list_name: 'Backup options', job_title: 'Junior Developer' }
-    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd, second])
+  it('shows starred jobs before unstarred jobs', async () => {
+    const unstarred = { ...mockJd, id: 'jd-1', starred: false, job_title: 'Unstarred Job' }
+    const starred = { ...mockJd, id: 'jd-2', starred: true, job_title: 'Starred Job' }
+    vi.mocked(api.jobApi.list).mockResolvedValue([unstarred, starred])
     renderPage()
 
     await waitFor(() => {
-      const tabs = screen.getAllByRole('button', { name: /Dream roles|Backup options|All/ })
-      expect(tabs.length).toBeGreaterThanOrEqual(3)
+      const cards = screen.getAllByRole('heading', { level: 3 })
+      expect(cards[0]).toHaveTextContent('Starred Job')
+      expect(cards[1]).toHaveTextContent('Unstarred Job')
     })
   })
 
-  it('filters jobs when a collection tab is clicked', async () => {
-    const second = { ...mockJd, id: 'jd-2', list_name: 'Backup options', job_title: 'Junior Developer' }
-    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd, second])
+  it('shows sort dropdown with options', async () => {
+    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd])
     renderPage()
 
     await waitFor(() => screen.getByText('Senior Python Developer'))
 
-    const dreamTab = screen.getByRole('button', { name: /Dream roles/ })
-    fireEvent.click(dreamTab)
-
-    await waitFor(() => {
-      expect(screen.queryByText('Junior Developer')).not.toBeInTheDocument()
-    })
-  })
-
-  it('shows all jobs when "All" tab is clicked after selecting a collection', async () => {
-    const second = { ...mockJd, id: 'jd-2', list_name: 'Backup options', job_title: 'Junior Developer' }
-    vi.mocked(api.jobApi.list).mockResolvedValue([mockJd, second])
-    renderPage()
-
-    await waitFor(() => screen.getByText('Senior Python Developer'))
-
-    fireEvent.click(screen.getByRole('button', { name: /Dream roles/ }))
-    fireEvent.click(screen.getByRole('button', { name: /^All/ }))
-
-    await waitFor(() => {
-      expect(screen.getByText('Senior Python Developer')).toBeInTheDocument()
-      expect(screen.getByText('Junior Developer')).toBeInTheDocument()
-    })
+    const select = screen.getByRole('combobox')
+    expect(select).toBeInTheDocument()
+    expect(screen.getByText('Newest saved')).toBeInTheDocument()
+    expect(screen.getByText('A–Z by title')).toBeInTheDocument()
   })
 
   it('reverts starred state when update throws', async () => {
