@@ -69,16 +69,14 @@ def generate_cv_pdf(sections: list[dict], output_path: Path) -> None:
     )
 
     story: list = []
-    last_heading: str | None = None
     for section in sections:
         section_name = (section.get("section_name") or "").strip()
         content = (section.get("content") or "").strip()
         if not content:
             continue
-        if section_name and section_name != last_heading:
+        if section_name:
             story.append(Paragraph(escape(section_name), heading))
             story.append(HRFlowable(width="100%", thickness=0.4, color=colors.HexColor("#e5e7eb")))
-            last_heading = section_name
         for raw_line in content.splitlines():
             line = _normalize_line(raw_line)
             if not line:
