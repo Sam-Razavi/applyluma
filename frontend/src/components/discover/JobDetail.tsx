@@ -3,7 +3,6 @@ import {
   ArrowTopRightOnSquareIcon,
   BookmarkIcon as BookmarkOutline,
   BriefcaseIcon,
-  PencilSquareIcon,
   SparklesIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
@@ -78,11 +77,6 @@ export default function JobDetail({
   }
 
   function handleTailor() {
-    if (!job) return
-    navigate('/ai-tailor', { state: { rawJobPostingId: job.job_id } })
-  }
-
-  function handleCoverLetter() {
     if (!job) return
     navigate('/ai-tailor', {
       state: {
@@ -223,15 +217,7 @@ export default function JobDetail({
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-2.5 text-sm font-medium text-accent-text transition-colors hover:bg-brand-100 sm:w-auto"
               >
                 <SparklesIcon className="h-4 w-4" />
-                Tailor CV
-              </button>
-              <button
-                type="button"
-                onClick={handleCoverLetter}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-2.5 text-sm font-medium text-accent-text transition-colors hover:bg-brand-100 sm:w-auto"
-              >
-                <PencilSquareIcon className="h-4 w-4" />
-                Cover Letter
+                Tailor CV + Cover Letter
               </button>
               {job.application_status ? (
                 <span className="flex w-full items-center justify-center gap-2 rounded-xl bg-chip-success px-4 py-2.5 text-sm font-medium text-chip-success-fg sm:w-auto">
