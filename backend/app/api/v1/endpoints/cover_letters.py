@@ -1,10 +1,13 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.crud import cover_letter_job as crud_cl
 from app.crud import cv as crud_cv
@@ -19,6 +22,7 @@ from app.schemas.cover_letter import (
     CoverLetterSubmitRequest,
     CoverLetterUsageResponse,
 )
+from app.services.pdf_generator import generate_cover_letter_pdf
 from app.tasks.cover_letter import run_cover_letter
 
 router = APIRouter(prefix="/cover-letters", tags=["cover-letters"])
@@ -165,6 +169,35 @@ def save_cover_letter(
             detail="Cover letter job not complete",
         )
     return crud_cl.save(db, job, saved_text=body.saved_text, title=body.title)
+
+
+@router.get("/{job_id}/download")
+def download_cover_letter(
+    job_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> FileResponse:
+    job = crud_cl.get_by_id(db, job_id, current_user.id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cover letter job not found")
+    if job.status != CoverLetterStatus.complete:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Job is not complete (status: {job.status.value})",
+        )
+    text = job.saved_text or job.generated_text
+    if not text or not text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Cover letter has no content"
+        )
+
+    user_dir = Path(settings.STORAGE_DIR) / "cover_letters" / str(current_user.id)
+    user_dir.mkdir(parents=True, exist_ok=True)
+    file_path = user_dir / f"{uuid.uuid4()}_cover_letter.pdf"
+    generate_cover_letter_pdf(text, file_path, title=job.title)
+
+    download_name = f"{job.title or 'cover-letter'}.pdf"
+    return FileResponse(path=str(file_path), media_type="application/pdf", filename=download_name)
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)

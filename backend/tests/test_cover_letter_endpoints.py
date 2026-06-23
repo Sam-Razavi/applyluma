@@ -378,6 +378,75 @@ async def test_save_returns_409_when_not_complete(monkeypatch: pytest.MonkeyPatc
     assert response.status_code == 409
 
 
+# --- download ---
+
+@pytest.mark.asyncio
+async def test_download_returns_pdf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(cl_endpoint.settings, "STORAGE_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        cl_endpoint.crud_cl,
+        "get_by_id",
+        lambda db, job_id, user_id: stub_job(
+            CoverLetterStatus.complete,
+            generated_text="Dear Hiring Manager...",
+            saved_text="Dear Hiring Manager, edited version...",
+            title="Cover letter for Acme",
+        ),
+    )
+
+    captured: dict[str, Any] = {}
+
+    def fake_pdf(text: str, output_path: Path, *, title: str | None = None) -> None:
+        captured["text"] = text
+        captured["title"] = title
+        output_path.write_bytes(b"%PDF-1.4 stub")
+
+    monkeypatch.setattr(cl_endpoint, "generate_cover_letter_pdf", fake_pdf)
+
+    response = await request("GET", f"/api/v1/cover-letters/{JOB_ID}/download", current_user=stub_user())
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    # Saved (edited) text takes precedence over the raw generated text.
+    assert captured["text"] == "Dear Hiring Manager, edited version..."
+    assert captured["title"] == "Cover letter for Acme"
+
+
+@pytest.mark.asyncio
+async def test_download_returns_409_when_not_complete(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        cl_endpoint.crud_cl,
+        "get_by_id",
+        lambda db, job_id, user_id: stub_job(CoverLetterStatus.processing),
+    )
+
+    response = await request("GET", f"/api/v1/cover-letters/{JOB_ID}/download", current_user=stub_user())
+
+    assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_download_returns_404_when_no_content(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        cl_endpoint.crud_cl,
+        "get_by_id",
+        lambda db, job_id, user_id: stub_job(CoverLetterStatus.complete, generated_text=None),
+    )
+
+    response = await request("GET", f"/api/v1/cover-letters/{JOB_ID}/download", current_user=stub_user())
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_download_returns_404_for_wrong_user(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cl_endpoint.crud_cl, "get_by_id", lambda db, job_id, user_id: None)
+
+    response = await request("GET", f"/api/v1/cover-letters/{JOB_ID}/download", current_user=stub_user())
+
+    assert response.status_code == 404
+
+
 # --- delete ---
 
 @pytest.mark.asyncio

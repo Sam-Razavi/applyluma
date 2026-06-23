@@ -43,6 +43,21 @@ export const coverLetterApi = {
       })
       .then((r) => r.data),
 
+  download: async (jobId: string, filename: string): Promise<void> => {
+    const response = await client.get(`/api/v1/cover-letters/${jobId}/download`, {
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(new Blob([response.data as BlobPart], { type: 'application/pdf' }))
+    const stem = filename.replace(/\.[^.]+$/, '').trim()
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${stem || 'cover-letter'}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  },
+
   list: (): Promise<CoverLetterJob[]> =>
     client.get<CoverLetterJob[]>('/api/v1/cover-letters/history').then((r) => r.data),
 
