@@ -125,12 +125,18 @@ export default function SavedJobCard({
           type="button"
           onClick={(e) => {
             e.stopPropagation()
-            navigate('/ai-tailor', { state: { rawJobPostingId: saved.raw_job_posting_id } })
+            navigate('/ai-tailor', {
+              state: {
+                rawJobPostingId: saved.raw_job_posting_id,
+                jobTitle: job?.title,
+                company: job?.company,
+              },
+            })
           }}
           className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg"
         >
           <SparklesIcon className="h-3.5 w-3.5" />
-          Tailor CV
+          Tailor CV + Cover Letter
         </button>
       </div>
 

@@ -135,9 +135,9 @@ describe('SavedJobCard', () => {
     expect(screen.getByText('phone screen')).toBeInTheDocument()
   })
 
-  it('always shows Tailor CV button', () => {
+  it('always shows the combined tailor button', () => {
     renderCard()
-    expect(screen.getByText('Tailor CV')).toBeInTheDocument()
+    expect(screen.getByText('Tailor CV + Cover Letter')).toBeInTheDocument()
   })
 
   it('shows notes when present', () => {
