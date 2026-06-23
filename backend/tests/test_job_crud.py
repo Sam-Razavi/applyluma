@@ -77,3 +77,45 @@ def test_skill_gap_empty_when_job_has_no_keywords() -> None:
     posting = _posting([])
 
     assert crud_job._compute_skill_gap(db, USER_ID, posting) == ([], [])
+
+
+def _detail_posting() -> SimpleNamespace:
+    return SimpleNamespace(
+        id=uuid.uuid4(),
+        title="Backend Engineer",
+        company="Acme",
+        location="Stockholm",
+        salary_min=None,
+        salary_max=None,
+        employment_type=None,
+        remote_allowed=True,
+        is_remote=False,
+        url="https://example.com/job",
+        source="the_muse",
+        scraped_at=None,
+        description="Build things.",
+    )
+
+
+def test_job_to_dict_includes_already_tailored_ids_on_detail() -> None:
+    cv_id = uuid.uuid4()
+    cover_id = uuid.uuid4()
+
+    data = crud_job._job_to_dict(
+        _detail_posting(),
+        None,
+        include_description=True,
+        tailored_cv_id=cv_id,
+        cover_letter_job_id=cover_id,
+    )
+
+    assert data["tailored_cv_id"] == cv_id
+    assert data["cover_letter_job_id"] == cover_id
+
+
+def test_job_to_dict_omits_already_tailored_ids_in_list_mode() -> None:
+    # The list path does not pass these and must not leak detail-only keys.
+    data = crud_job._job_to_dict(_detail_posting(), None, include_description=False)
+
+    assert "tailored_cv_id" not in data
+    assert "cover_letter_job_id" not in data

@@ -13,6 +13,7 @@ import type { DiscoveredJobDetail } from '../../types/jobDiscovery'
 import { SOURCE_LABELS } from '../../types/jobDiscovery'
 import { fetchJobDetail } from '../../services/jobDiscoveryApi'
 import { createApplication } from '../../services/applicationsApi'
+import { useUsageStore, usageHint } from '../../stores/usage'
 import ScoreBreakdown from './ScoreBreakdown'
 import SkillsBreakdown from './SkillsBreakdown'
 
@@ -42,6 +43,13 @@ export default function JobDetail({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [addingApplication, setAddingApplication] = useState(false)
+  const tailorUsage = useUsageStore((s) => s.tailorUsage)
+  const coverUsage = useUsageStore((s) => s.coverUsage)
+  const loadUsage = useUsageStore((s) => s.loadUsage)
+
+  useEffect(() => {
+    void loadUsage()
+  }, [loadUsage])
 
   useEffect(() => {
     if (!jobId) {
@@ -188,6 +196,35 @@ export default function JobDetail({
               </div>
             )}
 
+            {/* Already-tailored hint */}
+            {(job.tailored_cv_id || job.cover_letter_job_id) && (
+              <div className="flex flex-col gap-1.5 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <span className="font-medium text-accent-text">
+                  You've already tailored this job.
+                </span>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  {job.tailored_cv_id && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/cvs')}
+                      className="font-medium text-accent-text underline-offset-2 hover:underline"
+                    >
+                      View tailored CV
+                    </button>
+                  )}
+                  {job.cover_letter_job_id && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/ai-tailor')}
+                      className="font-medium text-accent-text underline-offset-2 hover:underline"
+                    >
+                      View cover letter
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex flex-col gap-2 border-t border-line pt-4 sm:flex-row sm:gap-3">
               <button
@@ -245,6 +282,11 @@ export default function JobDetail({
                 Apply now
               </a>
             </div>
+
+            {/* Daily-limit hint */}
+            {usageHint(tailorUsage, coverUsage) && (
+              <p className="text-xs text-chip-danger-fg">{usageHint(tailorUsage, coverUsage)}</p>
+            )}
           </div>
         )}
       </div>

@@ -108,6 +108,8 @@ class JobDetailSchema(JobWithScoreSchema):
     description: str
     matched_skills: list[str] = Field(default_factory=list)
     missing_skills: list[str] = Field(default_factory=list)
+    tailored_cv_id: uuid.UUID | None = None
+    cover_letter_job_id: uuid.UUID | None = None
 
 
 class SaveJobRequest(BaseModel):
