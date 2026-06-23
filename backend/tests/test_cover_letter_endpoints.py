@@ -381,7 +381,8 @@ async def test_save_returns_409_when_not_complete(monkeypatch: pytest.MonkeyPatc
 # --- download ---
 
 @pytest.mark.asyncio
-async def test_download_returns_pdf(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_download_returns_pdf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(cl_endpoint.settings, "STORAGE_DIR", str(tmp_path))
     monkeypatch.setattr(
         cl_endpoint.crud_cl,
         "get_by_id",
