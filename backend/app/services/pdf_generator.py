@@ -69,6 +69,53 @@ def _render_contact_block(content: str, styles: dict) -> list:
     return story
 
 
+def generate_cover_letter_pdf(
+    text: str, output_path: Path, *, title: str | None = None
+) -> None:
+    """Render a plain-text cover letter into a clean single-column PDF."""
+    doc = SimpleDocTemplate(
+        str(output_path),
+        pagesize=A4,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+        leftMargin=2.2 * cm,
+        rightMargin=2.2 * cm,
+    )
+
+    base_styles = getSampleStyleSheet()
+    heading = ParagraphStyle(
+        "ApplyLumaCoverHeading",
+        parent=base_styles["Heading2"],
+        fontSize=13,
+        leading=17,
+        spaceAfter=10,
+        textColor=colors.HexColor("#1e1e2e"),
+    )
+    body = ParagraphStyle(
+        "ApplyLumaCoverBody",
+        parent=base_styles["Normal"],
+        fontSize=10.5,
+        leading=15,
+        spaceAfter=10,
+    )
+
+    story: list = []
+    if title:
+        story.append(Paragraph(escape(title.strip()), heading))
+
+    # Split on blank lines into paragraphs; keep intra-paragraph line breaks.
+    for block in re.split(r"\n\s*\n", text.strip()):
+        lines = [_UNICODE_DASH_RE.sub("-", ln.strip()) for ln in block.splitlines() if ln.strip()]
+        if not lines:
+            continue
+        story.append(Paragraph("<br/>".join(escape(line) for line in lines), body))
+
+    if not story:
+        story.append(Paragraph("", body))
+
+    doc.build(story)
+
+
 def generate_cv_pdf(sections: list[dict], output_path: Path) -> None:
     doc = SimpleDocTemplate(
         str(output_path),

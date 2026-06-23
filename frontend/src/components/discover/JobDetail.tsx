@@ -84,7 +84,7 @@ export default function JobDetail({
 
   function handleCoverLetter() {
     if (!job) return
-    navigate('/cover-letter', {
+    navigate('/ai-tailor', {
       state: {
         rawJobPostingId: job.job_id,
         jobTitle: job.title,

@@ -9,7 +9,6 @@ import {
   Cog6ToothIcon,
   DocumentTextIcon,
   HomeIcon,
-  PencilSquareIcon,
   ShieldCheckIcon,
   SparklesIcon,
   Squares2X2Icon,
@@ -46,7 +45,6 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Tools',
     items: [
       { to: '/ai-tailor', label: 'AI Tailor', icon: SparklesIcon },
-      { to: '/cover-letter', label: 'Cover Letter', icon: PencilSquareIcon },
       { to: '/analytics', label: 'Analytics', icon: ChartBarIcon },
     ],
   },

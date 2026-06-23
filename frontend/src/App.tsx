@@ -23,7 +23,6 @@ import CVs from './pages/CVs'
 import Jobs from './pages/Jobs'
 import Applications from './pages/Applications'
 import AITailor from './pages/AITailor'
-import CoverLetter from './pages/CoverLetter'
 import Analytics from './pages/Analytics'
 import Discover from './pages/Discover'
 import Settings from './pages/Settings'
@@ -86,7 +85,7 @@ export default function App() {
             <Route path="job-search" element={<Navigate to="/discover?tab=search" replace />} />
             <Route path="applications" element={<Applications />} />
             <Route path="ai-tailor" element={<AITailor />} />
-            <Route path="cover-letter" element={<CoverLetter />} />
+            <Route path="cover-letter" element={<Navigate to="/ai-tailor" replace />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
             <Route path="plans" element={<Plans />} />
