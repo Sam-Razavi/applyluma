@@ -54,7 +54,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 ### Candidate Workspace
 
 - Secure sign-up, login, password reset, email verification, and session handling.
-- CV upload, parsing, AI analysis, version history, and authenticated PDF downloads.
+- CV upload (PDF, DOCX, and Markdown), parsing, AI analysis, version history, and authenticated PDF downloads.
 - AI CV Tailor with asynchronous processing, section review, save, and export.
 - Cover Letter Generator with formal, friendly, and concise tones.
 - Job description manager with URL scraping for publicly accessible job posts.
@@ -169,6 +169,15 @@ npm run dev
 ```
 
 ## Testing
+
+ApplyLuma ships with **591 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
+
+| Suite | Tests | Coverage |
+| --- | --- | --- |
+| Backend — Pytest (async, ASGI transport) | 414 across 36 files | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, billing), Celery tasks, auth and security |
+| Frontend — Vitest + React Testing Library | 160 across 18 files | Pages, Zustand stores, components, and formatters |
+| Airflow — Pytest | 10 across 2 files | DAG integrity (load, cycles, required params) and DAG logic |
+| dbt | 7 SQL assertions + `dbt parse` | Data-quality assertions and project validation |
 
 ```bash
 # Backend
