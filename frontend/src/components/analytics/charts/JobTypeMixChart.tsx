@@ -9,15 +9,30 @@ interface Props {
 }
 
 export default function JobTypeMixChart({ data }: Props) {
-  const chartData = useMemo(
-    () =>
-      data.map((item) => ({
+  const chartData = useMemo(() => {
+    const mapped = data
+      .map((item) => ({
         name: `${titleCase(item.job_type)} / ${titleCase(item.remote_label)}`,
         value: item.job_count,
         percentage: item.pct_of_total,
-      })),
-    [data],
-  )
+      }))
+      .sort((a, b) => b.value - a.value)
+
+    // Collapse the long tail of tiny segments into a single "Other" slice so the
+    // donut and legend stay readable instead of showing a dozen 0–1% wedges.
+    const TOP = 6
+    if (mapped.length <= TOP) return mapped
+    const top = mapped.slice(0, TOP)
+    const rest = mapped.slice(TOP)
+    return [
+      ...top,
+      {
+        name: `Other (${rest.length})`,
+        value: rest.reduce((sum, item) => sum + item.value, 0),
+        percentage: Math.round(rest.reduce((sum, item) => sum + item.percentage, 0) * 10) / 10,
+      },
+    ]
+  }, [data])
   const totalJobs = chartData.reduce((sum, item) => sum + item.value, 0)
 
   return (
@@ -34,7 +49,11 @@ export default function JobTypeMixChart({ data }: Props) {
             paddingAngle={3}
             dataKey="value"
             nameKey="name"
-            label={(entry) => `${Math.round((entry.value / Math.max(totalJobs, 1)) * 100)}%`}
+            label={(entry) => {
+              const pct = Math.round((entry.value / Math.max(totalJobs, 1)) * 100)
+              // Only label slices big enough to avoid overlapping callouts.
+              return pct >= 5 ? `${pct}%` : ''
+            }}
             labelLine={false}
           >
             {chartData.map((entry, index) => (
