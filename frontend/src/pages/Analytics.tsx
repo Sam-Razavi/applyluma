@@ -35,6 +35,11 @@ const JobTypeMixChart = lazyWithRetry(() => import('../components/analytics/char
 const SalaryBySkillChart = lazyWithRetry(() => import('../components/analytics/charts/SalaryBySkillChart'))
 const ResumeComparisonChart = lazyWithRetry(() => import('../components/analytics/charts/ResumeComparisonChart'))
 
+// Salary panels are hidden until a scraper provides salary data (Remotive/The
+// Muse don't). Flip to true once a salary source is wired in. Kept as a flag so
+// the panels, fetches, and types stay wired and re-enabling is a one-line change.
+const SALARY_PANELS_ENABLED = false
+
 type LoadKey =
   | 'marketHealth'
   | 'trendingSkills'
@@ -613,7 +618,11 @@ export default function Analytics() {
 
       <JobFreshnessStat />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div
+        className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${
+          SALARY_PANELS_ENABLED ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+        }`}
+      >
         <KPICard
           title="Total Jobs"
           value={marketHealth?.total_jobs}
@@ -621,14 +630,16 @@ export default function Analytics() {
           loading={loading.marketHealth}
           error={errors.marketHealth}
         />
-        <KPICard
-          title="Avg Salary"
-          value={marketHealth?.avg_salary_midpoint}
-          format="currency"
-          icon="dollar"
-          loading={loading.marketHealth}
-          error={errors.marketHealth}
-        />
+        {SALARY_PANELS_ENABLED && (
+          <KPICard
+            title="Avg Salary"
+            value={marketHealth?.avg_salary_midpoint}
+            format="currency"
+            icon="dollar"
+            loading={loading.marketHealth}
+            error={errors.marketHealth}
+          />
+        )}
         <KPICard
           title="Companies"
           value={marketHealth?.unique_companies}
@@ -669,18 +680,20 @@ export default function Analytics() {
           </Suspense>
         </ChartCard>
 
-        <ChartCard
-          title="Salary Insights"
-          subtitle="Salary percentiles by market segment"
-          loading={loading.salaryInsights}
-          error={errors.salaryInsights}
-          empty={salaryInsights.length === 0}
-          onRetry={loadSalaryInsights}
-        >
-          <Suspense fallback={chartFallback()}>
-            <SalaryInsightsChart data={salaryInsights} />
-          </Suspense>
-        </ChartCard>
+        {SALARY_PANELS_ENABLED && (
+          <ChartCard
+            title="Salary Insights"
+            subtitle="Salary percentiles by market segment"
+            loading={loading.salaryInsights}
+            error={errors.salaryInsights}
+            empty={salaryInsights.length === 0}
+            onRetry={loadSalaryInsights}
+          >
+            <Suspense fallback={chartFallback()}>
+              <SalaryInsightsChart data={salaryInsights} />
+            </Suspense>
+          </ChartCard>
+        )}
 
         <ChartCard
           title="Top Companies"
@@ -778,18 +791,20 @@ export default function Analytics() {
           </Suspense>
         </ChartCard>
 
-        <ChartCard
-          title="Salary by Skill"
-          subtitle="Top paying skills"
-          loading={loading.salaryBySkill}
-          error={errors.salaryBySkill}
-          empty={salaryBySkill.length === 0}
-          onRetry={loadSalaryBySkill}
-        >
-          <Suspense fallback={chartFallback()}>
-            <SalaryBySkillChart data={salaryBySkill} />
-          </Suspense>
-        </ChartCard>
+        {SALARY_PANELS_ENABLED && (
+          <ChartCard
+            title="Salary by Skill"
+            subtitle="Top paying skills"
+            loading={loading.salaryBySkill}
+            error={errors.salaryBySkill}
+            empty={salaryBySkill.length === 0}
+            onRetry={loadSalaryBySkill}
+          >
+            <Suspense fallback={chartFallback()}>
+              <SalaryBySkillChart data={salaryBySkill} />
+            </Suspense>
+          </ChartCard>
+        )}
 
         {token && (
           <ChartCard

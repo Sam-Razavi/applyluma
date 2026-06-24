@@ -37,37 +37,31 @@ def get_hiring_patterns(
 
     def fetch() -> AnalyticsResponse[list[HiringPatternPoint]]:
         def query() -> list[dict]:
+            # Live time series from the scraping landing table (grouped by
+            # scraped_at). avg_salary is null until a salary data source exists.
             if granularity == "daily":
-                sql = """
-                    SELECT metric_date::text AS period, total_jobs AS job_count,
-                           remote_jobs AS remote_count, remote_percentage,
-                           avg_salary_midpoint AS avg_salary
-                    FROM analytics.fct_daily_metrics
-                    WHERE metric_date >= CURRENT_DATE - (:days_back * INTERVAL '1 day')
-                    ORDER BY metric_date
-                """
+                period_expr = "DATE(scraped_at)"
+                period_select = "DATE(scraped_at)::text"
             elif granularity == "weekly":
-                sql = """
-                    SELECT TO_CHAR(DATE_TRUNC('week', metric_date), 'IYYY-"W"IW') AS period,
-                           SUM(total_jobs) AS job_count, SUM(remote_jobs) AS remote_count,
-                           ROUND(AVG(remote_percentage), 1) AS remote_percentage,
-                           ROUND(AVG(avg_salary_midpoint)) AS avg_salary
-                    FROM analytics.fct_daily_metrics
-                    WHERE metric_date >= CURRENT_DATE - (:days_back * INTERVAL '1 day')
-                    GROUP BY DATE_TRUNC('week', metric_date)
-                    ORDER BY DATE_TRUNC('week', metric_date)
-                """
+                period_expr = "DATE_TRUNC('week', scraped_at)"
+                period_select = "TO_CHAR(DATE_TRUNC('week', scraped_at), 'IYYY-\"W\"IW')"
             else:
-                sql = """
-                    SELECT TO_CHAR(DATE_TRUNC('month', metric_date), 'YYYY-MM') AS period,
-                           SUM(total_jobs) AS job_count, SUM(remote_jobs) AS remote_count,
-                           ROUND(AVG(remote_percentage), 1) AS remote_percentage,
-                           ROUND(AVG(avg_salary_midpoint)) AS avg_salary
-                    FROM analytics.fct_daily_metrics
-                    WHERE metric_date >= CURRENT_DATE - (:days_back * INTERVAL '1 day')
-                    GROUP BY DATE_TRUNC('month', metric_date)
-                    ORDER BY DATE_TRUNC('month', metric_date)
-                """
+                period_expr = "DATE_TRUNC('month', scraped_at)"
+                period_select = "TO_CHAR(DATE_TRUNC('month', scraped_at), 'YYYY-MM')"
+
+            sql = f"""
+                SELECT
+                    {period_select} AS period,
+                    COUNT(*) AS job_count,
+                    COUNT(*) FILTER (WHERE remote_allowed) AS remote_count,
+                    COALESCE(ROUND(COUNT(*) FILTER (WHERE remote_allowed) * 100.0 / NULLIF(COUNT(*), 0), 1), 0) AS remote_percentage,
+                    NULL AS avg_salary
+                FROM raw_job_postings
+                WHERE NOT is_duplicate
+                  AND scraped_at >= CURRENT_DATE - (:days_back * INTERVAL '1 day')
+                GROUP BY {period_expr}
+                ORDER BY {period_expr}
+            """
             return rows_to_dicts(db.execute(text(sql), {"days_back": days_back}).fetchall())
 
         data = get_or_cache(
@@ -78,7 +72,7 @@ def get_hiring_patterns(
         )
         metadata = build_metadata(
             db,
-            "analytics.fct_daily_metrics",
+            "public.raw_job_postings",
             {"days_back": days_back, "granularity": granularity},
         )
         return ok_response(data, metadata)

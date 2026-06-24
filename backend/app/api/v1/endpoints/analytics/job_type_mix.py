@@ -30,15 +30,18 @@ def get_job_type_mix(
         def query() -> list[dict]:
             rows = db.execute(
                 text("""
-                    WITH total AS (SELECT COUNT(*) AS n FROM analytics.fct_job_postings)
+                    WITH total AS (
+                        SELECT COUNT(*) AS n FROM raw_job_postings WHERE NOT is_duplicate
+                    )
                     SELECT
                         COALESCE(employment_type, 'unknown') AS job_type,
                         CASE WHEN remote_allowed THEN 'remote' ELSE 'on-site' END AS remote_label,
                         COUNT(*) AS job_count,
                         ROUND(COUNT(*) * 100.0 / NULLIF((SELECT n FROM total), 0), 2) AS pct_of_total,
-                        ROUND(AVG(salary_min) FILTER (WHERE salary_min IS NOT NULL)) AS avg_salary_min,
-                        ROUND(AVG(salary_max) FILTER (WHERE salary_max IS NOT NULL)) AS avg_salary_max
-                    FROM analytics.fct_job_postings
+                        NULL AS avg_salary_min,
+                        NULL AS avg_salary_max
+                    FROM raw_job_postings
+                    WHERE NOT is_duplicate
                     GROUP BY employment_type, remote_allowed
                     ORDER BY job_count DESC
                 """)
@@ -46,7 +49,7 @@ def get_job_type_mix(
             return rows_to_dicts(rows)
 
         data = get_or_cache(redis_client, build_cache_key("job_type_mix"), ANALYTICS_CACHE_TTL_SECONDS, query)
-        metadata = build_metadata(db, "analytics.fct_job_postings", {})
+        metadata = build_metadata(db, "public.raw_job_postings", {})
         return ok_response(data, metadata)
 
     return safe_execute(fetch)

@@ -37,23 +37,52 @@ def get_skill_demand(
 
     def fetch() -> AnalyticsResponse[list[SkillDemand]]:
         def query() -> list[dict]:
+            # Live skill growth from raw_job_postings.extracted_skills (week-over-week).
             rows = db.execute(
                 text("""
+                    WITH skill_counts AS (
+                        SELECT
+                            skill,
+                            COUNT(*) AS total_mentions,
+                            COUNT(*) FILTER (WHERE scraped_at >= NOW() - INTERVAL '7 days') AS mentions_this_week,
+                            COUNT(*) FILTER (
+                                WHERE scraped_at >= NOW() - INTERVAL '14 days'
+                                  AND scraped_at <  NOW() - INTERVAL '7 days'
+                            ) AS mentions_last_week
+                        FROM raw_job_postings,
+                             jsonb_array_elements_text(extracted_skills) AS skill
+                        WHERE NOT is_duplicate
+                          AND extracted_skills IS NOT NULL
+                          AND jsonb_typeof(extracted_skills) = 'array'
+                        GROUP BY skill
+                    ),
+                    scored AS (
+                        SELECT
+                            skill AS skill,
+                            total_mentions,
+                            mentions_this_week,
+                            mentions_last_week,
+                            CASE
+                                WHEN mentions_last_week = 0 THEN (CASE WHEN mentions_this_week > 0 THEN 100.0 ELSE 0.0 END)
+                                ELSE ROUND((mentions_this_week - mentions_last_week) * 100.0 / mentions_last_week, 1)
+                            END AS trending_score_pct
+                        FROM skill_counts
+                    )
                     SELECT
-                        skill_name AS skill,
-                        total_job_mentions AS total_mentions,
+                        skill,
+                        total_mentions,
                         mentions_this_week,
                         mentions_last_week,
-                        COALESCE(trending_score_pct, 0) AS trending_score_pct,
-                        avg_salary_min,
-                        avg_salary_max,
+                        trending_score_pct,
+                        NULL AS avg_salary_min,
+                        NULL AS avg_salary_max,
                         CASE
                             WHEN trending_score_pct > 5 THEN 'up'
                             WHEN trending_score_pct < -5 THEN 'down'
                             ELSE 'stable'
                         END AS trend
-                    FROM analytics.dim_skills
-                    WHERE COALESCE(trending_score_pct, 0) >= :min_growth_pct
+                    FROM scored
+                    WHERE trending_score_pct >= :min_growth_pct
                     ORDER BY trending_score_pct DESC
                     LIMIT :limit
                 """),
@@ -67,7 +96,7 @@ def get_skill_demand(
             ANALYTICS_CACHE_TTL_SECONDS,
             query,
         )
-        metadata = build_metadata(db, "analytics.dim_skills", {"limit": limit, "min_growth_pct": min_growth_pct})
+        metadata = build_metadata(db, "public.raw_job_postings", {"limit": limit, "min_growth_pct": min_growth_pct})
         return ok_response(data, metadata)
 
     return safe_execute(fetch)

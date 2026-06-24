@@ -31,17 +31,18 @@ def get_location_trends(
             rows = db.execute(
                 text("""
                     WITH totals AS (
-                        SELECT COUNT(*) AS grand_total FROM analytics.fct_job_postings
+                        SELECT COUNT(*) AS grand_total FROM raw_job_postings WHERE NOT is_duplicate
                     ),
                     by_location AS (
                         SELECT
                             location,
                             COUNT(*) AS job_count,
                             ROUND(COUNT(*) * 100.0 / NULLIF((SELECT grand_total FROM totals), 0), 2) AS pct_of_total,
-                            ROUND(AVG(salary_midpoint) FILTER (WHERE salary_midpoint IS NOT NULL)) AS avg_salary_midpoint,
+                            NULL AS avg_salary_midpoint,
                             ROUND(COUNT(*) FILTER (WHERE remote_allowed) * 100.0 / NULLIF(COUNT(*), 0), 1) AS remote_percentage
-                        FROM analytics.fct_job_postings
-                        WHERE location IS NOT NULL AND location != 'Unknown'
+                        FROM raw_job_postings
+                        WHERE NOT is_duplicate
+                          AND location IS NOT NULL AND location != 'Unknown'
                         GROUP BY location
                     )
                     SELECT * FROM by_location ORDER BY job_count DESC LIMIT 30
@@ -50,7 +51,7 @@ def get_location_trends(
             return rows_to_dicts(rows)
 
         data = get_or_cache(redis_client, build_cache_key("location_trends"), ANALYTICS_CACHE_TTL_SECONDS, query)
-        metadata = build_metadata(db, "analytics.fct_job_postings", {})
+        metadata = build_metadata(db, "public.raw_job_postings", {})
         return ok_response(data, metadata)
 
     return safe_execute(fetch)
