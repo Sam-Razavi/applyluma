@@ -29,27 +29,26 @@ def get_experience_levels(
     def fetch() -> AnalyticsResponse[list[ExperienceLevelBreakdown]]:
         def query() -> list[dict]:
             rows = db.execute(
-                text("""
-                    WITH total AS (SELECT COUNT(*) AS n FROM analytics.fct_job_postings),
+                text(r"""
+                    WITH total AS (SELECT COUNT(*) AS n FROM raw_job_postings WHERE NOT is_duplicate),
                     classified AS (
                         SELECT
                             CASE
-                                WHEN is_management_role THEN 'management'
-                                WHEN is_senior_role THEN 'senior'
-                                WHEN is_junior_role THEN 'junior'
+                                WHEN title ~* '(manager|head of|director|\mvp\M|chief|cto|ceo)' THEN 'management'
+                                WHEN title ~* '(senior|sr\.?|lead|principal|staff|architect)' THEN 'senior'
+                                WHEN title ~* '(junior|jr\.?|intern|graduate|trainee|entry[ -]level|associate)' THEN 'junior'
                                 ELSE 'mid'
                             END AS level,
-                            salary_min,
-                            salary_max,
                             remote_allowed
-                        FROM analytics.fct_job_postings
+                        FROM raw_job_postings
+                        WHERE NOT is_duplicate
                     )
                     SELECT
                         level,
                         COUNT(*) AS job_count,
                         ROUND(COUNT(*) * 100.0 / NULLIF((SELECT n FROM total), 0), 2) AS pct_of_total,
-                        ROUND(AVG(salary_min) FILTER (WHERE salary_min IS NOT NULL)) AS avg_salary_min,
-                        ROUND(AVG(salary_max) FILTER (WHERE salary_max IS NOT NULL)) AS avg_salary_max,
+                        NULL AS avg_salary_min,
+                        NULL AS avg_salary_max,
                         COALESCE(ROUND(COUNT(*) FILTER (WHERE remote_allowed) * 100.0 / NULLIF(COUNT(*), 0), 1), 0) AS remote_percentage
                     FROM classified
                     GROUP BY level
@@ -59,7 +58,7 @@ def get_experience_levels(
             return rows_to_dicts(rows)
 
         data = get_or_cache(redis_client, build_cache_key("experience_levels"), ANALYTICS_CACHE_TTL_SECONDS, query)
-        metadata = build_metadata(db, "analytics.fct_job_postings", {})
+        metadata = build_metadata(db, "public.raw_job_postings", {})
         return ok_response(data, metadata)
 
     return safe_execute(fetch)

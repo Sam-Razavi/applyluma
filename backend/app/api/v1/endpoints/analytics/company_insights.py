@@ -38,30 +38,29 @@ def get_company_insights(
 
     def fetch() -> AnalyticsResponse[list[CompanyInsight]]:
         def query() -> list[dict]:
+            # Live company aggregation from the scraping landing table.
             rows = db.execute(
                 text("""
                     SELECT
-                        dc.company_name,
-                        dc.total_jobs_posted AS total_jobs,
-                        dc.remote_jobs,
-                        dc.remote_percentage,
-                        dc.avg_salary_min,
-                        dc.avg_salary_max,
-                        dc.most_common_employment_type,
-                        dc.first_seen_date::text,
-                        dc.last_seen_date::text,
+                        company AS company_name,
+                        COUNT(*) AS total_jobs,
+                        COUNT(*) FILTER (WHERE remote_allowed) AS remote_jobs,
+                        COALESCE(ROUND(COUNT(*) FILTER (WHERE remote_allowed) * 100.0 / NULLIF(COUNT(*), 0), 1), 0) AS remote_percentage,
+                        NULL AS avg_salary_min,
+                        NULL AS avg_salary_max,
+                        MODE() WITHIN GROUP (ORDER BY employment_type) AS most_common_employment_type,
+                        MIN(scraped_at)::date::text AS first_seen_date,
+                        MAX(scraped_at)::date::text AS last_seen_date,
                         COALESCE(ROUND(
-                            dc.total_jobs_posted::numeric
-                            / NULLIF((dc.last_seen_date - dc.first_seen_date) / 7.0, 0),
+                            COUNT(*)::numeric
+                            / NULLIF((MAX(scraped_at)::date - MIN(scraped_at)::date) / 7.0, 0),
                             2
-                        ), dc.total_jobs_posted::numeric) AS hiring_velocity
-                    FROM analytics.dim_companies dc
-                    WHERE (:location IS NULL OR dc.company_name IN (
-                        SELECT DISTINCT company_name
-                        FROM analytics.fct_job_postings
-                        WHERE location ILIKE '%' || :location || '%'
-                    ))
-                    ORDER BY dc.total_jobs_posted DESC
+                        ), COUNT(*)::numeric) AS hiring_velocity
+                    FROM raw_job_postings
+                    WHERE NOT is_duplicate
+                      AND (:location IS NULL OR location ILIKE '%' || :location || '%')
+                    GROUP BY company
+                    ORDER BY total_jobs DESC
                     LIMIT :limit
                 """),
                 {"limit": limit, "location": location},
@@ -76,7 +75,7 @@ def get_company_insights(
         )
         metadata = build_metadata(
             db,
-            "analytics.dim_companies",
+            "public.raw_job_postings",
             non_default_filters({"limit": limit, "location": location}, {"limit": 20, "location": None}),
         )
         return ok_response(data, metadata)

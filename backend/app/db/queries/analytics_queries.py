@@ -14,8 +14,8 @@ from sqlalchemy.orm import Session
 
 from app.schemas.analytics import AnalyticsResponse, ErrorDetail, ResponseMetadata
 
-ANALYTICS_CACHE_TTL_SECONDS = 3_600
-COMPARISON_CACHE_TTL_SECONDS = 900
+ANALYTICS_CACHE_TTL_SECONDS = 300
+COMPARISON_CACHE_TTL_SECONDS = 300
 
 ALLOWED_ANALYTICS_TABLES = {
     "analytics.fct_job_postings",
@@ -24,6 +24,7 @@ ALLOWED_ANALYTICS_TABLES = {
     "analytics.fct_daily_metrics",
     "analytics.dim_companies",
     "public.cvs",
+    "public.raw_job_postings",
 }
 _METADATA_CACHE_TTL_SECONDS = 60
 _metadata_cache: dict[tuple[str, str], tuple[datetime, ResponseMetadata]] = {}
@@ -137,6 +138,9 @@ def get_dbt_freshness(db: Session, table: str) -> tuple[int, datetime | None]:
     column = "dbt_updated_at"
     if table == "public.cvs":
         column = "updated_at"
+    elif table == "public.raw_job_postings":
+        # Live analytics read straight from the scraping landing table.
+        column = "scraped_at"
 
     updated_at = db.execute(text(f"SELECT MAX({column}) AS updated_at FROM {table}")).scalar()
     if updated_at is None:

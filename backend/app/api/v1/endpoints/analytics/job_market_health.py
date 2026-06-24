@@ -28,20 +28,41 @@ def get_job_market_health(
 ) -> AnalyticsResponse[JobMarketHealth] | JSONResponse:
     def fetch() -> AnalyticsResponse[JobMarketHealth]:
         def query() -> dict:
+            # Live read from the scraping landing table so the dashboard reflects
+            # current ingestion instead of a stale dbt mart. Role mix is derived
+            # from a title-keyword heuristic; salary stays null (no salary source yet).
             row = db.execute(
-                text("""
+                text(r"""
+                    WITH jobs AS (
+                        SELECT
+                            company,
+                            remote_allowed,
+                            title,
+                            scraped_at,
+                            CASE
+                                WHEN extracted_skills IS NOT NULL
+                                     AND jsonb_typeof(extracted_skills) = 'array'
+                                THEN jsonb_array_length(extracted_skills)
+                                ELSE 0
+                            END AS skill_count,
+                            (title ~* '(senior|sr\.?|lead|principal|staff|architect)') AS is_senior_role,
+                            (title ~* '(junior|jr\.?|intern|graduate|trainee|entry[ -]level|associate)') AS is_junior_role,
+                            (title ~* '(manager|head of|director|\mvp\M|chief|cto|ceo|engineering manager)') AS is_management_role
+                        FROM raw_job_postings
+                        WHERE NOT is_duplicate
+                    )
                     SELECT
-                        COUNT(DISTINCT job_id) AS total_jobs,
-                        COUNT(DISTINCT company_name) AS unique_companies,
+                        COUNT(*) AS total_jobs,
+                        COUNT(DISTINCT company) AS unique_companies,
                         COALESCE(ROUND(COUNT(*) FILTER (WHERE remote_allowed) * 100.0 / NULLIF(COUNT(*), 0), 1), 0) AS remote_percentage,
-                        ROUND(AVG(salary_midpoint) FILTER (WHERE salary_midpoint IS NOT NULL)) AS avg_salary_midpoint,
+                        NULL AS avg_salary_midpoint,
                         COALESCE(ROUND(COUNT(*) FILTER (WHERE is_senior_role) * 100.0 / NULLIF(COUNT(*), 0), 1), 0) AS senior_role_pct,
                         COALESCE(ROUND(COUNT(*) FILTER (WHERE is_junior_role) * 100.0 / NULLIF(COUNT(*), 0), 1), 0) AS junior_role_pct,
                         COALESCE(ROUND(COUNT(*) FILTER (WHERE is_management_role) * 100.0 / NULLIF(COUNT(*), 0), 1), 0) AS management_role_pct,
                         COALESCE(ROUND(AVG(skill_count), 1), 0) AS avg_skills_per_job,
-                        COALESCE((MAX(scrape_date) - MIN(scrape_date)), 0) AS data_date_range_days,
-                        MAX(dbt_updated_at) AS last_updated
-                    FROM analytics.fct_job_postings
+                        COALESCE((MAX(scraped_at)::date - MIN(scraped_at)::date), 0) AS data_date_range_days,
+                        MAX(scraped_at) AS last_updated
+                    FROM jobs
                 """)
             ).fetchone()
             data = to_jsonable(dict(row._mapping)) if row else {}
@@ -69,7 +90,7 @@ def get_job_market_health(
             ANALYTICS_CACHE_TTL_SECONDS,
             query,
         )
-        metadata = build_metadata(db, "analytics.fct_job_postings", {})
+        metadata = build_metadata(db, "public.raw_job_postings", {})
         return ok_response(data, metadata)
 
     return safe_execute(fetch)

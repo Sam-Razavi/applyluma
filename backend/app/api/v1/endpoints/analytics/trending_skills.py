@@ -36,25 +36,47 @@ def get_trending_skills(
 
     def fetch() -> AnalyticsResponse[list[SkillTrend]]:
         def query() -> list[dict]:
+            # Live skill demand from raw_job_postings.extracted_skills with a
+            # week-over-week trend (mirrors the legacy /top-skills query).
             rows = db.execute(
                 text("""
+                    WITH skill_counts AS (
+                        SELECT
+                            skill,
+                            COUNT(*) AS total_count,
+                            COUNT(*) FILTER (WHERE scraped_at >= NOW() - INTERVAL '7 days') AS this_week,
+                            COUNT(*) FILTER (
+                                WHERE scraped_at >= NOW() - INTERVAL '14 days'
+                                  AND scraped_at <  NOW() - INTERVAL '7 days'
+                            ) AS last_week
+                        FROM raw_job_postings,
+                             jsonb_array_elements_text(extracted_skills) AS skill
+                        WHERE NOT is_duplicate
+                          AND extracted_skills IS NOT NULL
+                          AND jsonb_typeof(extracted_skills) = 'array'
+                        GROUP BY skill
+                    )
                     SELECT
-                        skill_name AS skill,
-                        total_job_mentions AS frequency,
-                        ROUND(total_job_mentions * 100.0 / NULLIF(
-                            (SELECT SUM(total_job_mentions) FROM analytics.dim_skills), 0
+                        skill,
+                        total_count AS frequency,
+                        ROUND(total_count * 100.0 / NULLIF(
+                            (SELECT SUM(total_count) FROM skill_counts), 0
                         ), 2) AS frequency_pct,
-                        avg_salary_min,
-                        avg_salary_max,
-                        COALESCE(trending_score_pct, 0) AS trending_score_pct,
+                        NULL AS avg_salary_min,
+                        NULL AS avg_salary_max,
                         CASE
-                            WHEN trending_score_pct > 5 THEN 'up'
-                            WHEN trending_score_pct < -5 THEN 'down'
+                            WHEN last_week = 0 THEN (CASE WHEN this_week > 0 THEN 100.0 ELSE 0.0 END)
+                            ELSE ROUND((this_week - last_week) * 100.0 / last_week, 1)
+                        END AS trending_score_pct,
+                        CASE
+                            WHEN last_week = 0 AND this_week > 0 THEN 'up'
+                            WHEN this_week > last_week * 1.1 THEN 'up'
+                            WHEN this_week < last_week * 0.9 THEN 'down'
                             ELSE 'stable'
                         END AS trend
-                    FROM analytics.dim_skills
-                    WHERE total_job_mentions >= :min_jobs
-                    ORDER BY total_job_mentions DESC
+                    FROM skill_counts
+                    WHERE total_count >= :min_jobs
+                    ORDER BY total_count DESC
                     LIMIT :limit
                 """),
                 {"limit": limit, "min_jobs": min_jobs},
@@ -69,7 +91,7 @@ def get_trending_skills(
         )
         metadata = build_metadata(
             db,
-            "analytics.dim_skills",
+            "public.raw_job_postings",
             {"limit": limit, "min_jobs": min_jobs},
         )
         return ok_response(data, metadata)
