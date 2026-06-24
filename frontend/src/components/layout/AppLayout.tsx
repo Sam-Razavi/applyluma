@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
+import RouteFallback from '../ui/RouteFallback'
 import { useInactivityLogout } from '../../hooks/useInactivityLogout'
 import { useNotificationsStore } from '../../stores/notifications'
 import { useAuthStore } from '../../stores'
@@ -102,7 +103,9 @@ export default function AppLayout() {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2 }}
             >
-              <Outlet />
+              <Suspense fallback={<RouteFallback />}>
+                <Outlet />
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </div>

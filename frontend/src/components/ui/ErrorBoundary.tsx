@@ -10,6 +10,15 @@ interface State {
   error: Error | null
 }
 
+// Errors thrown when a dynamically-imported chunk can't be fetched — typically
+// because a new deploy replaced the chunk the client's stale index.html points to.
+const CHUNK_ERROR_RE = /dynamically imported module|loading chunk|importing a module script failed|failed to fetch/i
+const RELOAD_FLAG = 'chunk-reload-attempted'
+
+function isChunkLoadError(error: Error | null): boolean {
+  return !!error && CHUNK_ERROR_RE.test(error.message)
+}
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
@@ -21,6 +30,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
+    // A stale chunk after a redeploy is transient — reload once to pull the
+    // fresh index.html + chunks. The sessionStorage guard prevents reload loops.
+    if (isChunkLoadError(error) && !sessionStorage.getItem(RELOAD_FLAG)) {
+      sessionStorage.setItem(RELOAD_FLAG, '1')
+      window.location.reload()
+      return
+    }
     console.error('[ErrorBoundary]', error, info.componentStack)
   }
 

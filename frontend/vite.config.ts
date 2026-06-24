@@ -19,6 +19,17 @@ export default defineConfig({
   ],
   build: {
     sourcemap: sentryEnabled,
+    rollupOptions: {
+      output: {
+        // Carve the largest, rarely-changing libs into their own long-lived
+        // cache chunks so app-code deploys don't invalidate them.
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          charts: ['recharts'],
+          motion: ['framer-motion'],
+        },
+      },
+    },
   },
   server: {
     host: '0.0.0.0',

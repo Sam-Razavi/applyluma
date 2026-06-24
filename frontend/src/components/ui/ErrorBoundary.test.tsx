@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { ErrorBoundary } from './ErrorBoundary'
 
@@ -65,5 +65,62 @@ describe('ErrorBoundary', () => {
     )
     expect(screen.getByText('Custom error UI')).toBeInTheDocument()
     expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument()
+  })
+})
+
+function ChunkBomb(): JSX.Element {
+  throw new Error('Failed to fetch dynamically imported module: https://x/assets/Page-abc.js')
+}
+
+describe('ErrorBoundary chunk-load recovery', () => {
+  const realLocation = window.location
+  const reloadMock = vi.fn()
+
+  beforeAll(() => {
+    // @ts-expect-error jsdom location is read-only; replace it for the test
+    delete window.location
+    // @ts-expect-error provide a writable stand-in with a mocked reload
+    window.location = { ...realLocation, reload: reloadMock }
+  })
+
+  afterAll(() => {
+    // @ts-expect-error restore the original location
+    window.location = realLocation
+  })
+
+  beforeEach(() => {
+    reloadMock.mockClear()
+    sessionStorage.clear()
+  })
+
+  it('reloads once when a chunk-load error is thrown', () => {
+    render(
+      <ErrorBoundary>
+        <ChunkBomb />
+      </ErrorBoundary>
+    )
+    expect(reloadMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not reload again if a reload was already attempted this session', () => {
+    sessionStorage.setItem('chunk-reload-attempted', '1')
+    render(
+      <ErrorBoundary>
+        <ChunkBomb />
+      </ErrorBoundary>
+    )
+    expect(reloadMock).not.toHaveBeenCalled()
+    // Falls back to the normal error UI instead of looping reloads.
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
+  })
+
+  it('does not reload for ordinary (non-chunk) errors', () => {
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>
+    )
+    expect(reloadMock).not.toHaveBeenCalled()
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
   })
 })

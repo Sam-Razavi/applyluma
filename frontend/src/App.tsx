@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
@@ -9,36 +9,41 @@ import { CookieBanner } from './components/ui/CookieBanner'
 import Layout from './components/layout/Layout'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
+import { ErrorBoundary } from './components/ui/ErrorBoundary'
+import RouteFallback from './components/ui/RouteFallback'
+import { useAuthStore } from './stores'
+
+// First-paint entry points stay eager to avoid a fallback flash on the most
+// common landing routes. Everything else is lazy-loaded as its own chunk.
 import Home from './pages/Home'
 import Login from './pages/Login'
-import Register from './pages/Register'
-import CheckEmail from './pages/CheckEmail'
-import VerifyEmail from './pages/VerifyEmail'
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
-import ExtensionAuth from './pages/ExtensionAuth'
-import AuthCallback from './pages/AuthCallback'
-import Dashboard from './pages/Dashboard'
-import CVs from './pages/CVs'
-import Jobs from './pages/Jobs'
-import Applications from './pages/Applications'
-import AITailor from './pages/AITailor'
-import Analytics from './pages/Analytics'
-import Discover from './pages/Discover'
-import Settings from './pages/Settings'
-import Plans from './pages/Plans'
-import BillingSuccess from './pages/BillingSuccess'
-import BillingCancel from './pages/BillingCancel'
-import Contact from './pages/Contact'
-import NotFound from './pages/NotFound'
-import TermsOfService from './pages/TermsOfService'
-import PrivacyPolicy from './pages/PrivacyPolicy'
-import AdminRoute from './components/AdminRoute'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminPipeline from './pages/admin/AdminPipeline'
-import AdminUsers from './pages/admin/AdminUsers'
-import { useAuthStore } from './stores'
-import { ErrorBoundary } from './components/ui/ErrorBoundary'
+
+const Register = lazy(() => import('./pages/Register'))
+const CheckEmail = lazy(() => import('./pages/CheckEmail'))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const ExtensionAuth = lazy(() => import('./pages/ExtensionAuth'))
+const AuthCallback = lazy(() => import('./pages/AuthCallback'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const CVs = lazy(() => import('./pages/CVs'))
+const Jobs = lazy(() => import('./pages/Jobs'))
+const Applications = lazy(() => import('./pages/Applications'))
+const AITailor = lazy(() => import('./pages/AITailor'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const Discover = lazy(() => import('./pages/Discover'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Plans = lazy(() => import('./pages/Plans'))
+const BillingSuccess = lazy(() => import('./pages/BillingSuccess'))
+const BillingCancel = lazy(() => import('./pages/BillingCancel'))
+const Contact = lazy(() => import('./pages/Contact'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+const TermsOfService = lazy(() => import('./pages/TermsOfService'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminPipeline = lazy(() => import('./pages/admin/AdminPipeline'))
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'))
 
 export default function App() {
   const { isAuthenticated } = useAuthStore()
@@ -49,7 +54,9 @@ export default function App() {
 
   return (
     <>
-      <Routes>
+      <ErrorBoundary>
+        <Suspense fallback={<RouteFallback fullPage />}>
+          <Routes>
         {/* Public pages with header + footer */}
         <Route element={<Layout />}>
           <Route index element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Home />} />
@@ -99,8 +106,10 @@ export default function App() {
           </Route>
         </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
 
       {/* Analytics only after explicit consent */}
       {consent === 'accepted' && <VercelAnalytics />}
