@@ -89,7 +89,7 @@ def get_comparison(
                             WHEN mentions_this_week < mentions_last_week * 0.9 THEN 'down'
                             ELSE 'stable'
                         END AS trend,
-                        RANK() OVER (ORDER BY COUNT(*) DESC) AS market_demand_rank
+                        RANK() OVER (ORDER BY total_job_mentions DESC) AS market_demand_rank
                     FROM skill_counts
                     ORDER BY total_job_mentions DESC
                     LIMIT :top_n
