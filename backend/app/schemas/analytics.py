@@ -42,6 +42,13 @@ class DailyJobCount(BaseModel):
     job_count: int
 
 
+class JobFreshness(BaseModel):
+    total_jobs: int
+    new_today: int
+    new_this_week: int
+    last_updated: datetime | None = None
+
+
 class RecentJob(BaseModel):
     id: str
     title: str

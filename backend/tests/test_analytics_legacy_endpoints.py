@@ -106,6 +106,39 @@ async def test_overview_returns_stats_when_data_present() -> None:
 
 
 @pytest.mark.asyncio
+async def test_freshness_returns_zeros_when_no_data() -> None:
+    _setup(db=_FakeDb(overview_row=_FakeRow(
+        total_jobs=None, new_today=None, new_this_week=None, last_updated=None,
+    )))
+
+    response = await _get("/api/v1/analytics/freshness")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {"total_jobs": 0, "new_today": 0, "new_this_week": 0, "last_updated": None}
+
+
+@pytest.mark.asyncio
+async def test_freshness_returns_live_counts() -> None:
+    from datetime import UTC, datetime
+    _setup(db=_FakeDb(overview_row=_FakeRow(
+        total_jobs=812,
+        new_today=37,
+        new_this_week=190,
+        last_updated=datetime(2026, 6, 24, 2, 0, tzinfo=UTC),
+    )))
+
+    response = await _get("/api/v1/analytics/freshness")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_jobs"] == 812
+    assert body["new_today"] == 37
+    assert body["new_this_week"] == 190
+    assert body["last_updated"] is not None
+
+
+@pytest.mark.asyncio
 async def test_top_companies_returns_list() -> None:
     row = _FakeRow(company="Acme Corp", job_count=100)
     _setup(db=_FakeDb(rows=[row]))
