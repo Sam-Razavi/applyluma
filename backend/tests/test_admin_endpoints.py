@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 import uuid
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import admin as admin_endpoint
 from app.core.dependencies import get_current_user, get_db
+from app.crud.admin import _health_status, _resolve_stage_health
 from app.main import app
 from app.models.user import UserRole
 
@@ -391,18 +392,21 @@ async def test_pipeline_health_returns_expected_shape(monkeypatch: pytest.Monkey
             "count": 12,
             "last_run": datetime(2026, 6, 16, tzinfo=UTC),
             "healthy": True,
+            "status": "healthy",
         },
         "extracted_keywords": {
             "name": "extracted_keywords",
             "count": 40,
             "last_run": datetime(2026, 6, 15, tzinfo=UTC),
             "healthy": True,
+            "status": "healthy",
         },
         "job_market_metrics": {
             "name": "job_market_metrics",
             "count": 2,
             "last_run": None,
             "healthy": False,
+            "status": "stale",
         },
         "sources": [
             {
@@ -410,6 +414,7 @@ async def test_pipeline_health_returns_expected_shape(monkeypatch: pytest.Monkey
                 "count": 7,
                 "last_run": datetime(2026, 6, 16, tzinfo=UTC),
                 "healthy": True,
+                "status": "healthy",
             }
         ],
     }
@@ -420,9 +425,12 @@ async def test_pipeline_health_returns_expected_shape(monkeypatch: pytest.Monkey
     assert response.status_code == 200
     data = response.json()
     assert data["raw_job_postings"]["healthy"] is True
+    assert data["raw_job_postings"]["status"] == "healthy"
     assert data["job_market_metrics"]["healthy"] is False
+    assert data["job_market_metrics"]["status"] == "stale"
     assert data["sources"][0]["source"] == "the_muse"
     assert data["sources"][0]["healthy"] is True
+    assert data["sources"][0]["status"] == "healthy"
 
 
 @pytest.mark.asyncio
@@ -491,3 +499,82 @@ async def test_pipeline_metrics_returns_empty_response_when_missing(monkeypatch:
         "top_skills": [],
         "top_companies": [],
     }
+
+
+# ── Pipeline health CRUD unit tests ─────────────────────────────────────────
+
+
+def _make_log_row(
+    pipeline_name: str = "test",
+    ran_at: datetime | None = None,
+    rows_affected: int = 0,
+    status: str = "success",
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        pipeline_name=pipeline_name,
+        ran_at=ran_at or datetime.now(UTC),
+        rows_affected=rows_affected,
+        status=status,
+    )
+
+
+def test_health_status_healthy() -> None:
+    row = _make_log_row(ran_at=datetime.now(UTC) - timedelta(hours=1))
+    assert _health_status(row) == "healthy"
+
+
+def test_health_status_stale() -> None:
+    row = _make_log_row(ran_at=datetime.now(UTC) - timedelta(hours=30))
+    assert _health_status(row) == "stale"
+
+
+def test_health_status_failed() -> None:
+    row = _make_log_row(ran_at=datetime.now(UTC) - timedelta(hours=1), status="failed")
+    assert _health_status(row) == "failed"
+
+
+def test_health_status_none() -> None:
+    assert _health_status(None) == "unknown"
+
+
+def test_resolve_stage_health_uses_log() -> None:
+    recent = _make_log_row(pipeline_name="remotive", ran_at=datetime.now(UTC) - timedelta(hours=2))
+    log_map = {"remotive": recent}
+    last_run, status = _resolve_stage_health(log_map, ["remotive", "the_muse"], None)
+    assert status == "healthy"
+    assert last_run == recent.ran_at
+
+
+def test_resolve_stage_health_picks_most_recent_pipeline() -> None:
+    old = _make_log_row(pipeline_name="remotive", ran_at=datetime.now(UTC) - timedelta(hours=30))
+    recent = _make_log_row(pipeline_name="platsbanken", ran_at=datetime.now(UTC) - timedelta(hours=2))
+    log_map = {"remotive": old, "platsbanken": recent}
+    last_run, status = _resolve_stage_health(log_map, ["remotive", "platsbanken"], None)
+    assert status == "healthy"
+    assert last_run == recent.ran_at
+
+
+def test_resolve_stage_health_fallback_when_no_log() -> None:
+    fallback_ts = datetime.now(UTC) - timedelta(hours=5)
+    last_run, status = _resolve_stage_health({}, ["remotive"], fallback_ts)
+    assert status == "healthy"
+    assert last_run == fallback_ts
+
+
+def test_resolve_stage_health_fallback_stale() -> None:
+    old_ts = datetime.now(UTC) - timedelta(hours=48)
+    last_run, status = _resolve_stage_health({}, ["remotive"], old_ts)
+    assert status == "stale"
+    assert last_run == old_ts
+
+
+def test_resolve_stage_health_no_log_no_fallback() -> None:
+    last_run, status = _resolve_stage_health({}, ["remotive"], None)
+    assert status == "unknown"
+    assert last_run is None
+
+
+def test_health_status_zero_rows_but_recent_is_healthy() -> None:
+    """A DAG that ran recently but inserted 0 rows should still be healthy."""
+    row = _make_log_row(ran_at=datetime.now(UTC) - timedelta(hours=1), rows_affected=0)
+    assert _health_status(row) == "healthy"
