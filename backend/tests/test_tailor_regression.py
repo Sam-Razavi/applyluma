@@ -233,6 +233,19 @@ class TestNoFabrication:
         assert "java" in fabricated
         assert "azure devops" in fabricated
 
+    def test_aggressive_intensity_does_not_encourage_fabrication(self) -> None:
+        from app.services.tailor_service import _INTENSITY_INSTRUCTIONS, _SYSTEM_PROMPT
+
+        aggressive = _INTENSITY_INSTRUCTIONS[TailorIntensity.aggressive].lower()
+        # The old wording pushed keyword stuffing and invented metrics.
+        assert "maximum keyword match" not in aggressive
+        assert "quantified impact" not in aggressive
+        # Aggressive must explicitly forbid inventing facts/numbers and stay on real content.
+        assert "never" in aggressive
+        assert "real" in aggressive or "actual" in aggressive
+        # The system prompt states truthfulness overrides the intensity setting.
+        assert "override" in _SYSTEM_PROMPT.lower()
+
     def test_removes_fabricated_skills(self, cv_text: str) -> None:
         result = {
             "sections": [
