@@ -15,6 +15,7 @@ from app.schemas.analytics import (
     AnalyticsOverview,
     CompanyStat,
     DailyJobCount,
+    JobFreshness,
     RecentJob,
     SkillStat,
 )
@@ -68,6 +69,42 @@ def get_overview(
         avg_salary_min=int(row.avg_salary_min) if row.avg_salary_min else None,
         avg_salary_max=int(row.avg_salary_max) if row.avg_salary_max else None,
         top_skill=skill_row.skill if skill_row else None,
+        last_updated=row.last_updated,
+    )
+
+
+@router.get("/freshness", response_model=JobFreshness)
+def get_freshness(
+    _: str = _auth,
+    db: Session = Depends(get_db),
+) -> JobFreshness:
+    """Live data-freshness signal read straight from raw_job_postings.
+
+    Powers the "X new jobs today" liveness stat so the app reflects real
+    ingestion activity rather than a stale dbt-built table.
+    """
+    row = db.execute(
+        text("""
+            SELECT
+                COUNT(*) FILTER (WHERE NOT is_duplicate) AS total_jobs,
+                COUNT(*) FILTER (
+                    WHERE NOT is_duplicate AND DATE(scraped_at) = CURRENT_DATE
+                ) AS new_today,
+                COUNT(*) FILTER (
+                    WHERE NOT is_duplicate AND scraped_at >= NOW() - INTERVAL '7 days'
+                ) AS new_this_week,
+                MAX(scraped_at) AS last_updated
+            FROM raw_job_postings
+        """)
+    ).fetchone()
+
+    if row is None:
+        return JobFreshness(total_jobs=0, new_today=0, new_this_week=0)
+
+    return JobFreshness(
+        total_jobs=int(row.total_jobs or 0),
+        new_today=int(row.new_today or 0),
+        new_this_week=int(row.new_this_week or 0),
         last_updated=row.last_updated,
     )
 

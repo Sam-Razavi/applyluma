@@ -1,5 +1,6 @@
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import AnalyticsHeader from '../components/analytics/AnalyticsHeader'
+import JobFreshnessStat from '../components/analytics/JobFreshnessStat'
 import ChartCard from '../components/analytics/ChartCard'
 import KPICard from '../components/analytics/KPICard'
 import { lazyWithRetry } from '../lib/lazyWithRetry'
@@ -609,6 +610,8 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <AnalyticsHeader onRefresh={loadAllData} refreshing={refreshing} lastRefresh={lastRefresh} />
+
+      <JobFreshnessStat />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KPICard

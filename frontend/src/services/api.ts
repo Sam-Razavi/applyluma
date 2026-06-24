@@ -12,6 +12,7 @@ import type {
   HiringPatternPoint,
   IndustryBreakdown,
   JobDescription,
+  JobFreshness,
   JobMarketHealth,
   JobTypeMixItem,
   LocationTrend,
@@ -207,6 +208,10 @@ export const analyticsApi = {
     client
       .get<AnalyticsEnvelope<JobMarketHealth>>('/api/v1/analytics/job-market-health')
       .then((r) => unwrapAnalytics(r.data)),
+
+  // Legacy endpoint: returns a bare model (no AnalyticsEnvelope wrapper).
+  freshness: (): Promise<JobFreshness> =>
+    client.get<JobFreshness>('/api/v1/analytics/freshness').then((r) => r.data),
 
   skillDemand: (limit = 20, minGrowthPct = 0): Promise<SkillDemand[]> =>
     client

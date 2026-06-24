@@ -157,6 +157,13 @@ export interface CompanyInsight {
   hiring_velocity: number
 }
 
+export interface JobFreshness {
+  total_jobs: number
+  new_today: number
+  new_this_week: number
+  last_updated: string | null
+}
+
 export interface JobMarketHealth {
   total_jobs: number
   unique_companies: number

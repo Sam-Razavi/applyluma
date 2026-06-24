@@ -4,11 +4,13 @@ import {
   ArrowRightIcon,
   BriefcaseIcon,
   CalendarDaysIcon,
+  ChartBarIcon,
   DocumentTextIcon,
   MagnifyingGlassIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { FadeIn } from '../components/ui/FadeIn'
+import JobFreshnessStat from '../components/analytics/JobFreshnessStat'
 import { useAuthStore } from '../stores'
 import { useApplicationsStore } from '../stores/applications'
 import { cvApi, jobApi } from '../services/api'
@@ -114,6 +116,14 @@ export default function Dashboard() {
       iconBg: 'bg-accent-muted',
       btnClass: 'bg-brand-600 hover:bg-brand-700 text-white',
     },
+    {
+      title: 'Market Analytics',
+      description: 'Explore hiring trends, in-demand skills, and salary insights.',
+      href: '/analytics',
+      icon: <ChartBarIcon className="h-6 w-6 text-accent-text" />,
+      iconBg: 'bg-chip-accent',
+      btnClass: 'bg-cyan-600 hover:bg-cyan-700 text-white',
+    },
   ]
 
   return (
@@ -128,6 +138,9 @@ export default function Dashboard() {
             Here's your job search at a glance.
           </p>
         </div>
+
+        {/* Live ingestion stat — shows the platform is actively finding jobs */}
+        <JobFreshnessStat />
 
         {/* Onboarding checklist — hidden once all 3 steps are done */}
         <OnboardingChecklist hasCv={cvs.length > 0} hasJd={jds.length > 0} loading={loading} />
