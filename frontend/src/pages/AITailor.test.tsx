@@ -28,6 +28,10 @@ vi.mock('../services/coverLetterApi', () => ({
   },
 }))
 
+vi.mock('../services/applicationsApi', () => ({
+  createApplication: vi.fn(),
+}))
+
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn() },
 }))
