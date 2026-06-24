@@ -23,6 +23,7 @@ const MAX_SIZE = 10 * 1024 * 1024
 const ACCEPT = {
   'application/pdf': ['.pdf'],
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'text/markdown': ['.md'],
 }
 
 function formatBytes(n: number | null) {
@@ -82,7 +83,7 @@ export default function CVs() {
     if (rejected.length > 0) {
       const code = rejected[0].errors[0]?.code
       if (code === 'file-too-large') toast.error('File is too large. Max 10 MB.')
-      else if (code === 'file-invalid-type') toast.error('Only PDF and DOCX files are accepted.')
+      else if (code === 'file-invalid-type') toast.error('Only PDF, DOCX, and Markdown files are accepted.')
       else toast.error('File rejected.')
       return
     }
@@ -174,7 +175,7 @@ export default function CVs() {
                 Drag & drop your CV here, or{' '}
                 <span className="text-accent-text">click to browse</span>
               </p>
-              <p className="mt-1 text-xs text-fg-subtle">PDF or DOCX · max 10 MB</p>
+              <p className="mt-1 text-xs text-fg-subtle">PDF, DOCX, or Markdown · max 10 MB</p>
             </>
           )}
         </div>

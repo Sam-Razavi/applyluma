@@ -3,6 +3,8 @@ import type { AxiosError } from 'axios'
 import {
   ArrowDownTrayIcon,
   ArrowPathIcon,
+  ArrowTopRightOnSquareIcon,
+  BriefcaseIcon,
   CheckCircleIcon,
   ClipboardDocumentIcon,
   DocumentTextIcon,
@@ -18,6 +20,7 @@ import { SectionDiff } from '../components/tailor/SectionDiff'
 import { TailorSummary } from '../components/tailor/TailorSummary'
 import { cvApi, jobApi } from '../services/api'
 import { coverLetterApi } from '../services/coverLetterApi'
+import { createApplication } from '../services/applicationsApi'
 import { fetchJobDetail } from '../services/jobDiscoveryApi'
 import { tailorApi } from '../services/tailorApi'
 import type { CV, JobDescription } from '../types'
@@ -78,6 +81,10 @@ export default function AITailor() {
 
   const [saving, setSaving] = useState(false)
 
+  // Apply-loop state surfaced on the Done step.
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null)
+  const [addingApplication, setAddingApplication] = useState(false)
+
   const [history, setHistory] = useState<CoverLetterJob[]>([])
   const [historyLoading, setHistoryLoading] = useState(true)
 
@@ -105,6 +112,7 @@ export default function AITailor() {
         setCvs(cvList)
         setJobs(jobList)
         setRawJob(discoveredJob)
+        setApplicationStatus(discoveredJob?.application_status ?? null)
         setTailorUsage(tUsage)
         setCoverUsage(cUsage)
         const defaultCv = cvList.find((cv) => cv.is_default)
@@ -355,6 +363,30 @@ export default function AITailor() {
 
   const selectedCv = cvs.find((cv) => cv.id === selectedCvId)
   const selectedJob = jobs.find((job) => job.id === selectedJobId)
+  const jobUrl = rawJob?.url ?? selectedJob?.url ?? null
+
+  async function handleAddApplication() {
+    setAddingApplication(true)
+    try {
+      const application = await createApplication(
+        rawJobPostingId
+          ? { raw_job_posting_id: rawJobPostingId, status: 'wishlist' }
+          : {
+              company_name: selectedJob?.company_name,
+              job_title: selectedJob?.job_title,
+              job_url: selectedJob?.url ?? null,
+              status: 'wishlist',
+            },
+      )
+      setApplicationStatus(application.status)
+      toast.success('Added to applications')
+    } catch {
+      toast.error('Could not add to applications')
+    } finally {
+      setAddingApplication(false)
+    }
+  }
+
   const tailorAtLimit = Boolean(
     wantCv && tailorUsage && tailorUsage.daily_limit !== null && tailorUsage.used_today >= tailorUsage.daily_limit,
   )
@@ -462,6 +494,10 @@ export default function AITailor() {
               coverText={coverText}
               coverTitle={coverTitle}
               coverSaved={coverSaved}
+              jobUrl={jobUrl}
+              applicationStatus={applicationStatus}
+              addingApplication={addingApplication}
+              onAddToApplications={handleAddApplication}
               onCopy={handleCopy}
               onDownloadCoverPdf={handleDownloadCoverPdf}
               onDownloadTxt={handleDownloadTxt}
@@ -1024,6 +1060,10 @@ interface DoneStepProps {
   coverText: string
   coverTitle: string
   coverSaved: boolean
+  jobUrl: string | null
+  applicationStatus: string | null
+  addingApplication: boolean
+  onAddToApplications: () => void
   onCopy: () => void
   onDownloadCoverPdf: () => void
   onDownloadTxt: () => void
@@ -1038,6 +1078,10 @@ function DoneStep({
   coverText,
   coverTitle,
   coverSaved,
+  jobUrl,
+  applicationStatus,
+  addingApplication,
+  onAddToApplications,
   onCopy,
   onDownloadCoverPdf,
   onDownloadTxt,
@@ -1134,6 +1178,48 @@ function DoneStep({
           </div>
         </div>
       )}
+
+      {/* Apply nudge — close the loop from tailoring to applying. */}
+      <div className="space-y-3 rounded-xl border border-primary-600/30 bg-primary-900/20 p-4">
+        <p className="text-sm font-semibold text-fg">Ready to apply?</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {jobUrl && (
+            <a
+              href={jobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+            >
+              <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+              Apply now
+            </a>
+          )}
+          {applicationStatus ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-lg bg-chip-success px-3 py-1.5 text-sm font-medium text-chip-success-fg">
+                <BriefcaseIcon className="h-4 w-4" />
+                {applicationStatus.replace('_', ' ')}
+              </span>
+              <Link
+                to="/applications"
+                className="rounded-lg bg-surface px-4 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong"
+              >
+                View in Applications
+              </Link>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onAddToApplications}
+              disabled={addingApplication}
+              className="inline-flex items-center gap-2 rounded-lg border border-line-strong bg-surface px-4 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong disabled:opacity-50"
+            >
+              <BriefcaseIcon className="h-4 w-4" />
+              {addingApplication ? 'Adding…' : 'Add to Applications'}
+            </button>
+          )}
+        </div>
+      </div>
 
       <button
         type="button"

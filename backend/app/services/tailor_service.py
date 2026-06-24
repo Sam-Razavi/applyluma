@@ -23,11 +23,17 @@ _INTENSITY_INSTRUCTIONS: dict[TailorIntensity, str] = {
         "required skills."
     ),
     TailorIntensity.aggressive: (
-        "Rewrite every bullet for maximum keyword match and quantified impact. "
+        "Aggressively reword and restructure the candidate's REAL content. Rewrite every bullet "
+        "with strong active verbs, leading with the achievements and keywords that ALREADY appear "
+        "in the source CV. Quantify impact ONLY where the source CV already states the numbers — "
+        "never invent or estimate metrics, percentages, scale, or outcomes. "
         "Restructure section order to match job-level norms. Remove sections ONLY if they are "
         "irrelevant to the target role. Never remove projects or experience that demonstrate the "
         "job's core required skills — compress them instead. Always preserve at least the 2–3 most "
-        "role-relevant projects and any relevant certifications. Add a tailored summary."
+        "role-relevant projects and any relevant certifications. Add a tailored summary drawn "
+        "strictly from the candidate's actual background. Aggressive means bolder rewording and "
+        "reordering of real material — never adding skills, technologies, facts, or numbers the "
+        "candidate did not provide."
     ),
 }
 
@@ -171,6 +177,11 @@ LENGTH ENFORCEMENT
 - Provide your best page estimate in meta.estimated_pages.
 
 INTENSITY INSTRUCTION
+The CORE RULES above — especially "NEVER fabricate ..." and "NEVER ADD any skill,
+technology, ... that does not EXPLICITLY appear in the source CV" — ALWAYS override
+this intensity setting. Higher intensity means bolder rewording and restructuring of
+the candidate's REAL content, never more factual licence. No intensity level permits
+inventing skills, technologies, employers, titles, dates, numbers, or achievements.
 {intensity_instruction}
 
 SPECIAL CASES

@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BriefcaseIcon, MapPinIcon, SparklesIcon, StarIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import type { SavedJob } from '../../types/jobDiscovery'
+import { useUsageStore, usageHint } from '../../stores/usage'
 
 interface Props {
   saved: SavedJob
@@ -31,6 +33,14 @@ export default function SavedJobCard({
   const navigate = useNavigate()
   const job = saved.job
   const salary = job ? formatSalary(job.salary_min, job.salary_max) : null
+  const tailorUsage = useUsageStore((s) => s.tailorUsage)
+  const coverUsage = useUsageStore((s) => s.coverUsage)
+  const loadUsage = useUsageStore((s) => s.loadUsage)
+  const limitHint = usageHint(tailorUsage, coverUsage)
+
+  useEffect(() => {
+    void loadUsage()
+  }, [loadUsage])
 
   return (
     <div
@@ -139,6 +149,9 @@ export default function SavedJobCard({
           Tailor CV + Cover Letter
         </button>
       </div>
+
+      {/* Daily-limit hint */}
+      {limitHint && <p className="text-xs text-chip-danger-fg">{limitHint}</p>}
 
       {/* Notes */}
       {saved.notes && (

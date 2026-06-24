@@ -20,11 +20,13 @@ router = APIRouter(prefix="/cvs", tags=["cvs"])
 _CONTENT_TYPE_EXT: dict[str, str] = {
     "application/pdf": ".pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "text/markdown": ".md",
 }
-_ALLOWED_EXTENSIONS = {".pdf", ".docx"}
+_ALLOWED_EXTENSIONS = {".pdf", ".docx", ".md"}
 _PDF_MEDIA_TYPE = "application/pdf"
 
-# First bytes that identify each accepted file format
+# First bytes that identify each accepted binary format. Text formats (e.g. .md)
+# have no signature and are validated as UTF-8 instead (see upload_cv).
 _MAGIC_BYTES: dict[str, bytes] = {
     ".pdf": b"%PDF-",
     ".docx": b"PK\x03\x04",
@@ -150,7 +152,7 @@ async def upload_cv(
     if ext is None:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Only PDF and DOCX files are accepted",
+            detail="Only PDF, DOCX, and Markdown files are accepted",
         )
 
     file_bytes = await file.read()
@@ -160,7 +162,18 @@ async def upload_cv(
             detail=f"File exceeds the {settings.MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit",
         )
 
-    if not _check_magic_bytes(file_bytes, ext):
+    if ext in _MAGIC_BYTES:
+        # Binary formats: verify the signature matches the declared type.
+        content_ok = _check_magic_bytes(file_bytes, ext)
+    else:
+        # Text formats (e.g. .md): ensure the content is real UTF-8 text, which
+        # rejects binary files masquerading under a text extension.
+        try:
+            file_bytes.decode("utf-8")
+            content_ok = True
+        except UnicodeDecodeError:
+            content_ok = False
+    if not content_ok:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="File content does not match the declared type",

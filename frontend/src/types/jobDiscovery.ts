@@ -29,6 +29,8 @@ export interface DiscoveredJobDetail extends DiscoveredJob {
   description: string
   matched_skills: string[]
   missing_skills: string[]
+  tailored_cv_id?: string | null
+  cover_letter_job_id?: string | null
 }
 
 export interface ExtractedKeyword {

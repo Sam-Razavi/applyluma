@@ -92,7 +92,7 @@ export default function Dashboard() {
   const quickActions = [
     {
       title: 'Upload CV',
-      description: 'Add a CV in PDF or DOCX format for AI analysis.',
+      description: 'Add a CV in PDF, DOCX, or Markdown format for AI analysis.',
       href: '/cvs',
       icon: <DocumentTextIcon className="h-6 w-6 text-accent-text" />,
       iconBg: 'bg-chip-accent',

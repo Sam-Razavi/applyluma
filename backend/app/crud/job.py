@@ -8,9 +8,11 @@ from sqlalchemy import desc, nullslast
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.application import Application
+from app.models.cover_letter_job import CoverLetterJob, CoverLetterStatus
 from app.models.cv import CV
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
 from app.models.job_description import JobDescription
+from app.models.tailor_job import TailorJob, TailorStatus
 from app.schemas.job import ExternalJobBookmarkRequest, SaveJobRequest, UpdateSavedJobRequest
 from app.services.keyword_extractor import KeywordExtractor
 
@@ -136,6 +138,38 @@ def get_job_with_score(
 
     posting, score, application, jd = row
     matched_skills, missing_skills = _compute_skill_gap(db, user_id, posting)
+
+    # Surface whether this job already has a completed tailored CV / cover letter
+    # for the user, so the UI can link to the existing result instead of silently
+    # creating duplicates. Both are linked through the sourced JobDescription.
+    tailored_cv_id: uuid.UUID | None = None
+    cover_letter_job_id: uuid.UUID | None = None
+    if jd is not None:
+        tailor_job = (
+            db.query(TailorJob)
+            .filter(
+                TailorJob.user_id == user_id,
+                TailorJob.job_description_id == jd.id,
+                TailorJob.status == TailorStatus.complete,
+            )
+            .order_by(desc(TailorJob.created_at))
+            .first()
+        )
+        if tailor_job is not None:
+            tailored_cv_id = tailor_job.output_cv_id
+        cover_job = (
+            db.query(CoverLetterJob)
+            .filter(
+                CoverLetterJob.user_id == user_id,
+                CoverLetterJob.job_description_id == jd.id,
+                CoverLetterJob.status == CoverLetterStatus.complete,
+            )
+            .order_by(desc(CoverLetterJob.created_at))
+            .first()
+        )
+        if cover_job is not None:
+            cover_letter_job_id = cover_job.id
+
     return _job_to_dict(
         posting,
         score,
@@ -145,6 +179,8 @@ def get_job_with_score(
         keywords=posting.keywords,
         matched_skills=matched_skills,
         missing_skills=missing_skills,
+        tailored_cv_id=tailored_cv_id,
+        cover_letter_job_id=cover_letter_job_id,
     )
 
 
@@ -424,6 +460,8 @@ def _job_to_dict(
     keywords: list[ExtractedKeyword] | None = None,
     matched_skills: list[str] | None = None,
     missing_skills: list[str] | None = None,
+    tailored_cv_id: uuid.UUID | None = None,
+    cover_letter_job_id: uuid.UUID | None = None,
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
         "job_id": posting.id,
@@ -455,4 +493,6 @@ def _job_to_dict(
         data["description"] = posting.description
         data["matched_skills"] = matched_skills or []
         data["missing_skills"] = missing_skills or []
+        data["tailored_cv_id"] = tailored_cv_id
+        data["cover_letter_job_id"] = cover_letter_job_id
     return data
