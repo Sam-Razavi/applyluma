@@ -35,12 +35,17 @@ def parse_docx(file_path: Path) -> str:
     return "\n".join(parts).strip()
 
 
+def parse_markdown(file_path: Path) -> str:
+    raw = file_path.read_text(encoding="utf-8").strip()
+    return _clean_extracted_text(raw)
+
+
 def parse_cv(file_path: Path, extension: str) -> str:
     """Parse a CV file and return its text content.
 
     Args:
         file_path: Path to the stored file.
-        extension: Normalised extension, either '.pdf' or '.docx'.
+        extension: Normalised extension, one of '.pdf', '.docx', or '.md'.
 
     Raises:
         ValueError: If the extension is not supported.
@@ -50,4 +55,6 @@ def parse_cv(file_path: Path, extension: str) -> str:
         return parse_pdf(file_path)
     if extension == ".docx":
         return parse_docx(file_path)
+    if extension == ".md":
+        return parse_markdown(file_path)
     raise ValueError(f"Unsupported extension: {extension}")

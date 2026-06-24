@@ -205,6 +205,39 @@ async def test_upload_cv_processes_valid_file(monkeypatch: pytest.MonkeyPatch, t
 
 
 @pytest.mark.asyncio
+async def test_upload_cv_accepts_markdown(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    fake_storage = tmp_path / "storage"
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
+    captured: dict = {}
+
+    def fake_parse(path, ext):
+        captured["ext"] = ext
+        return "# Jane Doe\n\nPython engineer"
+
+    monkeypatch.setattr(cvs_endpoint, "parse_cv", fake_parse)
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "count_for_user", lambda db, user_id: 1)
+    monkeypatch.setattr(
+        cvs_endpoint.crud_cv, "create", lambda db, **kwargs: cv_data(is_default=kwargs.get("is_default", False))
+    )
+
+    files = {"file": ("cv.md", b"# Jane Doe\n\nPython engineer", "text/markdown")}
+    response = await request("POST", "/api/v1/cvs/upload", current_user=user(), files=files)
+
+    assert response.status_code == 201
+    assert captured["ext"] == ".md"
+    assert list(fake_storage.glob("cvs/**/*.md"))
+
+
+@pytest.mark.asyncio
+async def test_upload_cv_rejects_non_utf8_markdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A binary file masquerading as .md must be rejected by the UTF-8 text check.
+    files = {"file": ("cv.md", b"\xff\xfe\x00bin", "text/markdown")}
+    response = await request("POST", "/api/v1/cvs/upload", current_user=user(), files=files)
+
+    assert response.status_code == 415
+
+
+@pytest.mark.asyncio
 async def test_upload_first_cv_triggers_match_scoring(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     fake_storage = tmp_path / "storage"
     monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
