@@ -77,6 +77,7 @@ class PipelineStage(BaseModel):
     count: int
     last_run: datetime | None = None
     healthy: bool
+    status: str = "unknown"
 
 
 class SourceHealth(BaseModel):
@@ -84,6 +85,7 @@ class SourceHealth(BaseModel):
     count: int
     last_run: datetime | None = None
     healthy: bool
+    status: str = "unknown"
 
 
 class PipelineHealthResponse(BaseModel):
