@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from uuid import uuid4
 
 from celery import Celery
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 _original_virtual_message_init = virtual.Message.__init__
 
 
-def _resilient_virtual_message_init(self, payload, *args, **kwargs):
+def _resilient_virtual_message_init(self: Any, payload: Any, *args: Any, **kwargs: Any) -> None:
     try:
         _original_virtual_message_init(self, payload, *args, **kwargs)
     except KeyError as exc:
