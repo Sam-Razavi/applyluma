@@ -10,11 +10,12 @@ import JobDetail from '../components/discover/JobDetail'
 import AddApplicationModal from '../components/applications/AddApplicationModal'
 import JobSearchBar, { type SearchSource } from '../components/jobs/JobSearchBar'
 import JobResultList from '../components/jobs/JobResultList'
+import SearchJobDetail from '../components/jobs/SearchJobDetail'
 import { FadeIn } from '../components/ui/FadeIn'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { staggerItem } from '../lib/animations'
 import { deleteSavedJob, fetchDiscoveredJobs, saveJob } from '../services/jobDiscoveryApi'
-import { searchJobs, type JobSearchResponse } from '../services/jobSearchApi'
+import { searchJobs, type AdzunaJobResult, type JobSearchResponse } from '../services/jobSearchApi'
 import type { ApplicationCreate } from '../types/application'
 import type { DiscoveredJob, JobFilters as Filters } from '../types/jobDiscovery'
 
@@ -90,6 +91,7 @@ export default function Discover() {
   const [searchError, setSearchError] = useState<string | null>(null)
   const [trackData, setTrackData] = useState<Partial<ApplicationCreate> | null>(null)
   const [trackOpen, setTrackOpen] = useState(false)
+  const [selectedSearchJob, setSelectedSearchJob] = useState<AdzunaJobResult | null>(null)
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(loadRecentSearches)
 
   useEffect(() => {
@@ -430,6 +432,7 @@ export default function Discover() {
             <JobResultList
               data={searchData}
               onTrack={handleTrack}
+              onJobClick={setSelectedSearchJob}
               onPageChange={(p) => void runSearch(searchQuery, searchLocation, p)}
             />
           ) : (
@@ -447,6 +450,12 @@ export default function Discover() {
               </p>
             </div>
           )}
+
+          <SearchJobDetail
+            job={selectedSearchJob}
+            onClose={() => setSelectedSearchJob(null)}
+            onTrack={handleTrack}
+          />
 
           <AddApplicationModal
             open={trackOpen}
