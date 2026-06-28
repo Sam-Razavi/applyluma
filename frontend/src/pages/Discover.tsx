@@ -24,6 +24,7 @@ const PAGE_SIZE = 20
 type Tab = 'for-you' | 'search'
 
 const RECENT_KEY = 'recent_job_searches'
+const LOCATION_KEY = 'preferred_job_location'
 const MAX_RECENT = 5
 
 interface RecentSearch {
@@ -83,7 +84,7 @@ export default function Discover() {
 
   // ── Search tab state ──────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchLocation, setSearchLocation] = useState('')
+  const [searchLocation, setSearchLocation] = useState(() => localStorage.getItem(LOCATION_KEY) ?? '')
   const [searchSource, setSearchSource] = useState<SearchSource>('all')
   const [searchData, setSearchData] = useState<JobSearchResponse>(emptyResults)
   const [hasSearched, setHasSearched] = useState(false)
@@ -216,6 +217,7 @@ export default function Discover() {
     setHasSearched(true)
     setSearchQuery(nextQuery)
     setSearchLocation(nextLocation)
+    localStorage.setItem(LOCATION_KEY, nextLocation)
 
     if (nextPage === 1) {
       saveRecentSearch(nextQuery, nextLocation)
@@ -382,6 +384,7 @@ export default function Discover() {
         <div className="space-y-6">
           <JobSearchBar
             loading={searchLoading}
+            initialLocation={searchLocation}
             source={searchSource}
             onSourceChange={setSearchSource}
             onSearch={(q, loc) => void runSearch(q, loc)}
