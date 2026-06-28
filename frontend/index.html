@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApplyLuma — AI-powered job search &amp; CV tailoring</title>
 
@@ -32,7 +33,8 @@
     <meta property="og:site_name" content="ApplyLuma" />
     <meta property="og:title" content="ApplyLuma — AI-powered job search &amp; CV tailoring" />
     <meta property="og:description" content="Tailor your CV with AI, generate cover letters, discover matched jobs, and track every application — all in one place. Free to try." />
-    <meta property="og:image" content="https://applyluma.com/og-image.svg" />
+    <meta property="og:image" content="https://applyluma.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
@@ -41,7 +43,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ApplyLuma — AI-powered job search &amp; CV tailoring" />
     <meta name="twitter:description" content="Tailor your CV with AI, generate cover letters, discover matched jobs, and track every application — all in one place." />
-    <meta name="twitter:image" content="https://applyluma.com/og-image.svg" />
+    <meta name="twitter:image" content="https://applyluma.com/og-image.png" />
 
     <!-- Mobile browser theme colour -->
     <meta name="theme-color" content="#080E12" />
@@ -56,30 +58,52 @@
 
     <!-- JSON-LD structured data -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "ApplyLuma",
-      "url": "https://applyluma.com",
-      "description": "AI-powered job search and resume optimization platform. Tailor your CV with AI, generate cover letters, discover matched jobs, and track every application.",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
-      "offers": [
-        {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD",
-          "name": "Free plan"
-        },
-        {
-          "@type": "Offer",
-          "price": "9.99",
-          "priceCurrency": "USD",
-          "name": "Premium plan",
-          "billingIncrement": "month"
-        }
-      ]
-    }
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "ApplyLuma",
+        "url": "https://applyluma.com",
+        "logo": "https://applyluma.com/favicon.svg",
+        "description": "AI-powered job search and resume optimization platform."
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ApplyLuma",
+        "url": "https://applyluma.com",
+        "description": "AI-powered job search and resume optimization platform. Tailor your CV with AI, generate cover letters, discover matched jobs, and track every application.",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "image": "https://applyluma.com/og-image.png",
+        "offers": [
+          {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "name": "Free plan"
+          },
+          {
+            "@type": "Offer",
+            "price": "9.99",
+            "priceCurrency": "USD",
+            "name": "Premium plan",
+            "billingIncrement": "month"
+          }
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://applyluma.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Register", "item": "https://applyluma.com/register" },
+          { "@type": "ListItem", "position": 3, "name": "Login", "item": "https://applyluma.com/login" },
+          { "@type": "ListItem", "position": 4, "name": "Terms", "item": "https://applyluma.com/terms" },
+          { "@type": "ListItem", "position": 5, "name": "Privacy", "item": "https://applyluma.com/privacy" }
+        ]
+      }
+    ]
     </script>
   </head>
   <body>
