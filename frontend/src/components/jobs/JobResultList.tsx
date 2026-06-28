@@ -1,15 +1,16 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import JobResultCard from './JobResultCard'
 import type { ApplicationCreate } from '../../types/application'
-import type { JobSearchResponse } from '../../services/jobSearchApi'
+import type { AdzunaJobResult, JobSearchResponse } from '../../services/jobSearchApi'
 
 interface Props {
   data: JobSearchResponse
   onPageChange: (page: number) => void
   onTrack: (data: Partial<ApplicationCreate>) => void
+  onJobClick?: (job: AdzunaJobResult) => void
 }
 
-export default function JobResultList({ data, onPageChange, onTrack }: Props) {
+export default function JobResultList({ data, onPageChange, onTrack, onJobClick }: Props) {
   const hasPrevious = data.page > 1
   const hasNext = data.total_pages === 0 ? false : data.page < data.total_pages
 
@@ -28,7 +29,7 @@ export default function JobResultList({ data, onPageChange, onTrack }: Props) {
 
       <div className="grid gap-4">
         {data.results.map((job) => (
-          <JobResultCard key={job.id} job={job} onTrack={onTrack} />
+          <JobResultCard key={job.id} job={job} onTrack={onTrack} onClick={() => onJobClick?.(job)} />
         ))}
       </div>
 

@@ -10,6 +10,7 @@ import type { AdzunaJobResult } from '../../services/jobSearchApi'
 interface Props {
   job: AdzunaJobResult
   onTrack: (data: Partial<ApplicationCreate>) => void
+  onClick?: () => void
 }
 
 function formatSalary(min: number | null, max: number | null): string {
@@ -24,7 +25,7 @@ function stripHtml(value: string): string {
   return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-export default function JobResultCard({ job, onTrack }: Props) {
+export default function JobResultCard({ job, onTrack, onClick }: Props) {
   const description = stripHtml(job.description)
 
   const sourceName = job.source === 'platsbanken' ? 'Platsbanken' : 'Adzuna'
@@ -45,7 +46,13 @@ export default function JobResultCard({ job, onTrack }: Props) {
   }
 
   return (
-    <article className="rounded-2xl border border-line bg-surface p-5 shadow-sm transition hover:border-primary-600/40 hover:shadow-md">
+    <article
+      className="rounded-2xl border border-line bg-surface p-5 shadow-sm transition hover:border-primary-600/40 hover:shadow-md cursor-pointer"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.() }}
+    >
       <div className="flex items-start gap-4">
         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary-900/20">
           <BriefcaseIcon className="h-6 w-6 text-accent-text" />
@@ -59,6 +66,7 @@ export default function JobResultCard({ job, onTrack }: Props) {
             href={job.redirect_url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-fg-subtle transition hover:bg-surface-strong hover:text-fg-muted"
             aria-label="Open job"
           >
@@ -99,7 +107,7 @@ export default function JobResultCard({ job, onTrack }: Props) {
       <div className="mt-5 flex justify-end">
         <button
           type="button"
-          onClick={handleTrack}
+          onClick={(e) => { e.stopPropagation(); handleTrack() }}
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
         >
           <PlusIcon className="h-4 w-4" />

@@ -321,6 +321,10 @@ def create_raw_job_from_external(db: Session, data: ExternalJobBookmarkRequest) 
         company=data.company,
         description=data.description,
         url=data.url,
+        location=data.location,
+        salary_min=data.salary_min,
+        salary_max=data.salary_max,
+        employment_type=data.contract_type,
         is_duplicate=False,
         raw_data={},
     )

@@ -131,6 +131,20 @@ class ExternalJobBookmarkRequest(BaseModel):
     description: str
     source: str = "linkedin"
     notes: str | None = None
+    location: str | None = None
+    salary_min: int | None = None
+    salary_max: int | None = None
+    contract_type: str | None = None
+
+
+class AnalyzeTextRequest(BaseModel):
+    description: str
+
+
+class AnalyzeTextResponse(BaseModel):
+    keywords: KeywordsByTypeSchema
+    matched_skills: list[str]
+    missing_skills: list[str]
 
 
 class KeywordsByTypeSchema(BaseModel):
