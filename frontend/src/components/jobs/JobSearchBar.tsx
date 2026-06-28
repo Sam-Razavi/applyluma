@@ -1,5 +1,6 @@
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
+import { LocationInput } from '../discover/JobFilters'
 
 export type SearchSource = 'all' | 'adzuna' | 'platsbanken'
 
@@ -70,12 +71,7 @@ export default function JobSearchBar({
               placeholder="Role, skill, or keyword"
             />
           </div>
-          <input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="input"
-            placeholder="Location"
-          />
+          <LocationInput value={location} onChange={setLocation} />
           <button
             type="submit"
             disabled={loading}

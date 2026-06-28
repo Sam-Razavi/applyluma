@@ -49,7 +49,7 @@ interface LocationInputProps {
   onChange: (v: string) => void
 }
 
-function LocationInput({ value, onChange }: LocationInputProps) {
+export function LocationInput({ value, onChange }: LocationInputProps) {
   const [open, setOpen] = useState(false)
   const [highlighted, setHighlighted] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
