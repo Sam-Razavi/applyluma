@@ -264,6 +264,79 @@ async def test_webhook_subscription_deleted_downgrades_user(monkeypatch: pytest.
 
 
 @pytest.mark.asyncio
+async def test_webhook_payment_failed_sets_past_due(monkeypatch: pytest.MonkeyPatch) -> None:
+    configure_stripe(monkeypatch)
+    db_user = user(role=UserRole.premium, stripe_customer_id="cus_456")
+
+    class FakeDbWithQuery(FakeDb):
+        def query(self, *args: Any) -> "FakeDbWithQuery":
+            return self
+
+        def filter(self, *args: Any) -> "FakeDbWithQuery":
+            return self
+
+        def first(self) -> SimpleNamespace:
+            return self.user
+
+    fake_db = FakeDbWithQuery(db_user)
+
+    def mock_construct_event(payload, sig_header, secret):
+        return {
+            "type": "invoice.payment_failed",
+            "data": {
+                "object": {
+                    "customer": "cus_456",
+                }
+            },
+        }
+
+    monkeypatch.setattr(billing_endpoint.stripe.Webhook, "construct_event", mock_construct_event)
+
+    response = await request(
+        "POST",
+        "/api/v1/billing/webhook",
+        db=fake_db,
+        content=b'{"type":"invoice.payment_failed"}',
+        headers={"stripe-signature": "sig"},
+    )
+
+    assert response.status_code == 200
+    assert db_user.role == UserRole.premium
+    assert db_user.subscription_status == "past_due"
+    assert fake_db.commits == 1
+
+
+@pytest.mark.asyncio
+async def test_billing_status_unconfigured(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", "")
+    response = await request("GET", "/api/v1/billing/status", current_user=user())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["configured"] is False
+    assert data["test_mode"] is False
+
+
+@pytest.mark.asyncio
+async def test_billing_status_test_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", "sk_test_abc123")
+    response = await request("GET", "/api/v1/billing/status", current_user=user())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["configured"] is True
+    assert data["test_mode"] is True
+
+
+@pytest.mark.asyncio
+async def test_billing_status_live_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", "sk_live_abc123")
+    response = await request("GET", "/api/v1/billing/status", current_user=user())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["configured"] is True
+    assert data["test_mode"] is False
+
+
+@pytest.mark.asyncio
 async def test_webhook_unknown_event_type_returns_ok_with_no_side_effects(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

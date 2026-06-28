@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { SparklesIcon } from '@heroicons/react/24/outline'
 
 export default function BillingCancel() {
   return (
@@ -7,6 +8,17 @@ export default function BillingCancel() {
       <p className="mt-2 text-sm text-fg-subtle">
         No changes were made to your account.
       </p>
+
+      <div className="mx-auto mt-5 max-w-xs rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-3 text-left">
+        <p className="flex items-center gap-1.5 text-sm font-medium text-accent-text">
+          <SparklesIcon className="h-4 w-4" />
+          Premium gives you 10x more AI CV tailors per day
+        </p>
+        <p className="mt-1 text-xs text-fg-muted">
+          Plus priority access to new tools and premium analytics.
+        </p>
+      </div>
+
       <div className="mt-6 flex justify-center gap-2">
         <Link
           to="/plans"

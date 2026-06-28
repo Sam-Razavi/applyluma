@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.models.user import User, UserRole
-from app.schemas.billing import CheckoutSessionResponse, PortalSessionResponse
+from app.schemas.billing import BillingStatusResponse, CheckoutSessionResponse, PortalSessionResponse
 from app.services import notification_service
 
 router = APIRouter(prefix="/billing", tags=["billing"])
@@ -45,6 +45,13 @@ def _period_end(value: Any) -> datetime | None:
         return datetime.fromtimestamp(int(timestamp), tz=UTC)
     except (TypeError, ValueError, OSError):
         return None
+
+
+@router.get("/status", response_model=BillingStatusResponse)
+def billing_status() -> BillingStatusResponse:
+    configured = bool(settings.STRIPE_SECRET_KEY)
+    test_mode = configured and settings.STRIPE_SECRET_KEY.startswith("sk_test_")
+    return BillingStatusResponse(configured=configured, test_mode=test_mode)
 
 
 @router.post("/create-checkout-session", response_model=CheckoutSessionResponse)
@@ -122,6 +129,8 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)) -> dic
         _handle_checkout_completed(db, event_data)
     elif event_type == "customer.subscription.deleted":
         _handle_subscription_deleted(db, event_data)
+    elif event_type == "invoice.payment_failed":
+        _handle_payment_failed(db, event_data)
 
     return {"status": "ok"}
 
@@ -152,6 +161,32 @@ def _handle_checkout_completed(db: Session, session: Any) -> None:
             type="upgrade_success",
             title="Premium is active",
             body="Your ApplyLuma Premium subscription is now active.",
+            related_id=None,
+            related_type="billing",
+            send_email=True,
+            email=user.email,
+        )
+    except Exception:
+        pass
+
+
+def _handle_payment_failed(db: Session, invoice: Any) -> None:
+    customer_id = _get_attr(invoice, "customer")
+    if not customer_id:
+        return
+    user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+    if not user:
+        return
+
+    user.subscription_status = "past_due"
+    db.commit()
+    try:
+        notification_service.create_notification(
+            db,
+            user_id=user.id,
+            type="payment_failed",
+            title="Payment failed",
+            body="Your last payment failed. Please update your payment method to keep Premium access.",
             related_id=None,
             related_type="billing",
             send_email=True,

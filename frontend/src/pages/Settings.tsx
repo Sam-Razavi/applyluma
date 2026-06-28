@@ -237,6 +237,26 @@ export default function Settings() {
             )}
           </div>
 
+          {/* Subscription warnings */}
+          {user?.subscription_status === 'past_due' && (
+            <div className="rounded-xl border border-chip-danger bg-chip-danger px-4 py-3 text-sm text-chip-danger-fg">
+              Your last payment failed.{' '}
+              <Link to="/plans" className="font-semibold underline underline-offset-2">
+                Update your payment method
+              </Link>{' '}
+              to keep Premium access.
+            </div>
+          )}
+          {user?.subscription_status === 'canceled' && user.subscription_ends_at && new Date(user.subscription_ends_at) > new Date() && (
+            <div className="rounded-xl border border-chip-warn bg-chip-warn px-4 py-3 text-sm text-chip-warn-fg">
+              Premium expires on {new Date(user.subscription_ends_at).toLocaleDateString()}.{' '}
+              <Link to="/plans" className="font-semibold underline underline-offset-2">
+                Resubscribe
+              </Link>{' '}
+              to keep your benefits.
+            </div>
+          )}
+
           {/* AI Tailor usage */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">

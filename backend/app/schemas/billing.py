@@ -7,3 +7,8 @@ class CheckoutSessionResponse(BaseModel):
 
 class PortalSessionResponse(BaseModel):
     portal_url: str
+
+
+class BillingStatusResponse(BaseModel):
+    configured: bool
+    test_mode: bool
