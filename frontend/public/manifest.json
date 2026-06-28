@@ -1,0 +1,16 @@
+{
+  "name": "ApplyLuma",
+  "short_name": "ApplyLuma",
+  "description": "AI-powered job search and CV tailoring platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080E12",
+  "theme_color": "#4F46E5",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
