@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import admin as admin_endpoint
 from app.core.dependencies import get_current_user, get_db
-from app.crud.admin import _health_status, _resolve_stage_health
+from app.crud.admin import _health_status, _resolve_stage_health, get_pipeline_health
 from app.main import app
 from app.models.user import UserRole
 
@@ -578,3 +578,60 @@ def test_health_status_zero_rows_but_recent_is_healthy() -> None:
     """A DAG that ran recently but inserted 0 rows should still be healthy."""
     row = _make_log_row(ran_at=datetime.now(UTC) - timedelta(hours=1), rows_affected=0)
     assert _health_status(row) == "healthy"
+
+
+class _Result:
+    def __init__(self, *, one: Any | None = None, all: list[Any] | None = None) -> None:
+        self._one = one
+        self._all = all or []
+
+    def one(self) -> Any:
+        return self._one
+
+    def all(self) -> list[Any]:
+        return self._all
+
+
+class _PipelineHealthDb:
+    def __init__(self) -> None:
+        self.now = datetime.now(UTC)
+
+    def execute(self, statement: Any) -> _Result:
+        sql = str(statement)
+        if "FROM pipeline_run_log" in sql:
+            return _Result(
+                all=[
+                    _make_log_row(
+                        pipeline_name="JobSearch API",
+                        ran_at=self.now - timedelta(hours=1),
+                        rows_affected=3,
+                    )
+                ]
+            )
+        if "FROM raw_job_postings GROUP BY source" in sql:
+            return _Result(
+                all=[
+                    SimpleNamespace(
+                        source="JobSearch API",
+                        c=422,
+                        m=self.now - timedelta(days=2),
+                    )
+                ]
+            )
+        if "FROM raw_job_postings" in sql:
+            return _Result(one=SimpleNamespace(c=422, m=self.now - timedelta(days=2)))
+        if "FROM extracted_keywords" in sql:
+            return _Result(one=SimpleNamespace(c=0, m=None))
+        if "FROM job_market_metrics" in sql:
+            return _Result(one=SimpleNamespace(c=0, m=None))
+        raise AssertionError(f"Unexpected query: {sql}")
+
+
+def test_pipeline_health_uses_jobsearch_api_log_row() -> None:
+    health = get_pipeline_health(_PipelineHealthDb())
+    jobsearch = health["sources"][0]
+
+    assert jobsearch["source"] == "JobSearch API"
+    assert jobsearch["healthy"] is True
+    assert jobsearch["status"] == "healthy"
+    assert jobsearch["last_run"] is not None
