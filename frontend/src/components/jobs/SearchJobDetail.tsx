@@ -10,6 +10,7 @@ import { BookmarkIcon as BookmarkSolid } from '@heroicons/react/24/solid'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import SkillsBreakdown from '../discover/SkillsBreakdown'
+import JobDescriptionDisplay from '../common/JobDescriptionDisplay'
 import { useUsageStore, usageHint } from '../../stores/usage'
 import type { AdzunaJobResult, AnalyzeTextResponse } from '../../services/jobSearchApi'
 import { analyzeJobText, bookmarkSearchJob } from '../../services/jobSearchApi'
@@ -27,9 +28,6 @@ function Pill({ text, color }: { text: string; color: string }) {
   )
 }
 
-function stripHtml(value: string): string {
-  return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-}
 
 export default function SearchJobDetail({ job, onClose, onTrack }: Props) {
   const navigate = useNavigate()
@@ -63,7 +61,6 @@ export default function SearchJobDetail({ job, onClose, onTrack }: Props) {
 
   if (!job) return null
 
-  const description = stripHtml(job.description)
   const sourceName = job.source === 'platsbanken' ? 'Platsbanken' : 'Adzuna'
 
   async function handleSave() {
@@ -189,12 +186,10 @@ export default function SearchJobDetail({ job, onClose, onTrack }: Props) {
           ) : null}
 
           {/* Description */}
-          {description && (
+          {job.description && (
             <div>
               <h3 className="mb-2 text-sm font-semibold text-fg">Job description</h3>
-              <div className="prose prose-sm max-w-none text-fg-muted whitespace-pre-line text-sm leading-relaxed">
-                {description}
-              </div>
+              <JobDescriptionDisplay raw={job.description} />
             </div>
           )}
 
