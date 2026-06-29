@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import { useApplicationsStore } from '../../stores/applications'
 import type { Application, ApplicationStatus, ApplicationUpdate } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
+import ConfirmDialog from '../ui/ConfirmDialog'
 import ApplicationTimeline from './ApplicationTimeline'
 import ContactsList from './ContactsList'
 import { STATUS_META } from './statusMeta'
@@ -63,6 +64,7 @@ export default function ApplicationDrawer() {
   const [form, setForm] = useState<DrawerForm | null>(application ? toForm(application) : null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   useEffect(() => {
     setForm(application ? toForm(application) : null)
@@ -105,11 +107,12 @@ export default function ApplicationDrawer() {
   }
 
   async function handleDelete() {
-    if (!application || !window.confirm('Delete this application?')) return
+    if (!application) return
     setDeleting(true)
     try {
       await deleteApplication(application.id)
       toast.success('Application deleted')
+      setDeleteConfirmOpen(false)
     } catch {
       toast.error('Could not delete application')
     } finally {
@@ -118,10 +121,11 @@ export default function ApplicationDrawer() {
   }
 
   return (
-    <Dialog open={!!application} onClose={() => setSelected(null)} className="relative z-50">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
-      <div className="fixed inset-x-0 bottom-0 flex max-h-[92vh] sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:max-w-full">
-        <DialogPanel className="flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-raised shadow-2xl sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none">
+    <>
+      <Dialog open={!!application} onClose={() => setSelected(null)} className="relative z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+        <div className="fixed inset-x-0 bottom-0 flex max-h-[92vh] sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:max-w-full">
+          <DialogPanel className="flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-raised shadow-2xl sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none">
           <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
             <div className="min-w-0">
               <DialogTitle className="truncate text-lg font-semibold text-fg">
@@ -311,7 +315,7 @@ export default function ApplicationDrawer() {
           <div className="flex items-center justify-between gap-3 border-t border-line px-6 py-4">
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setDeleteConfirmOpen(true)}
               disabled={deleting}
               className="inline-flex items-center gap-2 rounded-lg bg-chip-danger px-3 py-2 text-sm font-semibold text-chip-danger-fg transition hover:bg-chip-danger disabled:opacity-50"
             >
@@ -327,9 +331,18 @@ export default function ApplicationDrawer() {
               {saving ? 'Saving...' : 'Save changes'}
             </button>
           </div>
-        </DialogPanel>
-      </div>
-    </Dialog>
+          </DialogPanel>
+        </div>
+      </Dialog>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete Application"
+        message="Permanently delete 1 application? This cannot be undone."
+        loading={deleting}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={() => void handleDelete()}
+      />
+    </>
   )
 }
 

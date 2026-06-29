@@ -17,6 +17,7 @@ import ApplicationStats from '../components/applications/ApplicationStats'
 import KanbanBoard from '../components/applications/KanbanBoard'
 import PersonalAnalytics from '../components/applications/PersonalAnalytics'
 import { STATUS_META } from '../components/applications/statusMeta'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useApplicationsStore } from '../stores/applications'
 import type { ApplicationStatus } from '../types/application'
 import { APPLICATION_STATUSES } from '../types/application'
@@ -39,6 +40,7 @@ export default function Applications() {
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = (searchParams.get('tab') === 'stats' ? 'stats' : 'board') as 'board' | 'stats'
@@ -104,14 +106,19 @@ export default function Applications() {
     })
   }
 
-  async function handleBulkDelete() {
+  function handleBulkDelete() {
+    setDeleteConfirmOpen(true)
+  }
+
+  async function confirmBulkDelete() {
     const count = selectedIds.size
-    if (!window.confirm(`Permanently delete ${count} application${count > 1 ? 's' : ''}? This cannot be undone.`)) return
+    if (count === 0) return
     setBulkDeleting(true)
     try {
       await bulkDeleteApplications([...selectedIds])
       setSelectedIds(new Set())
       setIsSelectMode(false)
+      setDeleteConfirmOpen(false)
     } finally {
       setBulkDeleting(false)
     }
@@ -351,6 +358,14 @@ export default function Applications() {
 
       <AddApplicationModal open={addOpen} onClose={() => setAddOpen(false)} />
       <ApplicationDrawer />
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete Application"
+        message={`Permanently delete ${selectedIds.size} application${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`}
+        loading={bulkDeleting}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={() => void confirmBulkDelete()}
+      />
     </div>
   )
 }
