@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import type { DiscoveredJobDetail } from '../../types/jobDiscovery'
 import { SOURCE_LABELS } from '../../types/jobDiscovery'
+import JobDescriptionDisplay from '../common/JobDescriptionDisplay'
 import { fetchJobDetail } from '../../services/jobDiscoveryApi'
 import { createApplication } from '../../services/applicationsApi'
 import { useUsageStore, usageHint } from '../../stores/usage'
@@ -190,9 +191,7 @@ export default function JobDetail({
             {job.description && (
               <div>
                 <h3 className="mb-2 text-sm font-semibold text-fg">Job description</h3>
-                <div className="prose prose-sm max-w-none text-fg-muted whitespace-pre-line text-sm leading-relaxed">
-                  {job.description}
-                </div>
+                <JobDescriptionDisplay raw={job.description} />
               </div>
             )}
 

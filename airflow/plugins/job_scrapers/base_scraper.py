@@ -99,6 +99,64 @@ class BaseScraper(ABC):
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _html_to_text(html: str) -> str:
+        """Convert an HTML job description into structured plain text.
+
+        Preserves paragraph breaks as double newlines and list items as
+        '• ' bullet markers so the frontend can render them correctly.
+        Falls back gracefully to a simple regex strip if BeautifulSoup
+        is unavailable.
+        """
+        import html as html_module
+        import re
+
+        if not html or not html.strip():
+            return ""
+
+        try:
+            from bs4 import BeautifulSoup
+        except ImportError:
+            # Fallback: plain regex strip (loses structure but is safe)
+            return re.sub(r"<[^>]+>", " ", html).strip()
+
+        soup = BeautifulSoup(html, "html.parser")
+
+        for tag in soup.find_all(["script", "style", "head"]):
+            tag.decompose()
+
+        block_tags = {
+            "p", "div", "section", "article",
+            "h1", "h2", "h3", "h4", "h5", "h6",
+            "ul", "ol", "dl", "table", "blockquote", "pre",
+        }
+        for tag in soup.find_all(block_tags):
+            tag.insert_before("\n\n")
+
+        for br in soup.find_all("br"):
+            br.replace_with("\n")
+
+        for li in soup.find_all("li"):
+            li.insert_before("\n• ")
+
+        plain = soup.get_text(separator="")
+        plain = html_module.unescape(plain)
+
+        lines = [re.sub(r"[^\S\n]+", " ", line).strip() for line in plain.splitlines()]
+
+        result_lines: list[str] = []
+        blank_run = 0
+        for line in lines:
+            if line == "":
+                blank_run += 1
+                if blank_run <= 2:
+                    result_lines.append("")
+            else:
+                blank_run = 0
+                result_lines.append(line)
+
+        return "\n".join(result_lines).strip()
+
     def _get(self, url: str, **kwargs: Any) -> requests.Response:
         resp = self._session.get(url, timeout=self.REQUEST_TIMEOUT, **kwargs)
         resp.raise_for_status()

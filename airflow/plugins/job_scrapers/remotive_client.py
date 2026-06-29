@@ -51,7 +51,7 @@ class RemotiveClient(BaseScraper):
                     "title": item.get("title", ""),
                     "company": item.get("company_name", ""),
                     "location": item.get("candidate_required_location") or "Remote",
-                    "description": self._strip_html(item.get("description", "")),
+                    "description": self._html_to_text(item.get("description", "")),
                     "url": item.get("url", ""),
                     "salary_min": None,
                     "salary_max": None,
@@ -62,10 +62,3 @@ class RemotiveClient(BaseScraper):
             )
         return jobs
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _strip_html(text: str) -> str:
-        """Minimal HTML tag removal — avoids a heavy dependency."""
-        import re
-        return re.sub(r"<[^>]+>", " ", text).strip()
