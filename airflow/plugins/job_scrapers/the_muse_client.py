@@ -70,7 +70,7 @@ class TheMuseClient(BaseScraper):
                     "title": item.get("name", ""),
                     "company": (item.get("company") or {}).get("name", ""),
                     "location": location,
-                    "description": self._strip_html(description),
+                    "description": self._html_to_text(description),
                     "url": url,
                     "salary_min": None,
                     "salary_max": None,
@@ -81,9 +81,3 @@ class TheMuseClient(BaseScraper):
             )
         return jobs
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _strip_html(text: str) -> str:
-        import re
-        return re.sub(r"<[^>]+>", " ", text).strip()
