@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import job_search as job_search_endpoint
 from app.core.config import settings
-from app.core.dependencies import get_current_user, get_redis_client
+from app.core.dependencies import get_current_user, get_db, get_redis_client
 from app.main import app
 from app.schemas.job_search import AdzunaJobResult, JobSearchResponse
 
@@ -33,6 +33,24 @@ class FakeRedis:
         assert ttl == 600
         self.set_calls += 1
         self.store[key] = value
+
+
+class FakePipelineLogDb:
+    def __init__(self) -> None:
+        self.rows: list[dict[str, Any]] = []
+        self.commits = 0
+        self.rollbacks = 0
+
+    def execute(self, statement: Any, params: dict[str, Any] | None = None) -> None:
+        del statement
+        if params is not None:
+            self.rows.append(params)
+
+    def commit(self) -> None:
+        self.commits += 1
+
+    def rollback(self) -> None:
+        self.rollbacks += 1
 
 
 @pytest.fixture(autouse=True)
@@ -73,13 +91,16 @@ async def request(
     *,
     current_user: SimpleNamespace | None = None,
     redis_client: FakeRedis | None = None,
+    db: FakePipelineLogDb | None = None,
+    raise_app_exceptions: bool = True,
 ) -> httpx.Response:
     if current_user is not None:
         app.dependency_overrides[get_current_user] = lambda: current_user
     if redis_client is not None:
         app.dependency_overrides[get_redis_client] = lambda: redis_client
+    app.dependency_overrides[get_db] = lambda: db or FakePipelineLogDb()
     async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app),
+        transport=httpx.ASGITransport(app=app, raise_app_exceptions=raise_app_exceptions),
         base_url="http://test",
     ) as client:
         return await client.get(path)
@@ -112,6 +133,68 @@ async def test_search_returns_results(monkeypatch: pytest.MonkeyPatch) -> None:
     assert calls[0]["location"] == "Stockholm"
     assert calls[0]["page"] == 2
     assert calls[0]["results_per_page"] == 20
+
+
+@pytest.mark.asyncio
+async def test_successful_search_logs_jobsearch_pipeline_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "ADZUNA_APP_ID", "app-id")
+    monkeypatch.setattr(settings, "ADZUNA_API_KEY", "app-key")
+    db = FakePipelineLogDb()
+
+    async def mock_search_jobs(**kwargs):
+        return response_data(page=kwargs["page"])
+
+    monkeypatch.setattr(job_search_endpoint.adzuna_service, "search_jobs", mock_search_jobs)
+
+    response = await request(
+        "/api/v1/jobs/search?q=python&source=adzuna",
+        current_user=user(),
+        redis_client=FakeRedis(),
+        db=db,
+    )
+
+    assert response.status_code == 200
+    assert db.commits == 1
+    assert db.rows == [
+        {
+            "pipeline_name": "JobSearch API",
+            "rows_affected": 1,
+            "status": "success",
+            "error_message": None,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_failed_search_logs_jobsearch_pipeline_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "ADZUNA_APP_ID", "app-id")
+    monkeypatch.setattr(settings, "ADZUNA_API_KEY", "app-key")
+    db = FakePipelineLogDb()
+
+    async def mock_search_jobs(**kwargs):
+        del kwargs
+        raise RuntimeError("Adzuna unavailable")
+
+    monkeypatch.setattr(job_search_endpoint.adzuna_service, "search_jobs", mock_search_jobs)
+
+    response = await request(
+        "/api/v1/jobs/search?q=python&source=adzuna",
+        current_user=user(),
+        redis_client=FakeRedis(),
+        db=db,
+        raise_app_exceptions=False,
+    )
+
+    assert response.status_code == 500
+    assert db.commits == 1
+    assert db.rows == [
+        {
+            "pipeline_name": "JobSearch API",
+            "rows_affected": 0,
+            "status": "failed",
+            "error_message": "Adzuna unavailable",
+        }
+    ]
 
 
 @pytest.mark.asyncio

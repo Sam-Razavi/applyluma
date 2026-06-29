@@ -2,9 +2,11 @@ import asyncio
 
 from fastapi import APIRouter, Depends, Query
 from redis import Redis
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.dependencies import get_current_user, get_redis_client
+from app.core.dependencies import get_current_user, get_db, get_redis_client
 from app.models.user import User
 from app.schemas.job_search import JobSearchResponse
 from app.services import adzuna_service, platsbanken_search_service
@@ -12,6 +14,7 @@ from app.services import adzuna_service, platsbanken_search_service
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 _CACHE_TTL_SECONDS = 600
+_PIPELINE_NAME = "JobSearch API"
 
 
 def _cache_key(
@@ -48,6 +51,32 @@ def _merge_responses(
     return JobSearchResponse(results=results, count=count, page=page, total_pages=max_pages)
 
 
+def _log_jobsearch_run(
+    db: Session,
+    *,
+    rows_affected: int,
+    status: str,
+    error_message: str | None = None,
+) -> None:
+    try:
+        db.execute(
+            text(
+                "INSERT INTO pipeline_run_log "
+                "(pipeline_name, rows_affected, status, error_message) "
+                "VALUES (:pipeline_name, :rows_affected, :status, :error_message)"
+            ),
+            {
+                "pipeline_name": _PIPELINE_NAME,
+                "rows_affected": rows_affected,
+                "status": status,
+                "error_message": error_message,
+            },
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
 @router.get("/search", response_model=JobSearchResponse)
 async def search_jobs(
     q: str = Query(..., min_length=1),
@@ -58,6 +87,7 @@ async def search_jobs(
     source: str = Query(default="all", pattern="^(adzuna|platsbanken|all)$"),
     current_user: User = Depends(get_current_user),
     redis_client: Redis = Depends(get_redis_client),
+    db: Session = Depends(get_db),
 ) -> JobSearchResponse:
     del current_user
     resolved_country = country or settings.ADZUNA_COUNTRY
@@ -79,18 +109,28 @@ async def search_jobs(
         cached = None
 
     if source == "platsbanken":
-        response = await platsbanken_search_service.search_jobs(
-            q=q, location=location, page=page, results_per_page=results_per_page,
-        )
+        try:
+            response = await platsbanken_search_service.search_jobs(
+                q=q, location=location, page=page, results_per_page=results_per_page,
+            )
+        except Exception as exc:
+            _log_jobsearch_run(db, rows_affected=0, status="failed", error_message=str(exc))
+            raise
+        _log_jobsearch_run(db, rows_affected=len(response.results), status="success")
     elif source == "adzuna":
         if not settings.ADZUNA_APP_ID:
             response = JobSearchResponse(results=[], count=0, page=page, total_pages=0)
         else:
-            response = await adzuna_service.search_jobs(
-                q=q, location=location, page=page, results_per_page=results_per_page,
-                country=resolved_country, app_id=settings.ADZUNA_APP_ID,
-                app_key=settings.ADZUNA_API_KEY,
-            )
+            try:
+                response = await adzuna_service.search_jobs(
+                    q=q, location=location, page=page, results_per_page=results_per_page,
+                    country=resolved_country, app_id=settings.ADZUNA_APP_ID,
+                    app_key=settings.ADZUNA_API_KEY,
+                )
+            except Exception as exc:
+                _log_jobsearch_run(db, rows_affected=0, status="failed", error_message=str(exc))
+                raise
+            _log_jobsearch_run(db, rows_affected=len(response.results), status="success")
     else:
         adzuna_coro = (
             adzuna_service.search_jobs(
@@ -111,9 +151,22 @@ async def search_jobs(
             )
         else:
             adzuna_result = adzuna_coro
-            platsbanken_result = await platsbanken_coro
+            try:
+                platsbanken_result = await platsbanken_coro
+            except Exception as exc:
+                platsbanken_result = exc
 
         response = _merge_responses(adzuna_result, platsbanken_result, page)
+        errors = [r for r in (adzuna_result, platsbanken_result) if isinstance(r, BaseException)]
+        if errors:
+            _log_jobsearch_run(
+                db,
+                rows_affected=len(response.results),
+                status="failed",
+                error_message=str(errors[0]),
+            )
+        else:
+            _log_jobsearch_run(db, rows_affected=len(response.results), status="success")
 
     try:
         redis_client.setex(key, _CACHE_TTL_SECONDS, response.model_dump_json())
