@@ -109,6 +109,31 @@ describe('parseJobDescription', () => {
     })
   })
 
+  describe('section headers glued into prose (no newline separation)', () => {
+    it('splits a long single-newline chunk on embedded Swedish section headers', () => {
+      // Mirrors real Platsbanken data: section headers like "Dina arbetsuppgifter"
+      // appear mid-prose, separated only by a period and a space, with just a
+      // couple of incidental newlines elsewhere in the text.
+      const input =
+        'Vi söker dig som vill vara med och utveckla digitala tjänster för allmänheten i en stor myndighet med högt ställda krav på kvalitet och säkerhet. ' +
+        'Dina arbetsuppgifter Du arbetar i ett litet agilt team med utveckling av interna och externa system, exempelvis applikationsutveckling och integrationer mot andra myndigheter.\n' +
+        'Din bakgrund och kompetens Du har flerårig högskoleutbildning inom systemvetenskap eller motsvarande och erfarenhet av att arbeta i statlig förvaltning och att förändra den.\n' +
+        'Vårt erbjudande Vi uppmuntrar initiativtagande och ger dig goda möjligheter till kompetensutveckling samt en trivsam arbetsmiljö med flexibla arbetstider.'
+      const result = parseJobDescription(input)
+
+      const headings = result.filter(b => b.kind === 'heading').map(b => (b as { text: string }).text)
+      expect(headings).toContain('Dina arbetsuppgifter')
+      expect(headings).toContain('Din bakgrund och kompetens')
+      expect(headings).toContain('Vårt erbjudande')
+
+      // No block should still contain more than one section glued together
+      const paragraphTexts = result.filter(b => b.kind === 'paragraph').map(b => (b as { text: string }).text)
+      expect(paragraphTexts.some(t => t.includes('Dina arbetsuppgifter'))).toBe(false)
+      expect(paragraphTexts.some(t => t.includes('Din bakgrund och kompetens'))).toBe(false)
+      expect(paragraphTexts.some(t => t.includes('Vårt erbjudande'))).toBe(false)
+    })
+  })
+
   describe('collapsed blob heuristic splitting', () => {
     it('splits at known section keyword boundary', () => {
       const input =
