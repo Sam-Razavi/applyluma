@@ -25,6 +25,7 @@ type Tab = 'for-you' | 'search'
 
 const RECENT_KEY = 'recent_job_searches'
 const LOCATION_KEY = 'preferred_job_location'
+const FOR_YOU_LOCATION_KEY = 'discover_filter_location'
 const MAX_RECENT = 5
 
 interface RecentSearch {
@@ -67,7 +68,10 @@ export default function Discover() {
 
   // ── For You state ─────────────────────────────────────────────────────
   const [jobs, setJobs] = useState<DiscoveredJob[]>([])
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
+  const [filters, setFilters] = useState<Filters>(() => ({
+    ...DEFAULT_FILTERS,
+    location: localStorage.getItem(FOR_YOU_LOCATION_KEY) ?? DEFAULT_FILTERS.location,
+  }))
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -151,6 +155,7 @@ export default function Discover() {
   function applyFilters(next: Filters) {
     setFilters(next)
     setPage(1)
+    localStorage.setItem(FOR_YOU_LOCATION_KEY, next.location)
     void loadJobs(next, 1, true)
   }
 
