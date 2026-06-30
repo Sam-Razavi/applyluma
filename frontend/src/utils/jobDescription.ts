@@ -4,9 +4,51 @@ export type DescriptionBlock =
   | { kind: 'bullet'; items: string[] }
   | { kind: 'numbered'; items: string[] }
 
-// Sentence boundaries followed by known job-description section headers
-const SECTION_SPLIT_RE =
-  /(?<=[.!?])\s+(?=(?:Responsibilities|Requirements|Qualifications|What you|About us|Who we|Nice to have|Benefits|We offer|The role|Your role|The team)\b)/gi
+// Known job-description section header phrases, used to split sentence-glued
+// blobs and to detect headings even when no newline separates them from the
+// surrounding prose. Longer/more-specific phrases first so the regex prefers
+// them over their shorter substrings (e.g. "Din bakgrund och kompetens"
+// before "Din bakgrund").
+const ENGLISH_SECTION_WORDS = [
+  'Responsibilities', 'Requirements', 'Qualifications', 'What you',
+  'About us', 'Who we', 'Nice to have', 'Benefits', 'We offer',
+  'The role', 'Your role', 'The team',
+]
+
+const SWEDISH_SECTION_WORDS = [
+  'Dina arbetsuppgifter', 'Arbetsuppgifter',
+  'Din bakgrund och kompetens', 'Bakgrund och kompetens', 'Din bakgrund',
+  'Dina kvalifikationer', 'Kvalifikationer',
+  'Det är meriterande', 'Meriterande',
+  'Dina personliga egenskaper', 'Personliga egenskaper',
+  'Vårt erbjudande', 'Vi erbjuder dig',
+  'Om tjänsten', 'Om oss', 'Om rollen',
+  'Ansök senast', 'Så ansöker du',
+]
+
+const SECTION_WORDS = [...ENGLISH_SECTION_WORDS, ...SWEDISH_SECTION_WORDS]
+
+// Sentence boundaries followed by a known job-description section header
+const SECTION_SPLIT_RE = new RegExp(
+  `(?<=[.!?])\\s+(?=(?:${SECTION_WORDS.join('|')})\\b)`,
+  'gi'
+)
+
+// Stricter subset used for heading extraction — excludes phrases that also
+// occur as ordinary mid-sentence openers in real job ad text (e.g. "Vi
+// erbjuder dig" appears both as a section header and as a normal sentence
+// start, so it is only used for section splitting, not heading detection).
+const HEADING_WORDS = [
+  'Dina arbetsuppgifter', 'Arbetsuppgifter',
+  'Din bakgrund och kompetens', 'Dina kvalifikationer', 'Kvalifikationer',
+  'Det är meriterande', 'Dina personliga egenskaper',
+  'Vårt erbjudande', 'Om tjänsten',
+  'Ansök senast',
+  'Responsibilities', 'Requirements', 'Qualifications',
+  'About us', 'Benefits', 'The role', 'Your role',
+]
+
+const HEADING_SPLIT_RE = new RegExp(`^(${HEADING_WORDS.join('|')})\\b[:\\s]*`, 'i')
 
 // Bullet prefix: hyphen, Unicode bullet (U+2022), or asterisk
 const BULLET_LINE_RE = /^[-•*] /
@@ -34,34 +76,84 @@ function decodeEntities(text: string): string {
     .replace(/&#\d+;/g, ' ')
 }
 
+/** Split text on sentence boundaries that precede a known section header. */
+function splitSections(text: string): string[] {
+  const segments = text.split(SECTION_SPLIT_RE).map(s => s.trim()).filter(Boolean)
+  return segments.length >= 2 ? segments : [text]
+}
+
+/** Split a long blob every ~target chars at the nearest sentence boundary. */
+function chunkBySentence(text: string, target = 350): string[] {
+  const chunks: string[] = []
+  let remaining = text.trim()
+
+  while (remaining.length > target) {
+    const window = remaining.slice(0, target + 100)
+    const match = [...window.matchAll(/[.!?]\s/g)].filter(m => (m.index ?? 0) <= target).pop()
+    const cutAt = match ? (match.index ?? target) + 1 : target
+    chunks.push(remaining.slice(0, cutAt).trim())
+    remaining = remaining.slice(cutAt).trim()
+  }
+
+  if (remaining.length > 0) chunks.push(remaining)
+
+  return chunks
+}
+
 /**
- * Classify a single paragraph-level chunk of text into a typed block.
- * A chunk uses single `\n` between lines; blocks are separated by `\n\n`.
+ * If a segment opens with a recognized section-header phrase, split it into
+ * a heading block plus the remaining paragraph text.
  */
-function classifyChunk(chunk: string): DescriptionBlock {
+function splitLeadingHeading(segment: string): DescriptionBlock[] {
+  const match = segment.match(HEADING_SPLIT_RE)
+  if (!match) return [{ kind: 'paragraph', text: segment }]
+
+  const heading: DescriptionBlock = { kind: 'heading', text: match[1] }
+  const rest = segment.slice(match[0].length).trim()
+
+  return rest ? [heading, { kind: 'paragraph', text: rest }] : [heading]
+}
+
+/** Break an unstructured paragraph into heading/paragraph blocks. */
+function splitLongParagraph(text: string): DescriptionBlock[] {
+  return splitSections(text)
+    .flatMap(splitLeadingHeading)
+    .flatMap(block =>
+      block.kind === 'paragraph' && block.text.length > 450
+        ? chunkBySentence(block.text).map(c => ({ kind: 'paragraph' as const, text: c }))
+        : [block]
+    )
+}
+
+/**
+ * Classify a single paragraph-level chunk of text into one or more typed
+ * blocks. A chunk uses single `\n` between lines; blocks are separated by
+ * `\n\n`.
+ */
+function classifyChunk(chunk: string): DescriptionBlock[] {
   const lines = chunk.split('\n').filter(l => l.trim().length > 0)
-  if (lines.length === 0) return { kind: 'paragraph', text: '' }
+  if (lines.length === 0) return [{ kind: 'paragraph', text: '' }]
 
   // Single short line without sentence-ending punctuation → heading
   if (lines.length === 1 && lines[0].length <= 60 && !/[.!?]$/.test(lines[0])) {
-    return { kind: 'heading', text: lines[0] }
+    return [{ kind: 'heading', text: lines[0] }]
   }
 
   if (lines.every(l => BULLET_LINE_RE.test(l))) {
-    return {
+    return [{
       kind: 'bullet',
       items: lines.map(l => l.replace(BULLET_LINE_RE, '').trim()),
-    }
+    }]
   }
 
   if (lines.every(l => NUMBERED_LINE_RE.test(l))) {
-    return {
+    return [{
       kind: 'numbered',
       items: lines.map(l => l.replace(NUMBERED_LINE_RE, '').trim()),
-    }
+    }]
   }
 
-  return { kind: 'paragraph', text: lines.join(' ') }
+  return splitLongParagraph(lines.join(' '))
 }
 
 /**
@@ -98,7 +190,7 @@ function parseLineByLine(text: string): DescriptionBlock[] {
     } else {
       flushBullet()
       flushNumbered()
-      blocks.push(classifyChunk(line))
+      blocks.push(...classifyChunk(line))
     }
   }
   flushBullet()
@@ -121,41 +213,30 @@ function parseStructured(text: string): DescriptionBlock[] {
   }
 
   return chunks
-    .map(classifyChunk)
+    .flatMap(classifyChunk)
     .filter(b => !(b.kind === 'paragraph' && b.text.length === 0))
 }
 
 /** Best-effort paragraph splitting for collapsed plain-text blobs. */
 function parseBlob(text: string): DescriptionBlock[] {
-  // Try splitting on sentence boundaries before known section headers
-  const segments = text.split(SECTION_SPLIT_RE).map(s => s.trim()).filter(Boolean)
+  const segments = splitSections(text)
   if (segments.length >= 2) {
-    return segments.map(s => ({ kind: 'paragraph' as const, text: s }))
+    return segments.flatMap(s =>
+      s.length > 450
+        ? chunkBySentence(s).map(c => ({ kind: 'paragraph' as const, text: c }))
+        : [{ kind: 'paragraph' as const, text: s }]
+    )
   }
 
-  // Fall back: split every ~350 chars at the nearest sentence boundary
-  const blocks: DescriptionBlock[] = []
-  let remaining = text.trim()
-  const TARGET = 350
-
-  while (remaining.length > TARGET) {
-    const window = remaining.slice(0, TARGET + 100)
-    const match = [...window.matchAll(/[.!?]\s/g)].filter(m => (m.index ?? 0) <= TARGET).pop()
-    const cutAt = match ? (match.index ?? TARGET) + 1 : TARGET
-    blocks.push({ kind: 'paragraph', text: remaining.slice(0, cutAt).trim() })
-    remaining = remaining.slice(cutAt).trim()
-  }
-
-  if (remaining.length > 0) blocks.push({ kind: 'paragraph', text: remaining })
-
-  return blocks
+  return chunkBySentence(text).map(text => ({ kind: 'paragraph' as const, text }))
 }
 
 /**
  * Parse a raw job description string into structured blocks for display.
  * Handles both well-structured text (with newlines/bullets, e.g. from the
  * improved scraper) and collapsed blobs (existing jobs where HTML structure
- * was lost at scrape time).
+ * was lost at scrape time, or where section headers are glued into the
+ * running prose with no whitespace structure at all).
  */
 export function parseJobDescription(raw: string): DescriptionBlock[] {
   if (!raw || !raw.trim()) return []
