@@ -64,12 +64,63 @@ function classifyChunk(chunk: string): DescriptionBlock {
   return { kind: 'paragraph', text: lines.join(' ') }
 }
 
+/**
+ * Fallback for text whose sections are separated by single `\n` rather than
+ * `\n\n` (no blank-line paragraph breaks). Groups consecutive bullet/numbered
+ * lines into list blocks; every other line is classified individually.
+ */
+function parseLineByLine(text: string): DescriptionBlock[] {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+  const blocks: DescriptionBlock[] = []
+  let bulletBuf: string[] = []
+  let numberedBuf: string[] = []
+
+  const flushBullet = () => {
+    if (bulletBuf.length > 0) {
+      blocks.push({ kind: 'bullet', items: bulletBuf.map(l => l.replace(BULLET_LINE_RE, '').trim()) })
+      bulletBuf = []
+    }
+  }
+  const flushNumbered = () => {
+    if (numberedBuf.length > 0) {
+      blocks.push({ kind: 'numbered', items: numberedBuf.map(l => l.replace(NUMBERED_LINE_RE, '').trim()) })
+      numberedBuf = []
+    }
+  }
+
+  for (const line of lines) {
+    if (BULLET_LINE_RE.test(line)) {
+      flushNumbered()
+      bulletBuf.push(line)
+    } else if (NUMBERED_LINE_RE.test(line)) {
+      flushBullet()
+      numberedBuf.push(line)
+    } else {
+      flushBullet()
+      flushNumbered()
+      blocks.push(classifyChunk(line))
+    }
+  }
+  flushBullet()
+  flushNumbered()
+
+  return blocks.filter(b => !(b.kind === 'paragraph' && b.text.length === 0))
+}
+
 /** Parse text that has meaningful newlines or bullet markers. */
 function parseStructured(text: string): DescriptionBlock[] {
-  return text
+  const chunks = text
     .split(/\n{2,}/)
     .map(c => c.trim())
     .filter(Boolean)
+
+  // No blank-line paragraph breaks found, but single newlines exist: the
+  // source likely separates sections with one `\n` instead of two.
+  if (chunks.length <= 1 && text.includes('\n')) {
+    return parseLineByLine(text)
+  }
+
+  return chunks
     .map(classifyChunk)
     .filter(b => !(b.kind === 'paragraph' && b.text.length === 0))
 }

@@ -73,6 +73,42 @@ describe('parseJobDescription', () => {
     })
   })
 
+  describe('single-newline-separated sections (no blank lines)', () => {
+    it('splits sections separated by single newlines into multiple paragraphs', () => {
+      const input =
+        'Vi söker en engagerad utvecklare till vårt team som vill vara med och bygga vidare på vår plattform.\n' +
+        'Du kommer att arbeta nära andra utvecklare och produktägare i ett agilt team med högt i tak.\n' +
+        'Vi erbjuder goda utvecklingsmöjligheter, flexibla arbetstider och en trivsam arbetsmiljö för alla.'
+      const result = parseJobDescription(input)
+      expect(result).toHaveLength(3)
+      expect(result.every(b => b.kind === 'paragraph')).toBe(true)
+    })
+
+    it('groups consecutive single-newline bullet lines into one bullet block', () => {
+      const input =
+        'Vi söker en engagerad utvecklare till vårt team som vill vara med och bygga vidare.\n' +
+        '• Erfarenhet av Python\n' +
+        '• Erfarenhet av SQL\n' +
+        'Vi ser fram emot din ansökan och hoppas att höra mer om din bakgrund snart.'
+      const result = parseJobDescription(input)
+      expect(result).toHaveLength(3)
+      expect(result[0].kind).toBe('paragraph')
+      expect(result[1]).toEqual({ kind: 'bullet', items: ['Erfarenhet av Python', 'Erfarenhet av SQL'] })
+      expect(result[2].kind).toBe('paragraph')
+    })
+
+    it('treats a short single-newline-separated line as a heading', () => {
+      const input =
+        'Om tjänsten\n' +
+        'Vi söker en engagerad utvecklare till vårt team som vill vara med och bygga vidare på vår plattform.\n' +
+        'Vi erbjuder goda utvecklingsmöjligheter, flexibla arbetstider och en trivsam arbetsmiljö för alla.'
+      const result = parseJobDescription(input)
+      expect(result[0]).toEqual({ kind: 'heading', text: 'Om tjänsten' })
+      expect(result[1].kind).toBe('paragraph')
+      expect(result[2].kind).toBe('paragraph')
+    })
+  })
+
   describe('collapsed blob heuristic splitting', () => {
     it('splits at known section keyword boundary', () => {
       const input =
