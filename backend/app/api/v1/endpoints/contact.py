@@ -1,12 +1,41 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+import logging
+
+import httpx
+from fastapi import APIRouter, HTTPException, Request, status
 
 from app.core.config import settings
 from app.schemas.contact import ContactRequest
 from app.services import email_service
 
 router = APIRouter(prefix="/contact", tags=["public"])
+logger = logging.getLogger(__name__)
+
+# Cloudflare's official always-pass test secret (the config default). When it
+# is active there is nothing meaningful to verify, so verification is skipped —
+# this keeps local dev and tests offline. Set a real secret in production to
+# turn verification on.
+_TURNSTILE_TEST_SECRET = "1x0000000000000000000000000000000AA"
+_TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+
+def _verify_turnstile(token: str, remote_ip: str | None) -> bool:
+    secret = settings.TURNSTILE_SECRET_KEY
+    if not secret or secret == _TURNSTILE_TEST_SECRET:
+        return True
+    if not token:
+        return False
+    data = {"secret": secret, "response": token}
+    if remote_ip:
+        data["remoteip"] = remote_ip
+    try:
+        response = httpx.post(_TURNSTILE_VERIFY_URL, data=data, timeout=5.0)
+        return bool(response.json().get("success"))
+    except Exception:
+        # Fail open: a Cloudflare outage must not take down the contact form.
+        logger.error("Turnstile verification request failed", exc_info=True)
+        return True
 
 _BASE = """<!DOCTYPE html>
 <html lang="en">
@@ -117,9 +146,16 @@ def _confirmation_html(name: str, subject: str, message: str) -> str:
 
 
 @router.post("", status_code=status.HTTP_200_OK)
-def submit_contact(body: ContactRequest) -> dict[str, bool]:
+def submit_contact(body: ContactRequest, request: Request) -> dict[str, bool]:
     if body.honeypot:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid submission.")
+
+    remote_ip = request.client.host if request.client else None
+    if not _verify_turnstile(body.turnstile_token, remote_ip):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CAPTCHA verification failed. Please try again.",
+        )
 
     subject_line = body.subject.strip() or "No subject"
 

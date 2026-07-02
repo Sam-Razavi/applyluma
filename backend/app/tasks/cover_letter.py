@@ -57,10 +57,15 @@ def run_cover_letter(self, job_id: str) -> dict[str, Any]:
 
         cv = db.query(CV).filter(CV.id == job.cv_id).first()
         jd = db.query(JobDescription).filter(JobDescription.id == job.job_description_id).first()
+        # Deterministic precondition failures: retrying cannot fix a missing CV
+        # or job description, so mark the job failed immediately instead of
+        # burning retries.
         if not cv or not cv.content:
-            raise ValueError("CV has no text content")
+            crud_cl.set_failed(db, job, "CV has no text content")
+            return {"error": "CV has no text content"}
         if not jd:
-            raise ValueError("Job description not found")
+            crud_cl.set_failed(db, job, "Job description not found")
+            return {"error": "Job description not found"}
 
         result = generate_cover_letter(
             cv_content=cv.content,

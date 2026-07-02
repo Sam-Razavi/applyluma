@@ -5,8 +5,10 @@ import uuid
 from typing import Any
 
 from sqlalchemy import desc, nullslast
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.core.cache_service import CacheService
 from app.models.application import Application
 from app.models.cover_letter_job import CoverLetterJob, CoverLetterStatus
 from app.models.cv import CV
@@ -247,7 +249,23 @@ def save_job(
         notes=body.notes,
     )
     db.add(saved)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # A concurrent request saved the same job between our existence check
+        # and this insert; uq_saved_jobs_user_job guarantees one row exists.
+        db.rollback()
+        existing = (
+            db.query(SavedJob)
+            .filter(
+                SavedJob.user_id == user_id,
+                SavedJob.raw_job_posting_id == body.job_id,
+            )
+            .first()
+        )
+        if existing is not None:
+            return existing
+        raise
     db.refresh(saved)
     return saved
 
@@ -411,7 +429,26 @@ def upsert_job_matching_score(
         explanation=scores.get("explanation"),
     )
     db.add(record)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Lost a race with a concurrent scorer for the same (user, job) pair;
+        # uq_job_matching_scores_user_job guarantees a row now exists — apply
+        # our values to it instead.
+        db.rollback()
+        existing = get_job_matching_score(db, user_id, raw_job_posting_id)
+        if existing is not None:
+            existing.overall_score = scores["overall_score"]
+            existing.skills_match = scores.get("skills_match")
+            existing.experience_match = scores.get("experience_match")
+            existing.salary_match = scores.get("salary_match")
+            existing.education_match = scores.get("education_match")
+            existing.location_match = scores.get("location_match")
+            existing.explanation = scores.get("explanation")
+            db.commit()
+            db.refresh(existing)
+            return existing
+        raise
     db.refresh(record)
     return record
 
@@ -419,6 +456,42 @@ def upsert_job_matching_score(
 # ------------------------------------------------------------------
 # Private helpers
 # ------------------------------------------------------------------
+
+def _extract_cv_skills(cv: CV) -> set[str]:
+    """Extract the lowercase skill set from a CV, cached in Redis per CV version.
+
+    Keyword extraction over the full CV text is CPU-heavy and the content only
+    changes when the CV row does, so the cache key includes ``updated_at``.
+    Any cache failure falls back silently to direct extraction.
+    """
+    cache: CacheService | None = None
+    cache_key: str | None = None
+    cv_id = getattr(cv, "id", None)
+    updated_at = getattr(cv, "updated_at", None)
+    if cv_id is not None and updated_at is not None:
+        cache_key = f"{cv_id}:{updated_at.isoformat()}"
+        try:
+            cache = CacheService()
+            cached = cache.get_cached_cv_skills(cache_key)
+            if cached is not None:
+                return set(cached)
+        except Exception:
+            cache = None
+
+    extracted = KeywordExtractor().extract_keywords(cv.content)
+    skills: set[str] = {
+        item["keyword"].lower()
+        for items in extracted.values()
+        for item in items
+    }
+
+    if cache is not None and cache_key is not None:
+        try:
+            cache.set_cached_cv_skills(cache_key, sorted(skills))
+        except Exception:
+            pass
+    return skills
+
 
 def _compute_skill_gap(
     db: Session,
@@ -443,12 +516,7 @@ def _compute_skill_gap(
     if not cv or not cv.content:
         return [], []
 
-    extracted = KeywordExtractor().extract_keywords(cv.content)
-    cv_skills: set[str] = {
-        item["keyword"].lower()
-        for items in extracted.values()
-        for item in items
-    }
+    cv_skills = _extract_cv_skills(cv)
 
     matched = [kw for kw in job_keywords if kw.lower() in cv_skills]
     missing = [kw for kw in job_keywords if kw.lower() not in cv_skills]

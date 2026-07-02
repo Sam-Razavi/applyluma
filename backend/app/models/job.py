@@ -24,7 +24,7 @@ class RawJobPosting(Base):
     company: Mapped[str] = mapped_column(String(255), nullable=False)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    url: Mapped[str] = mapped_column(String(2048), nullable=False)
+    url: Mapped[str] = mapped_column(String(2048), nullable=False, index=True)
     salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     employment_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -103,6 +103,7 @@ class JobMatchingScore(Base):
         UUID(as_uuid=True),
         ForeignKey("raw_job_postings.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     overall_score: Mapped[float] = mapped_column(Float, nullable=False)
     skills_match: Mapped[float | None] = mapped_column(Float, nullable=True)

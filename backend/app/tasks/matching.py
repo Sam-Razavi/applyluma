@@ -1,6 +1,7 @@
 """Celery task: compute job matching scores for a user in the background."""
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -9,6 +10,8 @@ from app.db.session import SessionLocal
 from app.models.job import JobMatchingScore, RawJobPosting
 from app.services.matching_service import MatchingService
 from app.tasks.celery_app import celery_app
+
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task(
@@ -54,6 +57,17 @@ def compute_job_matching_scores(self, user_id: str) -> dict:
         service = MatchingService(db)
         scored = 0
 
+        # Bulk-load existing score rows once instead of one SELECT per posting.
+        existing_scores = {
+            row.raw_job_posting_id: row
+            for row in db.query(JobMatchingScore)
+            .filter(
+                JobMatchingScore.user_id == uid,
+                JobMatchingScore.raw_job_posting_id.in_([p.id for p in postings]),
+            )
+            .all()
+        }
+
         for posting in postings:
             job_data = {
                 "description": posting.description,
@@ -67,17 +81,15 @@ def compute_job_matching_scores(self, user_id: str) -> dict:
             try:
                 result = service.calculate_match_score(uid, posting.id, job_data)
             except Exception:
+                logger.warning(
+                    "match_score_failed",
+                    exc_info=True,
+                    extra={"user_id": str(uid), "job_id": str(posting.id)},
+                )
                 continue
 
             # Upsert into job_matching_scores
-            existing = (
-                db.query(JobMatchingScore)
-                .filter(
-                    JobMatchingScore.user_id == uid,
-                    JobMatchingScore.raw_job_posting_id == posting.id,
-                )
-                .first()
-            )
+            existing = existing_scores.get(posting.id)
             now = datetime.now(UTC)
 
             if existing:
