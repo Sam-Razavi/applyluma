@@ -92,6 +92,12 @@ export default function Applications() {
     return result
   }, [applications, filters.search, staleFilter, staleThreshold])
 
+  const todayCount = useMemo(() => {
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    return applications.filter((a) => new Date(a.created_at) >= startOfToday).length
+  }, [applications])
+
   function toggleSelectMode() {
     setIsSelectMode((prev) => !prev)
     setSelectedIds(new Set())
@@ -205,6 +211,11 @@ export default function Applications() {
         <PersonalAnalytics />
       ) : (
         <>
+          {todayCount > 0 && (
+            <p className="text-xs text-fg-muted">
+              <span className="font-semibold text-fg">{todayCount}</span> added today
+            </p>
+          )}
           <ApplicationStats stats={stats} />
 
           <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:flex-row sm:items-center">

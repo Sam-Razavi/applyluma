@@ -3,12 +3,20 @@ import ChartCard from '../analytics/ChartCard'
 import LoadingSkeleton from '../analytics/LoadingSkeleton'
 import { fetchApplicationAnalytics } from '../../services/applicationsApi'
 import type { ApplicationAnalytics } from '../../types/application'
+import { useApplicationsStore } from '../../stores/applications'
 import ApplicationsOverTimeChart from './ApplicationsOverTimeChart'
 import FunnelChart from './FunnelChart'
 import ResponseRateCard from './ResponseRateCard'
 import SourceBreakdownChart from './SourceBreakdownChart'
 
 export default function PersonalAnalytics() {
+  const applications = useApplicationsStore((s) => s.applications)
+  const todayCount = useMemo(() => {
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    return applications.filter((a) => new Date(a.created_at) >= startOfToday).length
+  }, [applications])
+
   const [analytics, setAnalytics] = useState<ApplicationAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,7 +80,13 @@ export default function PersonalAnalytics() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-line bg-surface p-4">
+        <p className="text-xs text-fg-muted">Added today</p>
+        <p className="mt-1 text-3xl font-bold text-fg">{todayCount}</p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
       <ChartCard
         title="Application Funnel"
         subtitle="Counts by current pipeline status"
@@ -107,6 +121,7 @@ export default function PersonalAnalytics() {
       >
         <SourceBreakdownChart data={analytics.top_sources} />
       </ChartCard>
+    </div>
     </div>
   )
 }
