@@ -52,6 +52,7 @@ export default function Contact() {
         subject: data.subject ?? '',
         message: data.message,
         honeypot,
+        turnstile_token: turnstileToken,
       })
       setSubmitted(true)
     } catch (err) {

@@ -102,6 +102,55 @@ async def test_submit_sends_two_emails(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_submit_rejected_when_turnstile_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    sent: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        contact_endpoint.email_service, "send_email", lambda **kwargs: sent.append(kwargs)
+    )
+    monkeypatch.setattr(contact_endpoint, "_verify_turnstile", lambda token, ip: False)
+
+    response = await post_contact(VALID_PAYLOAD)
+
+    assert response.status_code == 400
+    assert sent == []
+
+
+def test_verify_turnstile_skipped_with_test_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The always-pass test secret means there is nothing to verify — no HTTP call."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "TURNSTILE_SECRET_KEY", contact_endpoint._TURNSTILE_TEST_SECRET)
+
+    def _fail(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("siteverify must not be called with the test secret")
+
+    monkeypatch.setattr(contact_endpoint.httpx, "post", _fail)
+
+    assert contact_endpoint._verify_turnstile("any-token", "1.2.3.4") is True
+
+
+def test_verify_turnstile_rejects_empty_token_with_real_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "TURNSTILE_SECRET_KEY", "real-secret-key")
+
+    assert contact_endpoint._verify_turnstile("", "1.2.3.4") is False
+
+
+def test_verify_turnstile_fails_open_on_network_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "TURNSTILE_SECRET_KEY", "real-secret-key")
+
+    def _boom(*args: Any, **kwargs: Any) -> None:
+        raise httpx.ConnectError("network down")
+
+    monkeypatch.setattr(contact_endpoint.httpx, "post", _boom)
+
+    assert contact_endpoint._verify_turnstile("some-token", "1.2.3.4") is True
+
+
+@pytest.mark.asyncio
 async def test_submit_without_subject_uses_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[dict[str, Any]] = []
     monkeypatch.setattr(

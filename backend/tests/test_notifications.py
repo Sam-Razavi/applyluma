@@ -143,6 +143,7 @@ def test_stale_application_task_creates_notification(monkeypatch: pytest.MonkeyP
         user_id=USER_ID,
         company_name="Spotify",
         applied_date=datetime.now(UTC) - timedelta(days=8),
+        stale_reminder_sent=False,
         user=SimpleNamespace(email="sam@example.com"),
     )
 
@@ -154,8 +155,14 @@ def test_stale_application_task_creates_notification(monkeypatch: pytest.MonkeyP
             return [stale_application]
 
     class TaskDb:
+        def __init__(self):
+            self.committed = False
+
         def query(self, model):
             return FakeQuery()
+
+        def commit(self):
+            self.committed = True
 
         def close(self):
             pass
@@ -180,6 +187,7 @@ def test_stale_application_task_creates_notification(monkeypatch: pytest.MonkeyP
     assert created[0]["user_id"] == USER_ID
     assert created[0]["related_id"] == APPLICATION_ID
     assert created[0]["send_email"] is True
+    assert stale_application.stale_reminder_sent is True
 
 
 def test_email_service_is_noop_when_resend_key_empty(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -580,3 +588,36 @@ def test_send_weekly_summary_creates_notification_per_user(monkeypatch: pytest.M
     assert result["created"] == 1
     assert created[0]["type"] == "weekly_summary"
     assert created[0]["user_id"] == USER_ID
+
+
+def test_send_weekly_summary_skips_users_with_no_applications(monkeypatch: pytest.MonkeyPatch) -> None:
+    active_user = SimpleNamespace(id=USER_ID, email="sam@example.com", is_active=True)
+
+    class _FakeQuery:
+        def __init__(self, result=None):
+            self._result = result
+        def filter(self, *args): return self
+        def group_by(self, *args): return self
+        def all(self):
+            return [self._result] if self._result else []
+
+    class _TaskDb:
+        def query(self, *args):
+            from app.models.user import User
+            if args and args[0] is User:
+                return _FakeQuery(active_user)
+            return _FakeQuery()  # no application rows at all
+        def close(self): pass
+
+    created: list[dict[str, Any]] = []
+    monkeypatch.setattr(notification_tasks, "SessionLocal", lambda: _TaskDb())
+    monkeypatch.setattr(
+        notification_tasks.notification_service,
+        "create_notification",
+        lambda db, **kw: created.append(kw),
+    )
+
+    result = notification_tasks.send_weekly_summary.run()
+
+    assert result == {"created": 0}
+    assert created == []

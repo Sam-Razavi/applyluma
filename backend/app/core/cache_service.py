@@ -76,6 +76,22 @@ class CacheService:
         self._redis.setex(self._keyword_key(job_id), ttl_days * 86400, json.dumps(keywords))
 
     # ------------------------------------------------------------------
+    # CV skills (extracted from CV content)
+    # ------------------------------------------------------------------
+
+    def get_cached_cv_skills(self, cache_key: str) -> list[str] | None:
+        raw = self._redis.get(f"cv_skills:{cache_key}")
+        if raw is None:
+            return None
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
+    def set_cached_cv_skills(self, cache_key: str, skills: list[str], ttl_days: int = 7) -> None:
+        self._redis.setex(f"cv_skills:{cache_key}", ttl_days * 86400, json.dumps(skills))
+
+    # ------------------------------------------------------------------
     # Job feed (list responses)
     # ------------------------------------------------------------------
 

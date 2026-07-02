@@ -239,6 +239,9 @@ _EXPENSIVE_RATE_LIMITS: dict[str, int] = {
     "/api/v1/tailor": 5,
     "/api/v1/job-descriptions/scrape-url": 10,
     "/api/v1/cover-letters": 5,
+    # Unauthenticated and sends two emails per request (one to a
+    # caller-supplied address) — keep this tight.
+    "/api/v1/contact": 3,
 }
 
 

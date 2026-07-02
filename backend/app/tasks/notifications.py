@@ -83,7 +83,11 @@ def check_stale_applications() -> dict[str, int]:
         cutoff = datetime.now(UTC) - timedelta(days=7)
         applications = (
             db.query(Application)
-            .filter(Application.status == "applied", Application.applied_date < cutoff)
+            .filter(
+                Application.status == "applied",
+                Application.applied_date < cutoff,
+                Application.stale_reminder_sent.is_(False),
+            )
             .all()
         )
         for application in applications:
@@ -98,7 +102,9 @@ def check_stale_applications() -> dict[str, int]:
                 send_email=True,
                 email=getattr(getattr(application, "user", None), "email", None),
             )
+            application.stale_reminder_sent = True
             created += 1
+        db.commit()
         return {"created": created}
     finally:
         db.close()
@@ -120,6 +126,11 @@ def send_weekly_summary() -> dict[str, int]:
             )
             for status, count in rows:
                 stats[status] = count
+
+            # Users with no applications at all get no summary — an all-zero
+            # digest is pure noise and wastes email quota.
+            if sum(stats.values()) == 0:
+                continue
 
             body = ", ".join(f"{status.replace('_', ' ')}: {count}" for status, count in stats.items())
             notification_service.create_notification(

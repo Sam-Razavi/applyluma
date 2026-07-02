@@ -86,7 +86,8 @@ class _FakeDb:
         from app.models.job import RawJobPosting
         if model is RawJobPosting:
             return _FakeQuery(all_results=self._postings)
-        return _FakeQuery(all_results=[], first_result=self._existing_score)
+        existing = [self._existing_score] if self._existing_score is not None else []
+        return _FakeQuery(all_results=existing, first_result=self._existing_score)
 
     def add(self, obj):
         self.added.append(obj)
@@ -183,6 +184,7 @@ def test_partial_failure_skips_one_posting(monkeypatch: pytest.MonkeyPatch) -> N
 def test_updates_existing_score_in_place(monkeypatch: pytest.MonkeyPatch) -> None:
     posting = _make_posting()
     existing = SimpleNamespace(
+        raw_job_posting_id=POSTING_ID,
         overall_score=50.0,
         skills_match=50.0,
         experience_match=50.0,

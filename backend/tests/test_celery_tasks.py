@@ -142,25 +142,33 @@ def test_run_tailoring_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result == {"status": "complete", "job_id": JOB_ID}
 
 
-def test_run_tailoring_missing_cv_content_raises(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Missing CV content raises ValueError (propagated through Celery retry when called directly)."""
+def test_run_tailoring_missing_cv_content_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Missing CV content is deterministic: the job is failed immediately, no retries."""
     job = _make_tailor_job()
     db = _FakeDb(job=job, cv=_make_cv(content=""), jd=_make_jd())
     monkeypatch.setattr(tailor_tasks, "SessionLocal", lambda: db)
     monkeypatch.setattr(tailor_tasks.crud_tailor, "set_processing", lambda db, j: None)
+    failed: list[str] = []
+    monkeypatch.setattr(tailor_tasks.crud_tailor, "set_failed", lambda db, j, msg: failed.append(msg))
 
-    with pytest.raises(ValueError, match="CV has no text content"):
-        tailor_tasks.run_tailoring.run(JOB_ID)
+    result = tailor_tasks.run_tailoring.run(JOB_ID)
+
+    assert result == {"error": "CV has no text content"}
+    assert failed == ["CV has no text content"]
 
 
-def test_run_tailoring_missing_jd_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_tailoring_missing_jd_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     job = _make_tailor_job()
     db = _FakeDb(job=job, cv=_make_cv(), jd=None)
     monkeypatch.setattr(tailor_tasks, "SessionLocal", lambda: db)
     monkeypatch.setattr(tailor_tasks.crud_tailor, "set_processing", lambda db, j: None)
+    failed: list[str] = []
+    monkeypatch.setattr(tailor_tasks.crud_tailor, "set_failed", lambda db, j, msg: failed.append(msg))
 
-    with pytest.raises(ValueError, match="Job description not found"):
-        tailor_tasks.run_tailoring.run(JOB_ID)
+    result = tailor_tasks.run_tailoring.run(JOB_ID)
+
+    assert result == {"error": "Job description not found"}
+    assert failed == ["Job description not found"]
 
 
 # ---------------------------------------------------------------------------
@@ -205,24 +213,32 @@ def test_run_cover_letter_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result == {"status": "complete", "job_id": JOB_ID}
 
 
-def test_run_cover_letter_missing_cv_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_cover_letter_missing_cv_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     job = _make_cl_job()
     db = _FakeDb(job=job, cv=None, jd=_make_jd())
     monkeypatch.setattr(cover_letter_tasks, "SessionLocal", lambda: db)
     monkeypatch.setattr(cover_letter_tasks.crud_cl, "set_processing", lambda db, j: None)
+    failed: list[str] = []
+    monkeypatch.setattr(cover_letter_tasks.crud_cl, "set_failed", lambda db, j, msg: failed.append(msg))
 
-    with pytest.raises(ValueError, match="CV has no text content"):
-        cover_letter_tasks.run_cover_letter.run(JOB_ID)
+    result = cover_letter_tasks.run_cover_letter.run(JOB_ID)
+
+    assert result == {"error": "CV has no text content"}
+    assert failed == ["CV has no text content"]
 
 
-def test_run_cover_letter_missing_jd_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_cover_letter_missing_jd_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     job = _make_cl_job()
     db = _FakeDb(job=job, cv=_make_cv(), jd=None)
     monkeypatch.setattr(cover_letter_tasks, "SessionLocal", lambda: db)
     monkeypatch.setattr(cover_letter_tasks.crud_cl, "set_processing", lambda db, j: None)
+    failed: list[str] = []
+    monkeypatch.setattr(cover_letter_tasks.crud_cl, "set_failed", lambda db, j, msg: failed.append(msg))
 
-    with pytest.raises(ValueError, match="Job description not found"):
-        cover_letter_tasks.run_cover_letter.run(JOB_ID)
+    result = cover_letter_tasks.run_cover_letter.run(JOB_ID)
+
+    assert result == {"error": "Job description not found"}
+    assert failed == ["Job description not found"]
 
 
 # ---------------------------------------------------------------------------
