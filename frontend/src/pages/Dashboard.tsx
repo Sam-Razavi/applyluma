@@ -49,6 +49,7 @@ export default function Dashboard() {
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const todayCount = applications.filter((a) => new Date(a.created_at) >= today).length
   const upcomingInterviews = [...applications]
     .filter((a) => a.interview_date && new Date(a.interview_date) >= today)
     .sort((a, b) => new Date(a.interview_date!).getTime() - new Date(b.interview_date!).getTime())
@@ -76,7 +77,13 @@ export default function Dashboard() {
     {
       label: 'Applications',
       value: loading ? '—' : String(applications.length),
-      sub: activeApplications > 0 ? `${activeApplications} active` : 'None in progress',
+      sub: loading
+        ? '—'
+        : todayCount > 0
+          ? `${todayCount} added today · ${activeApplications} active`
+          : activeApplications > 0
+            ? `${activeApplications} active`
+            : 'None in progress',
       href: '/applications',
       icon: <BriefcaseIcon className="h-5 w-5 text-accent-text" />,
       bg: 'bg-accent-muted',
