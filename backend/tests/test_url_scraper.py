@@ -221,14 +221,211 @@ def test_openai_clean_returns_cleaned_fields(monkeypatch: pytest.MonkeyPatch) ->
 # scrape_job_url (async)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# _extract_json_ld
+# ---------------------------------------------------------------------------
+
+def test_extract_json_ld_finds_job_posting() -> None:
+    import json
+    from bs4 import BeautifulSoup
+
+    data = {
+        "@context": "https://schema.org",
+        "@type": "JobPosting",
+        "title": "Backend Engineer",
+        "hiringOrganization": {"@type": "Organization", "name": "Acme Inc"},
+        "description": "We are looking for a Python developer.",
+    }
+    html = f'<html><head><script type="application/ld+json">{json.dumps(data)}</script></head></html>'
+    soup = BeautifulSoup(html, "html.parser")
+    result = url_scraper._extract_json_ld(soup)
+    assert result is not None
+    assert result["job_title"] == "Backend Engineer"
+    assert result["company_name"] == "Acme Inc"
+    assert "Python" in result["description"]
+
+
+def test_extract_json_ld_strips_html_from_description() -> None:
+    import json
+    from bs4 import BeautifulSoup
+
+    data = {
+        "@type": "JobPosting",
+        "title": "Dev",
+        "hiringOrganization": {"name": "Corp"},
+        "description": "<p>Great <strong>role</strong> for you.</p>",
+    }
+    html = f'<html><head><script type="application/ld+json">{json.dumps(data)}</script></head></html>'
+    soup = BeautifulSoup(html, "html.parser")
+    result = url_scraper._extract_json_ld(soup)
+    assert result is not None
+    assert "<p>" not in result["description"]
+    assert "Great" in result["description"]
+
+
+def test_extract_json_ld_returns_none_when_no_job_posting() -> None:
+    from bs4 import BeautifulSoup
+
+    html = '<html><head><script type="application/ld+json">{"@type": "WebPage"}</script></head></html>'
+    soup = BeautifulSoup(html, "html.parser")
+    assert url_scraper._extract_json_ld(soup) is None
+
+
+def test_extract_json_ld_returns_none_on_empty_page() -> None:
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup("<html><head></head></html>", "html.parser")
+    assert url_scraper._extract_json_ld(soup) is None
+
+
+# ---------------------------------------------------------------------------
+# _is_login_wall
+# ---------------------------------------------------------------------------
+
+def test_is_login_wall_detects_short_body() -> None:
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup("<html><body>Sign in</body></html>", "html.parser")
+    assert url_scraper._is_login_wall(soup) is True
+
+
+def test_is_login_wall_detects_login_signal_text() -> None:
+    from bs4 import BeautifulSoup
+
+    long_filler = "x" * 500
+    html = f"<html><body>{long_filler} Please sign in to view this job posting.</body></html>"
+    soup = BeautifulSoup(html, "html.parser")
+    assert url_scraper._is_login_wall(soup) is True
+
+
+def test_is_login_wall_returns_false_for_real_page() -> None:
+    from bs4 import BeautifulSoup
+
+    content = "We are hiring a Python developer. " * 20
+    html = f"<html><body><article>{content}</article></body></html>"
+    soup = BeautifulSoup(html, "html.parser")
+    assert url_scraper._is_login_wall(soup) is False
+
+
+# ---------------------------------------------------------------------------
+# _site_specific_extract
+# ---------------------------------------------------------------------------
+
+def test_site_specific_extract_returns_none_for_unknown_domain() -> None:
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup("<html><body><h1>Job</h1></body></html>", "html.parser")
+    result = url_scraper._site_specific_extract(soup, "https://unknown-site.com/job/1")
+    assert result is None
+
+
+def test_site_specific_extract_indeed() -> None:
+    from bs4 import BeautifulSoup
+
+    html = """<html><body>
+        <h1 data-testid="jobsearch-JobInfoHeader-title">Data Scientist</h1>
+        <div data-testid="inlineHeader-companyName">TechCorp</div>
+        <div id="jobDescriptionText">Analyse large datasets using Python and SQL.</div>
+    </body></html>"""
+    soup = BeautifulSoup(html, "html.parser")
+    result = url_scraper._site_specific_extract(soup, "https://se.indeed.com/viewjob?jk=abc")
+    assert result is not None
+    assert result["job_title"] == "Data Scientist"
+    assert result["company_name"] == "TechCorp"
+    assert "Python" in result["description"]
+
+
+def test_site_specific_extract_returns_none_when_no_match() -> None:
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup("<html><body><p>Nothing useful here</p></body></html>", "html.parser")
+    result = url_scraper._site_specific_extract(soup, "https://www.indeed.com/viewjob?jk=abc")
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _get_site_key
+# ---------------------------------------------------------------------------
+
+def test_get_site_key_exact_match() -> None:
+    assert url_scraper._get_site_key("linkedin.com") == "linkedin.com"
+
+
+def test_get_site_key_subdomain_match() -> None:
+    assert url_scraper._get_site_key("www.linkedin.com") == "linkedin.com"
+    assert url_scraper._get_site_key("se.indeed.com") == "indeed.com"
+
+
+def test_get_site_key_no_match() -> None:
+    assert url_scraper._get_site_key("randomsite.org") is None
+
+
+# ---------------------------------------------------------------------------
+# scrape_job_url — login wall raises ValueError
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_scrape_job_url_raises_on_login_wall(monkeypatch: pytest.MonkeyPatch) -> None:
+    from types import SimpleNamespace as NS
+
+    html = "<html><body>Please sign in to view this job.</body></html>"
+    fake_response = NS(text=html, raise_for_status=lambda: None)
+
+    class _FakeAsyncClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def get(self, url): return fake_response
+
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: _FakeAsyncClient())
+
+    with pytest.raises(ValueError, match="login"):
+        await url_scraper.scrape_job_url("https://linkedin.com/jobs/view/123")
+
+
+@pytest.mark.asyncio
+async def test_scrape_job_url_prefers_json_ld(monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+    from types import SimpleNamespace as NS
+
+    ld = {
+        "@type": "JobPosting",
+        "title": "ML Engineer",
+        "hiringOrganization": {"name": "DeepMind"},
+        "description": "Work on cutting-edge AI research." * 5,
+    }
+    body_text = "x" * 500
+    html = f"""<html><head>
+        <script type="application/ld+json">{json.dumps(ld)}</script>
+    </head><body>{body_text}</body></html>"""
+    fake_response = NS(text=html, raise_for_status=lambda: None)
+
+    class _FakeAsyncClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def get(self, url): return fake_response
+
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: _FakeAsyncClient())
+
+    result = await url_scraper.scrape_job_url("https://example.com/jobs/ml-engineer")
+    assert result["job_title"] == "ML Engineer"
+    assert result["company_name"] == "DeepMind"
+
+
+# ---------------------------------------------------------------------------
+# scrape_job_url (async) — original test
+# ---------------------------------------------------------------------------
+
 @pytest.mark.asyncio
 async def test_scrape_job_url_returns_extracted_data(monkeypatch: pytest.MonkeyPatch) -> None:
     from types import SimpleNamespace as NS
 
+    body_content = "We need a Python developer with 5 years of experience. " * 10
     html = (
         "<html><head><title>Backend Engineer at Acme</title>"
         '<meta property="og:site_name" content="Acme"/></head>'
-        "<body><main>We need a Python developer.</main></body></html>"
+        f"<body><main>{body_content}</main></body></html>"
     )
     fake_response = NS(text=html, raise_for_status=lambda: None)
 
