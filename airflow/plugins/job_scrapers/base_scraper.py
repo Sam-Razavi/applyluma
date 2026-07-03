@@ -51,7 +51,7 @@ class BaseScraper(ABC):
             INSERT INTO raw_job_postings (
                 source, job_id_external, title, company, location,
                 description, url, salary_min, salary_max,
-                employment_type, remote_allowed, raw_data
+                employment_type, remote_allowed, raw_data, application_deadline
             ) VALUES %s
             ON CONFLICT (source, job_id_external) DO NOTHING
         """
@@ -69,6 +69,7 @@ class BaseScraper(ABC):
                 j.get("employment_type"),
                 j.get("remote_allowed", False),
                 psycopg2.extras.Json(j.get("raw_data", {})),
+                j.get("application_deadline"),
             )
             for j in jobs
         ]

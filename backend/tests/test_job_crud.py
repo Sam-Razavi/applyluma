@@ -93,6 +93,7 @@ def _detail_posting() -> SimpleNamespace:
         url="https://example.com/job",
         source="the_muse",
         scraped_at=None,
+        application_deadline=None,
         description="Build things.",
     )
 
@@ -119,3 +120,24 @@ def test_job_to_dict_omits_already_tailored_ids_in_list_mode() -> None:
 
     assert "tailored_cv_id" not in data
     assert "cover_letter_job_id" not in data
+
+
+def test_job_to_dict_is_saved_reflects_saved_job_not_job_description() -> None:
+    posting = _detail_posting()
+
+    unsaved = crud_job._job_to_dict(posting, None)
+    assert unsaved["is_saved"] is False
+    assert unsaved["saved_job_id"] is None
+
+    saved_job = SimpleNamespace(id=uuid.uuid4())
+    saved = crud_job._job_to_dict(posting, None, saved=saved_job)
+    assert saved["is_saved"] is True
+    assert saved["saved_job_id"] == saved_job.id
+
+
+def test_is_live_deadline_clause_allows_null_or_future_deadline() -> None:
+    clause = crud_job._is_live_deadline_clause()
+    sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+
+    assert "application_deadline IS NULL" in sql
+    assert "application_deadline" in sql

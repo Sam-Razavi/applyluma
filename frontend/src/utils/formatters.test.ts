@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   formatCurrency,
   formatCompactCurrency,
   formatPercentage,
   formatNumber,
   formatDate,
+  formatRelativeDate,
   titleCase,
 } from './formatters';
 
@@ -87,6 +88,48 @@ describe('formatShortDate', () => {
   it('formats ISO date strings to short month/day format', () => {
     const result = formatShortDate('2026-05-12T00:00:00Z');
     expect(result).toContain('May');
+  });
+});
+
+describe('formatRelativeDate', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns "Today" for a timestamp from earlier today', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-04T12:00:00Z'));
+    expect(formatRelativeDate('2026-01-04T00:00:00Z')).toBe('Today');
+  });
+
+  it('returns "Yesterday" for a timestamp exactly one day ago', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-04T00:00:00Z'));
+    expect(formatRelativeDate('2026-01-03T00:00:00Z')).toBe('Yesterday');
+  });
+
+  it('returns "N days ago" for a timestamp under a week old', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-04T00:00:00Z'));
+    expect(formatRelativeDate('2026-01-01T00:00:00Z')).toBe('3 days ago');
+  });
+
+  it('returns "N weeks ago" for a timestamp under a month old', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+    expect(formatRelativeDate('2026-01-01T00:00:00Z')).toBe('2 weeks ago');
+  });
+
+  it('returns "N months ago" for an older timestamp', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-01T00:00:00Z'));
+    expect(formatRelativeDate('2026-01-01T00:00:00Z')).toBe('1 month ago');
+  });
+
+  it('clamps a future timestamp (clock skew) to "Today"', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    expect(formatRelativeDate('2026-01-02T00:00:00Z')).toBe('Today');
   });
 });
 

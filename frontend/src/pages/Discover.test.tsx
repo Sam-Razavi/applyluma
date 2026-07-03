@@ -9,6 +9,7 @@ vi.mock('../services/jobDiscoveryApi', () => ({
   fetchDiscoveredJobs: vi.fn(),
   fetchJobDetail: vi.fn(),
   saveJob: vi.fn(),
+  deleteSavedJob: vi.fn(),
 }))
 
 vi.mock('react-hot-toast', () => ({
@@ -88,17 +89,13 @@ describe('Discover page', () => {
     vi.mocked(jobDiscoveryApi.saveJob).mockResolvedValue({
       id: 'saved-1',
       user_id: 'user-1',
-      company_name: 'TechCorp',
-      job_title: 'Senior Python Developer',
-      description: 'A great job',
-      url: null,
-      keywords: [],
-      starred: false,
+      raw_job_posting_id: 'job-1',
+      list_name: 'Saved',
       notes: null,
-      list_name: null,
-      source_raw_job_posting_id: 'job-1',
+      starred: false,
       created_at: '2026-05-15T00:00:00Z',
       updated_at: '2026-05-15T00:00:00Z',
+      job: null,
     })
     renderDiscover()
 
@@ -111,6 +108,43 @@ describe('Discover page', () => {
       expect(jobDiscoveryApi.saveJob).toHaveBeenCalledWith({ job_id: 'job-1' })
       expect(toast.success).toHaveBeenCalledWith('Job saved!')
     })
+  })
+
+  it('removes the job card from the For You list after a successful save', async () => {
+    vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockResolvedValue([mockJob])
+    vi.mocked(jobDiscoveryApi.saveJob).mockResolvedValue({
+      id: 'saved-1',
+      user_id: 'user-1',
+      raw_job_posting_id: 'job-1',
+      list_name: 'Saved',
+      notes: null,
+      starred: false,
+      created_at: '2026-05-15T00:00:00Z',
+      updated_at: '2026-05-15T00:00:00Z',
+      job: null,
+    })
+    renderDiscover()
+
+    await waitFor(() => expect(screen.getByText('Senior Python Developer')).toBeInTheDocument())
+    fireEvent.click(screen.getByLabelText('Save job'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Senior Python Developer')).not.toBeInTheDocument()
+    })
+  })
+
+  it('keeps the job card visible when save fails', async () => {
+    vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockResolvedValue([mockJob])
+    vi.mocked(jobDiscoveryApi.saveJob).mockRejectedValue(new Error('Network error'))
+    renderDiscover()
+
+    await waitFor(() => expect(screen.getByText('Senior Python Developer')).toBeInTheDocument())
+    fireEvent.click(screen.getByLabelText('Save job'))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to save job')
+    })
+    expect(screen.getByText('Senior Python Developer')).toBeInTheDocument()
   })
 
   it('passes the search term to fetchDiscoveredJobs', async () => {

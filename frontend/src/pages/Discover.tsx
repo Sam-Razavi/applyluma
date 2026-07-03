@@ -201,6 +201,7 @@ export default function Discover() {
     try {
       const result = await saveJob({ job_id: job.job_id })
       savedJobMapRef.current.set(job.job_id, result.id)
+      setJobs((prev) => prev.filter((j) => j.job_id !== job.job_id))
     } catch {
       setSavedIds((prev) => { const next = new Set(prev); next.delete(job.job_id); return next })
       setJobs((prev) => prev.map((j) => (j.job_id === job.job_id ? { ...j, is_saved: false } : j)))
