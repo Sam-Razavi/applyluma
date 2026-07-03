@@ -27,12 +27,21 @@ export default function FunnelChart({ data }: Props) {
   }))
 
   return (
-    <div className="h-48 w-full md:h-72">
+    <div className="h-56 w-full md:h-72">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+        <BarChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 24 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--track)" vertical={false} />
-        <XAxis dataKey="label" tick={CHART_AXIS_TICK} axisLine={{ stroke: 'var(--glass-border-strong)' }} tickLine={false} />
-        <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
+        <XAxis
+          dataKey="label"
+          tick={CHART_AXIS_TICK}
+          axisLine={{ stroke: 'var(--glass-border-strong)' }}
+          tickLine={false}
+          angle={-35}
+          textAnchor="end"
+          interval={0}
+          height={50}
+        />
+        <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} width={32} />
         <Tooltip
           formatter={(value) => [`${formatNumber(Number(value))} applications`, 'Count']}
           contentStyle={CHART_TOOLTIP_STYLE}

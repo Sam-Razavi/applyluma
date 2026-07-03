@@ -90,7 +90,7 @@ export default function ContactsList({ applicationId, contacts }: Props) {
                 <button
                   type="button"
                   onClick={() => handleDelete(contact.id)}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-fg-muted transition hover:bg-chip-danger text-chip-danger-fg"
+                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-fg-muted transition hover:bg-chip-danger text-chip-danger-fg"
                   aria-label="Delete contact"
                 >
                   <TrashIcon className="h-4 w-4" />

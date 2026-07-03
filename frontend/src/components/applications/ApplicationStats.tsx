@@ -50,7 +50,7 @@ export default function ApplicationStats({ stats }: Props) {
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mt-4 grid grid-cols-4 gap-3 lg:grid-cols-7">
         {APPLICATION_STATUSES.map((status) => (
           <div key={status} className="rounded-xl bg-surface px-3 py-2">
             <div className="flex items-center gap-1.5">

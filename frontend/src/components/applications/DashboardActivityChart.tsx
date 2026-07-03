@@ -118,7 +118,7 @@ export default function DashboardActivityChart() {
         ].map(({ label, value }) => (
           <div key={label} className="px-4 first:pl-0 last:pr-0">
             <p className="text-xs text-fg-muted">{label}</p>
-            <p className="mt-0.5 text-2xl font-bold text-fg ">
+            <p className="mt-0.5 text-xl font-bold text-fg sm:text-2xl">
               {loading ? (
                 <span className="inline-block h-7 w-10 animate-pulse rounded bg-track" />
               ) : (
@@ -147,7 +147,7 @@ export default function DashboardActivityChart() {
         </div>
       ) : (
         <div
-          className="h-40 w-full transition-opacity duration-700"
+          className="h-40 w-full overflow-hidden transition-opacity duration-700"
           style={{ opacity: visible ? 1 : 0 }}
         >
           <ResponsiveContainer width="100%" height="100%">

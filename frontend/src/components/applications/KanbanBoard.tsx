@@ -1,11 +1,20 @@
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { CalendarDaysIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 import KanbanColumn from './KanbanColumn'
 import type { Application, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
 import { useApplicationsStore } from '../../stores/applications'
 import { STATUS_META } from './statusMeta'
+import {
+  daysSince,
+  daysUntil,
+  formatDate,
+  FOLLOWUP_STATUSES,
+  priorityClasses,
+  priorityLabels,
+  TERMINAL_STATUSES,
+} from './applicationCardHelpers'
 
 interface Props {
   applications?: Application[]
@@ -106,50 +115,109 @@ export default function KanbanBoard({
                       No applications
                     </div>
                   ) : (
-                    statusApplications.map((application) => (
-                      <div
-                        key={application.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          if (isSelectMode) {
-                            onToggleSelect?.(application.id)
-                          } else {
-                            setSelected(application)
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            if (isSelectMode) onToggleSelect?.(application.id)
-                            else setSelected(application)
-                          }
-                        }}
-                        className={`flex items-center gap-3 rounded-xl border bg-surface p-4 text-left shadow-sm transition cursor-pointer ${
-                          isSelectMode && selectedIds?.has(application.id)
-                            ? 'border-primary-500/50 ring-2 ring-primary-600/30'
-                            : 'border-line hover:border-primary-600/40'
-                        }`}
-                      >
-                        {isSelectMode && (
-                          <input
-                            type="checkbox"
-                            checked={selectedIds?.has(application.id) ?? false}
-                            onChange={() => onToggleSelect?.(application.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-4 w-4 flex-shrink-0 rounded border-line-strong text-accent-text focus:ring-brand-500"
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-fg">
-                            {application.job_title}
-                          </span>
-                          <span className="mt-1 block truncate text-sm text-fg-muted">
-                            {application.company_name}
-                          </span>
+                    statusApplications.map((application) => {
+                      const days = daysSince(application.applied_date)
+                      const showNudge =
+                        FOLLOWUP_STATUSES.has(application.status) && days !== null && days >= 7
+                      const nudgeUrgent = days !== null && days >= 14
+
+                      const deadlineDays = daysUntil(application.deadline)
+                      const showDeadline =
+                        deadlineDays !== null &&
+                        deadlineDays <= 3 &&
+                        !TERMINAL_STATUSES.has(application.status)
+                      const deadlineLabel =
+                        deadlineDays === 0
+                          ? 'Deadline today'
+                          : deadlineDays === 1
+                            ? 'Deadline tomorrow'
+                            : deadlineDays !== null && deadlineDays < 0
+                              ? 'Deadline passed'
+                              : `Deadline in ${deadlineDays} days`
+                      const deadlineClass =
+                        deadlineDays !== null && deadlineDays <= 1
+                          ? 'bg-chip-danger text-chip-danger-fg'
+                          : 'bg-chip-warn text-chip-warn-fg'
+
+                      return (
+                        <div
+                          key={application.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            if (isSelectMode) {
+                              onToggleSelect?.(application.id)
+                            } else {
+                              setSelected(application)
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              if (isSelectMode) onToggleSelect?.(application.id)
+                              else setSelected(application)
+                            }
+                          }}
+                          className={`flex items-start gap-3 rounded-xl border bg-surface p-4 text-left shadow-sm transition cursor-pointer ${
+                            isSelectMode && selectedIds?.has(application.id)
+                              ? 'border-primary-500/50 ring-2 ring-primary-600/30'
+                              : 'border-line hover:border-primary-600/40'
+                          }`}
+                        >
+                          {isSelectMode && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds?.has(application.id) ?? false}
+                              onChange={() => onToggleSelect?.(application.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-line-strong text-accent-text focus:ring-brand-500"
+                            />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-fg">
+                              {application.job_title}
+                            </span>
+                            <span className="mt-1 block truncate text-sm text-fg-muted">
+                              {application.company_name}
+                            </span>
+
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                  priorityClasses[application.priority] ?? priorityClasses[1]
+                                }`}
+                              >
+                                {priorityLabels[application.priority] ?? 'Low'}
+                              </span>
+                              <span className="flex items-center gap-1 text-xs text-fg-muted">
+                                <CalendarDaysIcon className="h-3.5 w-3.5" />
+                                {formatDate(application.applied_date)}
+                              </span>
+                            </div>
+
+                            {showDeadline && (
+                              <div
+                                className={`mt-2 rounded-lg px-2.5 py-1.5 text-xs font-medium ${deadlineClass}`}
+                              >
+                                {deadlineLabel}
+                              </div>
+                            )}
+
+                            {showNudge && (
+                              <div
+                                className={`mt-2 rounded-lg px-2.5 py-1.5 text-xs font-medium ${
+                                  nudgeUrgent
+                                    ? 'bg-chip-danger text-chip-danger-fg'
+                                    : 'bg-chip-warn text-chip-warn-fg'
+                                }`}
+                              >
+                                {days}d since applied — consider following up
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      )
+                    })
                   )}
                 </div>
               )}
