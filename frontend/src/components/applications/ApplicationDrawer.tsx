@@ -99,6 +99,7 @@ export default function ApplicationDrawer() {
     try {
       await updateApplication(application.id, payload)
       toast.success('Application updated')
+      setSelected(null)
     } catch {
       toast.error('Could not update application')
     } finally {
