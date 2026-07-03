@@ -43,6 +43,21 @@ export const formatShortDate = (date: string): string => {
   }).format(new Date(date))
 }
 
+export const formatRelativeDate = (isoString: string): string => {
+  const diffMs = Date.now() - new Date(isoString).getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays <= 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`
+  }
+  const months = Math.floor(diffDays / 30)
+  return `${months} ${months === 1 ? 'month' : 'months'} ago`
+}
+
 export const titleCase = (value: string): string => {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }

@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import desc, nullslast
+from sqlalchemy import ColumnElement, desc, nullslast, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -21,6 +22,16 @@ from app.services.keyword_extractor import KeywordExtractor
 # ------------------------------------------------------------------
 # Jobs
 # ------------------------------------------------------------------
+
+def _is_live_deadline_clause() -> ColumnElement[bool]:
+    """Jobs with no known deadline are treated as still live — we only hide a
+    job when we positively know its deadline has passed. Deadline data only
+    exists for Platsbanken postings today (see migration 0024)."""
+    return or_(
+        RawJobPosting.application_deadline.is_(None),
+        RawJobPosting.application_deadline >= datetime.now(UTC),
+    )
+
 
 def list_jobs(
     db: Session,
@@ -40,7 +51,7 @@ def list_jobs(
 ) -> list[dict[str, Any]]:
     """Return a paginated list of jobs with match scores for the user."""
     q = (
-        db.query(RawJobPosting, JobMatchingScore, Application, JobDescription)
+        db.query(RawJobPosting, JobMatchingScore, Application, SavedJob)
         .options(selectinload(RawJobPosting.keywords))
         .outerjoin(
             JobMatchingScore,
@@ -53,11 +64,12 @@ def list_jobs(
             & (Application.user_id == user_id),
         )
         .outerjoin(
-            JobDescription,
-            (JobDescription.source_raw_job_posting_id == RawJobPosting.id)
-            & (JobDescription.user_id == user_id),
+            SavedJob,
+            (SavedJob.raw_job_posting_id == RawJobPosting.id)
+            & (SavedJob.user_id == user_id),
         )
         .filter(RawJobPosting.is_duplicate.is_(False))
+        .filter(_is_live_deadline_clause())
     )
 
     if location:
@@ -102,9 +114,11 @@ def list_jobs(
     rows = q.offset(offset).limit(limit).all()
 
     results = []
-    for posting, score, application, jd in rows:
+    for posting, score, application, saved in rows:
         results.append(
-            _job_to_dict(posting, score, application, jd, keywords=posting.keywords)
+            _job_to_dict(
+                posting, score, application, saved=saved, keywords=posting.keywords
+            )
         )
     return results
 
@@ -116,7 +130,7 @@ def get_job_with_score(
 ) -> dict[str, Any] | None:
     """Return a job with its match score for the given user."""
     row = (
-        db.query(RawJobPosting, JobMatchingScore, Application, JobDescription)
+        db.query(RawJobPosting, JobMatchingScore, Application, JobDescription, SavedJob)
         .outerjoin(
             JobMatchingScore,
             (JobMatchingScore.raw_job_posting_id == RawJobPosting.id)
@@ -132,13 +146,18 @@ def get_job_with_score(
             (JobDescription.source_raw_job_posting_id == RawJobPosting.id)
             & (JobDescription.user_id == user_id),
         )
+        .outerjoin(
+            SavedJob,
+            (SavedJob.raw_job_posting_id == RawJobPosting.id)
+            & (SavedJob.user_id == user_id),
+        )
         .filter(RawJobPosting.id == job_id)
         .first()
     )
     if not row:
         return None
 
-    posting, score, application, jd = row
+    posting, score, application, jd, saved = row
     matched_skills, missing_skills = _compute_skill_gap(db, user_id, posting)
 
     # Surface whether this job already has a completed tailored CV / cover letter
@@ -176,7 +195,7 @@ def get_job_with_score(
         posting,
         score,
         application,
-        jd,
+        saved=saved,
         include_description=True,
         keywords=posting.keywords,
         matched_skills=matched_skills,
@@ -527,7 +546,7 @@ def _job_to_dict(
     posting: RawJobPosting,
     score: JobMatchingScore | None,
     application: Application | None = None,
-    jd: JobDescription | None = None,
+    saved: SavedJob | None = None,
     include_description: bool = False,
     keywords: list[ExtractedKeyword] | None = None,
     matched_skills: list[str] | None = None,
@@ -548,6 +567,7 @@ def _job_to_dict(
         "url": posting.url,
         "source": posting.source,
         "scraped_at": posting.scraped_at,
+        "application_deadline": posting.application_deadline,
         "match_score": score.overall_score if score else None,
         "skills_match": score.skills_match if score else None,
         "experience_match": score.experience_match if score else None,
@@ -556,8 +576,8 @@ def _job_to_dict(
         "location_match": score.location_match if score else None,
         "explanation": score.explanation if score else None,
         "keywords": keywords or [],
-        "is_saved": jd is not None,
-        "saved_job_id": jd.id if jd else None,
+        "is_saved": saved is not None,
+        "saved_job_id": saved.id if saved else None,
         "application_status": application.status if application else None,
         "application_id": application.id if application else None,
     }

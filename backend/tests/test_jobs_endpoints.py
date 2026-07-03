@@ -115,6 +115,21 @@ async def test_list_jobs_returns_200(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_jobs_returns_application_deadline(monkeypatch: pytest.MonkeyPatch) -> None:
+    deadline = datetime(2026, 6, 1, tzinfo=UTC)
+    monkeypatch.setattr(
+        jobs_endpoint.crud_job,
+        "list_jobs",
+        lambda *a, **kw: [_job_dict(application_deadline=deadline.isoformat())],
+    )
+
+    resp = await _request("GET", "/api/v1/jobs")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body[0]["application_deadline"] == "2026-06-01T00:00:00Z"
+
+
+@pytest.mark.asyncio
 async def test_list_jobs_passes_location_filter(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 

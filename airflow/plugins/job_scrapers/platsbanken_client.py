@@ -126,6 +126,7 @@ class PlatsbankenClient(BaseScraper):
                     "salary_max": None,
                     "employment_type": employment_type,
                     "remote_allowed": bool(item.get("workplace_address", {}).get("municipality") == ""),
+                    "application_deadline": item.get("last_application_date"),
                     "raw_data": {
                         "source": "platsbanken",
                         "id": job_id,

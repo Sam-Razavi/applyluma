@@ -156,4 +156,12 @@ describe('JobCard', () => {
     render(<JobCard job={{ ...baseJob, match_score: 40 }} onClick={vi.fn()} onSave={vi.fn()} />)
     expect(screen.getByText('40%')).toBeInTheDocument()
   })
+
+  it('shows a relative-date freshness badge based on scraped_at', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-04T00:00:00Z'))
+    render(<JobCard job={baseJob} onClick={vi.fn()} onSave={vi.fn()} />)
+    expect(screen.getByText('3 days ago')).toBeInTheDocument()
+    vi.useRealTimers()
+  })
 })

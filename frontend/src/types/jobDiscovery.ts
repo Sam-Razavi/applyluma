@@ -11,6 +11,7 @@ export interface DiscoveredJob {
   url: string
   source: string
   scraped_at: string
+  application_deadline?: string | null
   match_score: number | null
   skills_match: number | null
   experience_match: number | null

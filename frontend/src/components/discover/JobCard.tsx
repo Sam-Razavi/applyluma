@@ -2,6 +2,7 @@ import { BookmarkIcon as BookmarkOutline } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolid, MapPinIcon, CurrencyDollarIcon, BriefcaseIcon } from '@heroicons/react/24/solid'
 import type { DiscoveredJob } from '../../types/jobDiscovery'
 import { SOURCE_LABELS } from '../../types/jobDiscovery'
+import { formatRelativeDate } from '../../utils/formatters'
 
 interface Props {
   job: DiscoveredJob
@@ -113,6 +114,9 @@ export default function JobCard({ job, onClick, onSave }: Props) {
         {job.remote_allowed && (
           <span className="rounded-full bg-chip-accent px-2 py-0.5 text-accent-text">Remote</span>
         )}
+        <span className="rounded-full bg-surface-strong px-2 py-0.5 text-fg-subtle">
+          {formatRelativeDate(job.scraped_at)}
+        </span>
         <span className="ml-auto text-fg-subtle">{SOURCE_LABELS[job.source] ?? job.source}</span>
       </div>
 

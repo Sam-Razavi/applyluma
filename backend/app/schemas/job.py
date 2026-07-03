@@ -21,6 +21,7 @@ class RawJobPostingSummary(BaseModel):
     is_remote: bool
     url: str
     scraped_at: datetime
+    application_deadline: datetime | None = None
 
 
 class RawJobPostingPublic(RawJobPostingSummary):
@@ -90,6 +91,7 @@ class JobWithScoreSchema(BaseModel):
     url: str
     source: str
     scraped_at: datetime
+    application_deadline: datetime | None = None
     match_score: float | None = None
     skills_match: float | None = None
     experience_match: float | None = None
