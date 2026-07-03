@@ -123,13 +123,18 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
             <button
               type="button"
               onClick={close}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-strong hover:text-fg-muted"
+              aria-label="Close"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-strong hover:text-fg-muted"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto p-6">
+          <form
+            id="add-application-form"
+            onSubmit={handleSubmit}
+            className="flex-1 space-y-4 overflow-y-auto p-6"
+          >
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Company name" required>
                 <input
@@ -274,25 +279,26 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
                 placeholder="Recruiter notes, next steps, or context."
               />
             </Field>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={close}
-                disabled={submitting}
-                className="rounded-lg bg-surface px-4 py-2 text-sm font-medium text-fg-muted transition hover:bg-surface-strong disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
-              >
-                {submitting ? 'Saving...' : 'Save application'}
-              </button>
-            </div>
           </form>
+
+          <div className="flex flex-shrink-0 justify-end gap-2 border-t border-line px-6 py-4">
+            <button
+              type="button"
+              onClick={close}
+              disabled={submitting}
+              className="rounded-lg bg-surface px-4 py-3 text-sm font-medium text-fg-muted transition hover:bg-surface-strong disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="add-application-form"
+              disabled={submitting}
+              className="rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+            >
+              {submitting ? 'Saving...' : 'Save application'}
+            </button>
+          </div>
         </DialogPanel>
       </div>
     </Dialog>

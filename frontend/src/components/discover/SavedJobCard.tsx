@@ -65,7 +65,7 @@ export default function SavedJobCard({
               e.stopPropagation()
               onStar(saved.id, !saved.starred)
             }}
-            className="rounded-lg p-1 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="-m-1 rounded-lg p-2 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
             aria-label={saved.starred ? 'Unstar job' : 'Star job'}
           >
             {saved.starred ? (
@@ -80,7 +80,7 @@ export default function SavedJobCard({
               e.stopPropagation()
               onDelete(saved.id)
             }}
-            className="rounded-lg p-1 text-fg-subtle transition-colors hover:text-chip-danger-fg focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="-m-1 rounded-lg p-2 text-fg-subtle transition-colors hover:text-chip-danger-fg focus:outline-none focus:ring-2 focus:ring-red-500"
             aria-label="Remove saved job"
           >
             <TrashIcon className="h-5 w-5" />
@@ -116,7 +116,7 @@ export default function SavedJobCard({
       </div>
 
       {/* Quick actions */}
-      <div className="flex gap-2 border-t border-line pt-2">
+      <div className="flex flex-wrap gap-2 border-t border-line pt-2">
         {!job?.application_status && onAddToApplications && (
           <button
             type="button"
@@ -125,7 +125,7 @@ export default function SavedJobCard({
               onAddToApplications(saved)
             }}
             disabled={addingToApplications}
-            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg disabled:opacity-40"
+            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg disabled:opacity-40"
           >
             <BriefcaseIcon className="h-3.5 w-3.5" />
             {addingToApplications ? 'Adding...' : 'Add to Applications'}
@@ -143,10 +143,11 @@ export default function SavedJobCard({
               },
             })
           }}
-          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg"
+          className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg"
         >
           <SparklesIcon className="h-3.5 w-3.5" />
-          Tailor CV + Cover Letter
+          <span className="sm:hidden">Tailor CV</span>
+          <span className="hidden sm:inline">Tailor CV + Cover Letter</span>
         </button>
       </div>
 

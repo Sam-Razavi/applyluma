@@ -15,15 +15,15 @@ export default function SourceBreakdownChart({ data }: Props) {
   const total = chartData.reduce((sum, item) => sum + item.value, 0)
 
   return (
-    <div className="h-48 w-full md:h-72">
+    <div className="h-64 w-full md:h-72">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
         <Pie
           data={chartData}
           cx="50%"
-          cy="45%"
-          innerRadius={54}
-          outerRadius={96}
+          cy="38%"
+          innerRadius={40}
+          outerRadius={70}
           paddingAngle={3}
           dataKey="value"
           nameKey="name"
@@ -43,7 +43,7 @@ export default function SourceBreakdownChart({ data }: Props) {
         />
         <Legend
           verticalAlign="bottom"
-          height={48}
+          height={36}
           wrapperStyle={{ fontSize: '12px', paddingTop: '12px', color: 'var(--text-2)' }}
           iconType="circle"
         />

@@ -136,7 +136,8 @@ export default function ApplicationDrawer() {
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-strong hover:text-fg-muted"
+              aria-label="Close"
+              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-strong hover:text-fg-muted"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>
@@ -317,7 +318,7 @@ export default function ApplicationDrawer() {
               type="button"
               onClick={() => setDeleteConfirmOpen(true)}
               disabled={deleting}
-              className="inline-flex items-center gap-2 rounded-lg bg-chip-danger px-3 py-2 text-sm font-semibold text-chip-danger-fg transition hover:bg-chip-danger disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-chip-danger px-3 py-3 text-sm font-semibold text-chip-danger-fg transition hover:bg-chip-danger disabled:opacity-50"
             >
               <TrashIcon className="h-4 w-4" />
               Delete
@@ -326,7 +327,7 @@ export default function ApplicationDrawer() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+              className="rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save changes'}
             </button>
