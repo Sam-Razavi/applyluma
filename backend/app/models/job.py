@@ -32,6 +32,9 @@ class RawJobPosting(Base):
     is_remote: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     extracted_skills: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     is_duplicate: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    application_deadline: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     raw_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     scraped_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
