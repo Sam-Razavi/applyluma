@@ -144,11 +144,12 @@ export default function Applications() {
             <button
               type="button"
               onClick={() => exportApplicationsToCsv(applications)}
-              className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-sm font-semibold text-fg-muted transition hover:bg-surface-strong"
+              className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-sm font-semibold text-fg-muted transition hover:bg-surface-strong sm:px-4"
               title="Export all applications to CSV"
+              aria-label="Export CSV"
             >
               <ArrowDownTrayIcon className="h-4 w-4" />
-              Export CSV
+              <span className="hidden sm:inline">Export CSV</span>
             </button>
           )}
           {applications.length > 0 && activeTab === 'board' && (
@@ -349,7 +350,7 @@ export default function Applications() {
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
-                className="text-sm text-fg-subtle hover:text-fg-muted"
+                className="rounded-lg px-3 py-3 text-sm text-fg-subtle transition hover:text-fg-muted"
               >
                 Clear
               </button>
@@ -357,7 +358,7 @@ export default function Applications() {
                 type="button"
                 onClick={handleBulkDelete}
                 disabled={bulkDeleting}
-                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
               >
                 <TrashIcon className="h-4 w-4" />
                 {bulkDeleting ? 'Deleting…' : `Delete ${selectedIds.size}`}

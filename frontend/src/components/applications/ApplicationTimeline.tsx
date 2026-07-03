@@ -39,7 +39,7 @@ export default function ApplicationTimeline({ events }: Props) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-fg">
+              <p className="min-w-0 truncate text-sm font-medium text-fg">
                 {formatEventType(event.event_type)}
               </p>
               <time className="flex-shrink-0 text-xs text-fg-muted">

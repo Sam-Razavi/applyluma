@@ -37,19 +37,19 @@ const STATUS_BADGE: Record<ApplicationStatus, string> = {
   withdrawn: BADGE_ERROR,
 }
 
-const priorityClasses: Record<number, string> = {
+export const priorityClasses: Record<number, string> = {
   1: BADGE_NEUTRAL,
   2: BADGE_ACTIVE,
   3: BADGE_ERROR,
 }
 
-const priorityLabels: Record<number, string> = {
+export const priorityLabels: Record<number, string> = {
   1: 'Low',
   2: 'Med',
   3: 'High',
 }
 
-function formatDate(value: string | null): string {
+export function formatDate(value: string | null): string {
   if (!value) return 'Not applied'
   return new Date(value).toLocaleDateString('en-US', {
     month: 'short',
@@ -73,18 +73,18 @@ function ageLabel(createdAt: string): string {
   return `${days}d`
 }
 
-function daysSince(dateStr: string | null): number | null {
+export function daysSince(dateStr: string | null): number | null {
   if (!dateStr) return null
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
 }
 
-function daysUntil(dateStr: string | null): number | null {
+export function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86_400_000)
 }
 
-const FOLLOWUP_STATUSES = new Set(['applied', 'phone_screen'])
-const TERMINAL_STATUSES = new Set(['rejected', 'withdrawn', 'offer'])
+export const FOLLOWUP_STATUSES = new Set(['applied', 'phone_screen'])
+export const TERMINAL_STATUSES = new Set(['rejected', 'withdrawn', 'offer'])
 
 export default function ApplicationCard({ application, isSelectMode, isSelected, onToggleSelect }: Props) {
   const setSelected = useApplicationsStore((state) => state.setSelected)
