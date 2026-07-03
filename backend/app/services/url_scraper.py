@@ -24,6 +24,17 @@ _HEADERS = {
 
 _MAX_CHARS = 12_000
 
+# Platsbanken ads are an Angular SPA — the server HTML has no job content, so
+# scraping returns nothing. The ad id in the URL maps 1:1 to the official
+# JobTech API (same API used by platsbanken_search_service).
+_PLATSBANKEN_AD_RE = re.compile(r"arbetsformedlingen\.se/platsbanken/annonser/(\d+)", re.I)
+_JOBTECH_AD_URL = "https://jobsearch.api.jobtechdev.se/ad/{ad_id}"
+
+# LinkedIn serves an authwall to server-side clients, but the public guest
+# endpoint often returns the job posting as an HTML fragment.
+_LINKEDIN_JOB_RE = re.compile(r"linkedin\.com/jobs/view/(\d+)", re.I)
+_LINKEDIN_GUEST_URL = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
+
 # RFC-1918 / loopback / link-local / metadata ranges blocked for SSRF prevention.
 _BLOCKED_NETWORKS = [
     ipaddress.ip_network(cidr)
@@ -320,18 +331,107 @@ def _openai_clean(raw: dict[str, str]) -> dict[str, str]:
     }
 
 
+async def _fetch_platsbanken_ad(ad_id: str, url: str) -> dict[str, str]:
+    """Fetch a Platsbanken ad from the official JobTech API instead of scraping."""
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.get(_JOBTECH_AD_URL.format(ad_id=ad_id))
+        if response.status_code == 404:
+            raise ValueError(
+                "This Platsbanken ad could not be found — it may have expired or been removed."
+            )
+        response.raise_for_status()
+
+    ad = response.json()
+    employer = ad.get("employer") or {}
+    workplace = ad.get("workplace_address") or {}
+
+    desc_obj = ad.get("description") or {}
+    if isinstance(desc_obj, dict):
+        description = desc_obj.get("text") or desc_obj.get("text_formatted") or ""
+    elif isinstance(desc_obj, str):
+        description = desc_obj
+    else:
+        description = ""
+
+    location = (
+        workplace.get("city")
+        or workplace.get("municipality")
+        or workplace.get("region")
+        or ""
+    )
+
+    return {
+        "url": url,
+        "job_title": str(ad.get("headline") or "")[:200],
+        "company_name": str(employer.get("name") or "")[:200],
+        "description": str(description)[:_MAX_CHARS],
+        "location": str(location)[:200],
+    }
+
+
+_LINKEDIN_GUEST_SELECTORS: dict[str, list[str]] = {
+    "title": [".top-card-layout__title", "h1"],
+    "company": [".topcard__org-name-link", ".topcard__flavor a", ".topcard__flavor"],
+    "description": [".description__text", ".show-more-less-html__markup"],
+}
+
+
+async def _fetch_linkedin_guest(job_id: str, url: str) -> dict[str, str] | None:
+    """Best-effort fetch of a LinkedIn job via the public guest endpoint."""
+    try:
+        async with httpx.AsyncClient(
+            headers=_HEADERS, follow_redirects=True, timeout=10
+        ) as client:
+            response = await client.get(_LINKEDIN_GUEST_URL.format(job_id=job_id))
+            response.raise_for_status()
+    except httpx.HTTPError:
+        return None
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    title = _first_text(soup, _LINKEDIN_GUEST_SELECTORS["title"])
+    company = _first_text(soup, _LINKEDIN_GUEST_SELECTORS["company"])
+    description = _first_text(soup, _LINKEDIN_GUEST_SELECTORS["description"])
+    if not (title and description):
+        return None
+    return {
+        "url": url,
+        "job_title": title[:200],
+        "company_name": company[:200],
+        "description": description[:_MAX_CHARS],
+    }
+
+
 async def scrape_job_url(url: str) -> dict[str, str]:
     _validate_url(url)
-    async with httpx.AsyncClient(
-        headers=_HEADERS, follow_redirects=True, timeout=10
-    ) as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        html = response.text
+
+    # Platsbanken is a JS-rendered SPA — use the official JobTech API directly.
+    pb_match = _PLATSBANKEN_AD_RE.search(url)
+    if pb_match:
+        return await _fetch_platsbanken_ad(pb_match.group(1), url)
+
+    li_match = _LINKEDIN_JOB_RE.search(url)
+
+    try:
+        async with httpx.AsyncClient(
+            headers=_HEADERS, follow_redirects=True, timeout=10
+        ) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            html = response.text
+    except httpx.HTTPStatusError:
+        if li_match:
+            guest = await _fetch_linkedin_guest(li_match.group(1), url)
+            if guest:
+                return guest
+        raise
 
     soup = BeautifulSoup(html, "html.parser")
 
     if _is_login_wall(soup):
+        if li_match:
+            guest = await _fetch_linkedin_guest(li_match.group(1), url)
+            if guest:
+                return guest
         raise ValueError(
             "This page requires a login to view job details. "
             "Try using the browser extension while signed in, or paste the job description manually."
@@ -352,6 +452,13 @@ async def scrape_job_url(url: str) -> dict[str, str]:
 
     # 4. OpenAI cleanup / correction
     try:
-        return _openai_clean(raw)
+        result = _openai_clean(raw)
     except Exception:
-        return raw
+        result = raw
+
+    if not result.get("job_title") and not result.get("description"):
+        raise ValueError(
+            "Could not find job details on that page — it may load content with JavaScript. "
+            "Paste the job description manually instead."
+        )
+    return result
