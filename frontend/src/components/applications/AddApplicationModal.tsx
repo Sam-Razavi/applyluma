@@ -1,8 +1,10 @@
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import type { AxiosError } from 'axios'
 import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { jobApi } from '../../services/api'
 import { useApplicationsStore } from '../../stores/applications'
 import type { ApplicationCreate, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
@@ -51,21 +53,68 @@ function toNumber(value: FormDataEntryValue | null): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function sourceFromUrl(url: string): string {
+  try {
+    const hostname = new URL(url).hostname
+    if (hostname === 'linkedin.com' || hostname.endsWith('.linkedin.com')) return 'linkedin'
+    if (hostname === 'indeed.com' || hostname.endsWith('.indeed.com')) return 'indeed'
+  } catch {
+    return 'other'
+  }
+  return 'other'
+}
+
 export default function AddApplicationModal({ open, onClose, initialData }: Props) {
   const createApplication = useApplicationsStore((state) => state.createApplication)
   const [form, setForm] = useState<ApplicationCreate>(() => buildInitialForm(initialData))
   const [submitting, setSubmitting] = useState(false)
+  const [importUrl, setImportUrl] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
       setForm(buildInitialForm(initialData))
+      setImportUrl('')
+      setImportError(null)
     }
   }, [initialData, open])
 
   function close() {
     if (submitting) return
     setForm(initialForm)
+    setImportUrl('')
+    setImportError(null)
     onClose()
+  }
+
+  async function handleImportFromUrl(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const url = importUrl.trim()
+    if (!url || importing) return
+    setImporting(true)
+    setImportError(null)
+    try {
+      const result = await jobApi.scrapeUrl(url)
+      setForm((current) => ({
+        ...current,
+        company_name: result.company_name || current.company_name,
+        job_title: result.job_title || current.job_title,
+        job_url: result.url || url,
+        location: result.location || current.location,
+        source: current.source || sourceFromUrl(url),
+      }))
+      setImportUrl('')
+    } catch (err) {
+      const detail = (err as AxiosError<{ detail?: unknown }>)?.response?.data?.detail
+      setImportError(
+        typeof detail === 'string' && detail
+          ? detail
+          : 'Could not extract job details from that URL',
+      )
+    } finally {
+      setImporting(false)
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -129,6 +178,33 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
               <XMarkIcon className="h-4 w-4" />
             </button>
           </div>
+
+          <form onSubmit={handleImportFromUrl} className="border-b border-line px-6 py-3">
+            <label htmlFor="application-import-url" className="mb-1 block text-xs font-medium text-fg-muted">
+              Import from URL
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="application-import-url"
+                type="url"
+                value={importUrl}
+                onChange={(e) => {
+                  setImportUrl(e.target.value)
+                  setImportError(null)
+                }}
+                className="input flex-1"
+                placeholder="https://arbetsformedlingen.se/platsbanken/annonser/..."
+              />
+              <button
+                type="submit"
+                disabled={importing || !importUrl.trim()}
+                className="flex-shrink-0 rounded-lg bg-surface px-3 py-2 text-sm font-semibold text-accent-text ring-1 ring-primary-600/30 transition hover:bg-primary-900/20 disabled:opacity-50"
+              >
+                {importing ? 'Extracting…' : 'Extract'}
+              </button>
+            </div>
+            {importError && <p className="mt-1.5 text-xs text-chip-danger-fg">{importError}</p>}
+          </form>
 
           <form
             id="add-application-form"

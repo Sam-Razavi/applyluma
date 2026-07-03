@@ -19,6 +19,7 @@ import {
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import { StarIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
+import type { AxiosError } from 'axios'
 import JobDetail from '../components/discover/JobDetail'
 import { jobApi } from '../services/api'
 import type { CreateJobDescriptionRequest } from '../services/api'
@@ -144,8 +145,13 @@ export default function Jobs() {
       setUrlBarOpen(false)
       setScrapeUrlValue('')
       setAddOpen(true)
-    } catch {
-      toast.error('Could not extract job details from that URL')
+    } catch (err) {
+      const detail = (err as AxiosError<{ detail?: unknown }>)?.response?.data?.detail
+      toast.error(
+        typeof detail === 'string' && detail
+          ? detail
+          : 'Could not extract job details from that URL',
+      )
     } finally {
       setScraping(false)
     }

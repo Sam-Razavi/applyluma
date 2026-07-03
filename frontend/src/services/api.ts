@@ -125,6 +125,7 @@ export interface ScrapeUrlResult {
   job_title: string
   description: string
   url: string
+  location?: string | null
 }
 
 export const jobApi = {
