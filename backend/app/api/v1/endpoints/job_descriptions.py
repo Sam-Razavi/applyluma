@@ -32,6 +32,7 @@ class ScrapeUrlResult(BaseModel):
     job_title: str
     description: str
     url: str
+    location: str | None = None
 
 
 @router.post("/scrape-url", response_model=ScrapeUrlResult)

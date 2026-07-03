@@ -445,3 +445,193 @@ async def test_scrape_job_url_returns_extracted_data(monkeypatch: pytest.MonkeyP
     result = await url_scraper.scrape_job_url("https://example.com/job/1")
     assert result["url"] == "https://example.com/job/1"
     assert "description" in result
+
+
+# ---------------------------------------------------------------------------
+# scrape_job_url — Platsbanken ads fetched via the JobTech API
+# ---------------------------------------------------------------------------
+
+def _platsbanken_payload() -> dict:
+    return {
+        "id": "29403394",
+        "headline": "Systemutvecklare",
+        "employer": {"name": "Acme AB"},
+        "description": {"text": "Vi söker en systemutvecklare med Python-erfarenhet. " * 5},
+        "workplace_address": {"city": "Stockholm", "municipality": "Stockholm"},
+    }
+
+
+def _jobtech_client(requested: list[str], status_code: int = 200):
+    from types import SimpleNamespace as NS
+
+    payload = _platsbanken_payload()
+
+    class _FakeAsyncClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def get(self, url):
+            requested.append(url)
+            return NS(
+                status_code=status_code,
+                raise_for_status=lambda: None,
+                json=lambda: payload,
+            )
+
+    return _FakeAsyncClient
+
+
+@pytest.mark.asyncio
+async def test_scrape_platsbanken_uses_jobtech_api(monkeypatch: pytest.MonkeyPatch) -> None:
+    requested: list[str] = []
+    client_cls = _jobtech_client(requested)
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: client_cls())
+
+    url = "https://arbetsformedlingen.se/platsbanken/annonser/29403394"
+    result = await url_scraper.scrape_job_url(url)
+
+    assert requested == ["https://jobsearch.api.jobtechdev.se/ad/29403394"]
+    assert result["job_title"] == "Systemutvecklare"
+    assert result["company_name"] == "Acme AB"
+    assert result["location"] == "Stockholm"
+    assert result["url"] == url
+    assert "systemutvecklare" in result["description"].lower()
+
+
+@pytest.mark.asyncio
+async def test_scrape_platsbanken_matches_www_urls(monkeypatch: pytest.MonkeyPatch) -> None:
+    requested: list[str] = []
+    client_cls = _jobtech_client(requested)
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: client_cls())
+
+    await url_scraper.scrape_job_url(
+        "https://www.arbetsformedlingen.se/platsbanken/annonser/29403394"
+    )
+    assert requested == ["https://jobsearch.api.jobtechdev.se/ad/29403394"]
+
+
+@pytest.mark.asyncio
+async def test_scrape_platsbanken_expired_ad_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    requested: list[str] = []
+    client_cls = _jobtech_client(requested, status_code=404)
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: client_cls())
+
+    with pytest.raises(ValueError, match="expired"):
+        await url_scraper.scrape_job_url(
+            "https://arbetsformedlingen.se/platsbanken/annonser/12345"
+        )
+
+
+# ---------------------------------------------------------------------------
+# scrape_job_url — empty extraction raises instead of returning empty fields
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_scrape_job_url_raises_when_nothing_extracted(monkeypatch: pytest.MonkeyPatch) -> None:
+    from types import SimpleNamespace as NS
+
+    # A page with no <body> (JS-rendered SPA shell): no login-wall signal,
+    # no JSON-LD, no selectors, and the heuristic finds nothing.
+    html = "<html><head></head></html>"
+    fake_response = NS(text=html, raise_for_status=lambda: None)
+
+    class _FakeAsyncClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def get(self, url): return fake_response
+
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: _FakeAsyncClient())
+    monkeypatch.setattr(url_scraper, "_openai_clean", lambda raw: raw)
+
+    with pytest.raises(ValueError, match="Could not find job details"):
+        await url_scraper.scrape_job_url("https://example.com/spa-job")
+
+
+# ---------------------------------------------------------------------------
+# scrape_job_url — LinkedIn guest endpoint fallback
+# ---------------------------------------------------------------------------
+
+_LINKEDIN_GUEST_HTML = (
+    '<div class="top-card-layout__title">Senior Backend Engineer</div>'
+    '<a class="topcard__org-name-link">Spotify</a>'
+    '<div class="description__text">'
+    + "We are looking for a senior backend engineer to join our team. " * 10
+    + "</div>"
+)
+
+
+@pytest.mark.asyncio
+async def test_scrape_linkedin_login_wall_falls_back_to_guest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace as NS
+
+    login_html = "<html><body>Please sign in to view this job.</body></html>"
+
+    class _FakeAsyncClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def get(self, url):
+            if "jobs-guest" in url:
+                return NS(text=_LINKEDIN_GUEST_HTML, raise_for_status=lambda: None)
+            return NS(text=login_html, raise_for_status=lambda: None)
+
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: _FakeAsyncClient())
+
+    result = await url_scraper.scrape_job_url("https://www.linkedin.com/jobs/view/4012345678")
+    assert result["job_title"] == "Senior Backend Engineer"
+    assert result["company_name"] == "Spotify"
+    assert result["url"] == "https://www.linkedin.com/jobs/view/4012345678"
+
+
+@pytest.mark.asyncio
+async def test_scrape_linkedin_http_error_falls_back_to_guest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace as NS
+
+    import httpx as real_httpx
+
+    def _raise_403():
+        request = real_httpx.Request("GET", "https://www.linkedin.com/jobs/view/1")
+        response = real_httpx.Response(403, request=request)
+        raise real_httpx.HTTPStatusError("403", request=request, response=response)
+
+    class _FakeAsyncClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def get(self, url):
+            if "jobs-guest" in url:
+                return NS(text=_LINKEDIN_GUEST_HTML, raise_for_status=lambda: None)
+            return NS(text="", raise_for_status=_raise_403)
+
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: _FakeAsyncClient())
+
+    result = await url_scraper.scrape_job_url("https://www.linkedin.com/jobs/view/1")
+    assert result["job_title"] == "Senior Backend Engineer"
+
+
+@pytest.mark.asyncio
+async def test_scrape_linkedin_guest_failure_raises_login_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace as NS
+
+    login_html = "<html><body>Please sign in to view this job.</body></html>"
+    fake_response = NS(text=login_html, raise_for_status=lambda: None)
+
+    class _FakeAsyncClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def get(self, url): return fake_response
+
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", lambda *a: _addr("93.184.216.34"))
+    monkeypatch.setattr(url_scraper.httpx, "AsyncClient", lambda **kw: _FakeAsyncClient())
+
+    with pytest.raises(ValueError, match="login"):
+        await url_scraper.scrape_job_url("https://www.linkedin.com/jobs/view/123")
