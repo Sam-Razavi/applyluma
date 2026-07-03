@@ -14,6 +14,19 @@ import { useApplicationsStore } from '../../stores/applications'
 import type { Application, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
 import { STATUS_META } from './statusMeta'
+import {
+  BADGE_ACTIVE,
+  BADGE_ERROR,
+  BADGE_NEUTRAL,
+  BADGE_SUCCESS,
+  daysSince,
+  daysUntil,
+  FOLLOWUP_STATUSES,
+  formatDate,
+  priorityClasses,
+  priorityLabels,
+  TERMINAL_STATUSES,
+} from './applicationCardHelpers'
 
 interface Props {
   application: Application
@@ -21,11 +34,6 @@ interface Props {
   isSelected?: boolean
   onToggleSelect?: (id: string) => void
 }
-
-const BADGE_ACTIVE = 'bg-chip-accent text-accent-text border border-accent-muted'
-const BADGE_SUCCESS = 'bg-chip-success text-chip-success-fg border border-chip-success'
-const BADGE_ERROR = 'bg-chip-danger text-chip-danger-fg border border-chip-danger'
-const BADGE_NEUTRAL = 'bg-surface text-fg-muted border border-line'
 
 const STATUS_BADGE: Record<ApplicationStatus, string> = {
   wishlist: BADGE_NEUTRAL,
@@ -35,27 +43,6 @@ const STATUS_BADGE: Record<ApplicationStatus, string> = {
   offer: BADGE_SUCCESS,
   rejected: BADGE_ERROR,
   withdrawn: BADGE_ERROR,
-}
-
-export const priorityClasses: Record<number, string> = {
-  1: BADGE_NEUTRAL,
-  2: BADGE_ACTIVE,
-  3: BADGE_ERROR,
-}
-
-export const priorityLabels: Record<number, string> = {
-  1: 'Low',
-  2: 'Med',
-  3: 'High',
-}
-
-export function formatDate(value: string | null): string {
-  if (!value) return 'Not applied'
-  return new Date(value).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
 }
 
 function formatSalary(min: number | null, max: number | null): string | null {
@@ -72,19 +59,6 @@ function ageLabel(createdAt: string): string {
   if (days === 1) return '1d'
   return `${days}d`
 }
-
-export function daysSince(dateStr: string | null): number | null {
-  if (!dateStr) return null
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
-}
-
-export function daysUntil(dateStr: string | null): number | null {
-  if (!dateStr) return null
-  return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86_400_000)
-}
-
-export const FOLLOWUP_STATUSES = new Set(['applied', 'phone_screen'])
-export const TERMINAL_STATUSES = new Set(['rejected', 'withdrawn', 'offer'])
 
 export default function ApplicationCard({ application, isSelectMode, isSelected, onToggleSelect }: Props) {
   const setSelected = useApplicationsStore((state) => state.setSelected)

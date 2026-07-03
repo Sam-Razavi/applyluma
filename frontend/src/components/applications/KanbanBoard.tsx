@@ -14,7 +14,7 @@ import {
   priorityClasses,
   priorityLabels,
   TERMINAL_STATUSES,
-} from './ApplicationCard'
+} from './applicationCardHelpers'
 
 interface Props {
   applications?: Application[]
