@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import toast from 'react-hot-toast'
 import { FadeIn } from '../../components/ui/FadeIn'
 import { adminApi, type AdminUserRow } from '../../services/adminApi'
@@ -253,8 +254,9 @@ export default function AdminUsers() {
         )}
       </div>
 
-      {/* Notify modal */}
-      {notifyModal && (
+      {/* Notify modal (portaled: page wrapper transform would break
+          position:fixed) */}
+      {notifyModal && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => {
@@ -298,7 +300,8 @@ export default function AdminUsers() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </FadeIn>
   )

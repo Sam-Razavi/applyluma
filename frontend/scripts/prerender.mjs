@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
-const DIST = resolve(dirname(new URL(import.meta.url).pathname), '..', 'dist')
+const DIST = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 
 const PAGES = [
   {

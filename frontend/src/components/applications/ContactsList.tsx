@@ -74,15 +74,15 @@ export default function ContactsList({ applicationId, contacts }: Props) {
                   {contact.role && <p className="text-xs text-fg-muted">{contact.role}</p>}
                   <div className="mt-2 space-y-1 text-xs text-fg-muted">
                     {contact.email && (
-                      <p className="flex items-center gap-1.5 truncate">
-                        <EnvelopeIcon className="h-3.5 w-3.5" />
-                        {contact.email}
+                      <p className="flex min-w-0 items-center gap-1.5">
+                        <EnvelopeIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{contact.email}</span>
                       </p>
                     )}
                     {contact.phone && (
-                      <p className="flex items-center gap-1.5">
-                        <PhoneIcon className="h-3.5 w-3.5" />
-                        {contact.phone}
+                      <p className="flex min-w-0 items-center gap-1.5">
+                        <PhoneIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{contact.phone}</span>
                       </p>
                     )}
                   </div>

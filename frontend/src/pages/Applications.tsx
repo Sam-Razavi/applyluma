@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import {
   ArrowDownTrayIcon,
@@ -131,7 +132,7 @@ export default function Applications() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isSelectMode && selectedIds.size > 0 ? 'pb-40' : ''}`}>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-fg">Applications</h1>
@@ -328,20 +329,24 @@ export default function Applications() {
         </>
       )}
 
-      {activeTab === 'board' && !isSelectMode && (
+      {/* Portaled to <body>: the animated page wrapper carries a transform
+          during route transitions, which would otherwise turn position:fixed
+          into container-relative positioning. */}
+      {activeTab === 'board' && !isSelectMode && createPortal(
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+          className="fixed bottom-24 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 md:bottom-6"
           aria-label="Add application"
         >
           <PlusIcon className="h-6 w-6" />
-        </button>
+        </button>,
+        document.body,
       )}
 
       {/* Bulk action bar */}
-      {isSelectMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-surface px-4 py-4 shadow-xl">
+      {isSelectMode && selectedIds.size > 0 && createPortal(
+        <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-line bg-surface px-4 py-4 shadow-xl md:bottom-0">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
             <span className="text-sm font-semibold text-fg-muted">
               {selectedIds.size} application{selectedIds.size > 1 ? 's' : ''} selected
@@ -365,7 +370,8 @@ export default function Applications() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <AddApplicationModal open={addOpen} onClose={() => setAddOpen(false)} />

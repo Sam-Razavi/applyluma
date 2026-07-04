@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowPathIcon,
@@ -508,8 +509,9 @@ export default function Settings() {
         </button>
       </section>
 
-      {/* ── Delete confirmation modal ──────────────────────────────────── */}
-      {deleteOpen && (
+      {/* ── Delete confirmation modal (portaled: page wrapper transform would
+          break position:fixed) ──────────────────────────────────────────── */}
+      {deleteOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ">
             <h3 className="text-lg font-semibold text-fg ">
@@ -546,7 +548,8 @@ export default function Settings() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
