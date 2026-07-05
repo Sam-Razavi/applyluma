@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ArrowTopRightOnSquareIcon,
   BookmarkIcon as BookmarkOutline,
@@ -127,7 +128,9 @@ export default function SearchJobDetail({ job, onClose, onTrack }: Props) {
     onClose()
   }
 
-  return (
+  // Portaled to <body> so the animated page wrapper's transform can't break
+  // the fixed-position overlay.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center px-4 pt-4 pb-24 sm:p-4"
       style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
@@ -251,6 +254,7 @@ export default function SearchJobDetail({ job, onClose, onTrack }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

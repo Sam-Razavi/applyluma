@@ -21,12 +21,16 @@ export default function JobDescriptionDisplay({ raw, className = '' }: Props) {
               </h4>
             )
           case 'paragraph':
-            return <p key={i}>{block.text}</p>
+            return (
+              <p key={i} className="break-words">
+                {block.text}
+              </p>
+            )
           case 'bullet':
             return (
               <ul key={i} className="list-disc list-outside space-y-1 pl-5">
                 {block.items.map((item, j) => (
-                  <li key={j}>{item}</li>
+                  <li key={j} className="break-words">{item}</li>
                 ))}
               </ul>
             )
@@ -34,7 +38,7 @@ export default function JobDescriptionDisplay({ raw, className = '' }: Props) {
             return (
               <ol key={i} className="list-decimal list-outside space-y-1 pl-5">
                 {block.items.map((item, j) => (
-                  <li key={j}>{item}</li>
+                  <li key={j} className="break-words">{item}</li>
                 ))}
               </ol>
             )

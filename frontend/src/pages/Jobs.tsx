@@ -204,7 +204,7 @@ export default function Jobs() {
           </p>
         </div>
         <div className="flex flex-col gap-2 self-start sm:self-auto">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => { setUrlBarOpen((o) => !o); setScrapeUrlValue('') }}
               className="inline-flex items-center gap-2 bg-surface hover:bg-surface-strong text-fg-muted text-sm font-semibold px-4 py-2.5 rounded-xl border border-line transition-colors"
@@ -268,7 +268,7 @@ export default function Jobs() {
 
       {/* Job list */}
       {loading ? (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {[...Array(3)].map((_, i) => <JdSkeleton key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
@@ -307,7 +307,7 @@ export default function Jobs() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {filtered.map((job) => {
             const isExpanded = expandedId === job.id
             const desc = job.description ?? ''
@@ -351,7 +351,7 @@ export default function Jobs() {
                 </div>
 
                 <div className="mt-3">
-                  <p className="text-sm text-fg-muted whitespace-pre-line">
+                  <p className="text-sm text-fg-muted whitespace-pre-line break-words">
                     {isExpanded ? desc : desc.slice(0, 150) + (hasLong ? '…' : '')}
                   </p>
                   {hasLong && (
@@ -378,7 +378,7 @@ export default function Jobs() {
                 )}
 
                 {(job.url || job.notes) && (
-                  <div className="mt-2 flex flex-col gap-1">
+                  <div className="mt-2 flex min-w-0 flex-col gap-1">
                     {job.url && (
                       <a href={job.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-xs text-accent-text hover:underline truncate block">
                         {job.url}

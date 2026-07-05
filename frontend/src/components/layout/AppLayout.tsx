@@ -60,7 +60,7 @@ export default function AppLayout() {
     >
       <Sidebar />
 
-      <main className="flex-1 pb-24 pt-4 md:ml-[224px] md:pb-8 md:pt-0">
+      <main className="min-w-0 flex-1 pb-24 pt-4 md:ml-[224px] md:pb-8 md:pt-0">
         {showVerifyBanner && (
           <div
             className="mx-4 mt-2 flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm md:mx-8"

@@ -46,7 +46,7 @@ export default function ApplicationTimeline({ events }: Props) {
                 {formatDate(event.event_date)}
               </time>
             </div>
-            <p className="mt-0.5 text-sm text-fg-muted">
+            <p className="mt-0.5 break-words text-sm text-fg-muted">
               {event.description ||
                 [event.old_value, event.new_value].filter(Boolean).join(' -> ') ||
                 'Application updated'}
