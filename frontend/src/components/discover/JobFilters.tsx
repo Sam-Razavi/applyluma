@@ -41,6 +41,7 @@ function hasActiveFilters(f: JobFilters): boolean {
     !!f.keywords ||
     !!f.source ||
     f.remote_only ||
+    f.hide_applied ||
     !!f.match_score_min
   )
 }
@@ -271,6 +272,17 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
             className="h-4 w-4 rounded border-line-strong text-primary-500 focus:ring-primary-500"
           />
           Remote only
+        </label>
+
+        {/* Hide applied */}
+        <label className="flex items-center gap-3 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg">
+          <input
+            type="checkbox"
+            checked={filters.hide_applied}
+            onChange={(e) => set('hide_applied', e.target.checked)}
+            className="h-4 w-4 rounded border-line-strong text-primary-500 focus:ring-primary-500"
+          />
+          Hide applied jobs
         </label>
 
         {/* Match score */}

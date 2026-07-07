@@ -55,7 +55,7 @@ Tick them off as they get built.
 
 ## Job Discovery & Search
 
-- [ ] **"Already applied" filter on Discover**
+- [x] **"Already applied" filter on Discover**
   Cross-reference `raw_job_posting_id` in `applications` and show a badge
   or hide already-applied jobs from the Discover feed. Adds a toggle in
   JobFilters: "Hide applied jobs".

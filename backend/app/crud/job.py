@@ -57,6 +57,7 @@ def list_jobs(
     is_remote: bool | None = None,
     match_score_min: float | None = None,
     search: str | None = None,
+    hide_applied: bool = False,
     page: int = 1,
     limit: int = 20,
     sort: str = "score_desc",
@@ -107,6 +108,10 @@ def list_jobs(
             RawJobPosting.title.ilike(f"%{search}%")
             | RawJobPosting.company.ilike(f"%{search}%")
         )
+    if hide_applied:
+        # The Application outerjoin above is scoped to this user, so this only
+        # hides jobs the current user has already tracked an application for.
+        q = q.filter(Application.id.is_(None))
     if keywords:
         keyword_ids = (
             db.query(ExtractedKeyword.raw_job_posting_id)
