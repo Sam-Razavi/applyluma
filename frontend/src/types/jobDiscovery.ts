@@ -73,6 +73,7 @@ export interface JobFilters {
   keywords: string
   source: string
   remote_only: boolean
+  hide_applied: boolean
   match_score_min: string
   sort: string
 }

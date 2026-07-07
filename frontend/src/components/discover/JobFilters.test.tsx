@@ -18,6 +18,7 @@ const defaultFilters: JobFiltersType = {
   keywords: '',
   source: '',
   remote_only: false,
+  hide_applied: false,
   match_score_min: '',
   sort: 'score_desc',
 }
@@ -131,6 +132,24 @@ describe('JobFilters', () => {
     render(<JobFilters filters={defaultFilters} onChange={onChange} onReset={vi.fn()} />)
     fireEvent.click(screen.getByLabelText('Remote only'))
     expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, remote_only: true })
+  })
+
+  it('calls onChange when hide-applied checkbox changes', () => {
+    const onChange = vi.fn()
+    render(<JobFilters filters={defaultFilters} onChange={onChange} onReset={vi.fn()} />)
+    fireEvent.click(screen.getByLabelText('Hide applied jobs'))
+    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, hide_applied: true })
+  })
+
+  it('renders Reset button when hide-applied filter is active', () => {
+    render(
+      <JobFilters
+        filters={{ ...defaultFilters, hide_applied: true }}
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Reset')).toBeInTheDocument()
   })
 
   it('calls onChange when salary_min input changes', () => {
