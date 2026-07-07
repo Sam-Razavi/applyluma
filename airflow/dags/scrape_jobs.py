@@ -14,6 +14,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "plugins"))
 sys.path.insert(0, "/opt/airflow/plugins")
+from job_scrapers.dedupe import mark_todays_duplicates
 from job_scrapers.remoteok_client import RemoteOKClient
 from job_scrapers.remotive_client import RemotiveClient
 from job_scrapers.the_muse_client import TheMuseClient
@@ -85,27 +86,9 @@ def scrape_remoteok(**context: Any) -> dict[str, int]:
 
 def deduplicate_jobs(**context: Any) -> int:
     hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
-    sql = """
-        WITH ranked AS (
-            SELECT
-                id,
-                ROW_NUMBER() OVER (
-                    PARTITION BY lower(title), lower(company)
-                    ORDER BY scraped_at ASC
-                ) AS rn
-            FROM raw_job_postings
-            WHERE DATE(scraped_at) = CURRENT_DATE
-              AND is_duplicate = false
-        )
-        UPDATE raw_job_postings
-        SET is_duplicate = true
-        WHERE id IN (SELECT id FROM ranked WHERE rn > 1)
-    """
     conn = hook.get_conn()
     try:
-        with conn, conn.cursor() as cur:
-            cur.execute(sql)
-            dupes_marked = cur.rowcount
+        dupes_marked = mark_todays_duplicates(conn)
     finally:
         conn.close()
     logger.info("Marked %d duplicate postings", dupes_marked)

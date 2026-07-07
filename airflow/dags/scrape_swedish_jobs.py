@@ -26,6 +26,7 @@ sys.path.insert(0, "/opt/airflow/plugins")
 from job_scrapers.platsbanken_client import PlatsbankenClient
 from job_scrapers.jobbsafari_client import JobbsafariClient
 from job_scrapers.indeed_se_client import IndeedSeClient
+from job_scrapers.dedupe import mark_todays_duplicates
 
 logger = logging.getLogger(__name__)
 
@@ -82,32 +83,15 @@ def scrape_indeed_se(**context: Any) -> dict[str, int]:
 
 
 def deduplicate_swedish_jobs(**context: Any) -> int:
+    # Cross-source rolling-window dedupe: this run mostly catches the Swedish
+    # postings scraped just now, since scrape_jobs already deduped its own.
     hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
-    sql = """
-        WITH ranked AS (
-            SELECT
-                id,
-                ROW_NUMBER() OVER (
-                    PARTITION BY lower(title), lower(company)
-                    ORDER BY scraped_at ASC
-                ) AS rn
-            FROM raw_job_postings
-            WHERE DATE(scraped_at) = CURRENT_DATE
-              AND source IN ('platsbanken', 'jobbsafari', 'indeed_se')
-              AND is_duplicate = false
-        )
-        UPDATE raw_job_postings
-        SET is_duplicate = true
-        WHERE id IN (SELECT id FROM ranked WHERE rn > 1)
-    """
     conn = hook.get_conn()
     try:
-        with conn, conn.cursor() as cur:
-            cur.execute(sql)
-            dupes_marked = cur.rowcount
+        dupes_marked = mark_todays_duplicates(conn)
     finally:
         conn.close()
-    logger.info("Marked %d duplicate Swedish postings", dupes_marked)
+    logger.info("Marked %d duplicate postings", dupes_marked)
     return dupes_marked
 
 
