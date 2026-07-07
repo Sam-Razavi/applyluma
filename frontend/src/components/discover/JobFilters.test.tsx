@@ -3,6 +3,13 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import JobFilters from './JobFilters'
 import type { JobFilters as JobFiltersType } from '../../types/jobDiscovery'
 
+vi.mock('../../services/jobDiscoveryApi', () => ({
+  fetchJobSources: vi.fn().mockResolvedValue([
+    { source: 'platsbanken', count: 500 },
+    { source: 'remoteok', count: 120 },
+  ]),
+}))
+
 const defaultFilters: JobFiltersType = {
   search: '',
   location: '',
@@ -153,6 +160,13 @@ describe('JobFilters', () => {
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(toggleBtn)
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('renders source options fetched from the API', async () => {
+    render(<JobFilters filters={defaultFilters} onChange={vi.fn()} onReset={vi.fn()} />)
+    expect(await screen.findByRole('option', { name: 'RemoteOK' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Platsbanken' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'All sources' })).toBeInTheDocument()
   })
 
   it('shows "On" active filters badge when filters are active', () => {

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 vi.mock('../services/jobDiscoveryApi', () => ({
   fetchDiscoveredJobs: vi.fn(),
   fetchJobDetail: vi.fn(),
+  fetchJobSources: vi.fn().mockResolvedValue([]),
   saveJob: vi.fn(),
   deleteSavedJob: vi.fn(),
 }))

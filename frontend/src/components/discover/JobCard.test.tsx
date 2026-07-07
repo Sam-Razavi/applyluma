@@ -142,9 +142,9 @@ describe('JobCard', () => {
     expect(screen.queryByText('Skills')).not.toBeInTheDocument()
   })
 
-  it('falls back to raw source name when source has no label', () => {
+  it('falls back to a title-cased source name when source has no label', () => {
     render(<JobCard job={{ ...baseJob, source: 'custom_board' }} onClick={vi.fn()} onSave={vi.fn()} />)
-    expect(screen.getByText('custom_board')).toBeInTheDocument()
+    expect(screen.getByText('Custom Board')).toBeInTheDocument()
   })
 
   it('does not show match score badge when match_score is null', () => {

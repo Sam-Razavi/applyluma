@@ -1,5 +1,5 @@
 import client from '../api/client'
-import type { DiscoveredJob, DiscoveredJobDetail, JobFilters, KeywordsByType, SavedJob } from '../types/jobDiscovery'
+import type { DiscoveredJob, DiscoveredJobDetail, JobFilters, JobSourceCount, KeywordsByType, SavedJob } from '../types/jobDiscovery'
 
 export interface JobsResponse {
   jobs: DiscoveredJob[]
@@ -26,6 +26,10 @@ export function fetchDiscoveredJobs(filters: Partial<JobFilters> & { page?: numb
       },
     })
     .then((r) => r.data)
+}
+
+export function fetchJobSources(): Promise<JobSourceCount[]> {
+  return client.get<JobSourceCount[]>('/api/v1/jobs/sources').then((r) => r.data)
 }
 
 export function fetchJobDetail(jobId: string): Promise<DiscoveredJobDetail> {

@@ -77,15 +77,35 @@ export interface JobFilters {
   sort: string
 }
 
-export const JOB_SOURCES = ['Platsbanken', 'the_muse', 'remotive', 'adzuna_remote', 'adzuna_de', 'adzuna_nl', 'adzuna_fr'] as const
+export interface JobSourceCount {
+  source: string
+  count: number
+}
+
+// Static fallback for the source filter, used only when GET /jobs/sources fails.
+// Values must match the `source` column in raw_job_postings exactly.
+export const JOB_SOURCES = ['platsbanken', 'the_muse', 'remotive', 'remoteok', 'adzuna_remote', 'adzuna_de', 'adzuna_nl', 'adzuna_fr'] as const
 export type JobSource = (typeof JOB_SOURCES)[number]
 
 export const SOURCE_LABELS: Record<string, string> = {
-  Platsbanken: 'Platsbanken',
+  platsbanken: 'Platsbanken',
   the_muse: 'The Muse',
   remotive: 'Remotive',
+  remoteok: 'RemoteOK',
+  jobbsafari: 'Jobbsafari',
+  indeed_se: 'Indeed SE',
   adzuna_remote: 'Remote (Adzuna)',
   adzuna_de: 'Germany',
   adzuna_nl: 'Netherlands',
   adzuna_fr: 'France',
+}
+
+export function sourceLabel(source: string): string {
+  return (
+    SOURCE_LABELS[source] ??
+    source
+      .split(/[_\s]+/)
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+      .join(' ')
+  )
 }

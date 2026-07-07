@@ -11,7 +11,7 @@ import { BookmarkIcon as BookmarkSolid } from '@heroicons/react/24/solid'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import type { DiscoveredJobDetail } from '../../types/jobDiscovery'
-import { SOURCE_LABELS } from '../../types/jobDiscovery'
+import { sourceLabel } from '../../types/jobDiscovery'
 import JobDescriptionDisplay from '../common/JobDescriptionDisplay'
 import { fetchJobDetail } from '../../services/jobDiscoveryApi'
 import { createApplication } from '../../services/applicationsApi'
@@ -155,7 +155,7 @@ export default function JobDetail({
                   />
                 )}
                 <Pill
-                  text={SOURCE_LABELS[job.source] ?? job.source}
+                  text={sourceLabel(job.source)}
                   color="bg-surface text-fg-subtle"
                 />
               </div>
