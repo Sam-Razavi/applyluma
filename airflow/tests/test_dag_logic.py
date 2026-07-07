@@ -98,6 +98,31 @@ def test_remoteok_parse_treats_zero_salary_as_missing():
     assert job["salary_max"] is None
     assert job["location"] == "Remote"
 
+def test_mark_todays_duplicates_returns_rowcount():
+    from job_scrapers.dedupe import mark_todays_duplicates, MARK_TODAYS_DUPLICATES_SQL
+
+    mock_conn = MagicMock()
+    mock_cur = mock_conn.cursor.return_value.__enter__.return_value
+    mock_cur.rowcount = 3
+
+    assert mark_todays_duplicates(mock_conn) == 3
+    mock_cur.execute.assert_called_once_with(MARK_TODAYS_DUPLICATES_SQL)
+
+def test_dedupe_sql_is_cross_source_rolling_window():
+    from job_scrapers.dedupe import DEDUPE_WINDOW_DAYS, MARK_TODAYS_DUPLICATES_SQL
+
+    sql = MARK_TODAYS_DUPLICATES_SQL
+    # Rolling window across all sources — no same-day or per-source restriction
+    assert f"INTERVAL '{DEDUPE_WINDOW_DAYS} days'" in sql
+    assert "source IN" not in sql
+    # Normalised match key includes location so per-city postings survive
+    assert "lower(trim(title))" in sql
+    assert "lower(trim(company))" in sql
+    assert "coalesce(lower(trim(location)), '')" in sql
+    # Oldest posting wins; only today's rows are ever marked
+    assert "ORDER BY scraped_at ASC" in sql
+    assert "DATE(scraped_at) = CURRENT_DATE" in sql
+
 @patch("transform_jobs.PostgresHook")
 def test_calculate_daily_metrics_no_rows(mock_hook):
     from transform_jobs import calculate_daily_metrics

@@ -24,6 +24,9 @@ ApplyLuma repository.
 - Mobile UX Enhancement: ✅ COMPLETE — Responsive polish and motion
 - Jobs Discovery Gap-fill & Search: ✅ COMPLETE — Search, skill gaps, bookmark API
 - Browser Extension: ✅ COMPLETE — MV3 Chrome/Firefox extension
+- Admin Dashboard / Pipeline Health: ✅ COMPLETE — /admin pages incl. pipeline health
+- Job Sources & Dedupe (July 2026): ✅ COMPLETE — RemoteOK source, dynamic source
+  filter, cross-source rolling-window dedupe
 
 Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Celery worker tailors CV sections against a job description using OpenAI.
@@ -112,6 +115,22 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
   - `/extension-auth` page in the web app mints a bearer token and auto-copies to clipboard.
   - JOB_SITE_PATTERNS covers `se.indeed.com`, `arbetsformedlingen.se`, and
     `www.arbetsformedlingen.se`.
+
+Job Sources & Dedupe delivered in July 2026:
+  - New RemoteOK scraper (`airflow/plugins/job_scrapers/remoteok_client.py`) in the
+    `scrape_jobs` DAG. Scrapers in the repo: `remotive`, `the_muse`, `remoteok`
+    (scrape_jobs, 02:00 UTC) and `platsbanken`, `jobbsafari`, `indeed_se`
+    (scrape_swedish_jobs, 02:30 UTC). Source strings are lowercase in the DB.
+  - `GET /api/v1/jobs/sources` returns distinct sources with live posting counts;
+    the Discover source filter populates from it (static `JOB_SOURCES` is only a
+    fallback). New sources need no frontend changes.
+  - Cross-source rolling-window dedupe (`airflow/plugins/job_scrapers/dedupe.py`,
+    used by both scrape DAGs): a posting scraped today is marked `is_duplicate`
+    when a live posting with the same normalised title+company+location exists
+    within the last 14 days, regardless of source. Oldest posting wins; only
+    today's rows are ever marked by the daily run.
+  - `scripts/backfill_duplicates.py` applies the same rule to historical rows
+    (dry run by default, `--apply` to mark). Run once against Railway.
 
 ## Git Workflow
 
@@ -335,7 +354,7 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Known Issues
 
-- 356 backend tests passing as of 2026-06-16. Frontend: 38 tests passing.
+- 468 backend tests and 202 frontend tests passing as of 2026-07-07.
 - `npm install` reported 2 moderate frontend dependency vulnerabilities; do not
   run `npm audit fix --force` casually because it can introduce breaking
   dependency upgrades.
@@ -346,17 +365,15 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Next Steps
 
-- `dev` is synced with `main`. Resume the standard `dev → feature branch → dev → main`
-  workflow for all new work.
-- Next planned feature: **Admin Dashboard / Pipeline Health** — a self-contained Codex
-  implementation prompt has been written. It adds `/admin/pipeline` with a health panel
-  (per-stage freshness + status), jobs-over-time line chart, jobs-by-source bar chart,
-  top skills/companies lists, and a remote-% stat card. New backend endpoints under
-  `/api/v1/admin/pipeline/` read `raw_job_postings`, `extracted_keywords`, and
-  `job_market_metrics` (read-only).
-- Phase 10C backlog: in-app notification surface for high-match alerts, Discover filter
-  for jobs already in Applications, richer alert preferences, additional Phase 10B edge-case
-  tests.
+- Resume the standard `dev → feature branch → dev → main` workflow for all new work.
+- Admin Dashboard / Pipeline Health has shipped: `/admin/pipeline` health panel plus
+  charts, backed by read-only endpoints under `/api/v1/admin/pipeline/`.
+- Run `scripts/backfill_duplicates.py` once against Railway to mark historical
+  cross-source duplicates (see Job Sources & Dedupe section).
+- Backlog: "hide already applied" filter on Discover, revive the stale
+  `job_market_metrics` dbt pipeline, job-expiry re-check task for Platsbanken ads,
+  in-app notification surface for high-match alerts, richer alert preferences,
+  additional Phase 10B edge-case tests, more items in `FEATURE_IDEAS.md`.
 - Run the full test suite (`pytest`, `npm test`) before merging any new feature work.
 
 ## AI Development Guidelines
