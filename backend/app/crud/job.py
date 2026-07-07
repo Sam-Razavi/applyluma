@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, desc, nullslast, or_
+from sqlalchemy import ColumnElement, desc, func, nullslast, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -31,6 +31,18 @@ def _is_live_deadline_clause() -> ColumnElement[bool]:
         RawJobPosting.application_deadline.is_(None),
         RawJobPosting.application_deadline >= datetime.now(UTC),
     )
+
+
+def list_sources(db: Session) -> list[dict[str, Any]]:
+    """Return distinct job sources with live posting counts, most populous first."""
+    rows = (
+        db.query(RawJobPosting.source, func.count(RawJobPosting.id).label("count"))
+        .filter(RawJobPosting.is_duplicate.is_(False))
+        .group_by(RawJobPosting.source)
+        .order_by(desc("count"))
+        .all()
+    )
+    return [{"source": row.source, "count": row.count} for row in rows]
 
 
 def list_jobs(

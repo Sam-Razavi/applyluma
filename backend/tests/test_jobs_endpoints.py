@@ -222,6 +222,49 @@ async def test_list_jobs_pagination(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 # ------------------------------------------------------------------
+# GET /jobs/sources
+# ------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_list_job_sources_returns_200(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        jobs_endpoint.crud_job,
+        "list_sources",
+        lambda db: [
+            {"source": "platsbanken", "count": 500},
+            {"source": "remoteok", "count": 120},
+        ],
+    )
+
+    resp = await _request("GET", "/api/v1/jobs/sources")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body == [
+        {"source": "platsbanken", "count": 500},
+        {"source": "remoteok", "count": 120},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_list_job_sources_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(jobs_endpoint.crud_job, "list_sources", lambda db: [])
+
+    resp = await _request("GET", "/api/v1/jobs/sources")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+@pytest.mark.asyncio
+async def test_list_job_sources_requires_auth() -> None:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/api/v1/jobs/sources")
+    assert resp.status_code == 401
+
+
+# ------------------------------------------------------------------
 # GET /jobs/{job_id}
 # ------------------------------------------------------------------
 

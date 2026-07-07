@@ -1,7 +1,7 @@
 import { BookmarkIcon as BookmarkOutline } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolid, MapPinIcon, CurrencyDollarIcon, BriefcaseIcon } from '@heroicons/react/24/solid'
 import type { DiscoveredJob } from '../../types/jobDiscovery'
-import { SOURCE_LABELS } from '../../types/jobDiscovery'
+import { sourceLabel } from '../../types/jobDiscovery'
 import { formatRelativeDate } from '../../utils/formatters'
 
 interface Props {
@@ -117,7 +117,7 @@ export default function JobCard({ job, onClick, onSave }: Props) {
         <span className="rounded-full bg-surface-strong px-2 py-0.5 text-fg-subtle">
           {formatRelativeDate(job.scraped_at)}
         </span>
-        <span className="ml-auto text-fg-subtle">{SOURCE_LABELS[job.source] ?? job.source}</span>
+        <span className="ml-auto text-fg-subtle">{sourceLabel(job.source)}</span>
       </div>
 
       {/* Score bars — only render when sub-scores exist */}
