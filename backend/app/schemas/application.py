@@ -15,6 +15,21 @@ ApplicationStatus = Literal[
 ]
 
 
+class DuplicateApplicationInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    company_name: str
+    job_title: str
+    status: str
+    created_at: datetime
+
+
+class DuplicateCheckResponse(BaseModel):
+    duplicate: bool
+    application: DuplicateApplicationInfo | None = None
+
+
 class ApplicationEventCreate(BaseModel):
     event_type: str
     old_value: str | None = None

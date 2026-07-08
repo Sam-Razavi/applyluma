@@ -172,6 +172,19 @@ export default function Discover() {
     }, 350)
   }
 
+  function filterBySkill(skill: string) {
+    const current = filtersRef.current.keywords
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean)
+    if (!current.some((k) => k.toLowerCase() === skill.toLowerCase())) {
+      current.push(skill)
+    }
+    setSelectedJobId(null)
+    applyFilters({ ...filtersRef.current, keywords: current.join(', ') })
+    toast.success(`Filtering by "${skill}"`)
+  }
+
   function loadMore() {
     const next = page + 1
     setPage(next)
@@ -381,6 +394,7 @@ export default function Discover() {
                 ),
               )
             }}
+            onSkillClick={filterBySkill}
           />
         </>
       )}

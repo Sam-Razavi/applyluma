@@ -147,6 +147,64 @@ async def test_create_application(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_check_duplicate_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: dict[str, Any] = {}
+
+    def mock_find(db, user_id, company_name):
+        calls.update(user_id=user_id, company_name=company_name)
+        return SimpleNamespace(
+            id=APPLICATION_ID,
+            company_name="Spotify",
+            job_title="Backend Engineer",
+            status="applied",
+            created_at=CREATED_AT,
+        )
+
+    monkeypatch.setattr(applications_endpoint.crud_application, "find_open_duplicate", mock_find)
+
+    response = await request(
+        "GET",
+        "/api/v1/applications/check-duplicate?company=Spotify",
+        current_user=user(),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["duplicate"] is True
+    assert body["application"]["job_title"] == "Backend Engineer"
+    assert body["application"]["status"] == "applied"
+    assert calls == {"user_id": USER_ID, "company_name": "Spotify"}
+
+
+@pytest.mark.asyncio
+async def test_check_duplicate_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        applications_endpoint.crud_application,
+        "find_open_duplicate",
+        lambda db, user_id, company_name: None,
+    )
+
+    response = await request(
+        "GET",
+        "/api/v1/applications/check-duplicate?company=Nowhere",
+        current_user=user(),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"duplicate": False, "application": None}
+
+
+@pytest.mark.asyncio
+async def test_check_duplicate_requires_company_param() -> None:
+    response = await request(
+        "GET",
+        "/api/v1/applications/check-duplicate",
+        current_user=user(),
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_list_applications_with_status_filter(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: dict[str, Any] = {}
 

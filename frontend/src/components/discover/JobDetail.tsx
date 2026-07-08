@@ -25,6 +25,7 @@ interface Props {
   onClose: () => void
   onSave: (jobId: string) => void
   onApplicationCreated?: (jobId: string, applicationId: string, status: string) => void
+  onSkillClick?: (skill: string) => void
 }
 
 function Pill({ text, color }: { text: string; color: string }) {
@@ -39,6 +40,7 @@ export default function JobDetail({
   onClose,
   onSave,
   onApplicationCreated,
+  onSkillClick,
 }: Props) {
   const navigate = useNavigate()
   const [job, setJob] = useState<DiscoveredJobDetail | null>(null)
@@ -188,6 +190,7 @@ export default function JobDetail({
             <SkillsBreakdown
               matchedSkills={job.matched_skills}
               missingSkills={job.missing_skills}
+              onSkillClick={onSkillClick}
             />
 
             {/* Description */}

@@ -53,4 +53,27 @@ describe('SkillsBreakdown', () => {
       expect(writeText).toHaveBeenCalledWith('Docker')
     })
   })
+
+  it('calls onSkillClick when a matched skill pill is clicked', () => {
+    const onSkillClick = vi.fn()
+    render(
+      <SkillsBreakdown matchedSkills={['Python']} missingSkills={[]} onSkillClick={onSkillClick} />,
+    )
+    fireEvent.click(screen.getByText('Python'))
+    expect(onSkillClick).toHaveBeenCalledWith('Python')
+  })
+
+  it('calls onSkillClick instead of copying when a missing skill pill is clicked', () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+    const onSkillClick = vi.fn()
+
+    render(
+      <SkillsBreakdown matchedSkills={[]} missingSkills={['Docker']} onSkillClick={onSkillClick} />,
+    )
+    fireEvent.click(screen.getByText('Docker'))
+
+    expect(onSkillClick).toHaveBeenCalledWith('Docker')
+    expect(writeText).not.toHaveBeenCalled()
+  })
 })
