@@ -90,6 +90,35 @@ Mobile UX enhancement pass improves frontend responsiveness and interaction poli
     38 passed, `npm run build` passed. Bundle gzip increased by about 38.6 kB,
     within the mobile plan target.
 
+Mobile modal/drawer buttons hidden behind MobileNav — root-caused and fixed for
+good in July 2026 (PR branch `fix/applications-mobile-modal-buttons`), after an
+earlier partial fix (commit `24c8ac8`, "stop card overflow and unreachable
+buttons") left it recurring on the Applications page:
+  - Root cause: every Headless UI `Dialog` in the app used `z-50`, but
+    `MobileNav` (`fixed bottom-0`) is `z-[100]`. Any bottom-anchored dialog
+    footer (e.g. `ApplicationDrawer`'s Save/Delete row) sits in the same
+    screen region as the nav and rendered underneath it — invisible and
+    untappable — on phones.
+  - Fix: added a semantic `zIndex` scale in `tailwind.config.js` —
+    `z-nav` (100, matches `MobileNav`), `z-modal` (110, any Dialog that must
+    sit above the nav), `z-modal-nested` (120, confirm dialogs opened from
+    inside another modal, e.g. delete confirmation inside a drawer). Applied
+    to `MobileNav.tsx`, `ApplicationDrawer.tsx`, `AddApplicationModal.tsx`,
+    and the shared `ConfirmDialog.tsx`. Footers also gained
+    `padding-bottom: max(1rem, env(safe-area-inset-bottom))` so buttons clear
+    the home-indicator/gesture-bar area on notched phones, and close (X)
+    buttons got a visible background chip + larger icon for contrast.
+  - Verified with real DOM measurement at a true 390×844 mobile viewport
+    (`elementFromPoint` hit-testing on the Save/Delete/Close buttons — see
+    "iframe-at-390px verification trick" for how to get a real mobile
+    viewport when `resize_window` fails on a maximized Chrome window).
+  - Other `z-50` dialogs in the app (Settings, CVs, Jobs, AdminUsers,
+    VersionDiffViewer) were left untouched — they either use a different,
+    already-working clearance strategy (`pb-24` wrapper padding, e.g.
+    `JobDetail.tsx`/`SearchJobDetail.tsx`) or haven't been reported broken.
+    Any NEW bottom-anchored dialog should use `z-modal` (or `z-modal-nested`
+    if it can be opened from inside another dialog) rather than bare `z-50`.
+
 Jobs Discovery Gap-fill & Search delivered in June 2026:
   - Backend `search` param on `GET /api/v1/jobs` (title/company ILIKE, debounced 350ms).
   - Skill-gap analysis in job detail: `matched_skills` / `missing_skills` populated via

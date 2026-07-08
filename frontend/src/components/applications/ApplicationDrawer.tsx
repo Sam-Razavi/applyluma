@@ -123,11 +123,11 @@ export default function ApplicationDrawer() {
 
   return (
     <>
-      <Dialog open={!!application} onClose={() => setSelected(null)} className="relative z-50">
+      <Dialog open={!!application} onClose={() => setSelected(null)} className="relative z-modal">
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 flex max-h-[92vh] sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:max-w-full">
           <DialogPanel className="flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-raised shadow-2xl sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none">
-          <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
+          <div className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-line px-6 py-5">
             <div className="min-w-0">
               <DialogTitle className="truncate text-lg font-semibold text-fg">
                 {application.job_title}
@@ -138,9 +138,9 @@ export default function ApplicationDrawer() {
               type="button"
               onClick={() => setSelected(null)}
               aria-label="Close"
-              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-strong hover:text-fg-muted"
+              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-surface text-fg-muted transition hover:bg-surface-strong hover:text-fg"
             >
-              <XMarkIcon className="h-4 w-4" />
+              <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
 
@@ -314,7 +314,10 @@ export default function ApplicationDrawer() {
             </section>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-line px-6 py-4">
+          <div
+            className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-line bg-raised px-6 pt-4"
+            style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+          >
             <button
               type="button"
               onClick={() => setDeleteConfirmOpen(true)}

@@ -23,7 +23,7 @@ export default function ConfirmDialog({
   onConfirm,
 }: Props) {
   return (
-    <Dialog open={open} onClose={() => !loading && onCancel()} className="relative z-50">
+    <Dialog open={open} onClose={() => !loading && onCancel()} className="relative z-modal-nested">
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel className="w-full max-w-sm rounded-2xl border border-line bg-raised p-6 shadow-2xl">

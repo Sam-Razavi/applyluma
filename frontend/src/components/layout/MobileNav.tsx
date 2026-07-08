@@ -37,7 +37,7 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[100] flex md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-nav flex md:hidden"
       style={{
         background: 'var(--nav-bg)',
         backdropFilter: 'blur(14px)',
