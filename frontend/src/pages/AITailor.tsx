@@ -18,6 +18,7 @@ import toast from 'react-hot-toast'
 import { IntensitySelector } from '../components/tailor/IntensitySelector'
 import { SectionDiff } from '../components/tailor/SectionDiff'
 import { TailorSummary } from '../components/tailor/TailorSummary'
+import { TemplatePicker } from '../components/tailor/TemplatePicker'
 import { cvApi, jobApi } from '../services/api'
 import { coverLetterApi } from '../services/coverLetterApi'
 import { createApplication } from '../services/applicationsApi'
@@ -25,7 +26,7 @@ import { fetchJobDetail } from '../services/jobDiscoveryApi'
 import { tailorApi } from '../services/tailorApi'
 import type { CV, JobDescription } from '../types'
 import type { DiscoveredJobDetail } from '../types/jobDiscovery'
-import type { TailorIntensity, TailorPreview, TailorUsage } from '../types/tailor'
+import type { CvTemplateId, TailorIntensity, TailorPreview, TailorUsage } from '../types/tailor'
 import type { CoverLetterJob, CoverLetterTone, CoverLetterUsage } from '../types/coverLetter'
 
 type Step = 'select' | 'processing' | 'review' | 'done'
@@ -70,6 +71,7 @@ export default function AITailor() {
   const [editedContent, setEditedContent] = useState<Map<string, string>>(new Map())
   const [sectionOrder, setSectionOrder] = useState<string[]>([])
   const [cvTitle, setCvTitle] = useState('')
+  const [templateId, setTemplateId] = useState<CvTemplateId>('nordic')
   const [savedCvId, setSavedCvId] = useState<string | null>(null)
   const [savedCvTitle, setSavedCvTitle] = useState('')
 
@@ -285,6 +287,7 @@ export default function AITailor() {
           cvTitle || undefined,
           Object.keys(overrides).length > 0 ? overrides : undefined,
           sectionOrder.length > 0 ? sectionOrder : undefined,
+          templateId,
         )
         setSavedCvId(result.cv_id)
         setSavedCvTitle(result.title)
@@ -315,6 +318,7 @@ export default function AITailor() {
     setEditedContent(new Map())
     setSectionOrder([])
     setCvTitle('')
+    setTemplateId('nordic')
     setSavedCvId(null)
     setSavedCvTitle('')
     setCoverJobId(null)
@@ -345,7 +349,7 @@ export default function AITailor() {
   async function handleDownloadCoverPdf() {
     if (!coverJobId) return
     try {
-      await coverLetterApi.download(coverJobId, coverTitle || 'cover-letter')
+      await coverLetterApi.download(coverJobId, coverTitle || 'cover-letter', templateId)
     } catch {
       toast.error('Could not download the cover letter PDF')
     }
@@ -470,6 +474,7 @@ export default function AITailor() {
               editedContent={editedContent}
               sectionOrder={sectionOrder}
               cvTitle={cvTitle}
+              templateId={templateId}
               coverText={coverText}
               coverTitle={coverTitle}
               saving={saving}
@@ -477,6 +482,7 @@ export default function AITailor() {
               onEditSection={editSection}
               onMove={moveSection}
               onCvTitleChange={setCvTitle}
+              onTemplateChange={setTemplateId}
               onCoverTextChange={setCoverText}
               onCoverTitleChange={setCoverTitle}
               onCopy={handleCopy}
@@ -896,6 +902,7 @@ interface ReviewStepProps {
   editedContent: Map<string, string>
   sectionOrder: string[]
   cvTitle: string
+  templateId: CvTemplateId
   coverText: string
   coverTitle: string
   saving: boolean
@@ -903,6 +910,7 @@ interface ReviewStepProps {
   onEditSection: (id: string, text: string) => void
   onMove: (id: string, direction: -1 | 1) => void
   onCvTitleChange: (value: string) => void
+  onTemplateChange: (value: CvTemplateId) => void
   onCoverTextChange: (value: string) => void
   onCoverTitleChange: (value: string) => void
   onCopy: () => void
@@ -918,6 +926,7 @@ function ReviewStep({
   editedContent,
   sectionOrder,
   cvTitle,
+  templateId,
   coverText,
   coverTitle,
   saving,
@@ -925,6 +934,7 @@ function ReviewStep({
   onEditSection,
   onMove,
   onCvTitleChange,
+  onTemplateChange,
   onCoverTextChange,
   onCoverTitleChange,
   onCopy,
@@ -970,6 +980,14 @@ function ReviewStep({
                 isLast={idx === orderedSections.length - 1}
               />
             ))}
+          </div>
+
+          <div className="rounded-2xl border border-line bg-surface p-5">
+            <h3 className="text-sm font-semibold text-fg">PDF template</h3>
+            <p className="mb-3 mt-0.5 text-xs text-fg-subtle">
+              The design applied to the saved CV and the cover letter PDF.
+            </p>
+            <TemplatePicker value={templateId} onChange={onTemplateChange} />
           </div>
 
           <div className="rounded-2xl border border-line bg-surface p-5">

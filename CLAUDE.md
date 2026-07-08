@@ -164,6 +164,15 @@ Structured CV Tailoring & Templates delivered in July 2026 (branch
     `cv_render.is_available()` is False and everything falls back to the
     legacy ReportLab renderer. The 2 real-PDF tests skip locally and were
     verified inside the Docker image.
+  - Template picker UI: `TemplatePicker.tsx` in the AI Tailor review step
+    (mini CSS thumbnails, `CvTemplateId` type); the choice is sent as
+    `template_id` on CV save and as the `?template=` query param on cover
+    letter download.
+  - Cover letters render through the matching template family
+    (`cover_nordic.html` / `cover_classic.html`) with the candidate
+    letterhead extracted from the CV contact block;
+    `GET /cover-letters/{id}/download?template=` falls back to the legacy
+    ReportLab renderer when WeasyPrint or a contact block is missing.
 
 Also shipped and easy to miss (verified 2026-07-08):
   - Stripe billing: checkout, webhook, and customer-portal endpoints

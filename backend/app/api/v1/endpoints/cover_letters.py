@@ -22,7 +22,9 @@ from app.schemas.cover_letter import (
     CoverLetterSubmitRequest,
     CoverLetterUsageResponse,
 )
+from app.services import cv_render
 from app.services.pdf_generator import generate_cover_letter_pdf
+from app.services.tailor_service import _extract_contact_information
 from app.tasks.cover_letter import run_cover_letter
 
 router = APIRouter(prefix="/cover-letters", tags=["cover-letters"])
@@ -176,6 +178,7 @@ def download_cover_letter(
     job_id: uuid.UUID,
     current_user: CurrentUser,
     db: DbSession,
+    template: str | None = None,
 ) -> FileResponse:
     job = crud_cl.get_by_id(db, job_id, current_user.id)
     if not job:
@@ -184,6 +187,12 @@ def download_cover_letter(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Job is not complete (status: {job.status.value})",
+        )
+    if template and template not in cv_render.COVER_TEMPLATES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unknown template '{template}'. "
+            f"Available: {', '.join(sorted(cv_render.COVER_TEMPLATES))}",
         )
     text = job.saved_text or job.generated_text
     if not text or not text.strip():
@@ -194,7 +203,27 @@ def download_cover_letter(
     user_dir = Path(settings.STORAGE_DIR) / "cover_letters" / str(current_user.id)
     user_dir.mkdir(parents=True, exist_ok=True)
     file_path = user_dir / f"{uuid.uuid4()}_cover_letter.pdf"
-    generate_cover_letter_pdf(text, file_path, title=job.title)
+
+    # Render through the matching CV template family (candidate letterhead from
+    # the CV contact block); fall back to the legacy ReportLab renderer when
+    # WeasyPrint is unavailable or the CV has no extractable contact block.
+    contact_text = ""
+    if cv_render.is_available() and job.cv_id:
+        cv = crud_cv.get_by_id(db, job.cv_id, current_user.id)
+        if cv and cv.content:
+            contact_text = _extract_contact_information(cv.content)
+    if contact_text:
+        context = cv_render.build_cover_letter_context(
+            text,
+            title=job.title,
+            contact_text=contact_text,
+            language=job.language or "en",
+        )
+        cv_render.render_cover_letter_pdf(
+            context, file_path, template or cv_render.DEFAULT_TEMPLATE
+        )
+    else:
+        generate_cover_letter_pdf(text, file_path, title=job.title)
 
     download_name = f"{job.title or 'cover-letter'}.pdf"
     return FileResponse(path=str(file_path), media_type="application/pdf", filename=download_name)

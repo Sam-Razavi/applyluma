@@ -20,6 +20,10 @@ TEMPLATES: dict[str, str] = {
     "nordic": "nordic.html",
     "classic": "classic.html",
 }
+COVER_TEMPLATES: dict[str, str] = {
+    "nordic": "cover_nordic.html",
+    "classic": "cover_classic.html",
+}
 DEFAULT_TEMPLATE = "nordic"
 
 
@@ -67,5 +71,22 @@ def count_pages(context: dict, template_id: str = DEFAULT_TEMPLATE) -> int:
 def render_pdf(context: dict, output_path: Path, template_id: str = DEFAULT_TEMPLATE) -> int:
     """Write the PDF and return its page count."""
     document = _render_document(context, template_id)
+    document.write_pdf(str(output_path))
+    return len(document.pages)
+
+
+def render_cover_letter_html(context: dict, template_id: str = DEFAULT_TEMPLATE) -> str:
+    template_file = COVER_TEMPLATES.get(template_id) or COVER_TEMPLATES[DEFAULT_TEMPLATE]
+    return _jinja_env().get_template(template_file).render(**context)
+
+
+def render_cover_letter_pdf(
+    context: dict, output_path: Path, template_id: str = DEFAULT_TEMPLATE
+) -> int:
+    weasyprint = _weasyprint()
+    if weasyprint is None:
+        raise RuntimeError("WeasyPrint is not available in this environment")
+    html = render_cover_letter_html(context, template_id)
+    document = weasyprint.HTML(string=html, base_url=str(_TEMPLATE_DIR)).render()
     document.write_pdf(str(output_path))
     return len(document.pages)

@@ -402,6 +402,7 @@ async def test_download_returns_pdf(monkeypatch: pytest.MonkeyPatch, tmp_path: P
         output_path.write_bytes(b"%PDF-1.4 stub")
 
     monkeypatch.setattr(cl_endpoint, "generate_cover_letter_pdf", fake_pdf)
+    monkeypatch.setattr(cl_endpoint.cv_render, "is_available", lambda: False)
 
     response = await request("GET", f"/api/v1/cover-letters/{JOB_ID}/download", current_user=stub_user())
 
@@ -410,6 +411,77 @@ async def test_download_returns_pdf(monkeypatch: pytest.MonkeyPatch, tmp_path: P
     # Saved (edited) text takes precedence over the raw generated text.
     assert captured["text"] == "Dear Hiring Manager, edited version..."
     assert captured["title"] == "Cover letter for Acme"
+
+
+@pytest.mark.asyncio
+async def test_download_renders_through_cover_template(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(cl_endpoint.settings, "STORAGE_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        cl_endpoint.crud_cl,
+        "get_by_id",
+        lambda db, job_id, user_id: stub_job(
+            CoverLetterStatus.complete,
+            generated_text="Dear Hiring Manager,\n\nFirst paragraph.\n\nKind regards,\nSam",
+            title="Cover letter for Acme",
+        ),
+    )
+    monkeypatch.setattr(
+        cl_endpoint.crud_cv,
+        "get_by_id",
+        lambda db, cv_id, user_id: SimpleNamespace(
+            content="Sam Developer\nsam@example.com\n+46 70 123 4567"
+        ),
+    )
+    monkeypatch.setattr(cl_endpoint.cv_render, "is_available", lambda: True)
+
+    rendered: dict[str, Any] = {}
+
+    def fake_render(context: dict, output_path: Path, template_id: str = "nordic") -> int:
+        rendered["context"] = context
+        rendered["template_id"] = template_id
+        output_path.write_bytes(b"%PDF-1.4 stub")
+        return 1
+
+    monkeypatch.setattr(cl_endpoint.cv_render, "render_cover_letter_pdf", fake_render)
+
+    response = await request(
+        "GET",
+        f"/api/v1/cover-letters/{JOB_ID}/download?template=classic",
+        current_user=stub_user(),
+    )
+
+    assert response.status_code == 200
+    assert rendered["template_id"] == "classic"
+    assert rendered["context"]["header"]["full_name"] == "Sam Developer"
+    assert rendered["context"]["header"]["contact_bits"] == [
+        "sam@example.com",
+        "+46 70 123 4567",
+    ]
+    assert rendered["context"]["title"] == "Cover letter for Acme"
+    assert rendered["context"]["paragraphs"][0] == ["Dear Hiring Manager,"]
+    assert rendered["context"]["paragraphs"][-1] == ["Kind regards,", "Sam"]
+
+
+@pytest.mark.asyncio
+async def test_download_rejects_unknown_template(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        cl_endpoint.crud_cl,
+        "get_by_id",
+        lambda db, job_id, user_id: stub_job(
+            CoverLetterStatus.complete, generated_text="Dear Hiring Manager..."
+        ),
+    )
+
+    response = await request(
+        "GET",
+        f"/api/v1/cover-letters/{JOB_ID}/download?template=sparkly",
+        current_user=stub_user(),
+    )
+
+    assert response.status_code == 422
+    assert "Unknown template" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

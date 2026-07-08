@@ -205,3 +205,35 @@ def build_render_context(
         "header": header,
         "blocks": blocks,
     }
+
+
+def build_cover_letter_context(
+    text: str,
+    *,
+    title: str | None = None,
+    contact_text: str = "",
+    language: str = "en",
+) -> dict:
+    """
+    Context for the cover letter templates: candidate letterhead from the CV's
+    contact block, plus the letter body split into paragraphs on blank lines
+    (intra-paragraph line breaks preserved).
+    """
+    contact_lines = [ln.strip() for ln in contact_text.splitlines() if ln.strip()]
+    header = {
+        "full_name": contact_lines[0] if contact_lines else "",
+        "contact_bits": contact_lines[1:],
+    }
+
+    paragraphs: list[list[str]] = []
+    for block in re.split(r"\n\s*\n", (text or "").strip()):
+        lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
+        if lines:
+            paragraphs.append(lines)
+
+    return {
+        "language": language,
+        "header": header,
+        "title": (title or "").strip(),
+        "paragraphs": paragraphs,
+    }

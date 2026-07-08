@@ -201,6 +201,42 @@ class TestRenderHtml:
         assert "Utbildning" in html
 
 
+class TestCoverLetterRender:
+    LETTER = (
+        "Dear Hiring Team,\n\n"
+        "I am excited to apply for the Backend Engineer role at Acme.\n\n"
+        "Kind regards,\nSam Developer"
+    )
+
+    def test_context_splits_paragraphs_and_letterhead(self) -> None:
+        context = cv_render.build_cover_letter_context(
+            self.LETTER,
+            title="Application for Backend Engineer",
+            contact_text="Sam Developer\nsam@example.com\n+46 70 123 4567",
+        )
+        assert context["header"]["full_name"] == "Sam Developer"
+        assert context["header"]["contact_bits"] == ["sam@example.com", "+46 70 123 4567"]
+        assert len(context["paragraphs"]) == 3
+        assert context["paragraphs"][2] == ["Kind regards,", "Sam Developer"]
+
+    @pytest.mark.parametrize("template_id", sorted(cv_render.COVER_TEMPLATES))
+    def test_cover_templates_render_all_content(self, template_id: str) -> None:
+        context = cv_render.build_cover_letter_context(
+            self.LETTER,
+            title="Application for Backend Engineer",
+            contact_text="Sam Developer\nsam@example.com",
+        )
+        html = cv_render.render_cover_letter_html(context, template_id)
+        for expected in (
+            "Sam Developer",
+            "sam@example.com",
+            "Application for Backend Engineer",
+            "Dear Hiring Team,",
+            "Kind regards,",
+        ):
+            assert expected in html, f"'{expected}' missing from {template_id} cover template"
+
+
 @pytest.mark.skipif(not cv_render.is_available(), reason="WeasyPrint native libs not installed")
 class TestRenderPdf:
     def test_pdf_written_with_page_count(self, tmp_path: Path) -> None:

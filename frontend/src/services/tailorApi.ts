@@ -1,5 +1,6 @@
 import client from '../api/client'
 import type {
+  CvTemplateId,
   TailorIntensity,
   TailorJob,
   TailorPreview,
@@ -54,6 +55,7 @@ export const tailorApi = {
     cvTitle?: string,
     sectionOverrides?: Record<string, string>,
     sectionOrder?: string[],
+    templateId?: CvTemplateId,
   ): Promise<{ cv_id: string; title: string; file_url: string | null }> =>
     client
       .post(`/api/v1/tailor/${jobId}/save`, {
@@ -61,6 +63,7 @@ export const tailorApi = {
         cv_title: cvTitle,
         section_overrides: sectionOverrides && Object.keys(sectionOverrides).length > 0 ? sectionOverrides : undefined,
         section_order: sectionOrder,
+        template_id: templateId,
       })
       .then((r) => r.data),
 
