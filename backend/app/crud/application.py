@@ -118,6 +118,23 @@ def _hydrate_from_raw_job(
     return hydrated
 
 
+_CLOSED_STATUSES = ("rejected", "withdrawn")
+
+
+def find_open_duplicate(db: Session, user_id: uuid.UUID, company_name: str) -> Application | None:
+    """Return the user's most recent open application for the given company, if any."""
+    return (
+        db.query(Application)
+        .filter(
+            Application.user_id == user_id,
+            func.lower(Application.company_name) == company_name.strip().lower(),
+            Application.status.notin_(_CLOSED_STATUSES),
+        )
+        .order_by(Application.created_at.desc())
+        .first()
+    )
+
+
 def get_applications(
     db: Session,
     user_id: uuid.UUID,

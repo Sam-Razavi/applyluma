@@ -5,6 +5,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { jobApi } from '../../services/api'
+import { checkDuplicateApplication } from '../../services/applicationsApi'
 import { useApplicationsStore } from '../../stores/applications'
 import type { ApplicationCreate, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
@@ -71,12 +72,14 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  const [duplicateOf, setDuplicateOf] = useState<{ jobTitle: string; status: string } | null>(null)
 
   useEffect(() => {
     if (open) {
       setForm(buildInitialForm(initialData))
       setImportUrl('')
       setImportError(null)
+      setDuplicateOf(null)
     }
   }, [initialData, open])
 
@@ -144,10 +147,30 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
     }
 
     setSubmitting(true)
+
+    // Warn once if an open application for this company already exists;
+    // a second submit ("Add anyway") skips the check and proceeds.
+    if (!duplicateOf) {
+      try {
+        const check = await checkDuplicateApplication(companyName)
+        if (check.duplicate && check.application) {
+          setDuplicateOf({
+            jobTitle: check.application.job_title,
+            status: check.application.status,
+          })
+          setSubmitting(false)
+          return
+        }
+      } catch {
+        // If the check itself fails, don't block creating the application.
+      }
+    }
+
     try {
       await createApplication(payload)
       toast.success('Application added')
       setForm(initialForm)
+      setDuplicateOf(null)
       onClose()
     } catch {
       toast.error('Could not create application')
@@ -157,6 +180,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
   }
 
   function setField<K extends keyof ApplicationCreate>(field: K, value: ApplicationCreate[K]) {
+    if (field === 'company_name') setDuplicateOf(null)
     setForm((current) => ({ ...current, [field]: value }))
   }
 
@@ -355,6 +379,18 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
                 placeholder="Recruiter notes, next steps, or context."
               />
             </Field>
+
+            {duplicateOf && (
+              <div
+                role="alert"
+                className="rounded-lg border border-chip-warn bg-chip-warn px-4 py-3 text-sm text-chip-warn-fg"
+              >
+                You already have an open application at{' '}
+                <span className="font-semibold">{form.company_name}</span>:{' '}
+                &ldquo;{duplicateOf.jobTitle}&rdquo; ({duplicateOf.status.replace('_', ' ')}).
+                Click &ldquo;Add anyway&rdquo; if this is a different role.
+              </div>
+            )}
           </form>
 
           <div className="flex flex-shrink-0 justify-end gap-2 border-t border-line px-6 py-4">
@@ -372,7 +408,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
               disabled={submitting}
               className="rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
             >
-              {submitting ? 'Saving...' : 'Save application'}
+              {submitting ? 'Saving...' : duplicateOf ? 'Add anyway' : 'Save application'}
             </button>
           </div>
         </DialogPanel>

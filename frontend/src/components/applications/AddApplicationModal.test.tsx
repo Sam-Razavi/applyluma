@@ -3,8 +3,23 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import AddApplicationModal from './AddApplicationModal'
 import { jobApi } from '../../services/api'
 
+const { mockCheckDuplicate, mockCreateApplication } = vi.hoisted(() => ({
+  mockCheckDuplicate: vi.fn(),
+  mockCreateApplication: vi.fn(),
+}))
+
 vi.mock('../../services/api', () => ({
   jobApi: { scrapeUrl: vi.fn() },
+}))
+
+vi.mock('../../services/applicationsApi', () => ({
+  checkDuplicateApplication: mockCheckDuplicate,
+}))
+
+vi.mock('../../stores/applications', () => ({
+  useApplicationsStore: (
+    selector: (state: { createApplication: typeof mockCreateApplication }) => unknown,
+  ) => selector({ createApplication: mockCreateApplication }),
 }))
 
 vi.mock('react-hot-toast', () => ({
@@ -105,5 +120,75 @@ describe('AddApplicationModal — import from URL', () => {
         screen.getByText('Could not extract job details from that URL'),
       ).toBeInTheDocument()
     })
+  })
+})
+
+describe('AddApplicationModal — duplicate warning', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function fillRequiredFields() {
+    fireEvent.change(screen.getByPlaceholderText('Spotify'), { target: { value: 'Acme' } })
+    fireEvent.change(screen.getByPlaceholderText('Backend Engineer'), {
+      target: { value: 'Developer' },
+    })
+  }
+
+  const openDuplicate = {
+    duplicate: true,
+    application: {
+      id: '1',
+      company_name: 'Acme',
+      job_title: 'Old role',
+      status: 'applied',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  }
+
+  it('warns instead of creating when an open application for the company exists', async () => {
+    mockCheckDuplicate.mockResolvedValue(openDuplicate)
+    renderModal()
+    fillRequiredFields()
+    fireEvent.click(screen.getByRole('button', { name: 'Save application' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Old role')
+    expect(mockCreateApplication).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Add anyway' })).toBeInTheDocument()
+  })
+
+  it('creates on second submit after the warning is shown', async () => {
+    mockCheckDuplicate.mockResolvedValue(openDuplicate)
+    mockCreateApplication.mockResolvedValue(undefined)
+    renderModal()
+    fillRequiredFields()
+    fireEvent.click(screen.getByRole('button', { name: 'Save application' }))
+    await screen.findByRole('alert')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add anyway' }))
+    await waitFor(() => expect(mockCreateApplication).toHaveBeenCalledTimes(1))
+  })
+
+  it('clears the warning when the company name changes', async () => {
+    mockCheckDuplicate.mockResolvedValue(openDuplicate)
+    renderModal()
+    fillRequiredFields()
+    fireEvent.click(screen.getByRole('button', { name: 'Save application' }))
+    await screen.findByRole('alert')
+
+    fireEvent.change(screen.getByPlaceholderText('Spotify'), { target: { value: 'OtherCo' } })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save application' })).toBeInTheDocument()
+  })
+
+  it('creates directly when no duplicate exists', async () => {
+    mockCheckDuplicate.mockResolvedValue({ duplicate: false, application: null })
+    mockCreateApplication.mockResolvedValue(undefined)
+    renderModal()
+    fillRequiredFields()
+    fireEvent.click(screen.getByRole('button', { name: 'Save application' }))
+
+    await waitFor(() => expect(mockCreateApplication).toHaveBeenCalledTimes(1))
+    expect(mockCheckDuplicate).toHaveBeenCalledWith('Acme')
   })
 })

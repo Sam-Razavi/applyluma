@@ -7,10 +7,10 @@ Tick them off as they get built.
 
 ## Application Tracking
 
-- [ ] **Duplicate application warning**
-  When a user adds a new application, warn if an open application for the
-  same company already exists. Backend check on `POST /applications` +
-  a dismissible modal on the frontend.
+- [x] **Duplicate application warning**
+  `GET /applications/check-duplicate?company=X` reports an existing open
+  application (any status except rejected/withdrawn); the add-application
+  modal warns once and the second submit ("Add anyway") proceeds.
 
 - [ ] **Follow-up reminder**
   Add an optional `follow_up_date` field to applications. A daily Celery
@@ -67,9 +67,10 @@ Tick them off as they get built.
   Built in `Discover.tsx`: last 5 searches persisted in `localStorage`
   and shown as quick-chips on the search tab.
 
-- [ ] **Keyword tag filtering on Discover**
-  Clicking a skill tag inside a job detail should add it as a filter in
-  the JobFilters sidebar, narrowing the feed instantly.
+- [x] **Keyword tag filtering on Discover**
+  Skill pills in the job detail (SkillsBreakdown) are clickable in the
+  Discover feed: clicking adds the skill to the keywords filter, closes
+  the modal, and reloads the feed.
 
 ---
 
