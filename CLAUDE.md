@@ -26,7 +26,7 @@ ApplyLuma repository.
 - Browser Extension: ✅ COMPLETE — MV3 Chrome/Firefox extension
 - Admin Dashboard / Pipeline Health: ✅ COMPLETE — /admin pages incl. pipeline health
 - Job Sources & Dedupe (July 2026): ✅ COMPLETE — RemoteOK source, dynamic source
-  filter, cross-source rolling-window dedupe
+  filter, cross-source rolling-window dedupe, "Hide applied jobs" Discover filter
 
 Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Celery worker tailors CV sections against a job description using OpenAI.
@@ -37,8 +37,8 @@ Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Alembic migrations for tailor_jobs table and user role column included.
 
 Phase 10A delivered Swedish job discovery end-to-end:
-  - Airflow scrapes job boards daily at 2 AM UTC. Production sources in DB:
-    `JobSearch API`, `the_muse`, `remotive`.
+  - Airflow scrapes job boards daily at 2 AM UTC. (Sources listed here are
+    historical — see the Job Sources & Dedupe section for the current set.)
   - AI match scoring compares each job against the user's CV (skills, experience,
     salary, education, location) and caches results in Redis (24h TTL).
   - Keyword extraction (technical skills, frameworks, tools, soft skills, languages,
@@ -131,6 +131,24 @@ Job Sources & Dedupe delivered in July 2026:
     today's rows are ever marked by the daily run.
   - `scripts/backfill_duplicates.py` applies the same rule to historical rows
     (dry run by default, `--apply` to mark). Run once against Railway.
+  - "Hide applied jobs" filter: `hide_applied` param on `GET /api/v1/jobs`
+    (filters on the user-scoped Application join) plus a checkbox in the
+    Discover filters sidebar.
+
+Also shipped and easy to miss (verified 2026-07-08):
+  - Stripe billing: checkout, webhook, and customer-portal endpoints
+    (`endpoints/billing.py`) with Plans / BillingSuccess / BillingCancel pages.
+  - Google OAuth login (`endpoints/auth_google.py`, `/auth/callback` page).
+  - In-app notifications UI: `NotificationBell` + `NotificationList` with
+    mark-one/mark-all-read; high-match alert task writes notification rows.
+  - Cover letter generator: `cover_letter_service.py`, `endpoints/cover_letters.py`,
+    Celery task, history on the AI Tailor page.
+  - Application status timeline (`ApplicationEvent` rows rendered by
+    `ApplicationTimeline.tsx`) and client-side CSV export
+    (`frontend/src/utils/exportCsv.ts`) on the Applications page.
+  - Alembic migration chain currently ends at `0024_raw_job_application_deadline.py`;
+    expired jobs (deadline passed — Platsbanken has deadline data) are hidden
+    from the Discover feed via `_is_live_deadline_clause`.
 
 ## Git Workflow
 
@@ -354,14 +372,16 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Known Issues
 
-- 468 backend tests and 202 frontend tests passing as of 2026-07-07.
+- 470 backend tests and 204 frontend tests passing as of 2026-07-08.
 - `npm install` reported 2 moderate frontend dependency vulnerabilities; do not
   run `npm audit fix --force` casually because it can introduce breaking
   dependency upgrades.
 - GitHub CLI (`gh`) is not installed in the local Codex environment; use the
   GitHub connector or install `gh` for CLI-based PR workflows.
-- `job_market_metrics` table is stale (last row 2026-05-10); the dbt pipeline
-  that populates it has not run since the Airflow scraper sources changed.
+- `job_market_metrics` freshness depends on the `transform_jobs` DAG running in
+  Airflow. The aggregation code has no per-source coupling (verified 2026-07-08),
+  so any staleness is operational, not a code defect — check `/admin/pipeline`
+  for current status.
 
 ## Next Steps
 
@@ -370,10 +390,12 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
   charts, backed by read-only endpoints under `/api/v1/admin/pipeline/`.
 - Run `scripts/backfill_duplicates.py` once against Railway to mark historical
   cross-source duplicates (see Job Sources & Dedupe section).
-- Backlog: "hide already applied" filter on Discover, revive the stale
-  `job_market_metrics` dbt pipeline, job-expiry re-check task for Platsbanken ads,
-  in-app notification surface for high-match alerts, richer alert preferences,
-  additional Phase 10B edge-case tests, more items in `FEATURE_IDEAS.md`.
+- Backlog (verified open as of 2026-07-08): keyword tag filtering on Discover,
+  duplicate-application warning (same-company check), CV completeness score,
+  follow-up reminders, granular alert preferences, Platsbanken delisted-ad
+  re-check task, additional Phase 10B edge-case tests. `FEATURE_IDEAS.md`
+  checkboxes are the authoritative list — several items were confirmed built
+  and ticked on 2026-07-08.
 - Run the full test suite (`pytest`, `npm test`) before merging any new feature work.
 
 ## AI Development Guidelines
