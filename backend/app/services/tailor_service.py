@@ -214,6 +214,22 @@ numbers, or courses; all projects and education entries present; summary is
 55–85 words; bullets start with action verbs; contact details copied exactly.
 """
 
+_VERIFY_PROMPT = """\
+Now audit your own output against the CANDIDATE CV with zero tolerance, as a \
+strict fact-checker:
+1. Check EVERY bullet, summary sentence, headline claim, skill item, project \
+detail, education detail, and certification against the candidate CV text.
+2. REMOVE or REWORD anything the CV does not directly support: technologies \
+never mentioned; numbers, percentages, user counts, team sizes, or scale the \
+CV does not state verbatim; invented outcomes or achievements; inflated \
+seniority or titles; courses or certifications not named in the CV.
+3. Internships must still be labelled internships; personal or academic \
+projects must not read as employment.
+4. Do NOT add any new content, and do not change the language.
+Return the corrected JSON in the exact same schema. If a value is already \
+fully supported, keep it unchanged.
+"""
+
 _COMPRESS_PROMPT = """\
 The rendered CV exceeds two A4 pages. Reduce it without losing its strongest \
 evidence, and return the SAME JSON schema:
@@ -336,6 +352,67 @@ def _remove_fabricated_skills(structured: dict, cv_content: str) -> list[str]:
     return removed
 
 
+_NUMBER_TOKEN_RE = re.compile(r"\d+(?:[.,]\d+)*")
+
+
+def _source_number_tokens(cv_content: str) -> set[str]:
+    return {t.replace(",", "") for t in _NUMBER_TOKEN_RE.findall(cv_content)}
+
+
+def _unsupported_numbers(text: str, source_numbers: set[str]) -> list[str]:
+    return [
+        t for t in _NUMBER_TOKEN_RE.findall(text)
+        if t.replace(",", "") not in source_numbers
+    ]
+
+
+def _remove_unsupported_numbers(structured: dict, cv_content: str) -> list[str]:
+    """
+    Deterministic backstop against invented metrics: drop any bullet (and any
+    summary sentence) containing a number that appears nowhere in the source
+    CV. A quantified claim the candidate never made is worse than a shorter CV.
+    """
+    source_numbers = _source_number_tokens(cv_content)
+    removed: list[str] = []
+
+    for group_key in ("experience", "projects"):
+        for entry in structured.get(group_key) or []:
+            kept_bullets = []
+            for bullet in entry.get("bullets", []):
+                bad = _unsupported_numbers(bullet, source_numbers)
+                if bad:
+                    removed.extend(bad)
+                    changes = entry.get("changes")
+                    if isinstance(changes, list):
+                        changes.append(
+                            "Removed a bullet containing numbers not present in the "
+                            f"source CV: {', '.join(bad)}"
+                        )
+                else:
+                    kept_bullets.append(bullet)
+            entry["bullets"] = kept_bullets
+
+    summary = structured.get("summary")
+    if isinstance(summary, dict) and summary.get("tailored"):
+        sentences = re.split(r"(?<=[.!?])\s+", summary["tailored"])
+        kept_sentences = []
+        for sentence in sentences:
+            bad = _unsupported_numbers(sentence, source_numbers)
+            if bad:
+                removed.extend(bad)
+                changes = summary.get("changes")
+                if isinstance(changes, list):
+                    changes.append(
+                        "Removed a summary sentence containing numbers not present "
+                        f"in the source CV: {', '.join(bad)}"
+                    )
+            else:
+                kept_sentences.append(sentence)
+        summary["tailored"] = " ".join(kept_sentences).strip()
+
+    return removed
+
+
 _PHONE_STRIP_RE = re.compile(r"[^\d+]")
 _LINK_STRIP_RE = re.compile(r"^https?://(www\.)?|/$", re.IGNORECASE)
 
@@ -382,6 +459,7 @@ def _call_openai(client: OpenAI, messages: list[dict]) -> str:
         response = client.chat.completions.create(
             model="gpt-4o",
             max_tokens=16384,
+            temperature=0.2,
             response_format={"type": "json_schema", "json_schema": cv_render.CV_RESPONSE_SCHEMA},
             messages=messages,
         )
@@ -404,6 +482,7 @@ def _postprocess(structured: dict, cv_content: str, fallback_language: str) -> d
     structured["language"] = structured.get("language") or fallback_language
     _validate_header(structured, cv_content)
     _remove_fabricated_skills(structured, cv_content)
+    _remove_unsupported_numbers(structured, cv_content)
     return structured
 
 
@@ -446,7 +525,23 @@ def tailor_cv(
 
     client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=120.0)
     raw = _call_openai(client, messages)
-    structured = _postprocess(_parse_structured(raw), cv_content, jd_language)
+    structured = _parse_structured(raw)
+
+    # Mandatory self-audit pass: the model re-checks every claim against the
+    # source CV and strips anything unsupported before we accept the result.
+    base_messages = messages
+    try:
+        verify_messages = messages + [
+            {"role": "assistant", "content": raw},
+            {"role": "user", "content": _VERIFY_PROMPT},
+        ]
+        verified_raw = _call_openai(client, verify_messages)
+        structured = _parse_structured(verified_raw)
+        raw, base_messages = verified_raw, verify_messages
+    except ValueError:
+        pass  # fall back to the unaudited result; deterministic guards still run
+
+    structured = _postprocess(structured, cv_content, jd_language)
 
     contact_text = _extract_contact_information(cv_content)
 
@@ -454,7 +549,7 @@ def tailor_cv(
     # model once to compress, and keep the compressed version when it is shorter.
     pages = _probe_page_count(structured, contact_text)
     if pages is not None and pages > 2:
-        retry_messages = messages + [
+        retry_messages = base_messages + [
             {"role": "assistant", "content": raw},
             {"role": "user", "content": _COMPRESS_PROMPT},
         ]

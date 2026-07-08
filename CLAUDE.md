@@ -159,6 +159,16 @@ Structured CV Tailoring & Templates delivered in July 2026 (branch
     project `stack` items with token-ngram matching ("Java" no longer matches
     inside "JavaScript"; "Node js" still matches "Node.js"). Header
     email/phone/links are validated against the source CV and dropped if absent.
+  - Anti-fabrication (July 2026 hardening): `temperature=0.2` on the tailor
+    call (0.3 for cover letters); a mandatory second "self-audit" GPT pass
+    (`_VERIFY_PROMPT`) re-checks every claim against the source CV; and a
+    deterministic numeric guard (`_remove_unsupported_numbers`) drops any
+    bullet or summary sentence containing a number that appears nowhere in
+    the source CV. Every tailor job therefore makes at least 2 OpenAI calls
+    (3 with the compress retry).
+  - `get_or_create_from_raw_job` recovers from the `uq_jd_user_raw_job`
+    unique-index race (CV tailor + cover letter submitted in parallel for the
+    same Discover job used to 500 with "Failed to start" on first click).
   - WeasyPrint needs native Pango libs: installed in `backend/Dockerfile`
     (also `fonts-inter`); NOT available on Windows dev machines, where
     `cv_render.is_available()` is False and everything falls back to the

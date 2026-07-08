@@ -23,6 +23,7 @@ from app.services.tailor_service import (
     _extract_contact_information,
     _is_contact_section,
     _remove_fabricated_skills,
+    _remove_unsupported_numbers,
     _skill_present_in_source,
     _source_skill_slugs,
 )
@@ -359,6 +360,91 @@ class TestNoFabrication:
         items = result["structured_cv"]["skills"]["groups"][0]["items"]
         assert "Java" not in items
         assert "Azure DevOps" not in items
+
+
+# ---------------------------------------------------------------------------
+# Bug #5: Invented metrics — numbers absent from the source CV must not survive
+# ---------------------------------------------------------------------------
+
+
+class TestNoInventedNumbers:
+    SOURCE = "Sam Developer\nBuilt tools at Tech Corp since 2023.\nSaved 2 hours per week."
+
+    def test_bullet_with_unsupported_number_is_dropped(self) -> None:
+        structured = make_structured(
+            experience=[
+                {
+                    "title": "Developer",
+                    "company": "Tech Corp",
+                    "location": None,
+                    "dates": "2023 - Present",
+                    "bullets": [
+                        "Saved 2 hours per week by automating reports.",
+                        "Built internal tools used daily by 40 employees.",
+                    ],
+                    "original": "Developer at Tech Corp",
+                    "changes": [],
+                }
+            ]
+        )
+        removed = _remove_unsupported_numbers(structured, self.SOURCE)
+        assert "40" in removed
+        bullets = structured["experience"][0]["bullets"]
+        assert bullets == ["Saved 2 hours per week by automating reports."]
+        assert any("40" in c for c in structured["experience"][0]["changes"])
+
+    def test_supported_numbers_survive(self) -> None:
+        structured = make_structured(
+            experience=[
+                {
+                    "title": "Developer",
+                    "company": "Tech Corp",
+                    "location": None,
+                    "dates": "2023 - Present",
+                    "bullets": ["Automated reporting since 2023, saving 2 hours weekly."],
+                    "original": "",
+                    "changes": [],
+                }
+            ]
+        )
+        removed = _remove_unsupported_numbers(structured, self.SOURCE)
+        assert removed == []
+        assert len(structured["experience"][0]["bullets"]) == 1
+
+    def test_summary_sentence_with_invented_percentage_is_removed(self) -> None:
+        structured = make_structured(
+            summary={
+                "tailored": (
+                    "Developer with experience at Tech Corp. "
+                    "Improved pipeline throughput by 35%."
+                ),
+                "original": "",
+                "changes": [],
+            }
+        )
+        removed = _remove_unsupported_numbers(structured, self.SOURCE)
+        assert "35" in removed
+        assert "35%" not in structured["summary"]["tailored"]
+        assert "Tech Corp" in structured["summary"]["tailored"]
+
+    def test_thousands_separator_normalised(self) -> None:
+        structured = make_structured(
+            experience=[
+                {
+                    "title": "Developer",
+                    "company": "Tech Corp",
+                    "location": None,
+                    "dates": "2023",
+                    "bullets": ["Served 1,000 users."],
+                    "original": "",
+                    "changes": [],
+                }
+            ]
+        )
+        removed = _remove_unsupported_numbers(
+            structured, "Sam\nPlatform served 1000 users at Tech Corp."
+        )
+        assert removed == []
 
 
 # ---------------------------------------------------------------------------

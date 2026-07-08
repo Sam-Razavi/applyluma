@@ -57,6 +57,7 @@ def structured_response(**overrides: Any) -> dict[str, Any]:
 
 class FakeOpenAI:
     last_kwargs: dict[str, Any] | None = None
+    all_calls: list[dict[str, Any]] = []
     content = json.dumps(structured_response())
 
     def __init__(self, api_key: str, timeout: float | None = None) -> None:
@@ -68,6 +69,7 @@ class FakeOpenAI:
 
     def _create(self, **kwargs: Any) -> SimpleNamespace:
         FakeOpenAI.last_kwargs = kwargs
+        FakeOpenAI.all_calls.append(kwargs)
         return SimpleNamespace(
             choices=[
                 SimpleNamespace(
@@ -84,6 +86,7 @@ CV_TEXT = "Alex Example\nalex@example.com\n+1 555 0100\nStockholm, Sweden\n\nPyt
 @pytest.fixture(autouse=True)
 def reset_fake() -> None:
     FakeOpenAI.last_kwargs = None
+    FakeOpenAI.all_calls = []
     FakeOpenAI.content = json.dumps(structured_response())
 
 
@@ -107,11 +110,22 @@ def test_tailor_cv_calls_openai_with_structured_outputs(
     assert result["language"] == "en"
     assert FakeOpenAI.last_kwargs is not None
     assert FakeOpenAI.last_kwargs["model"] == "gpt-4o"
+    assert FakeOpenAI.last_kwargs["temperature"] == 0.2
     response_format = FakeOpenAI.last_kwargs["response_format"]
     assert response_format["type"] == "json_schema"
     assert response_format["json_schema"]["strict"] is True
     assert "Restructure bullet points" in FakeOpenAI.last_kwargs["messages"][0]["content"]
     assert "Python, SQL" in FakeOpenAI.last_kwargs["messages"][1]["content"]
+
+
+def test_tailor_cv_runs_verification_pass(monkeypatch: pytest.MonkeyPatch) -> None:
+    _run_tailor(monkeypatch)
+
+    assert len(FakeOpenAI.all_calls) == 2
+    verify_call = FakeOpenAI.all_calls[1]
+    # The audit turn carries the first answer plus the fact-check instruction.
+    assert verify_call["messages"][2]["role"] == "assistant"
+    assert "audit your own output" in verify_call["messages"][3]["content"]
 
 
 def test_tailor_cv_result_contains_structured_cv_and_sections(

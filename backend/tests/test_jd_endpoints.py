@@ -210,3 +210,65 @@ async def test_scrape_url_returns_422_on_generic_error(monkeypatch: pytest.Monke
     )
 
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# get_or_create_from_raw_job: concurrent-submit race on uq_jd_user_raw_job
+# ---------------------------------------------------------------------------
+
+
+def test_get_or_create_from_raw_job_recovers_from_unique_race(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When CV tailor and cover letter submits race to create the same JD,
+    the loser of the unique-index race must reuse the winner's row instead
+    of surfacing a 500."""
+    from sqlalchemy.exc import IntegrityError
+
+    from app.crud import job_description as crud_jd
+
+    raw_job_id = uuid.uuid4()
+    raw_job = SimpleNamespace(
+        id=raw_job_id,
+        company="Acme",
+        title="Backend Engineer",
+        description="Python and SQL",
+        url="https://example.com/job",
+        extracted_skills={},
+    )
+    winner_row = SimpleNamespace(id=JD_ID, source_raw_job_posting_id=raw_job_id)
+
+    # No row exists at first check; after the failed commit the winner's row
+    # is visible.
+    lookups = iter([None, winner_row])
+    monkeypatch.setattr(
+        crud_jd, "get_by_source_raw_job", lambda db, user_id, raw_id: next(lookups)
+    )
+    monkeypatch.setattr(crud_jd, "_keywords_from_raw_job", lambda db, rj: ["python"])
+
+    class RacyDb:
+        def __init__(self) -> None:
+            self.rolled_back = False
+
+        def query(self, model: Any) -> Any:
+            return SimpleNamespace(filter=lambda *a: SimpleNamespace(first=lambda: raw_job))
+
+        def add(self, obj: Any) -> None:
+            pass
+
+        def commit(self) -> None:
+            raise IntegrityError("INSERT INTO job_descriptions", {}, Exception("uq_jd_user_raw_job"))
+
+        def rollback(self) -> None:
+            self.rolled_back = True
+
+        def refresh(self, obj: Any) -> None:
+            raise AssertionError("refresh must not run after a failed commit")
+
+    db = RacyDb()
+    result = crud_jd.get_or_create_from_raw_job(
+        db, user_id=USER_ID, raw_job_posting_id=raw_job_id
+    )
+
+    assert db.rolled_back
+    assert result is winner_row
