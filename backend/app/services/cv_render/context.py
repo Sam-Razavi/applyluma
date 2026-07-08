@@ -6,13 +6,14 @@ Rejected or overridden sections fall back to "raw" blocks (plain lines and
 bullets) so mixed accepted/rejected output still renders in the template.
 """
 import re
+from typing import Any
 
 from app.services.cv_render.structure import GROUP_KEYS, headings_for
 
 _BULLET_RE = re.compile(r"^[•‣◦⁃▪●○‐–—·−*-]\s+")
 
 
-def _raw_lines(text: str) -> list[dict]:
+def _raw_lines(text: str) -> list[dict[str, Any]]:
     lines = []
     for raw in (text or "").splitlines():
         line = raw.strip()
@@ -36,11 +37,11 @@ def _decide(section_id: str, accepted_ids: set[str] | None, overrides: dict[str,
 
 
 def _entry_blocks(
-    entries: list[dict],
+    entries: list[dict[str, Any]],
     id_prefix: str,
     accepted_ids: set[str] | None,
     overrides: dict[str, str],
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     out = []
     for i, entry in enumerate(entries):
         sid = f"{id_prefix}_{i}"
@@ -56,7 +57,7 @@ def _entry_blocks(
     return out
 
 
-def _group_order(structured: dict, section_order: list[str] | None) -> list[str]:
+def _group_order(structured: dict[str, Any], section_order: list[str] | None) -> list[str]:
     """
     Resolve the order of top-level groups. `section_order` may be the user's
     per-section-id list from the save request (e.g. ["summary", "experience_0",
@@ -78,13 +79,13 @@ def _group_order(structured: dict, section_order: list[str] | None) -> list[str]
 
 
 def build_render_context(
-    structured: dict,
+    structured: dict[str, Any],
     *,
     contact_text: str = "",
     accepted_section_ids: list[str] | None = None,
     section_overrides: dict[str, str] | None = None,
     section_order: list[str] | None = None,
-) -> dict:
+) -> dict[str, Any]:
     accepted_ids = set(accepted_section_ids) if accepted_section_ids is not None else None
     overrides = section_overrides or {}
     language = structured.get("language", "en")
@@ -100,7 +101,7 @@ def build_render_context(
     contact_bits.extend(link for link in header.get("links") or [] if link)
     header["contact_bits"] = contact_bits
 
-    blocks: list[dict] = []
+    blocks: list[dict[str, Any]] = []
     for key in _group_order(structured, section_order):
         if key == "summary":
             summary = structured.get("summary") or {}
@@ -213,7 +214,7 @@ def build_cover_letter_context(
     title: str | None = None,
     contact_text: str = "",
     language: str = "en",
-) -> dict:
+) -> dict[str, Any]:
     """
     Context for the cover letter templates: candidate letterhead from the CV's
     contact block, plus the letter body split into paragraphs on blank lines

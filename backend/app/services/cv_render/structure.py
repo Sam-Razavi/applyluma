@@ -247,7 +247,7 @@ def _join_nonempty(parts: list[str | None], sep: str) -> str:
     return sep.join(p for p in (part.strip() if part else "" for part in parts) if p)
 
 
-def skills_text(skills: dict) -> str:
+def skills_text(skills: dict[str, Any]) -> str:
     lines = []
     for group in skills.get("groups", []):
         items = ", ".join(i for i in group.get("items", []) if i)
@@ -256,7 +256,7 @@ def skills_text(skills: dict) -> str:
     return "\n".join(lines)
 
 
-def experience_entry_text(entry: dict) -> str:
+def experience_entry_text(entry: dict[str, Any]) -> str:
     lines = [_join_nonempty([entry.get("title"), entry.get("company")], " - ")]
     date_line = _join_nonempty([entry.get("dates"), entry.get("location")], " | ")
     if date_line:
@@ -265,7 +265,7 @@ def experience_entry_text(entry: dict) -> str:
     return "\n".join(line for line in lines if line)
 
 
-def project_entry_text(entry: dict) -> str:
+def project_entry_text(entry: dict[str, Any]) -> str:
     lines = [_join_nonempty([entry.get("name"), entry.get("subtitle")], " - ")]
     if entry.get("url"):
         lines.append(str(entry["url"]))
@@ -276,7 +276,7 @@ def project_entry_text(entry: dict) -> str:
     return "\n".join(line for line in lines if line)
 
 
-def education_entry_text(entry: dict) -> str:
+def education_entry_text(entry: dict[str, Any]) -> str:
     lines = [_join_nonempty([entry.get("degree"), entry.get("institution")], " - ")]
     if entry.get("dates"):
         lines.append(str(entry["dates"]))
@@ -288,14 +288,14 @@ def education_entry_text(entry: dict) -> str:
     return "\n".join(line for line in lines if line)
 
 
-def certification_item_text(item: dict) -> str:
+def certification_item_text(item: dict[str, Any]) -> str:
     head = _join_nonempty([item.get("name"), item.get("issuer")], " - ")
     if item.get("date"):
         return f"{head} ({item['date']})"
     return head
 
 
-def certifications_text(certifications: dict) -> str:
+def certifications_text(certifications: dict[str, Any]) -> str:
     return "\n".join(
         certification_item_text(item)
         for item in certifications.get("items", [])
@@ -303,13 +303,13 @@ def certifications_text(certifications: dict) -> str:
     )
 
 
-def structured_to_sections(structured: dict, contact_text: str) -> list[dict]:
+def structured_to_sections(structured: dict[str, Any], contact_text: str) -> list[dict[str, Any]]:
     """
     Derive the legacy `sections` list (the diff-review contract) from the
     structured CV, so the existing preview/accept/reject UI keeps working.
     """
     headings = headings_for(structured.get("language", "en"))
-    sections: list[dict] = []
+    sections: list[dict[str, Any]] = []
 
     if contact_text:
         sections.append(

@@ -9,6 +9,7 @@ renderer when it is False.
 import logging
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -38,7 +39,7 @@ def _jinja_env() -> Environment:
 
 
 @lru_cache(maxsize=1)
-def _weasyprint():
+def _weasyprint() -> Any:
     try:
         import weasyprint
         return weasyprint
@@ -51,12 +52,12 @@ def is_available() -> bool:
     return _weasyprint() is not None
 
 
-def render_html(context: dict, template_id: str = DEFAULT_TEMPLATE) -> str:
+def render_html(context: dict[str, Any], template_id: str = DEFAULT_TEMPLATE) -> str:
     template_file = TEMPLATES.get(template_id) or TEMPLATES[DEFAULT_TEMPLATE]
     return _jinja_env().get_template(template_file).render(**context)
 
 
-def _render_document(context: dict, template_id: str):
+def _render_document(context: dict[str, Any], template_id: str) -> Any:
     weasyprint = _weasyprint()
     if weasyprint is None:
         raise RuntimeError("WeasyPrint is not available in this environment")
@@ -64,24 +65,26 @@ def _render_document(context: dict, template_id: str):
     return weasyprint.HTML(string=html, base_url=str(_TEMPLATE_DIR)).render()
 
 
-def count_pages(context: dict, template_id: str = DEFAULT_TEMPLATE) -> int:
+def count_pages(context: dict[str, Any], template_id: str = DEFAULT_TEMPLATE) -> int:
     return len(_render_document(context, template_id).pages)
 
 
-def render_pdf(context: dict, output_path: Path, template_id: str = DEFAULT_TEMPLATE) -> int:
+def render_pdf(
+    context: dict[str, Any], output_path: Path, template_id: str = DEFAULT_TEMPLATE
+) -> int:
     """Write the PDF and return its page count."""
     document = _render_document(context, template_id)
     document.write_pdf(str(output_path))
     return len(document.pages)
 
 
-def render_cover_letter_html(context: dict, template_id: str = DEFAULT_TEMPLATE) -> str:
+def render_cover_letter_html(context: dict[str, Any], template_id: str = DEFAULT_TEMPLATE) -> str:
     template_file = COVER_TEMPLATES.get(template_id) or COVER_TEMPLATES[DEFAULT_TEMPLATE]
     return _jinja_env().get_template(template_file).render(**context)
 
 
 def render_cover_letter_pdf(
-    context: dict, output_path: Path, template_id: str = DEFAULT_TEMPLATE
+    context: dict[str, Any], output_path: Path, template_id: str = DEFAULT_TEMPLATE
 ) -> int:
     weasyprint = _weasyprint()
     if weasyprint is None:
