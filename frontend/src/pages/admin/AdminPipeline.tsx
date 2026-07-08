@@ -17,6 +17,7 @@ import {
   type JobsOverTimePoint,
   type PipelineHealth,
   type PipelineMetrics,
+  type PipelineRunLogRow,
   type PipelineStage,
   type SourceHealth,
 } from '../../services/adminApi'
@@ -65,6 +66,7 @@ export default function AdminPipeline() {
   const [jobsOverTime, setJobsOverTime] = useState<JobsOverTimePoint[]>([])
   const [jobsBySource, setJobsBySource] = useState<JobsBySourceItem[]>([])
   const [metrics, setMetrics] = useState<PipelineMetrics | null>(null)
+  const [runs, setRuns] = useState<PipelineRunLogRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -75,12 +77,14 @@ export default function AdminPipeline() {
       adminApi.getJobsOverTime(),
       adminApi.getJobsBySource(),
       adminApi.getPipelineMetrics(),
+      adminApi.listPipelineRuns({ size: 10 }),
     ])
-      .then(([healthData, overTimeData, bySourceData, metricsData]) => {
+      .then(([healthData, overTimeData, bySourceData, metricsData, runsData]) => {
         setHealth(healthData)
         setJobsOverTime(overTimeData)
         setJobsBySource(bySourceData)
         setMetrics(metricsData)
+        setRuns(runsData.items)
       })
       .catch(() => setError('Failed to load pipeline health'))
       .finally(() => setLoading(false))
@@ -217,6 +221,42 @@ export default function AdminPipeline() {
                 </div>
               </section>
             </div>
+
+            <section className="rounded-2xl border border-line bg-surface p-5 ">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted ">
+                Latest Pipeline Runs
+              </h2>
+              <div className="mt-4 overflow-x-auto">
+                {runs.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-fg-subtle">No pipeline runs recorded.</div>
+                ) : (
+                  <table className="min-w-full divide-y divide-line">
+                    <thead>
+                      <tr>
+                        {['Pipeline', 'Status', 'Rows', 'Ran at', 'Error'].map((h) => (
+                          <th key={h} className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {runs.map((run) => (
+                        <tr key={run.id}>
+                          <td className="px-3 py-3 text-sm font-medium text-fg">{run.pipeline_name}</td>
+                          <td className="px-3 py-3 text-sm text-fg-muted">{run.status}</td>
+                          <td className="px-3 py-3 text-sm text-fg-muted">{run.rows_affected.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-xs text-fg-subtle">{formatLastRun(run.ran_at)}</td>
+                          <td className="max-w-[360px] truncate px-3 py-3 text-xs text-chip-danger-fg">
+                            {run.error_message ?? '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
           </>
         )}
       </div>
