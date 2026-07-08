@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.dependencies import get_db
+from app.crud import admin as crud_admin
 from app.schemas.contact import ContactRequest
 from app.services import email_service
 
@@ -146,7 +149,11 @@ def _confirmation_html(name: str, subject: str, message: str) -> str:
 
 
 @router.post("", status_code=status.HTTP_200_OK)
-def submit_contact(body: ContactRequest, request: Request) -> dict[str, bool]:
+def submit_contact(
+    body: ContactRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> dict[str, bool]:
     if body.honeypot:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid submission.")
 
@@ -158,6 +165,15 @@ def submit_contact(body: ContactRequest, request: Request) -> dict[str, bool]:
         )
 
     subject_line = body.subject.strip() or "No subject"
+    crud_admin.create_contact_submission(
+        db,
+        name=body.name,
+        email=str(body.email),
+        subject=subject_line,
+        message=body.message,
+        remote_ip=remote_ip,
+        user_agent=request.headers.get("user-agent"),
+    )
 
     email_service.send_email(
         to_email=settings.CONTACT_RECIPIENT_EMAIL,

@@ -57,7 +57,14 @@ const NAV_SECTIONS: NavSection[] = [
 const ADMIN_ITEMS: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: ShieldCheckIcon },
   { to: '/admin/users', label: 'Users', icon: ShieldCheckIcon },
+  { to: '/admin/ai-jobs', label: 'AI Jobs', icon: ShieldCheckIcon },
   { to: '/admin/pipeline', label: 'Pipeline', icon: ShieldCheckIcon },
+  { to: '/admin/raw-jobs', label: 'Raw Jobs', icon: ShieldCheckIcon },
+  { to: '/admin/notifications', label: 'Notifications', icon: ShieldCheckIcon },
+  { to: '/admin/billing', label: 'Billing', icon: ShieldCheckIcon },
+  { to: '/admin/contact', label: 'Contact', icon: ShieldCheckIcon },
+  { to: '/admin/system', label: 'System', icon: ShieldCheckIcon },
+  { to: '/admin/audit-logs', label: 'Audit Logs', icon: ShieldCheckIcon },
 ]
 
 function navClass({ isActive }: { isActive: boolean }) {

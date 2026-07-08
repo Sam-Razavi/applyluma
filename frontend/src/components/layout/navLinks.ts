@@ -1,7 +1,14 @@
 export const ADMIN_NAV_LINKS = [
   { to: '/admin', label: 'Overview' },
   { to: '/admin/users', label: 'Users' },
+  { to: '/admin/ai-jobs', label: 'AI Jobs' },
   { to: '/admin/pipeline', label: 'Pipeline' },
+  { to: '/admin/raw-jobs', label: 'Raw Jobs' },
+  { to: '/admin/notifications', label: 'Notifications' },
+  { to: '/admin/billing', label: 'Billing' },
+  { to: '/admin/contact', label: 'Contact' },
+  { to: '/admin/system', label: 'System' },
+  { to: '/admin/audit-logs', label: 'Audit Logs' },
 ]
 
 export const NAV_LINKS = [

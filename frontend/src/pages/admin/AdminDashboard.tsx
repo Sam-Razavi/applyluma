@@ -98,19 +98,26 @@ export default function AdminDashboard() {
         </section>
 
         {/* Quick links */}
-        <div className="flex gap-3">
-          <Link
-            to="/admin/users"
-            className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
-          >
-            Manage Users <ArrowRightIcon className="h-4 w-4" />
-          </Link>
-          <Link
-            to="/admin/pipeline"
-            className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
-          >
-            Pipeline Health <ArrowRightIcon className="h-4 w-4" />
-          </Link>
+        <div className="flex flex-wrap gap-3">
+          {[
+            ['/admin/users', 'Manage Users'],
+            ['/admin/ai-jobs', 'AI Jobs'],
+            ['/admin/pipeline', 'Pipeline Health'],
+            ['/admin/raw-jobs', 'Raw Jobs'],
+            ['/admin/notifications', 'Notifications'],
+            ['/admin/billing', 'Billing'],
+            ['/admin/contact', 'Contact Inbox'],
+            ['/admin/system', 'System Health'],
+            ['/admin/audit-logs', 'Audit Logs'],
+          ].map(([to, label]) => (
+            <Link
+              key={to}
+              to={to}
+              className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
+            >
+              {label} <ArrowRightIcon className="h-4 w-4" />
+            </Link>
+          ))}
         </div>
       </div>
     </FadeIn>

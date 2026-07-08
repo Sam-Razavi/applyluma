@@ -44,6 +44,13 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminPipeline = lazy(() => import('./pages/admin/AdminPipeline'))
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'))
+const AdminAiJobs = lazy(() => import('./pages/admin/AdminAiJobs'))
+const AdminRawJobs = lazy(() => import('./pages/admin/AdminRawJobs'))
+const AdminSystem = lazy(() => import('./pages/admin/AdminSystem'))
+const AdminAuditLogs = lazy(() => import('./pages/admin/AdminAuditLogs'))
+const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications'))
+const AdminBilling = lazy(() => import('./pages/admin/AdminBilling'))
+const AdminContactInbox = lazy(() => import('./pages/admin/AdminContactInbox'))
 
 export default function App() {
   const { isAuthenticated } = useAuthStore()
@@ -101,7 +108,14 @@ export default function App() {
             <Route element={<AdminRoute />}>
               <Route path="admin" element={<AdminDashboard />} />
               <Route path="admin/users" element={<AdminUsers />} />
+              <Route path="admin/ai-jobs" element={<AdminAiJobs />} />
               <Route path="admin/pipeline" element={<AdminPipeline />} />
+              <Route path="admin/raw-jobs" element={<AdminRawJobs />} />
+              <Route path="admin/system" element={<AdminSystem />} />
+              <Route path="admin/audit-logs" element={<AdminAuditLogs />} />
+              <Route path="admin/notifications" element={<AdminNotifications />} />
+              <Route path="admin/billing" element={<AdminBilling />} />
+              <Route path="admin/contact" element={<AdminContactInbox />} />
             </Route>
           </Route>
         </Route>

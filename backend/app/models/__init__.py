@@ -1,7 +1,9 @@
+from app.models.admin_audit_log import AdminAuditLog
 from app.models.alert_preferences import JobAlertSentLog, UserAlertPreferences
 from app.models.application import Application
 from app.models.application_contact import ApplicationContact
 from app.models.application_event import ApplicationEvent
+from app.models.contact_submission import ContactSubmission
 from app.models.cv import CV
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
 from app.models.job_description import JobDescription
@@ -16,6 +18,7 @@ __all__ = [
     "TailorJob",
     "Application",
     "ApplicationEvent",
+    "ContactSubmission",
     "ApplicationContact",
     "Notification",
     "RawJobPosting",
@@ -24,4 +27,5 @@ __all__ = [
     "JobMatchingScore",
     "UserAlertPreferences",
     "JobAlertSentLog",
+    "AdminAuditLog",
 ]
