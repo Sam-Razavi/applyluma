@@ -17,15 +17,15 @@ Tick them off as they get built.
   Beat task sends a notification (and optionally an email) when the date
   arrives. Surface it as a date-picker in the application drawer.
 
-- [ ] **Export applications to CSV**
-  A `GET /applications/export` endpoint that streams a CSV of all the
-  user's applications (company, role, status, dates, salary). A single
-  download button on the Applications page.
+- [x] **Export applications to CSV**
+  Built client-side instead of the backend endpoint: an "Export CSV" button
+  on the Applications page generates the file from the loaded list
+  (`frontend/src/utils/exportCsv.ts`). Note: exports the applications
+  currently loaded, not a server-side stream.
 
-- [ ] **Application status timeline**
-  Store every status change in `ApplicationEvent` (the model already
-  exists). Render a vertical timeline inside the application drawer so
-  users can see the history at a glance.
+- [x] **Application status timeline**
+  Status changes are stored in `ApplicationEvent` and rendered by
+  `components/applications/ApplicationTimeline.tsx` in the drawer.
 
 ---
 
@@ -41,10 +41,9 @@ Tick them off as they get built.
   CV without requiring a new upload. Useful after the user edits and
   re-uploads the same file.
 
-- [ ] **Cover letter generator**
-  Extend the AI Tailor flow with an optional step that drafts a cover
-  letter from the tailored CV sections and the job description. Reuses
-  the existing Celery + OpenAI pattern.
+- [x] **Cover letter generator**
+  Built: `cover_letter_service.py`, `endpoints/cover_letters.py`, Celery
+  task, and cover-letter history on the AI Tailor page.
 
 - [ ] **Tailor history view**
   A tab on the AI Tailor page (or CVs page) listing past tailor jobs with
@@ -60,13 +59,13 @@ Tick them off as they get built.
   or hide already-applied jobs from the Discover feed. Adds a toggle in
   JobFilters: "Hide applied jobs".
 
-- [ ] **Copy job link button**
-  A small copy-to-clipboard icon on each job card and in the job detail
-  modal that copies the original job URL. No backend work needed.
+- [ ] **Copy job link button** (rejected)
+  Decided against — `JobCard.test.tsx` intentionally asserts the action is
+  not rendered. Kept here so it isn't re-proposed.
 
-- [ ] **Recent searches**
-  Persist the last 5 Adzuna search queries in `localStorage` and show them
-  as quick-chips under the search bar on the Job Search page.
+- [x] **Recent searches**
+  Built in `Discover.tsx`: last 5 searches persisted in `localStorage`
+  and shown as quick-chips on the search tab.
 
 - [ ] **Keyword tag filtering on Discover**
   Clicking a skill tag inside a job detail should add it as a filter in
@@ -76,10 +75,9 @@ Tick them off as they get built.
 
 ## Notifications & Alerts
 
-- [ ] **Mark all notifications as read**
-  A single "Mark all read" button in the notifications dropdown/page that
-  calls `PATCH /notifications/read-all`. One-line backend route, one
-  button on the frontend.
+- [x] **Mark all notifications as read**
+  Built: backend `mark_all_read` route plus the "Mark all read" button in
+  `NotificationList.tsx`.
 
 - [ ] **Granular notification preferences**
   Extend the Settings page to let users toggle individual notification
