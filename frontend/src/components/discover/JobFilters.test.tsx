@@ -3,6 +3,13 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import JobFilters from './JobFilters'
 import type { JobFilters as JobFiltersType } from '../../types/jobDiscovery'
 
+vi.mock('../../services/jobDiscoveryApi', () => ({
+  fetchJobSources: vi.fn().mockResolvedValue([
+    { source: 'platsbanken', count: 500 },
+    { source: 'remoteok', count: 120 },
+  ]),
+}))
+
 const defaultFilters: JobFiltersType = {
   search: '',
   location: '',
@@ -11,6 +18,7 @@ const defaultFilters: JobFiltersType = {
   keywords: '',
   source: '',
   remote_only: false,
+  hide_applied: false,
   match_score_min: '',
   sort: 'score_desc',
 }
@@ -126,6 +134,24 @@ describe('JobFilters', () => {
     expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, remote_only: true })
   })
 
+  it('calls onChange when hide-applied checkbox changes', () => {
+    const onChange = vi.fn()
+    render(<JobFilters filters={defaultFilters} onChange={onChange} onReset={vi.fn()} />)
+    fireEvent.click(screen.getByLabelText('Hide applied jobs'))
+    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, hide_applied: true })
+  })
+
+  it('renders Reset button when hide-applied filter is active', () => {
+    render(
+      <JobFilters
+        filters={{ ...defaultFilters, hide_applied: true }}
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Reset')).toBeInTheDocument()
+  })
+
   it('calls onChange when salary_min input changes', () => {
     const onChange = vi.fn()
     render(<JobFilters filters={defaultFilters} onChange={onChange} onReset={vi.fn()} />)
@@ -153,6 +179,13 @@ describe('JobFilters', () => {
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(toggleBtn)
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('renders source options fetched from the API', async () => {
+    render(<JobFilters filters={defaultFilters} onChange={vi.fn()} onReset={vi.fn()} />)
+    expect(await screen.findByRole('option', { name: 'RemoteOK' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Platsbanken' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'All sources' })).toBeInTheDocument()
   })
 
   it('shows "On" active filters badge when filters are active', () => {

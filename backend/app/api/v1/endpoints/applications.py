@@ -14,6 +14,7 @@ from app.schemas.application import (
     ApplicationStatus,
     ApplicationSummary,
     ApplicationUpdate,
+    DuplicateCheckResponse,
 )
 from app.schemas.application_analytics import ApplicationAnalytics
 from app.services import notification_service
@@ -63,6 +64,21 @@ def get_applied_urls(
     """
     urls = crud_application.list_applied_job_urls(db, current_user.id)
     return {"urls": urls}
+
+
+@router.get("/check-duplicate", response_model=DuplicateCheckResponse)
+def check_duplicate_application(
+    company: str = Query(min_length=1),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Report whether the user already has an open application for this company.
+
+    Open means any status except rejected/withdrawn. Used by the add-application
+    form to warn before creating a likely duplicate; creation is never blocked.
+    """
+    existing = crud_application.find_open_duplicate(db, current_user.id, company)
+    return {"duplicate": existing is not None, "application": existing}
 
 
 @router.get("", response_model=list[ApplicationSummary])

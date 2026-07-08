@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDownIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import type { JobFilters } from '../../types/jobDiscovery'
-import { JOB_SOURCES, SOURCE_LABELS } from '../../types/jobDiscovery'
+import { JOB_SOURCES, sourceLabel } from '../../types/jobDiscovery'
+import { fetchJobSources } from '../../services/jobDiscoveryApi'
 
 interface Props {
   filters: JobFilters
@@ -40,6 +41,7 @@ function hasActiveFilters(f: JobFilters): boolean {
     !!f.keywords ||
     !!f.source ||
     f.remote_only ||
+    f.hide_applied ||
     !!f.match_score_min
   )
 }
@@ -134,6 +136,21 @@ export function LocationInput({ value, onChange }: LocationInputProps) {
 
 export default function JobFilters({ filters, onChange, onReset }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sources, setSources] = useState<readonly string[]>(JOB_SOURCES)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchJobSources()
+      .then((rows) => {
+        if (!cancelled && rows.length > 0) setSources(rows.map((r) => r.source))
+      })
+      .catch(() => {
+        // Keep the static fallback list on error.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function set(key: keyof JobFilters, value: string | boolean) {
     onChange({ ...filters, [key]: value })
@@ -240,8 +257,8 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
             className={SELECT_CLS}
           >
             <option value="">All sources</option>
-            {JOB_SOURCES.map((s) => (
-              <option key={s} value={s}>{SOURCE_LABELS[s]}</option>
+            {sources.map((s) => (
+              <option key={s} value={s}>{sourceLabel(s)}</option>
             ))}
           </select>
         </div>
@@ -255,6 +272,17 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
             className="h-4 w-4 rounded border-line-strong text-primary-500 focus:ring-primary-500"
           />
           Remote only
+        </label>
+
+        {/* Hide applied */}
+        <label className="flex items-center gap-3 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg">
+          <input
+            type="checkbox"
+            checked={filters.hide_applied}
+            onChange={(e) => set('hide_applied', e.target.checked)}
+            className="h-4 w-4 rounded border-line-strong text-primary-500 focus:ring-primary-500"
+          />
+          Hide applied jobs
         </label>
 
         {/* Match score */}

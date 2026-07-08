@@ -1,5 +1,5 @@
 import client from '../api/client'
-import type { DiscoveredJob, DiscoveredJobDetail, JobFilters, KeywordsByType, SavedJob } from '../types/jobDiscovery'
+import type { DiscoveredJob, DiscoveredJobDetail, JobFilters, JobSourceCount, KeywordsByType, SavedJob } from '../types/jobDiscovery'
 
 export interface JobsResponse {
   jobs: DiscoveredJob[]
@@ -19,6 +19,7 @@ export function fetchDiscoveredJobs(filters: Partial<JobFilters> & { page?: numb
         keywords: filters.keywords || undefined,
         source: filters.source || undefined,
         is_remote: filters.remote_only ? true : undefined,
+        hide_applied: filters.hide_applied ? true : undefined,
         match_score_min: filters.match_score_min || undefined,
         sort: filters.sort || 'score_desc',
         page: filters.page ?? 1,
@@ -26,6 +27,10 @@ export function fetchDiscoveredJobs(filters: Partial<JobFilters> & { page?: numb
       },
     })
     .then((r) => r.data)
+}
+
+export function fetchJobSources(): Promise<JobSourceCount[]> {
+  return client.get<JobSourceCount[]>('/api/v1/jobs/sources').then((r) => r.data)
 }
 
 export function fetchJobDetail(jobId: string): Promise<DiscoveredJobDetail> {

@@ -25,6 +25,7 @@ from app.schemas.tailor import (
     TailorSubmitRequest,
     TailorUsageResponse,
 )
+from app.services import cv_render
 from app.services.pdf_generator import generate_cv_pdf
 from app.services.tailor_service import _extract_contact_information, _is_contact_section
 from app.tasks.tailor import run_tailoring
@@ -243,7 +244,29 @@ def save_tailored_cv(
     user_dir.mkdir(parents=True, exist_ok=True)
     stored_name = f"{uuid.uuid4()}_tailored.pdf"
     file_path = user_dir / stored_name
-    generate_cv_pdf(pdf_sections, file_path)
+
+    # Structured results render through the fixed HTML/CSS templates; jobs from
+    # before the structured contract (or environments without WeasyPrint) fall
+    # back to the legacy ReportLab renderer.
+    structured = result.get("structured_cv")
+    template_id = body.template_id or cv_render.DEFAULT_TEMPLATE
+    if body.template_id and body.template_id not in cv_render.TEMPLATES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unknown template '{body.template_id}'. "
+            f"Available: {', '.join(sorted(cv_render.TEMPLATES))}",
+        )
+    if structured and cv_render.is_available():
+        context = cv_render.build_render_context(
+            structured,
+            contact_text=contact_text,
+            accepted_section_ids=body.accepted_section_ids,
+            section_overrides=body.section_overrides,
+            section_order=body.section_order,
+        )
+        cv_render.render_pdf(context, file_path, template_id)
+    else:
+        generate_cv_pdf(pdf_sections, file_path)
 
     relative_url = f"cvs/{current_user.id}/{stored_name}"
     job_title = job.job_description.job_title if job.job_description else "target role"

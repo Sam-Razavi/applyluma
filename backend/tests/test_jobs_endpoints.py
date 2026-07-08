@@ -221,6 +221,79 @@ async def test_list_jobs_pagination(monkeypatch: pytest.MonkeyPatch) -> None:
     assert captured["limit"] == 10
 
 
+@pytest.mark.asyncio
+async def test_list_jobs_passes_hide_applied_filter(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_list_jobs(db, user_id, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(jobs_endpoint.crud_job, "list_jobs", fake_list_jobs)
+
+    resp = await _request("GET", "/api/v1/jobs?hide_applied=true")
+    assert resp.status_code == 200
+    assert captured["hide_applied"] is True
+
+
+@pytest.mark.asyncio
+async def test_list_jobs_hide_applied_defaults_to_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_list_jobs(db, user_id, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(jobs_endpoint.crud_job, "list_jobs", fake_list_jobs)
+
+    resp = await _request("GET", "/api/v1/jobs")
+    assert resp.status_code == 200
+    assert captured["hide_applied"] is False
+
+
+# ------------------------------------------------------------------
+# GET /jobs/sources
+# ------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_list_job_sources_returns_200(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        jobs_endpoint.crud_job,
+        "list_sources",
+        lambda db: [
+            {"source": "platsbanken", "count": 500},
+            {"source": "remoteok", "count": 120},
+        ],
+    )
+
+    resp = await _request("GET", "/api/v1/jobs/sources")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body == [
+        {"source": "platsbanken", "count": 500},
+        {"source": "remoteok", "count": 120},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_list_job_sources_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(jobs_endpoint.crud_job, "list_sources", lambda db: [])
+
+    resp = await _request("GET", "/api/v1/jobs/sources")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+@pytest.mark.asyncio
+async def test_list_job_sources_requires_auth() -> None:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/api/v1/jobs/sources")
+    assert resp.status_code == 401
+
+
 # ------------------------------------------------------------------
 # GET /jobs/{job_id}
 # ------------------------------------------------------------------

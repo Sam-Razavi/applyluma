@@ -40,8 +40,21 @@ export interface CV {
   is_tailored: boolean
   parent_cv_id: string | null
   tailor_job_id: string | null
+  completeness_score?: number | null
   created_at: string
   updated_at: string
+}
+
+export interface CVCompletenessCheck {
+  id: string
+  label: string
+  passed: boolean
+  hint: string
+}
+
+export interface CVCompleteness {
+  score: number
+  checks: CVCompletenessCheck[]
 }
 
 export interface CVVersionNode {

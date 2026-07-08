@@ -8,6 +8,7 @@ export const DEFAULT_FILTERS: JobFilters = {
   keywords: '',
   source: '',
   remote_only: false,
+  hide_applied: false,
   match_score_min: '',
   sort: 'score_desc',
 }

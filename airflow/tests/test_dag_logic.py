@@ -3,8 +3,9 @@ import os
 import pytest
 from unittest.mock import MagicMock, patch
 
-# Add dags folder to path so we can import the modules
+# Add dags and plugins folders to path so we can import the modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dags")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "plugins")))
 
 from scrape_jobs import _extract_skills_from_text, TRACKED_SKILLS
 
@@ -38,6 +39,89 @@ def test_get_db_conn_str(mock_hook):
     
     conn_str = _get_db_conn_str()
     assert conn_str == "postgresql://user:pass@host:5432/db"
+
+REMOTEOK_FIXTURE = [
+    # First element of the RemoteOK payload is a legal notice, not a job
+    {"0": "legal notice", "legal": "API Terms of Service: attribution required."},
+    {
+        "id": 123456,
+        "position": "Backend Engineer",
+        "company": "Acme Corp",
+        "location": "Worldwide",
+        "description": "<p>Build <b>APIs</b></p><ul><li>Python</li></ul>",
+        "url": "https://remoteok.com/remote-jobs/123456",
+        "salary_min": 50000,
+        "salary_max": 90000,
+        "tags": ["python", "backend"],
+    },
+    {
+        # No position -> must be skipped
+        "id": 123457,
+        "company": "NoTitle Inc",
+        "url": "https://remoteok.com/remote-jobs/123457",
+    },
+    {
+        "id": 123458,
+        "position": "Data Engineer",
+        "company": "DataCo",
+        "description": "ETL pipelines",
+        "url": "https://remoteok.com/remote-jobs/123458",
+        "salary_min": 0,
+        "salary_max": 0,
+    },
+]
+
+def _remoteok_client():
+    from job_scrapers.remoteok_client import RemoteOKClient
+    return RemoteOKClient(db_conn_str="postgresql://unused")
+
+def test_remoteok_parse_skips_legal_notice_and_titleless_entries():
+    jobs = _remoteok_client().parse_response(REMOTEOK_FIXTURE)
+    assert [j["job_id_external"] for j in jobs] == ["123456", "123458"]
+
+def test_remoteok_parse_maps_fields():
+    job = _remoteok_client().parse_response(REMOTEOK_FIXTURE)[0]
+    assert job["title"] == "Backend Engineer"
+    assert job["company"] == "Acme Corp"
+    assert job["location"] == "Worldwide"
+    assert job["url"] == "https://remoteok.com/remote-jobs/123456"
+    assert job["salary_min"] == 50000
+    assert job["salary_max"] == 90000
+    assert job["remote_allowed"] is True
+    assert "<p>" not in job["description"]
+    assert "APIs" in job["description"]
+    assert job["raw_data"]["tags"] == ["python", "backend"]
+
+def test_remoteok_parse_treats_zero_salary_as_missing():
+    job = _remoteok_client().parse_response(REMOTEOK_FIXTURE)[1]
+    assert job["salary_min"] is None
+    assert job["salary_max"] is None
+    assert job["location"] == "Remote"
+
+def test_mark_todays_duplicates_returns_rowcount():
+    from job_scrapers.dedupe import mark_todays_duplicates, MARK_TODAYS_DUPLICATES_SQL
+
+    mock_conn = MagicMock()
+    mock_cur = mock_conn.cursor.return_value.__enter__.return_value
+    mock_cur.rowcount = 3
+
+    assert mark_todays_duplicates(mock_conn) == 3
+    mock_cur.execute.assert_called_once_with(MARK_TODAYS_DUPLICATES_SQL)
+
+def test_dedupe_sql_is_cross_source_rolling_window():
+    from job_scrapers.dedupe import DEDUPE_WINDOW_DAYS, MARK_TODAYS_DUPLICATES_SQL
+
+    sql = MARK_TODAYS_DUPLICATES_SQL
+    # Rolling window across all sources — no same-day or per-source restriction
+    assert f"INTERVAL '{DEDUPE_WINDOW_DAYS} days'" in sql
+    assert "source IN" not in sql
+    # Normalised match key includes location so per-city postings survive
+    assert "lower(trim(title))" in sql
+    assert "lower(trim(company))" in sql
+    assert "coalesce(lower(trim(location)), '')" in sql
+    # Oldest posting wins; only today's rows are ever marked
+    assert "ORDER BY scraped_at ASC" in sql
+    assert "DATE(scraped_at) = CURRENT_DATE" in sql
 
 @patch("transform_jobs.PostgresHook")
 def test_calculate_daily_metrics_no_rows(mock_hook):

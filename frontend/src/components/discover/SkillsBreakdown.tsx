@@ -3,16 +3,19 @@ import toast from 'react-hot-toast'
 interface Props {
   matchedSkills: string[]
   missingSkills: string[]
+  onSkillClick?: (skill: string) => void
 }
 
 function SkillPill({
   skill,
   variant,
   onClick,
+  title,
 }: {
   skill: string
   variant: 'matched' | 'missing'
   onClick?: () => void
+  title?: string
 }) {
   const classes =
     variant === 'matched'
@@ -23,6 +26,7 @@ function SkillPill({
     <button
       type="button"
       onClick={onClick}
+      title={title}
       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`}
     >
       {skill}
@@ -30,7 +34,7 @@ function SkillPill({
   )
 }
 
-export default function SkillsBreakdown({ matchedSkills, missingSkills }: Props) {
+export default function SkillsBreakdown({ matchedSkills, missingSkills, onSkillClick }: Props) {
   const total = matchedSkills.length + missingSkills.length
   if (total === 0) {
     return (
@@ -59,7 +63,13 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills }: Props)
           <div className="flex flex-wrap gap-1.5">
             {matchedSkills.length ? (
               matchedSkills.map((skill) => (
-                <SkillPill key={skill} skill={skill} variant="matched" />
+                <SkillPill
+                  key={skill}
+                  skill={skill}
+                  variant="matched"
+                  onClick={onSkillClick ? () => onSkillClick(skill) : undefined}
+                  title={onSkillClick ? 'Filter jobs by this skill' : undefined}
+                />
               ))
             ) : (
               <span className="text-xs text-fg-subtle">None yet</span>
@@ -75,7 +85,10 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills }: Props)
                   key={skill}
                   skill={skill}
                   variant="missing"
-                  onClick={() => void copySkill(skill)}
+                  onClick={
+                    onSkillClick ? () => onSkillClick(skill) : () => void copySkill(skill)
+                  }
+                  title={onSkillClick ? 'Filter jobs by this skill' : 'Copy skill'}
                 />
               ))
             ) : (

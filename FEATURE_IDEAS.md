@@ -7,44 +7,44 @@ Tick them off as they get built.
 
 ## Application Tracking
 
-- [ ] **Duplicate application warning**
-  When a user adds a new application, warn if an open application for the
-  same company already exists. Backend check on `POST /applications` +
-  a dismissible modal on the frontend.
+- [x] **Duplicate application warning**
+  `GET /applications/check-duplicate?company=X` reports an existing open
+  application (any status except rejected/withdrawn); the add-application
+  modal warns once and the second submit ("Add anyway") proceeds.
 
 - [ ] **Follow-up reminder**
   Add an optional `follow_up_date` field to applications. A daily Celery
   Beat task sends a notification (and optionally an email) when the date
   arrives. Surface it as a date-picker in the application drawer.
 
-- [ ] **Export applications to CSV**
-  A `GET /applications/export` endpoint that streams a CSV of all the
-  user's applications (company, role, status, dates, salary). A single
-  download button on the Applications page.
+- [x] **Export applications to CSV**
+  Built client-side instead of the backend endpoint: an "Export CSV" button
+  on the Applications page generates the file from the loaded list
+  (`frontend/src/utils/exportCsv.ts`). Note: exports the applications
+  currently loaded, not a server-side stream.
 
-- [ ] **Application status timeline**
-  Store every status change in `ApplicationEvent` (the model already
-  exists). Render a vertical timeline inside the application drawer so
-  users can see the history at a glance.
+- [x] **Application status timeline**
+  Status changes are stored in `ApplicationEvent` and rendered by
+  `components/applications/ApplicationTimeline.tsx` in the drawer.
 
 ---
 
 ## CV & Tailoring
 
-- [ ] **CV completeness score**
-  Score the uploaded CV against a checklist (contact info, summary,
-  experience, education, skills, links). Show a progress bar on the CVs
-  page so users know what to improve before tailoring.
+- [x] **CV completeness score**
+  Deterministic checklist scoring (contact info, summary, experience,
+  education, skills, links, length) in `cv_completeness.py`, English and
+  Swedish headings. Progress bar per CV row on the CVs page; clicking it
+  expands the checklist with hints (`GET /cvs/{id}/completeness`).
 
 - [ ] **Re-analyse existing CV**
   A button on the CVs page that re-runs AI analysis on an already-uploaded
   CV without requiring a new upload. Useful after the user edits and
   re-uploads the same file.
 
-- [ ] **Cover letter generator**
-  Extend the AI Tailor flow with an optional step that drafts a cover
-  letter from the tailored CV sections and the job description. Reuses
-  the existing Celery + OpenAI pattern.
+- [x] **Cover letter generator**
+  Built: `cover_letter_service.py`, `endpoints/cover_letters.py`, Celery
+  task, and cover-letter history on the AI Tailor page.
 
 - [ ] **Tailor history view**
   A tab on the AI Tailor page (or CVs page) listing past tailor jobs with
@@ -55,31 +55,31 @@ Tick them off as they get built.
 
 ## Job Discovery & Search
 
-- [ ] **"Already applied" filter on Discover**
+- [x] **"Already applied" filter on Discover**
   Cross-reference `raw_job_posting_id` in `applications` and show a badge
   or hide already-applied jobs from the Discover feed. Adds a toggle in
   JobFilters: "Hide applied jobs".
 
-- [ ] **Copy job link button**
-  A small copy-to-clipboard icon on each job card and in the job detail
-  modal that copies the original job URL. No backend work needed.
+- [ ] **Copy job link button** (rejected)
+  Decided against — `JobCard.test.tsx` intentionally asserts the action is
+  not rendered. Kept here so it isn't re-proposed.
 
-- [ ] **Recent searches**
-  Persist the last 5 Adzuna search queries in `localStorage` and show them
-  as quick-chips under the search bar on the Job Search page.
+- [x] **Recent searches**
+  Built in `Discover.tsx`: last 5 searches persisted in `localStorage`
+  and shown as quick-chips on the search tab.
 
-- [ ] **Keyword tag filtering on Discover**
-  Clicking a skill tag inside a job detail should add it as a filter in
-  the JobFilters sidebar, narrowing the feed instantly.
+- [x] **Keyword tag filtering on Discover**
+  Skill pills in the job detail (SkillsBreakdown) are clickable in the
+  Discover feed: clicking adds the skill to the keywords filter, closes
+  the modal, and reloads the feed.
 
 ---
 
 ## Notifications & Alerts
 
-- [ ] **Mark all notifications as read**
-  A single "Mark all read" button in the notifications dropdown/page that
-  calls `PATCH /notifications/read-all`. One-line backend route, one
-  button on the frontend.
+- [x] **Mark all notifications as read**
+  Built: backend `mark_all_read` route plus the "Mark all read" button in
+  `NotificationList.tsx`.
 
 - [ ] **Granular notification preferences**
   Extend the Settings page to let users toggle individual notification

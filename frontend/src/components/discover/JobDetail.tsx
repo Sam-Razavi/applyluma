@@ -11,7 +11,7 @@ import { BookmarkIcon as BookmarkSolid } from '@heroicons/react/24/solid'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import type { DiscoveredJobDetail } from '../../types/jobDiscovery'
-import { SOURCE_LABELS } from '../../types/jobDiscovery'
+import { sourceLabel } from '../../types/jobDiscovery'
 import JobDescriptionDisplay from '../common/JobDescriptionDisplay'
 import { fetchJobDetail } from '../../services/jobDiscoveryApi'
 import { createApplication } from '../../services/applicationsApi'
@@ -25,6 +25,7 @@ interface Props {
   onClose: () => void
   onSave: (jobId: string) => void
   onApplicationCreated?: (jobId: string, applicationId: string, status: string) => void
+  onSkillClick?: (skill: string) => void
 }
 
 function Pill({ text, color }: { text: string; color: string }) {
@@ -39,6 +40,7 @@ export default function JobDetail({
   onClose,
   onSave,
   onApplicationCreated,
+  onSkillClick,
 }: Props) {
   const navigate = useNavigate()
   const [job, setJob] = useState<DiscoveredJobDetail | null>(null)
@@ -155,7 +157,7 @@ export default function JobDetail({
                   />
                 )}
                 <Pill
-                  text={SOURCE_LABELS[job.source] ?? job.source}
+                  text={sourceLabel(job.source)}
                   color="bg-surface text-fg-subtle"
                 />
               </div>
@@ -188,6 +190,7 @@ export default function JobDetail({
             <SkillsBreakdown
               matchedSkills={job.matched_skills}
               missingSkills={job.missing_skills}
+              onSkillClick={onSkillClick}
             />
 
             {/* Description */}

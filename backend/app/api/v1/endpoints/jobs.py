@@ -13,6 +13,7 @@ from app.schemas.job import (
     AnalyzeTextRequest,
     AnalyzeTextResponse,
     JobDetailSchema,
+    JobSourceSchema,
     JobWithScoreSchema,
     KeywordsByTypeSchema,
 )
@@ -31,6 +32,7 @@ def list_jobs(
     is_remote: bool | None = None,
     match_score_min: float | None = None,
     search: Annotated[str | None, Query(description="Search job title or company")] = None,
+    hide_applied: Annotated[bool, Query(description="Hide jobs the user has applied to")] = False,
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     sort: Annotated[str, Query(pattern="^(score_desc|salary_desc|date_posted)$")] = "score_desc",
@@ -49,6 +51,7 @@ def list_jobs(
         is_remote=is_remote,
         match_score_min=match_score_min,
         search=search,
+        hide_applied=hide_applied,
         page=page,
         limit=limit,
         sort=sort,
@@ -100,6 +103,15 @@ def analyze_text(
         "matched_skills": matched,
         "missing_skills": missing,
     }
+
+
+@router.get("/sources", response_model=list[JobSourceSchema])
+def list_job_sources(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """Distinct job sources present in the database, with live posting counts."""
+    return crud_job.list_sources(db)
 
 
 @router.get("/{job_id}", response_model=JobDetailSchema)

@@ -31,6 +31,11 @@ class RawJobPostingPublic(RawJobPostingSummary):
     created_at: datetime
 
 
+class JobSourceSchema(BaseModel):
+    source: str
+    count: int
+
+
 class ExtractedKeywordSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

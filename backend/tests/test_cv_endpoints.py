@@ -90,6 +90,43 @@ async def test_list_cvs_returns_user_cvs(monkeypatch: pytest.MonkeyPatch) -> Non
     assert response.json()[0]["is_default"] is True
 
 @pytest.mark.asyncio
+async def test_list_cvs_includes_completeness_score(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "list_for_user", lambda db, user_id: [cv_data()])
+
+    response = await request("GET", "/api/v1/cvs", current_user=user())
+
+    assert response.status_code == 200
+    score = response.json()[0]["completeness_score"]
+    assert isinstance(score, int)
+    assert 0 <= score <= 100
+
+@pytest.mark.asyncio
+async def test_get_cv_completeness_returns_score_and_checks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "get_by_id", lambda db, cv_id, user_id: cv_data())
+
+    response = await request("GET", f"/api/v1/cvs/{CV_ID}/completeness", current_user=user())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert 0 <= body["score"] <= 100
+    assert len(body["checks"]) == 7
+    checks = {c["id"]: c for c in body["checks"]}
+    # cv_data content is "Skills: Python, FastAPI" — has a skills heading but no email
+    assert checks["skills"]["passed"] is True
+    assert checks["contact_info"]["passed"] is False
+    assert checks["contact_info"]["hint"]
+
+@pytest.mark.asyncio
+async def test_get_cv_completeness_404_for_missing_cv(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "get_by_id", lambda db, cv_id, user_id: None)
+
+    response = await request("GET", f"/api/v1/cvs/{CV_ID}/completeness", current_user=user())
+
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
 async def test_get_cv_returns_not_found_for_missing_cv(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cvs_endpoint.crud_cv, "get_by_id", lambda db, cv_id, user_id: None)
 
@@ -162,7 +199,7 @@ async def test_delete_cv_removes_file_and_record(monkeypatch: pytest.MonkeyPatch
 
     monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
     monkeypatch.setattr(cvs_endpoint.crud_cv, "get_by_id", lambda db, cv_id, user_id: cv)
-    
+
     deleted = []
     monkeypatch.setattr(cvs_endpoint.crud_cv, "delete", lambda db, cv_obj: deleted.append(cv_obj))
 
@@ -185,10 +222,10 @@ async def test_upload_cv_processes_valid_file(monkeypatch: pytest.MonkeyPatch, t
     monkeypatch.setattr(settings, "STORAGE_DIR", str(fake_storage))
     monkeypatch.setattr(cvs_endpoint, "parse_cv", lambda path, ext: "Parsed Content")
     monkeypatch.setattr(cvs_endpoint.crud_cv, "count_for_user", lambda db, user_id: 0)
-    
+
     def mock_create(db, **kwargs):
         return cv_data(is_default=kwargs.get("is_default", False))
-        
+
     monkeypatch.setattr(cvs_endpoint.crud_cv, "create", mock_create)
 
     files = {"file": ("resume.pdf", b"%PDF-1.4 content", "application/pdf")}

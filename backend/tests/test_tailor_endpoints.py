@@ -320,6 +320,156 @@ async def test_save_accepts_section_selection(
     assert fake_db.commits == 1
 
 
+def structured_result() -> dict[str, Any]:
+    result = preview_result()
+    result["structured_cv"] = {
+        "language": "en",
+        "header": {
+            "full_name": "Sam Developer",
+            "target_headline": "Backend Engineer | Python & SQL",
+            "location": None,
+            "phone": None,
+            "email": "source@example.com",
+            "links": [],
+        },
+        "summary": {
+            "tailored": "Tailored summary",
+            "original": "Original summary",
+            "changes": ["Added SQL"],
+        },
+        "skills": {
+            "groups": [{"category": "Languages", "items": ["Python", "SQL"]}],
+            "original": "Python",
+            "changes": ["Added SQL"],
+        },
+        "experience": [],
+        "projects": [],
+        "education": [],
+        "certifications": {"items": [], "original": "", "changes": []},
+        "additional_sections": [],
+        "section_order": ["summary", "skills"],
+        "meta": {
+            "keywords_added": ["SQL"],
+            "keywords_already_present": ["Python"],
+            "intensity_applied": "medium",
+            "estimated_pages": 1,
+        },
+    }
+    return result
+
+
+def _patch_save_collaborators(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, result_json: dict[str, Any]
+) -> dict[str, Any]:
+    saved: dict[str, Any] = {}
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        tailor_endpoint.crud_tailor,
+        "get_by_id",
+        lambda db, job_id, user_id: tailor_job(TailorStatus.complete, result_json=result_json),
+    )
+
+    def create_cv(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        saved.update(kwargs)
+        return SimpleNamespace(
+            id=OUTPUT_CV_ID,
+            title=kwargs["title"],
+            file_url=kwargs["file_url"],
+            is_tailored=False,
+            parent_cv_id=None,
+            tailor_job_id=None,
+        )
+
+    monkeypatch.setattr(
+        tailor_endpoint.crud_cv,
+        "get_by_id",
+        lambda db, cv_id, user_id: SimpleNamespace(content="Source CV content\nsource@example.com"),
+    )
+    monkeypatch.setattr(tailor_endpoint.crud_cv, "create", create_cv)
+    monkeypatch.setattr(
+        tailor_endpoint.crud_tailor,
+        "set_output_cv",
+        lambda db, job, output_cv_id: job,
+    )
+    return saved
+
+
+@pytest.mark.asyncio
+async def test_save_renders_structured_result_through_template(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    saved = _patch_save_collaborators(monkeypatch, tmp_path, structured_result())
+    rendered: dict[str, Any] = {}
+
+    def fake_render_pdf(context: dict, output_path: Path, template_id: str = "nordic") -> int:
+        rendered["context"] = context
+        rendered["template_id"] = template_id
+        return 1
+
+    monkeypatch.setattr(tailor_endpoint.cv_render, "is_available", lambda: True)
+    monkeypatch.setattr(tailor_endpoint.cv_render, "render_pdf", fake_render_pdf)
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/save",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={"template_id": "classic", "accepted_section_ids": ["summary"]},
+    )
+
+    assert response.status_code == 200
+    assert rendered["template_id"] == "classic"
+    kinds = [b["kind"] for b in rendered["context"]["blocks"]]
+    assert "summary" in kinds
+    # Rejected skills section falls back to the original text as a raw block.
+    assert "raw" in kinds
+    assert "Tailored summary" in saved["content"]
+
+
+@pytest.mark.asyncio
+async def test_save_rejects_unknown_template(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _patch_save_collaborators(monkeypatch, tmp_path, structured_result())
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/save",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={"template_id": "hot-pink-comic-sans"},
+    )
+
+    assert response.status_code == 422
+    assert "Unknown template" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_save_falls_back_to_legacy_renderer_without_weasyprint(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    saved = _patch_save_collaborators(monkeypatch, tmp_path, structured_result())
+    legacy_calls: list[Any] = []
+    monkeypatch.setattr(tailor_endpoint.cv_render, "is_available", lambda: False)
+    monkeypatch.setattr(
+        tailor_endpoint,
+        "generate_cv_pdf",
+        lambda sections, output_path: legacy_calls.append(sections),
+    )
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/save",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={},
+    )
+
+    assert response.status_code == 200
+    assert len(legacy_calls) == 1
+    assert "Tailored summary" in saved["content"]
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("role", "expected_limit"),

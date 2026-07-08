@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, desc, nullslast, or_
+from sqlalchemy import ColumnElement, desc, func, nullslast, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -33,6 +33,18 @@ def _is_live_deadline_clause() -> ColumnElement[bool]:
     )
 
 
+def list_sources(db: Session) -> list[dict[str, Any]]:
+    """Return distinct job sources with live posting counts, most populous first."""
+    rows = (
+        db.query(RawJobPosting.source, func.count(RawJobPosting.id).label("count"))
+        .filter(RawJobPosting.is_duplicate.is_(False))
+        .group_by(RawJobPosting.source)
+        .order_by(desc("count"))
+        .all()
+    )
+    return [{"source": row.source, "count": row.count} for row in rows]
+
+
 def list_jobs(
     db: Session,
     user_id: uuid.UUID,
@@ -45,6 +57,7 @@ def list_jobs(
     is_remote: bool | None = None,
     match_score_min: float | None = None,
     search: str | None = None,
+    hide_applied: bool = False,
     page: int = 1,
     limit: int = 20,
     sort: str = "score_desc",
@@ -95,6 +108,10 @@ def list_jobs(
             RawJobPosting.title.ilike(f"%{search}%")
             | RawJobPosting.company.ilike(f"%{search}%")
         )
+    if hide_applied:
+        # The Application outerjoin above is scoped to this user, so this only
+        # hides jobs the current user has already tracked an application for.
+        q = q.filter(Application.id.is_(None))
     if keywords:
         keyword_ids = (
             db.query(ExtractedKeyword.raw_job_posting_id)

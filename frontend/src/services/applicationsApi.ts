@@ -30,6 +30,23 @@ export function createApplication(data: ApplicationCreate): Promise<Application>
   return client.post<Application>('/api/v1/applications', data).then((r) => normalizeApplication(r.data))
 }
 
+export interface DuplicateCheckResponse {
+  duplicate: boolean
+  application: {
+    id: string
+    company_name: string
+    job_title: string
+    status: string
+    created_at: string
+  } | null
+}
+
+export function checkDuplicateApplication(company: string): Promise<DuplicateCheckResponse> {
+  return client
+    .get<DuplicateCheckResponse>('/api/v1/applications/check-duplicate', { params: { company } })
+    .then((r) => r.data)
+}
+
 export function updateApplication(id: string, data: ApplicationUpdate): Promise<Application> {
   return client
     .patch<Application>(`/api/v1/applications/${id}`, data)

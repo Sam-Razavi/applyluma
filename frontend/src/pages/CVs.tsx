@@ -14,6 +14,7 @@ import {
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import { StarIcon as StarOutline } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
+import { CompletenessBar, CompletenessChecklist } from '../components/cvs/CvCompleteness'
 import VersionDiffViewer from '../components/cvs/VersionDiffViewer'
 import VersionHistory from '../components/cvs/VersionHistory'
 import { cvApi } from '../services/api'
@@ -70,6 +71,7 @@ export default function CVs() {
   const [historyTarget, setHistoryTarget] = useState<CV | null>(null)
   const [diffTarget, setDiffTarget] = useState<CVVersionNode | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [checklistFor, setChecklistFor] = useState<string | null>(null)
 
   useEffect(() => {
     cvApi
@@ -261,8 +263,8 @@ export default function CVs() {
         ) : (
           <div className="divide-y divide-line">
             {cvs.map((cv) => (
+              <div key={cv.id}>
               <div
-                key={cv.id}
                 className="flex items-start gap-4 px-6 py-4 transition-colors hover:bg-surface-strong sm:items-center"
               >
                 {/* Icon */}
@@ -282,6 +284,14 @@ export default function CVs() {
                     )}
                   </div>
                   <p className="text-xs text-fg-subtle truncate">{cv.filename}</p>
+                  {typeof cv.completeness_score === 'number' && (
+                    <CompletenessBar
+                      score={cv.completeness_score}
+                      onClick={() =>
+                        setChecklistFor((current) => (current === cv.id ? null : cv.id))
+                      }
+                    />
+                  )}
                 </div>
 
                 {/* Size */}
@@ -344,6 +354,12 @@ export default function CVs() {
                     <TrashIcon className="h-4 w-4" />
                   </button>
                 </div>
+              </div>
+              {checklistFor === cv.id && (
+                <div className="px-6 pb-4 sm:pl-[4.75rem]">
+                  <CompletenessChecklist cvId={cv.id} />
+                </div>
+              )}
               </div>
             ))}
           </div>

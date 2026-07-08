@@ -43,9 +43,10 @@ export const coverLetterApi = {
       })
       .then((r) => r.data),
 
-  download: async (jobId: string, filename: string): Promise<void> => {
+  download: async (jobId: string, filename: string, templateId?: string): Promise<void> => {
     const response = await client.get(`/api/v1/cover-letters/${jobId}/download`, {
       responseType: 'blob',
+      params: templateId ? { template: templateId } : undefined,
     })
     const url = URL.createObjectURL(new Blob([response.data as BlobPart], { type: 'application/pdf' }))
     const stem = filename.replace(/\.[^.]+$/, '').trim()

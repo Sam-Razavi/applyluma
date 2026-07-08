@@ -24,6 +24,9 @@ ApplyLuma repository.
 - Mobile UX Enhancement: ✅ COMPLETE — Responsive polish and motion
 - Jobs Discovery Gap-fill & Search: ✅ COMPLETE — Search, skill gaps, bookmark API
 - Browser Extension: ✅ COMPLETE — MV3 Chrome/Firefox extension
+- Admin Dashboard / Pipeline Health: ✅ COMPLETE — /admin pages incl. pipeline health
+- Job Sources & Dedupe (July 2026): ✅ COMPLETE — RemoteOK source, dynamic source
+  filter, cross-source rolling-window dedupe, "Hide applied jobs" Discover filter
 
 Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Celery worker tailors CV sections against a job description using OpenAI.
@@ -34,8 +37,8 @@ Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Alembic migrations for tailor_jobs table and user role column included.
 
 Phase 10A delivered Swedish job discovery end-to-end:
-  - Airflow scrapes job boards daily at 2 AM UTC. Production sources in DB:
-    `JobSearch API`, `the_muse`, `remotive`.
+  - Airflow scrapes job boards daily at 2 AM UTC. (Sources listed here are
+    historical — see the Job Sources & Dedupe section for the current set.)
   - AI match scoring compares each job against the user's CV (skills, experience,
     salary, education, location) and caches results in Redis (24h TTL).
   - Keyword extraction (technical skills, frameworks, tools, soft skills, languages,
@@ -112,6 +115,79 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
   - `/extension-auth` page in the web app mints a bearer token and auto-copies to clipboard.
   - JOB_SITE_PATTERNS covers `se.indeed.com`, `arbetsformedlingen.se`, and
     `www.arbetsformedlingen.se`.
+
+Job Sources & Dedupe delivered in July 2026:
+  - New RemoteOK scraper (`airflow/plugins/job_scrapers/remoteok_client.py`) in the
+    `scrape_jobs` DAG. Scrapers in the repo: `remotive`, `the_muse`, `remoteok`
+    (scrape_jobs, 02:00 UTC) and `platsbanken`, `jobbsafari`, `indeed_se`
+    (scrape_swedish_jobs, 02:30 UTC). Source strings are lowercase in the DB.
+  - `GET /api/v1/jobs/sources` returns distinct sources with live posting counts;
+    the Discover source filter populates from it (static `JOB_SOURCES` is only a
+    fallback). New sources need no frontend changes.
+  - Cross-source rolling-window dedupe (`airflow/plugins/job_scrapers/dedupe.py`,
+    used by both scrape DAGs): a posting scraped today is marked `is_duplicate`
+    when a live posting with the same normalised title+company+location exists
+    within the last 14 days, regardless of source. Oldest posting wins; only
+    today's rows are ever marked by the daily run.
+  - `scripts/backfill_duplicates.py` applies the same rule to historical rows
+    (dry run by default, `--apply` to mark). Run once against Railway.
+  - "Hide applied jobs" filter: `hide_applied` param on `GET /api/v1/jobs`
+    (filters on the user-scoped Application join) plus a checkbox in the
+    Discover filters sidebar.
+
+Structured CV Tailoring & Templates delivered in July 2026 (branch
+`feature/structured-cv-templates`):
+  - The tailor call now uses OpenAI Structured Outputs (strict `json_schema`,
+    still `gpt-4o`): the model returns typed content (`header`, `summary`,
+    `skills.groups`, `experience[]`, `projects[]`, `education[]`,
+    `certifications`, `additional_sections[]`, `section_order`) instead of
+    free-text section blobs. Schema lives in
+    `backend/app/services/cv_render/structure.py`.
+  - `result_json` now carries both `structured_cv` (for rendering) and the
+    derived legacy `sections` list, so the diff-review UI works unchanged.
+    Old jobs without `structured_cv` still save via the legacy ReportLab path.
+  - New renderer package `backend/app/services/cv_render/`: Jinja2 HTML
+    templates rendered to PDF with WeasyPrint. Two templates: `nordic`
+    (navy/teal Scandinavian design, default) and `classic` (monochrome ATS).
+    `POST /tailor/{id}/save` accepts optional `template_id`.
+  - Rejected/overridden sections render as raw text blocks inside the same
+    template, so mixed accept/reject output still looks consistent.
+  - Page-length enforcement: after generation the worker renders a probe PDF;
+    if it exceeds 2 pages, one compress retry is sent to the model and the
+    shorter result wins (`_COMPRESS_PROMPT` in `tailor_service.py`).
+  - Fabricated-skill validation now checks structured `skills.groups` and
+    project `stack` items with token-ngram matching ("Java" no longer matches
+    inside "JavaScript"; "Node js" still matches "Node.js"). Header
+    email/phone/links are validated against the source CV and dropped if absent.
+  - WeasyPrint needs native Pango libs: installed in `backend/Dockerfile`
+    (also `fonts-inter`); NOT available on Windows dev machines, where
+    `cv_render.is_available()` is False and everything falls back to the
+    legacy ReportLab renderer. The 2 real-PDF tests skip locally and were
+    verified inside the Docker image.
+  - Template picker UI: `TemplatePicker.tsx` in the AI Tailor review step
+    (mini CSS thumbnails, `CvTemplateId` type); the choice is sent as
+    `template_id` on CV save and as the `?template=` query param on cover
+    letter download.
+  - Cover letters render through the matching template family
+    (`cover_nordic.html` / `cover_classic.html`) with the candidate
+    letterhead extracted from the CV contact block;
+    `GET /cover-letters/{id}/download?template=` falls back to the legacy
+    ReportLab renderer when WeasyPrint or a contact block is missing.
+
+Also shipped and easy to miss (verified 2026-07-08):
+  - Stripe billing: checkout, webhook, and customer-portal endpoints
+    (`endpoints/billing.py`) with Plans / BillingSuccess / BillingCancel pages.
+  - Google OAuth login (`endpoints/auth_google.py`, `/auth/callback` page).
+  - In-app notifications UI: `NotificationBell` + `NotificationList` with
+    mark-one/mark-all-read; high-match alert task writes notification rows.
+  - Cover letter generator: `cover_letter_service.py`, `endpoints/cover_letters.py`,
+    Celery task, history on the AI Tailor page.
+  - Application status timeline (`ApplicationEvent` rows rendered by
+    `ApplicationTimeline.tsx`) and client-side CSV export
+    (`frontend/src/utils/exportCsv.ts`) on the Applications page.
+  - Alembic migration chain currently ends at `0024_raw_job_application_deadline.py`;
+    expired jobs (deadline passed — Platsbanken has deadline data) are hidden
+    from the Discover feed via `_is_live_deadline_clause`.
 
 ## Git Workflow
 
@@ -231,7 +307,10 @@ Files:
 - `tests/test_jd_endpoints.py` — job description create, list, get, delete
 - `tests/test_tailor_downloads.py` — authenticated PDF download endpoints
 - `tests/test_tailor_endpoints.py` — AI tailor job endpoints
-- `tests/test_tailor_service.py` — tailor service unit tests
+- `tests/test_tailor_service.py` — tailor service unit tests (structured outputs contract)
+- `tests/test_tailor_regression.py` — tailoring regressions: dropped data, fabricated skills
+- `tests/test_cv_render.py` — structured CV renderer: context, HTML templates, PDF (skips
+  the 2 real-PDF tests where WeasyPrint native libs are missing, e.g. Windows)
 - `tests/test_jobs_endpoints.py` — job discovery list/detail/keywords + all saved-jobs CRUD
 - `tests/test_matching_service.py` — CV-to-job match scoring unit tests
 - `tests/test_application_endpoints.py` — application tracking CRUD
@@ -335,28 +414,30 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Known Issues
 
-- 356 backend tests passing as of 2026-06-16. Frontend: 38 tests passing.
+- 470 backend tests and 204 frontend tests passing as of 2026-07-08.
 - `npm install` reported 2 moderate frontend dependency vulnerabilities; do not
   run `npm audit fix --force` casually because it can introduce breaking
   dependency upgrades.
 - GitHub CLI (`gh`) is not installed in the local Codex environment; use the
   GitHub connector or install `gh` for CLI-based PR workflows.
-- `job_market_metrics` table is stale (last row 2026-05-10); the dbt pipeline
-  that populates it has not run since the Airflow scraper sources changed.
+- `job_market_metrics` freshness depends on the `transform_jobs` DAG running in
+  Airflow. The aggregation code has no per-source coupling (verified 2026-07-08),
+  so any staleness is operational, not a code defect — check `/admin/pipeline`
+  for current status.
 
 ## Next Steps
 
-- `dev` is synced with `main`. Resume the standard `dev → feature branch → dev → main`
-  workflow for all new work.
-- Next planned feature: **Admin Dashboard / Pipeline Health** — a self-contained Codex
-  implementation prompt has been written. It adds `/admin/pipeline` with a health panel
-  (per-stage freshness + status), jobs-over-time line chart, jobs-by-source bar chart,
-  top skills/companies lists, and a remote-% stat card. New backend endpoints under
-  `/api/v1/admin/pipeline/` read `raw_job_postings`, `extracted_keywords`, and
-  `job_market_metrics` (read-only).
-- Phase 10C backlog: in-app notification surface for high-match alerts, Discover filter
-  for jobs already in Applications, richer alert preferences, additional Phase 10B edge-case
-  tests.
+- Resume the standard `dev → feature branch → dev → main` workflow for all new work.
+- Admin Dashboard / Pipeline Health has shipped: `/admin/pipeline` health panel plus
+  charts, backed by read-only endpoints under `/api/v1/admin/pipeline/`.
+- Run `scripts/backfill_duplicates.py` once against Railway to mark historical
+  cross-source duplicates (see Job Sources & Dedupe section).
+- Backlog (verified open as of 2026-07-08): keyword tag filtering on Discover,
+  duplicate-application warning (same-company check), CV completeness score,
+  follow-up reminders, granular alert preferences, Platsbanken delisted-ad
+  re-check task, additional Phase 10B edge-case tests. `FEATURE_IDEAS.md`
+  checkboxes are the authoritative list — several items were confirmed built
+  and ticked on 2026-07-08.
 - Run the full test suite (`pytest`, `npm test`) before merging any new feature work.
 
 ## AI Development Guidelines
