@@ -135,6 +135,36 @@ Job Sources & Dedupe delivered in July 2026:
     (filters on the user-scoped Application join) plus a checkbox in the
     Discover filters sidebar.
 
+Structured CV Tailoring & Templates delivered in July 2026 (branch
+`feature/structured-cv-templates`):
+  - The tailor call now uses OpenAI Structured Outputs (strict `json_schema`,
+    still `gpt-4o`): the model returns typed content (`header`, `summary`,
+    `skills.groups`, `experience[]`, `projects[]`, `education[]`,
+    `certifications`, `additional_sections[]`, `section_order`) instead of
+    free-text section blobs. Schema lives in
+    `backend/app/services/cv_render/structure.py`.
+  - `result_json` now carries both `structured_cv` (for rendering) and the
+    derived legacy `sections` list, so the diff-review UI works unchanged.
+    Old jobs without `structured_cv` still save via the legacy ReportLab path.
+  - New renderer package `backend/app/services/cv_render/`: Jinja2 HTML
+    templates rendered to PDF with WeasyPrint. Two templates: `nordic`
+    (navy/teal Scandinavian design, default) and `classic` (monochrome ATS).
+    `POST /tailor/{id}/save` accepts optional `template_id`.
+  - Rejected/overridden sections render as raw text blocks inside the same
+    template, so mixed accept/reject output still looks consistent.
+  - Page-length enforcement: after generation the worker renders a probe PDF;
+    if it exceeds 2 pages, one compress retry is sent to the model and the
+    shorter result wins (`_COMPRESS_PROMPT` in `tailor_service.py`).
+  - Fabricated-skill validation now checks structured `skills.groups` and
+    project `stack` items with token-ngram matching ("Java" no longer matches
+    inside "JavaScript"; "Node js" still matches "Node.js"). Header
+    email/phone/links are validated against the source CV and dropped if absent.
+  - WeasyPrint needs native Pango libs: installed in `backend/Dockerfile`
+    (also `fonts-inter`); NOT available on Windows dev machines, where
+    `cv_render.is_available()` is False and everything falls back to the
+    legacy ReportLab renderer. The 2 real-PDF tests skip locally and were
+    verified inside the Docker image.
+
 Also shipped and easy to miss (verified 2026-07-08):
   - Stripe billing: checkout, webhook, and customer-portal endpoints
     (`endpoints/billing.py`) with Plans / BillingSuccess / BillingCancel pages.
@@ -268,7 +298,10 @@ Files:
 - `tests/test_jd_endpoints.py` — job description create, list, get, delete
 - `tests/test_tailor_downloads.py` — authenticated PDF download endpoints
 - `tests/test_tailor_endpoints.py` — AI tailor job endpoints
-- `tests/test_tailor_service.py` — tailor service unit tests
+- `tests/test_tailor_service.py` — tailor service unit tests (structured outputs contract)
+- `tests/test_tailor_regression.py` — tailoring regressions: dropped data, fabricated skills
+- `tests/test_cv_render.py` — structured CV renderer: context, HTML templates, PDF (skips
+  the 2 real-PDF tests where WeasyPrint native libs are missing, e.g. Windows)
 - `tests/test_jobs_endpoints.py` — job discovery list/detail/keywords + all saved-jobs CRUD
 - `tests/test_matching_service.py` — CV-to-job match scoring unit tests
 - `tests/test_application_endpoints.py` — application tracking CRUD

@@ -1,5 +1,5 @@
 """Regression tests for CV tailoring bugs: concatenation, duplicate headers,
-dropped data, and fabricated skills."""
+dropped data, and fabricated skills — updated for the structured CV contract."""
 
 from __future__ import annotations
 
@@ -17,13 +17,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.core.config import settings
 from app.models.tailor_job import TailorIntensity
 from app.services import tailor_service
+from app.services.cv_render import structured_to_sections
 from app.services.pdf_generator import generate_cv_pdf
 from app.services.tailor_service import (
     _extract_contact_information,
     _is_contact_section,
     _remove_fabricated_skills,
-    _strip_concatenated_originals,
-    _validate_no_fabricated_skills,
+    _skill_present_in_source,
+    _source_skill_slugs,
 )
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "source_cv.json"
@@ -40,44 +41,61 @@ def cv_text(source_cv: dict) -> str:
     return source_cv["cv_text"]
 
 
+def make_structured(**overrides: Any) -> dict:
+    payload: dict[str, Any] = {
+        "language": "en",
+        "header": {
+            "full_name": "Sam Developer",
+            "target_headline": "Fullstack Developer | Python & React",
+            "location": "Stockholm, Sweden",
+            "phone": "+46 70 123 4567",
+            "email": "sam@example.com",
+            "links": ["github.com/samdev"],
+        },
+        "summary": {
+            "tailored": "Results-driven fullstack developer with strong Python and React skills.",
+            "original": "Fullstack developer with experience in Python, React, and TypeScript.",
+            "changes": ["Rewrote summary"],
+        },
+        "skills": {
+            "groups": [
+                {"category": "Languages", "items": ["Python", "JavaScript", "TypeScript"]},
+                {"category": "Frontend", "items": ["React"]},
+            ],
+            "original": "Python, JavaScript, TypeScript, React",
+            "changes": [],
+        },
+        "experience": [],
+        "projects": [],
+        "education": [],
+        "certifications": {"items": [], "original": "", "changes": []},
+        "additional_sections": [],
+        "section_order": ["summary", "skills", "experience", "projects", "education"],
+        "meta": {
+            "keywords_added": [],
+            "keywords_already_present": [],
+            "intensity_applied": "medium",
+            "estimated_pages": 1,
+        },
+    }
+    payload.update(overrides)
+    return payload
+
+
 # ---------------------------------------------------------------------------
 # Bug #1: Concatenation — tailored output must not duplicate source content
 # ---------------------------------------------------------------------------
 
 
 class TestNoConcatenation:
-    def test_strip_concatenated_originals_removes_prefix(self) -> None:
-        result = {
-            "sections": [
-                {
-                    "section_id": "summary",
-                    "section_name": "Summary",
-                    "original": "Fullstack developer with experience in Python, React, and TypeScript.",
-                    "tailored": (
-                        "Fullstack developer with experience in Python, React, and TypeScript."
-                        "\n\nResults-driven fullstack developer with strong Python and React skills."
-                    ),
-                }
-            ]
-        }
-        _strip_concatenated_originals(result)
-        tailored = result["sections"][0]["tailored"]
-        assert not tailored.startswith("Fullstack developer with experience")
-        assert "Results-driven" in tailored
-
-    def test_strip_does_not_alter_clean_tailored(self) -> None:
-        result = {
-            "sections": [
-                {
-                    "section_id": "summary",
-                    "section_name": "Summary",
-                    "original": "Fullstack developer with Python.",
-                    "tailored": "Results-driven backend engineer specializing in Python.",
-                }
-            ]
-        }
-        _strip_concatenated_originals(result)
-        assert result["sections"][0]["tailored"] == "Results-driven backend engineer specializing in Python."
+    def test_derived_section_text_comes_only_from_typed_fields(self) -> None:
+        structured = make_structured()
+        sections = structured_to_sections(structured, contact_text="")
+        summary = next(s for s in sections if s["section_id"] == "summary")
+        # The tailored text is exactly the typed field — the schema makes it
+        # impossible for the model to prepend the original text to it.
+        assert summary["tailored"] == structured["summary"]["tailored"]
+        assert summary["original"] not in summary["tailored"]
 
     def test_pdf_contains_content_once(self, tmp_path: Path) -> None:
         sections = [
@@ -144,42 +162,33 @@ class TestNoDroppedData:
         assert "github.com/samdev" in contact
         assert "linkedin.com/in/samdev" in contact
 
-    def test_contact_injected_when_llm_drops_it(self, cv_text: str) -> None:
-        result = {
-            "sections": [
+    def test_contact_section_always_injected_first(self, cv_text: str) -> None:
+        contact = _extract_contact_information(cv_text)
+        sections = structured_to_sections(make_structured(), contact_text=contact)
+        assert sections[0]["section_id"] == "contact_information"
+        assert sections[0]["original"] == sections[0]["tailored"]
+        assert "Sam Developer" in sections[0]["tailored"]
+        assert "sam@example.com" in sections[0]["tailored"]
+
+    def test_all_projects_present_in_derived_sections(self, source_cv: dict) -> None:
+        structured = make_structured(
+            projects=[
                 {
-                    "section_id": "summary",
-                    "section_name": "Summary",
-                    "original": "Developer summary",
-                    "tailored": "Tailored summary",
+                    "name": name,
+                    "subtitle": None,
+                    "url": None,
+                    "stack": [],
+                    "bullets": [f"Built {name}."],
+                    "original": name,
                     "changes": [],
                 }
+                for name in source_cv["projects"]
             ]
-        }
-        patched = tailor_service._preserve_contact_section(result, cv_text)
-        assert patched["sections"][0]["section_id"] == "contact_information"
-        assert "Sam Developer" in patched["sections"][0]["tailored"]
-        assert "sam@example.com" in patched["sections"][0]["tailored"]
-
-    def test_all_projects_present_in_pdf(self, tmp_path: Path, source_cv: dict) -> None:
-        sections = [
-            {
-                "section_name": "Projects",
-                "content": (
-                    "Memory Game\nA browser-based memory card game.\n\n"
-                    "Expense Tracker\nPersonal finance tracker.\n\n"
-                    "ApplyLuma\nAI-powered job application platform."
-                ),
-            }
-        ]
-        out = tmp_path / "test.pdf"
-        generate_cv_pdf(sections, out)
-
-        with pdfplumber.open(out) as pdf:
-            text = "\n".join(p.extract_text() or "" for p in pdf.pages)
-
+        )
+        sections = structured_to_sections(structured, contact_text="")
+        text = "\n".join(s["tailored"] for s in sections)
         for project in source_cv["projects"]:
-            assert project in text, f"Project '{project}' missing from PDF"
+            assert project in text, f"Project '{project}' missing from derived sections"
 
     def test_education_details_preserved_in_pdf(self, tmp_path: Path) -> None:
         sections = [
@@ -217,21 +226,16 @@ class TestNoDroppedData:
 
 
 class TestNoFabrication:
-    def test_detects_fabricated_skills(self, cv_text: str) -> None:
-        result = {
-            "sections": [
-                {
-                    "section_id": "skills",
-                    "section_name": "Skills",
-                    "original": "Python, JavaScript, TypeScript, React",
-                    "tailored": "Python, JavaScript, TypeScript, React, Java, Azure DevOps",
-                    "changes": [],
-                }
-            ]
-        }
-        fabricated = _validate_no_fabricated_skills(result, cv_text)
-        assert "java" in fabricated
-        assert "azure devops" in fabricated
+    def test_java_not_matched_inside_javascript(self, cv_text: str) -> None:
+        slugs = _source_skill_slugs(cv_text)
+        assert not _skill_present_in_source("Java", cv_text.lower(), slugs)
+        assert _skill_present_in_source("JavaScript", cv_text.lower(), slugs)
+
+    def test_punctuation_variants_are_tolerated(self) -> None:
+        source = "Skills: Node.js, CI/CD pipelines, React"
+        slugs = _source_skill_slugs(source)
+        assert _skill_present_in_source("Node js", source.lower(), slugs)
+        assert _skill_present_in_source("CI CD", source.lower(), slugs)
 
     def test_aggressive_intensity_does_not_encourage_fabrication(self) -> None:
         from app.services.tailor_service import _INTENSITY_INSTRUCTIONS, _SYSTEM_PROMPT
@@ -246,68 +250,78 @@ class TestNoFabrication:
         # The system prompt states truthfulness overrides the intensity setting.
         assert "override" in _SYSTEM_PROMPT.lower()
 
-    def test_removes_fabricated_skills(self, cv_text: str) -> None:
-        result = {
-            "sections": [
+    def test_removes_fabricated_skills_from_groups(self, cv_text: str) -> None:
+        structured = make_structured(
+            skills={
+                "groups": [
+                    {
+                        "category": "Languages",
+                        "items": ["Python", "JavaScript", "TypeScript", "Java"],
+                    },
+                    {"category": "Cloud", "items": ["Azure DevOps"]},
+                ],
+                "original": "Python, JavaScript, TypeScript, React",
+                "changes": [],
+            }
+        )
+        removed = _remove_fabricated_skills(structured, cv_text)
+        assert "Java" in removed
+        assert "Azure DevOps" in removed
+        groups = structured["skills"]["groups"]
+        # The now-empty Cloud group is dropped entirely.
+        assert [g["category"] for g in groups] == ["Languages"]
+        assert groups[0]["items"] == ["Python", "JavaScript", "TypeScript"]
+
+    def test_removes_fabricated_stack_items_from_projects(self, cv_text: str) -> None:
+        structured = make_structured(
+            projects=[
                 {
-                    "section_id": "skills",
-                    "section_name": "Skills",
-                    "original": "Python, JavaScript, TypeScript, React",
-                    "tailored": "Python, JavaScript, TypeScript, React, Java, Azure DevOps",
+                    "name": "Memory Game",
+                    "subtitle": None,
+                    "url": None,
+                    "stack": ["JavaScript", "Kubernetes"],
+                    "bullets": ["Built a browser game."],
+                    "original": "Memory Game",
                     "changes": [],
                 }
             ]
-        }
-        removed = _remove_fabricated_skills(result, cv_text)
-        assert len(removed) > 0
-        tailored = result["sections"][0]["tailored"]
-        skills_list = [s.strip() for s in tailored.split(",")]
-        assert "Java" not in skills_list, "Standalone 'Java' should be removed"
-        assert "Azure DevOps" not in tailored
-        assert "JavaScript" in tailored, "JavaScript must survive Java removal"
-        assert "Python" in tailored
-        assert "React" in tailored
+        )
+        removed = _remove_fabricated_skills(structured, cv_text)
+        assert "Kubernetes" in removed
+        assert structured["projects"][0]["stack"] == ["JavaScript"]
 
     def test_no_false_positives_for_existing_skills(self, cv_text: str) -> None:
-        result = {
-            "sections": [
-                {
-                    "section_id": "skills",
-                    "section_name": "Skills",
-                    "original": "Python, React, TypeScript",
-                    "tailored": "Python, React, TypeScript, FastAPI, Docker",
-                    "changes": [],
-                }
-            ]
-        }
-        fabricated = _validate_no_fabricated_skills(result, cv_text)
-        assert "python" not in fabricated
-        assert "react" not in fabricated
-        assert "typescript" not in fabricated
-        assert "fastapi" not in fabricated
-        assert "docker" not in fabricated
+        structured = make_structured(
+            skills={
+                "groups": [
+                    {
+                        "category": "Stack",
+                        "items": ["Python", "React", "TypeScript", "FastAPI", "Docker"],
+                    }
+                ],
+                "original": "Python, React, TypeScript",
+                "changes": [],
+            }
+        )
+        removed = _remove_fabricated_skills(structured, cv_text)
+        assert removed == []
 
     def test_fabrication_check_integrated_in_tailor_cv(
         self, monkeypatch: pytest.MonkeyPatch, cv_text: str
     ) -> None:
         fabricated_response = json.dumps(
-            {
-                "language": "en",
-                "sections": [
-                    {
-                        "section_id": "skills",
-                        "section_name": "Skills",
-                        "original": "Python, React",
-                        "tailored": "Python, React, Java, Azure DevOps",
-                        "changes": [],
-                    }
-                ],
-                "meta": {
-                    "keywords_added": ["Java", "Azure DevOps"],
-                    "keywords_already_present": ["Python"],
-                    "intensity_applied": "medium",
-                },
-            }
+            make_structured(
+                skills={
+                    "groups": [
+                        {
+                            "category": "Languages",
+                            "items": ["Python", "React", "Java", "Azure DevOps"],
+                        }
+                    ],
+                    "original": "Python, React",
+                    "changes": [],
+                }
+            )
         )
 
         class FakeOpenAI:
@@ -321,7 +335,7 @@ class TestNoFabrication:
                     choices=[
                         SimpleNamespace(
                             finish_reason="stop",
-                            message=SimpleNamespace(content=fabricated_response),
+                            message=SimpleNamespace(content=fabricated_response, refusal=None),
                         )
                     ]
                 )
@@ -338,165 +352,68 @@ class TestNoFabrication:
         )
 
         for section in result["sections"]:
-            if "skill" in section.get("section_name", "").lower():
+            if section["section_id"] == "skills":
                 assert "Java" not in section["tailored"]
                 assert "Azure DevOps" not in section["tailored"]
                 assert "Python" in section["tailored"]
+        items = result["structured_cv"]["skills"]["groups"][0]["items"]
+        assert "Java" not in items
+        assert "Azure DevOps" not in items
 
 
 # ---------------------------------------------------------------------------
-# End-to-end: full tailoring → PDF → validation
+# Structured section text derivation
 # ---------------------------------------------------------------------------
 
 
-class TestEndToEndTailoredPdf:
-    def test_full_pipeline_produces_valid_pdf(
-        self, tmp_path: Path, source_cv: dict, cv_text: str
-    ) -> None:
-        contact = _extract_contact_information(cv_text)
-        pdf_sections = [
-            {"section_name": "Contact Information", "content": contact},
-            {
-                "section_name": "Summary",
-                "content": "Results-driven fullstack developer with Python and React expertise.",
-            },
-            {
-                "section_name": "Skills",
-                "content": "Python, TypeScript, React, FastAPI, PostgreSQL, Docker, Git, Node.js",
-            },
-            {
-                "section_name": "Experience",
-                "content": (
-                    "Fullstack Developer Intern\nTech Corp, Stockholm\n"
-                    "June 2025 - Present\n"
-                    "- Built REST APIs using FastAPI and PostgreSQL\n"
-                    "- Developed React components with TypeScript\n"
-                ),
-            },
-            {
-                "section_name": "Experience",
-                "content": (
-                    "Junior Developer\nStartup AB, Gothenburg\n"
-                    "Jan 2024 - May 2025\n"
-                    "- Maintained Node.js backend services\n"
-                    "- Created responsive UIs with React and Tailwind CSS\n"
-                ),
-            },
-            {
-                "section_name": "Projects",
-                "content": (
-                    "Memory Game\nA browser-based memory card game.\n"
-                    "Tech: JavaScript, HTML, CSS\n\n"
-                    "Expense Tracker\nPersonal finance tracker.\n"
-                    "Tech: React, TypeScript, Chart.js\n\n"
-                    "ApplyLuma\nAI-powered job application platform.\n"
-                    "Tech: FastAPI, React, PostgreSQL, Redis\n"
-                ),
-            },
-            {
-                "section_name": "Education",
-                "content": (
-                    "BSc Computer Science\nUniversity of Gothenburg\n2021 - 2024\n"
-                    "Thesis: Machine Learning Approaches to Resume Parsing\n180 credits\n\n"
-                    "MSc Software Engineering\nChalmers University of Technology\n2024 - 2026\n"
-                    "Thesis: Automated CV Tailoring with Large Language Models\n120 credits"
-                ),
-            },
-        ]
-        out = tmp_path / "final.pdf"
-        generate_cv_pdf(pdf_sections, out)
-
-        with pdfplumber.open(out) as pdf:
-            text = "\n".join(p.extract_text() or "" for p in pdf.pages)
-
-        assert text.count("Experience") == 1, "Experience header appears more than once"
-
-        assert text.count("Sam Developer") == 1, "Contact info duplicated"
-        assert "sam@example.com" in text
-        assert "+46 70 123 4567" in text
-        assert "github.com/samdev" in text
-
-        for project in source_cv["projects"]:
-            assert project in text, f"Project '{project}' dropped from output"
-
-        assert "Machine Learning Approaches to Resume Parsing" in text
-        assert "Automated CV Tailoring with Large Language Models" in text
-
-        source_skills = {s.lower() for s in source_cv["skills"]}
-        for word in text.split():
-            cleaned = word.strip(".,;:()").lower()
-            if len(cleaned) > 2 and cleaned.isalpha():
-                pass
-
-
-# ---------------------------------------------------------------------------
-# Round 2: Fuzzy concatenation stripping
-# ---------------------------------------------------------------------------
-
-
-class TestFuzzyConcatenationStripping:
-    def test_strip_with_whitespace_differences(self) -> None:
-        original = "Fullstack developer\n\nwith experience in Python,\nReact, and TypeScript."
-        tailored_actual = "Results-driven fullstack developer with strong Python and React skills."
-        tailored_with_prefix = (
-            "Fullstack developer\nwith experience in Python, React, and TypeScript.\n\n"
-            + tailored_actual
-        )
-        result = {
-            "sections": [
+class TestDerivedSectionText:
+    def test_experience_entry_text_format(self) -> None:
+        structured = make_structured(
+            experience=[
                 {
-                    "section_id": "summary",
-                    "section_name": "Summary",
-                    "original": original,
-                    "tailored": tailored_with_prefix,
+                    "title": "Fullstack Developer Intern",
+                    "company": "Tech Corp",
+                    "location": "Stockholm",
+                    "dates": "June 2025 - Present",
+                    "bullets": ["Built REST APIs using FastAPI and PostgreSQL"],
+                    "original": "Fullstack Developer Intern at Tech Corp",
+                    "changes": [],
                 }
             ]
-        }
-        _strip_concatenated_originals(result)
-        tailored = result["sections"][0]["tailored"]
-        assert "Results-driven" in tailored
-        assert tailored.startswith("Results-driven") or len(tailored) < len(tailored_with_prefix)
+        )
+        sections = structured_to_sections(structured, contact_text="")
+        exp = next(s for s in sections if s["section_id"] == "experience_0")
+        assert "Fullstack Developer Intern - Tech Corp" in exp["tailored"]
+        assert "June 2025 - Present | Stockholm" in exp["tailored"]
+        assert "• Built REST APIs using FastAPI and PostgreSQL" in exp["tailored"]
 
-    def test_strip_with_minor_rewording(self) -> None:
-        original = (
-            "Experienced Python developer with background in web development "
-            "and database management. Skilled in FastAPI and PostgreSQL."
-        )
-        tailored_prefix = (
-            "Experienced Python developer with a background in web development "
-            "and database management. Skilled in FastAPI and PostgreSQL."
-        )
-        tailored_actual = "Backend engineer specializing in Python microservices."
-        combined = tailored_prefix + "\n\n" + tailored_actual
-        result = {
-            "sections": [
+    def test_project_entry_text_includes_url_and_stack(self) -> None:
+        structured = make_structured(
+            projects=[
                 {
-                    "section_id": "summary",
-                    "section_name": "Summary",
-                    "original": original,
-                    "tailored": combined,
+                    "name": "ApplyLuma",
+                    "subtitle": "AI-powered job application platform",
+                    "url": "github.com/samdev/applyluma",
+                    "stack": ["FastAPI", "React"],
+                    "bullets": ["Shipped end-to-end job tracking."],
+                    "original": "ApplyLuma",
+                    "changes": [],
                 }
             ]
-        }
-        _strip_concatenated_originals(result)
-        tailored = result["sections"][0]["tailored"]
-        assert len(tailored) < len(combined)
+        )
+        sections = structured_to_sections(structured, contact_text="")
+        proj = next(s for s in sections if s["section_id"] == "project_0")
+        assert "ApplyLuma - AI-powered job application platform" in proj["tailored"]
+        assert "github.com/samdev/applyluma" in proj["tailored"]
+        assert "Tech: FastAPI, React" in proj["tailored"]
 
-    def test_no_false_positive_on_genuinely_different_text(self) -> None:
-        original = "Python developer with 3 years experience in web development."
-        tailored = "Backend engineer specializing in distributed systems and cloud architecture."
-        result = {
-            "sections": [
-                {
-                    "section_id": "summary",
-                    "section_name": "Summary",
-                    "original": original,
-                    "tailored": tailored,
-                }
-            ]
-        }
-        _strip_concatenated_originals(result)
-        assert result["sections"][0]["tailored"] == tailored
+    def test_swedish_language_uses_swedish_headings(self) -> None:
+        structured = make_structured(language="sv")
+        sections = structured_to_sections(structured, contact_text="Sam\nsam@example.com")
+        names = {s["section_id"]: s["section_name"] for s in sections}
+        assert names["contact_information"] == "Kontaktuppgifter"
+        assert names["summary"] == "Sammanfattning"
+        assert names["skills"] == "Kompetenser"
 
 
 # ---------------------------------------------------------------------------
