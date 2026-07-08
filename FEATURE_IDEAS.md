@@ -31,10 +31,11 @@ Tick them off as they get built.
 
 ## CV & Tailoring
 
-- [ ] **CV completeness score**
-  Score the uploaded CV against a checklist (contact info, summary,
-  experience, education, skills, links). Show a progress bar on the CVs
-  page so users know what to improve before tailoring.
+- [x] **CV completeness score**
+  Deterministic checklist scoring (contact info, summary, experience,
+  education, skills, links, length) in `cv_completeness.py`, English and
+  Swedish headings. Progress bar per CV row on the CVs page; clicking it
+  expands the checklist with hints (`GET /cvs/{id}/completeness`).
 
 - [ ] **Re-analyse existing CV**
   A button on the CVs page that re-runs AI analysis on an already-uploaded

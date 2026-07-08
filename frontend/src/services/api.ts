@@ -4,6 +4,7 @@ import type {
   AnalyticsEnvelope,
   CompanyInsight,
   CV,
+  CVCompleteness,
   CVDiffResponse,
   CVVersionNode,
   ExperienceLevel,
@@ -112,6 +113,9 @@ export const cvApi = {
     window.open(url, '_blank')
     setTimeout(() => URL.revokeObjectURL(url), 30000)
   },
+
+  completeness: (cvId: string): Promise<CVCompleteness> =>
+    client.get<CVCompleteness>(`/api/v1/cvs/${cvId}/completeness`).then((r) => r.data),
 
   getHistory: (cvId: string): Promise<CVVersionNode> =>
     client.get<CVVersionNode>(`/api/v1/cvs/${cvId}/history`).then((r) => r.data),

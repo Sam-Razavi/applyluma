@@ -9,7 +9,15 @@ from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.crud import cv as crud_cv
 from app.models.user import User
-from app.schemas.cv import CVDiffResponse, CVPublic, CVSummary, CVUpdate, CVVersionNode
+from app.schemas.cv import (
+    CVCompletenessResponse,
+    CVDiffResponse,
+    CVPublic,
+    CVSummary,
+    CVUpdate,
+    CVVersionNode,
+)
+from app.services.cv_completeness import score_cv_content
 from app.services.cv_parser import parse_cv
 from app.services.pdf_generator import generate_cv_pdf
 
@@ -220,7 +228,22 @@ def list_cvs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[CVSummary]:
-    return crud_cv.list_for_user(db, current_user.id)
+    cvs = crud_cv.list_for_user(db, current_user.id)
+    for cv in cvs:
+        cv.completeness_score = score_cv_content(cv.content)["score"]
+    return cvs
+
+
+@router.get("/{cv_id}/completeness", response_model=CVCompletenessResponse)
+def get_cv_completeness(
+    cv_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    cv = crud_cv.get_by_id(db, cv_id, current_user.id)
+    if not cv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+    return score_cv_content(cv.content)
 
 
 @router.get("/{cv_id}/history", response_model=CVVersionNode)
