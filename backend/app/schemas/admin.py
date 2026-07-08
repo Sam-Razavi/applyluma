@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -51,6 +51,30 @@ class AdminUserRow(BaseModel):
     created_at: datetime
 
 
+class AdminUserActivitySummary(BaseModel):
+    cvs: int
+    tailored_cvs: int
+    job_descriptions: int
+    applications: int
+    saved_jobs: int
+    tailor_jobs: int
+    tailor_jobs_failed: int
+    cover_letters: int
+    cover_letters_failed: int
+    notifications: int
+    unread_notifications: int
+
+
+class AdminUserProfile(AdminUserRow):
+    auth_provider: str | None = None
+    avatar_url: str | None = None
+    stripe_customer_id: str | None = None
+    stripe_subscription_id: str | None = None
+    subscription_ends_at: datetime | None = None
+    updated_at: datetime
+    activity: AdminUserActivitySummary
+
+
 class AdminUserListResponse(BaseModel):
     items: list[AdminUserRow]
     total: int
@@ -70,6 +94,16 @@ class AdminNotifyRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     body: str = Field(min_length=1, max_length=2000)
     type: NotificationType = "admin_message"
+
+
+class AdminBulkNotifyRequest(AdminNotifyRequest):
+    audience: Literal["all", "role", "user"] = "all"
+    role: UserRole | None = None
+    user_id: uuid.UUID | None = None
+
+
+class AdminBulkNotifyResponse(BaseModel):
+    sent_count: int
 
 
 class PipelineStage(BaseModel):
@@ -121,3 +155,178 @@ class PipelineMetricsResponse(BaseModel):
     remote_percentage: float | None = None
     top_skills: list[TopSkillItem] = Field(default_factory=list)
     top_companies: list[TopCompanyItem] = Field(default_factory=list)
+
+
+class AdminAiJobRow(BaseModel):
+    id: uuid.UUID
+    kind: Literal["tailor", "cover_letter"]
+    user_id: uuid.UUID
+    user_email: str | None = None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    celery_task_id: str | None = None
+    error_message: str | None = None
+    job_title: str | None = None
+    company_name: str | None = None
+    language: str | None = None
+    intensity: str | None = None
+    tone: str | None = None
+    word_count: int | None = None
+
+
+class AdminAiJobListResponse(BaseModel):
+    items: list[AdminAiJobRow]
+    total: int
+    page: int
+    size: int
+
+
+class PipelineRunLogRow(BaseModel):
+    id: int
+    pipeline_name: str
+    ran_at: datetime
+    rows_affected: int
+    status: str
+    error_message: str | None = None
+
+
+class PipelineRunLogListResponse(BaseModel):
+    items: list[PipelineRunLogRow]
+    total: int
+    page: int
+    size: int
+
+
+class RawJobAdminRow(BaseModel):
+    id: uuid.UUID
+    source: str
+    job_id_external: str
+    title: str
+    company: str
+    location: str | None = None
+    url: str
+    salary_min: int | None = None
+    salary_max: int | None = None
+    employment_type: str | None = None
+    remote_allowed: bool
+    is_remote: bool
+    is_duplicate: bool
+    application_deadline: datetime | None = None
+    scraped_at: datetime
+    keyword_count: int
+    saved_count: int
+    matching_score_count: int
+
+
+class RawJobAdminDetail(RawJobAdminRow):
+    description: str
+    extracted_skills: dict[str, Any] | None = None
+    raw_data: dict[str, Any]
+    keywords: list[TopSkillItem] = Field(default_factory=list)
+
+
+class RawJobAdminListResponse(BaseModel):
+    items: list[RawJobAdminRow]
+    total: int
+    page: int
+    size: int
+
+
+class SystemHealthResponse(BaseModel):
+    status: str
+    version: str
+    checks: dict[str, dict[str, Any]]
+
+
+class AdminAuditLogRow(BaseModel):
+    id: uuid.UUID
+    admin_user_id: uuid.UUID | None = None
+    admin_email: str | None = None
+    target_user_id: uuid.UUID | None = None
+    target_email: str | None = None
+    action: str
+    details: dict[str, Any]
+    ip_address: str | None = None
+    user_agent: str | None = None
+    created_at: datetime
+
+
+class AdminAuditLogListResponse(BaseModel):
+    items: list[AdminAuditLogRow]
+    total: int
+    page: int
+    size: int
+
+
+class AdminNotificationRow(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    user_email: str | None = None
+    type: str
+    title: str
+    body: str
+    is_read: bool
+    created_at: datetime
+
+
+class AdminNotificationListResponse(BaseModel):
+    items: list[AdminNotificationRow]
+    total: int
+    page: int
+    size: int
+
+
+class AdminBillingSummary(BaseModel):
+    total_users: int
+    premium_users: int
+    active_subscriptions: int
+    canceled_subscriptions: int
+    past_due_subscriptions: int
+
+
+class AdminBillingUserRow(BaseModel):
+    id: uuid.UUID
+    email: str
+    full_name: str | None = None
+    role: UserRole
+    subscription_status: str | None = None
+    subscription_ends_at: datetime | None = None
+    stripe_customer_id: str | None = None
+    stripe_subscription_id: str | None = None
+    created_at: datetime
+
+
+class AdminBillingUserListResponse(BaseModel):
+    items: list[AdminBillingUserRow]
+    total: int
+    page: int
+    size: int
+    summary: AdminBillingSummary
+
+
+ContactSubmissionStatus = Literal["new", "read", "replied", "archived"]
+
+
+class ContactSubmissionRow(BaseModel):
+    id: uuid.UUID
+    name: str
+    email: str
+    subject: str
+    message: str
+    status: str
+    remote_ip: str | None = None
+    user_agent: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ContactSubmissionListResponse(BaseModel):
+    items: list[ContactSubmissionRow]
+    total: int
+    page: int
+    size: int
+
+
+class ContactSubmissionStatusUpdate(BaseModel):
+    status: ContactSubmissionStatus

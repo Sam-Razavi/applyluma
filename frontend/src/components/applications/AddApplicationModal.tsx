@@ -185,11 +185,11 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
   }
 
   return (
-    <Dialog open={open} onClose={close} className="relative z-50">
+    <Dialog open={open} onClose={close} className="relative z-modal">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center sm:p-4">
         <DialogPanel className="flex h-full w-full flex-col rounded-none bg-raised shadow-2xl sm:h-auto sm:max-h-[90vh] sm:w-[600px] sm:rounded-lg">
-          <div className="flex items-center justify-between border-b border-line px-6 py-4">
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-line px-6 py-4">
             <DialogTitle className="text-base font-semibold text-fg">
               Add Application
             </DialogTitle>
@@ -197,9 +197,9 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
               type="button"
               onClick={close}
               aria-label="Close"
-              className="flex h-11 w-11 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-strong hover:text-fg-muted"
+              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-surface text-fg-muted transition hover:bg-surface-strong hover:text-fg"
             >
-              <XMarkIcon className="h-4 w-4" />
+              <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
 
@@ -393,7 +393,10 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
             )}
           </form>
 
-          <div className="flex flex-shrink-0 justify-end gap-2 border-t border-line px-6 py-4">
+          <div
+            className="flex flex-shrink-0 justify-end gap-2 border-t border-line bg-raised px-6 pt-4"
+            style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+          >
             <button
               type="button"
               onClick={close}
