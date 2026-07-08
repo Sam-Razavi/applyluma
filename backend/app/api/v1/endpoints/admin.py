@@ -15,11 +15,16 @@ from app.models.user import User, UserRole
 from app.schemas.admin import (
     AdminActiveUpdateRequest,
     AdminAiJobListResponse,
+    AdminAiJobRow,
     AdminAuditLogListResponse,
+    AdminAuditLogRow,
+    AdminBillingSummary,
     AdminBillingUserListResponse,
+    AdminBillingUserRow,
     AdminBulkNotifyRequest,
     AdminBulkNotifyResponse,
     AdminNotificationListResponse,
+    AdminNotificationRow,
     AdminNotifyRequest,
     AdminOverviewStats,
     AdminRoleUpdateRequest,
@@ -34,8 +39,10 @@ from app.schemas.admin import (
     PipelineHealthResponse,
     PipelineMetricsResponse,
     PipelineRunLogListResponse,
+    PipelineRunLogRow,
     RawJobAdminDetail,
     RawJobAdminListResponse,
+    RawJobAdminRow,
     SystemHealthResponse,
 )
 from app.services import notification_service
@@ -231,7 +238,12 @@ def list_admin_notifications(
     size: int = Query(25, ge=1, le=100),
 ) -> AdminNotificationListResponse:
     items, total = crud_admin.list_admin_notifications(db, search=search, page=page, size=size)
-    return AdminNotificationListResponse(items=items, total=total, page=page, size=size)
+    return AdminNotificationListResponse(
+        items=[AdminNotificationRow.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/ai-jobs", response_model=AdminAiJobListResponse)
@@ -252,7 +264,12 @@ def list_ai_jobs(
         page=page,
         size=size,
     )
-    return AdminAiJobListResponse(items=items, total=total, page=page, size=size)
+    return AdminAiJobListResponse(
+        items=[AdminAiJobRow.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/pipeline/health", response_model=PipelineHealthResponse)
@@ -292,7 +309,12 @@ def pipeline_runs(
         page=page,
         size=size,
     )
-    return PipelineRunLogListResponse(items=items, total=total, page=page, size=size)
+    return PipelineRunLogListResponse(
+        items=[PipelineRunLogRow.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/raw-jobs", response_model=RawJobAdminListResponse)
@@ -315,7 +337,12 @@ def raw_jobs(
         page=page,
         size=size,
     )
-    return RawJobAdminListResponse(items=items, total=total, page=page, size=size)
+    return RawJobAdminListResponse(
+        items=[RawJobAdminRow.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/raw-jobs/{job_id}", response_model=RawJobAdminDetail)
@@ -363,7 +390,12 @@ def audit_logs(
         page=page,
         size=size,
     )
-    return AdminAuditLogListResponse(items=items, total=total, page=page, size=size)
+    return AdminAuditLogListResponse(
+        items=[AdminAuditLogRow.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/billing/users", response_model=AdminBillingUserListResponse)
@@ -383,11 +415,11 @@ def billing_users(
         size=size,
     )
     return AdminBillingUserListResponse(
-        items=items,
+        items=[AdminBillingUserRow.model_validate(item) for item in items],
         total=total,
         page=page,
         size=size,
-        summary=summary,
+        summary=AdminBillingSummary.model_validate(summary),
     )
 
 
