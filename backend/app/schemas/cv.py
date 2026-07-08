@@ -21,6 +21,19 @@ class CVSummary(BaseModel):
     file_url: str | None
     created_at: datetime
     updated_at: datetime
+    completeness_score: int | None = None
+
+
+class CompletenessCheck(BaseModel):
+    id: str
+    label: str
+    passed: bool
+    hint: str
+
+
+class CVCompletenessResponse(BaseModel):
+    score: int
+    checks: list[CompletenessCheck]
 
 
 class CVPublic(CVSummary):
