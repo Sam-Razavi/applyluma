@@ -113,6 +113,7 @@ def generate_cover_letter(
         response = client.chat.completions.create(
             model="gpt-4o",
             max_tokens=2048,
+            temperature=0.3,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},

@@ -1,5 +1,6 @@
 import uuid
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.job import ExtractedKeyword, RawJobPosting
@@ -112,7 +113,17 @@ def get_or_create_from_raw_job(
         notes=notes,
     )
     db.add(jd)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Concurrent submits (e.g. CV tailor + cover letter fired in parallel
+        # for the same Discover job) race on uq_jd_user_raw_job; the loser
+        # reuses the row the winner just committed.
+        db.rollback()
+        existing = get_by_source_raw_job(db, user_id, raw_job_posting_id)
+        if existing:
+            return existing
+        raise
     db.refresh(jd)
     return jd
 
