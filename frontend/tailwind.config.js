@@ -107,6 +107,17 @@ export default {
         fadeIn: 'fadeIn 220ms ease-out both',
         barGrow: 'barGrow 500ms ease-out both',
       },
+      zIndex: {
+        /* Semantic stacking scale. MobileNav (z-nav) is fixed bottom-0 on
+           phones; any Dialog-based modal/drawer must sit above it (z-modal)
+           or its footer actions render underneath the nav and become
+           invisible/untappable. Confirm dialogs opened from inside another
+           modal (e.g. "Delete" inside the application drawer) go one tier
+           higher (z-modal-nested) so they aren't hidden behind their parent. */
+        nav: '100',
+        modal: '110',
+        'modal-nested': '120',
+      },
     },
   },
   plugins: [],
