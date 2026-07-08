@@ -7,33 +7,33 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
+from app.api.v1.endpoints.health import _check_adzuna, _check_celery, _check_db, _check_redis
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db, get_redis_client
 from app.crud import admin as crud_admin
-from app.api.v1.endpoints.health import _check_adzuna, _check_celery, _check_db, _check_redis
 from app.models.user import User, UserRole
 from app.schemas.admin import (
+    AdminActiveUpdateRequest,
     AdminAiJobListResponse,
     AdminAuditLogListResponse,
-    AdminActiveUpdateRequest,
     AdminBillingUserListResponse,
     AdminBulkNotifyRequest,
     AdminBulkNotifyResponse,
-    AdminNotifyRequest,
     AdminNotificationListResponse,
+    AdminNotifyRequest,
     AdminOverviewStats,
     AdminRoleUpdateRequest,
-    AdminUserProfile,
     AdminUserListResponse,
+    AdminUserProfile,
     AdminUserRow,
     ContactSubmissionListResponse,
     ContactSubmissionRow,
     ContactSubmissionStatusUpdate,
     JobsBySourceItem,
     JobsOverTimePoint,
-    PipelineRunLogListResponse,
     PipelineHealthResponse,
     PipelineMetricsResponse,
+    PipelineRunLogListResponse,
     RawJobAdminDetail,
     RawJobAdminListResponse,
     SystemHealthResponse,
@@ -232,15 +232,6 @@ def list_admin_notifications(
 ) -> AdminNotificationListResponse:
     items, total = crud_admin.list_admin_notifications(db, search=search, page=page, size=size)
     return AdminNotificationListResponse(items=items, total=total, page=page, size=size)
-    crud_admin.log_admin_action(
-        db,
-        admin_user_id=admin.id,
-        target_user_id=user_id,
-        action="user.notification_sent",
-        details={"type": body.type, "title": body.title},
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-    )
 
 
 @router.get("/ai-jobs", response_model=AdminAiJobListResponse)

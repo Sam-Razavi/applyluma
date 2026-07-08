@@ -10,6 +10,7 @@ vi.mock('../../services/adminApi', () => ({
     getJobsOverTime: vi.fn(),
     getJobsBySource: vi.fn(),
     getPipelineMetrics: vi.fn(),
+    listPipelineRuns: vi.fn(),
   },
 }))
 
@@ -60,6 +61,21 @@ describe('AdminPipeline page', () => {
       remote_percentage: 42.5,
       top_skills: [{ skill: 'Python', count: 12 }],
       top_companies: [{ company: 'ApplyLuma', count: 4 }],
+    })
+    vi.mocked(adminApi.listPipelineRuns).mockResolvedValue({
+      items: [
+        {
+          id: 1,
+          pipeline_name: 'remotive',
+          ran_at: '2026-06-16T09:00:00Z',
+          rows_affected: 30,
+          status: 'success',
+          error_message: null,
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 10,
     })
   })
 
