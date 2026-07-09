@@ -310,10 +310,13 @@ ContactSubmissionStatus = Literal["new", "read", "replied", "archived"]
 
 class ContactSubmissionRow(BaseModel):
     id: uuid.UUID
+    user_id: uuid.UUID | None = None
     name: str
     email: str
     subject: str
     message: str
+    category: str = "contact"
+    source: str = "contact"
     status: str
     remote_ip: str | None = None
     user_agent: str | None = None

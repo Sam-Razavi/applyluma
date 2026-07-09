@@ -635,3 +635,28 @@ def test_pipeline_health_uses_jobsearch_api_log_row() -> None:
     assert jobsearch["healthy"] is True
     assert jobsearch["status"] == "healthy"
     assert jobsearch["last_run"] is not None
+
+
+# ── Contact submissions: category filter (in-app feedback) ──────────────────
+
+@pytest.mark.asyncio
+async def test_contact_submissions_passes_category_filter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def mock_list(db, **kwargs):
+        captured.update(kwargs)
+        return [], 0
+
+    monkeypatch.setattr(admin_endpoint.crud_admin, "list_contact_submissions", mock_list)
+
+    response = await request(
+        "GET",
+        "/api/v1/admin/contact-submissions?category=bug&status=new",
+        current_user=admin_user(),
+    )
+
+    assert response.status_code == 200
+    assert captured["category"] == "bug"
+    assert captured["status"] == "new"

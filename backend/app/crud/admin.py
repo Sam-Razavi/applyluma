@@ -506,6 +506,9 @@ def create_contact_submission(
     message: str,
     remote_ip: str | None = None,
     user_agent: str | None = None,
+    user_id: uuid.UUID | None = None,
+    category: str = "contact",
+    source: str = "contact",
 ) -> ContactSubmission | None:
     if db is None:
         return None
@@ -516,6 +519,9 @@ def create_contact_submission(
         message=message,
         remote_ip=remote_ip,
         user_agent=user_agent,
+        user_id=user_id,
+        category=category,
+        source=source,
     )
     db.add(submission)
     db.commit()
@@ -527,6 +533,7 @@ def list_contact_submissions(
     db: Session,
     *,
     status: str | None = None,
+    category: str | None = None,
     search: str | None = None,
     page: int = 1,
     size: int = 25,
@@ -534,6 +541,8 @@ def list_contact_submissions(
     q = select(ContactSubmission)
     if status:
         q = q.where(ContactSubmission.status == status)
+    if category:
+        q = q.where(ContactSubmission.category == category)
     if search:
         pattern = f"%{search}%"
         q = q.where(

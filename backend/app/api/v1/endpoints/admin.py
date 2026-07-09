@@ -428,6 +428,7 @@ def contact_submissions(
     admin: AdminUser,
     db: DbSession,
     status_filter: str | None = Query(None, alias="status"),
+    category: str | None = Query(None),
     search: str | None = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(25, ge=1, le=100),
@@ -435,6 +436,7 @@ def contact_submissions(
     items, total = crud_admin.list_contact_submissions(
         db,
         status=status_filter,
+        category=category,
         search=search,
         page=page,
         size=size,

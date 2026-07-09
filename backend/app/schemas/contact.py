@@ -1,4 +1,14 @@
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr, Field
+
+FeedbackCategory = Literal["bug", "feature", "question", "other"]
+
+
+class FeedbackRequest(BaseModel):
+    category: FeedbackCategory
+    subject: str = Field(default="", max_length=200)
+    message: str = Field(min_length=10, max_length=5000)
 
 
 class ContactRequest(BaseModel):

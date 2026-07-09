@@ -271,3 +271,8 @@ export const contactApi = {
   }): Promise<{ ok: boolean }> =>
     client.post<{ ok: boolean }>('/api/v1/contact', data).then((r) => r.data),
 }
+
+export const feedbackApi = {
+  submit: (data: { category: string; subject?: string; message: string }): Promise<{ ok: boolean }> =>
+    client.post<{ ok: boolean }>('/api/v1/feedback', data).then((r) => r.data),
+}
