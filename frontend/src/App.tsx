@@ -34,6 +34,7 @@ const AITailor = lazy(() => import('./pages/AITailor'))
 const Analytics = lazy(() => import('./pages/Analytics'))
 const Discover = lazy(() => import('./pages/Discover'))
 const Settings = lazy(() => import('./pages/Settings'))
+const Feedback = lazy(() => import('./pages/Feedback'))
 const Plans = lazy(() => import('./pages/Plans'))
 const BillingSuccess = lazy(() => import('./pages/BillingSuccess'))
 const BillingCancel = lazy(() => import('./pages/BillingCancel'))
@@ -102,6 +103,7 @@ export default function App() {
             <Route path="cover-letter" element={<Navigate to="/ai-tailor" replace />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="feedback" element={<Feedback />} />
             <Route path="plans" element={<Plans />} />
             <Route path="billing/success" element={<BillingSuccess />} />
             <Route path="billing/cancel" element={<BillingCancel />} />

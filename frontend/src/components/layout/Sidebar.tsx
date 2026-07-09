@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   ArrowRightStartOnRectangleIcon,
   BookmarkIcon,
   BriefcaseIcon,
   ChartBarIcon,
+  ChatBubbleLeftRightIcon,
   ChevronRightIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
@@ -16,6 +17,7 @@ import {
 import { useAuthStore } from '../../stores'
 import { useNotificationsStore } from '../../stores/notifications'
 import { authApi } from '../../services/authApi'
+import { adminApi } from '../../services/adminApi'
 import UserAvatar from '../ui/UserAvatar'
 
 type NavItem = {
@@ -50,7 +52,10 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     label: 'Account',
-    items: [{ to: '/settings', label: 'Settings', icon: Cog6ToothIcon }],
+    items: [
+      { to: '/settings', label: 'Settings', icon: Cog6ToothIcon },
+      { to: '/feedback', label: 'Feedback', icon: ChatBubbleLeftRightIcon },
+    ],
   },
 ]
 
@@ -81,6 +86,24 @@ export default function Sidebar() {
   const unreadCount = useNotificationsStore((s) => s.unreadCount)
   const navigate = useNavigate()
   const [signingOut, setSigningOut] = useState(false)
+  const [newContactCount, setNewContactCount] = useState(0)
+
+  const isAdmin = user?.role === 'admin'
+  useEffect(() => {
+    if (!isAdmin) return
+    let cancelled = false
+    adminApi
+      .listContactSubmissions({ status: 'new', size: 1 })
+      .then((r) => {
+        if (!cancelled) setNewContactCount(r.total)
+      })
+      .catch(() => {
+        // badge is best-effort only
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin])
 
   async function handleLogout() {
     setSigningOut(true)
@@ -180,6 +203,11 @@ export default function Sidebar() {
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span>{label}</span>
+                  {to === '/admin/contact' && newContactCount > 0 && (
+                    <span className="ml-auto rounded-full bg-chip-danger px-1.5 py-0.5 text-[10px] font-bold text-chip-danger-fg">
+                      {newContactCount}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </div>

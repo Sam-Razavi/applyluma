@@ -92,6 +92,14 @@ export default function AdminContactInbox() {
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="truncate text-base font-semibold text-fg">{item.subject || 'No subject'}</h2>
                         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(item.status)}`}>{item.status}</span>
+                        {item.category && item.category !== 'contact' && (
+                          <span className="rounded-full bg-chip-accent px-2.5 py-1 text-xs font-semibold text-accent-text">
+                            {item.category}
+                          </span>
+                        )}
+                        <span className="rounded-full bg-surface-strong px-2.5 py-1 text-xs font-medium text-fg-subtle">
+                          {item.source === 'in_app' ? 'In-app' : 'Contact form'}
+                        </span>
                       </div>
                       <p className="mt-1 text-sm text-fg-subtle">
                         {item.name} · <a href={`mailto:${item.email}`} className="text-accent-text hover:underline">{item.email}</a> · {formatDate(item.created_at)}

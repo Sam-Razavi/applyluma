@@ -249,10 +249,13 @@ export interface AdminBillingUserListResponse {
 
 export interface ContactSubmissionRow {
   id: string
+  user_id: string | null
   name: string
   email: string
   subject: string
   message: string
+  category: string
+  source: string
   status: string
   remote_ip: string | null
   user_agent: string | null
@@ -389,6 +392,7 @@ export const adminApi = {
   listContactSubmissions(params: {
     search?: string
     status?: string
+    category?: string
     page?: number
     size?: number
   }): Promise<ContactSubmissionListResponse> {
