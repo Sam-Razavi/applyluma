@@ -333,3 +333,53 @@ class ContactSubmissionListResponse(BaseModel):
 
 class ContactSubmissionStatusUpdate(BaseModel):
     status: ContactSubmissionStatus
+
+
+class AiCostWindow(BaseModel):
+    cost_usd: float
+    calls: int
+    tokens: int
+
+
+class AiBudgetInfo(BaseModel):
+    monthly_usd: float | None = None
+    month_to_date_usd: float
+    pct_used: float | None = None
+
+
+class AiCostsSummary(BaseModel):
+    today: AiCostWindow
+    last_7_days: AiCostWindow
+    last_30_days: AiCostWindow
+    all_time: AiCostWindow
+    budget: AiBudgetInfo
+
+
+class AiCostsDailyPoint(BaseModel):
+    date: str
+    cost_usd: float
+    calls: int
+
+
+class AiCostsBreakdownItem(BaseModel):
+    key: str
+    cost_usd: float
+    calls: int
+    tokens: int
+
+
+class AiCostsUserItem(BaseModel):
+    user_id: uuid.UUID | None = None
+    email: str | None = None
+    cost_usd: float
+    calls: int
+
+
+class AiCostsBreakdown(BaseModel):
+    by_purpose: list[AiCostsBreakdownItem]
+    by_model: list[AiCostsBreakdownItem]
+    top_users: list[AiCostsUserItem]
+
+
+class AiBudgetUpdate(BaseModel):
+    monthly_usd: float | None = Field(default=None, ge=0)

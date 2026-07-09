@@ -233,8 +233,16 @@ Also shipped and easy to miss (verified 2026-07-08):
     `source='in_app'` + `user_id` (migration 0027) and emails
     `CONTACT_RECIPIENT_EMAIL`. Admins triage everything at `/admin/contact`
     (status new/read/replied/archived, category filter, audit-logged), with a
-    new-message count badge on the admin sidebar. Alembic chain currently
-    ends at `0027_contact_submission_feedback.py`.
+    new-message count badge on the admin sidebar. On mobile the feedback form
+    is reached via Profile -> Settings -> "Send feedback".
+  - AI cost tracking (July 2026): every OpenAI call records tokens + computed
+    USD cost into `ai_usage_logs` (`services/ai_usage.py`; recording never
+    raises and never blocks the AI feature). Prices per model live in
+    `PRICES_PER_MTOK`. Admin dashboard at `/admin/ai-costs` (stat cards, daily
+    chart, by-feature breakdown, top users) with an admin-configurable monthly
+    budget (`app_settings` KV table) that emails CONTACT_RECIPIENT_EMAIL once
+    at 80% and once at 100% per month. Alembic chain currently ends at
+    `0028_ai_usage_logs.py`.
 
 ## Git Workflow
 

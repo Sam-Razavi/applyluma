@@ -31,6 +31,10 @@ from app.schemas.admin import (
     AdminUserListResponse,
     AdminUserProfile,
     AdminUserRow,
+    AiBudgetUpdate,
+    AiCostsBreakdown,
+    AiCostsDailyPoint,
+    AiCostsSummary,
     ContactSubmissionListResponse,
     ContactSubmissionRow,
     ContactSubmissionStatusUpdate,
@@ -469,3 +473,45 @@ def update_contact_submission_status(
         user_agent=request.headers.get("user-agent"),
     )
     return ContactSubmissionRow.model_validate(updated, from_attributes=True)
+
+
+@router.get("/ai-costs/summary", response_model=AiCostsSummary)
+def ai_costs_summary(admin: AdminUser, db: DbSession) -> dict:
+    return crud_admin.get_ai_costs_summary(db)
+
+
+@router.get("/ai-costs/daily", response_model=list[AiCostsDailyPoint])
+def ai_costs_daily(
+    admin: AdminUser,
+    db: DbSession,
+    days: int = Query(30, ge=1, le=365),
+) -> list[dict]:
+    return crud_admin.list_ai_costs_daily(db, days=days)
+
+
+@router.get("/ai-costs/breakdown", response_model=AiCostsBreakdown)
+def ai_costs_breakdown(
+    admin: AdminUser,
+    db: DbSession,
+    days: int = Query(30, ge=1, le=365),
+) -> dict:
+    return crud_admin.get_ai_costs_breakdown(db, days=days)
+
+
+@router.put("/ai-costs/budget", response_model=AiCostsSummary)
+def update_ai_budget(
+    body: AiBudgetUpdate,
+    admin: AdminUser,
+    db: DbSession,
+    request: Request,
+) -> dict:
+    crud_admin.set_ai_budget(db, body.monthly_usd)
+    crud_admin.log_admin_action(
+        db,
+        admin_user_id=admin.id,
+        action="ai_budget.updated",
+        details={"monthly_usd": body.monthly_usd},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return crud_admin.get_ai_costs_summary(db)

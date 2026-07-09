@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 
 from app.core.config import settings
+from app.services import ai_usage
 
 _HEADERS = {
     "User-Agent": (
@@ -322,6 +323,9 @@ def _openai_clean(raw: dict[str, str]) -> dict[str, str]:
         response_format={"type": "json_object"},
         temperature=0,
     )
+    # No user context this deep in the scraper; the cost still gets attributed
+    # to the url_scrape purpose.
+    ai_usage.record_ai_usage(purpose="url_scrape", model="gpt-4o-mini", usage=getattr(response, "usage", None))
     result = json.loads(response.choices[0].message.content or "{}")
     return {
         "job_title": str(result.get("job_title", raw["job_title"]))[:200],
