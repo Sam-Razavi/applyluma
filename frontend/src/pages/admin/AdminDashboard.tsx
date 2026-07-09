@@ -102,6 +102,7 @@ export default function AdminDashboard() {
           {[
             ['/admin/users', 'Manage Users'],
             ['/admin/ai-jobs', 'AI Jobs'],
+            ['/admin/ai-costs', 'AI Costs'],
             ['/admin/pipeline', 'Pipeline Health'],
             ['/admin/raw-jobs', 'Raw Jobs'],
             ['/admin/notifications', 'Notifications'],
