@@ -53,6 +53,7 @@ def tailor_cv(
             cv_content=cv.content,
             jd_description=jd.description,
             jd_keywords=jd.keywords or [],
+            user_id=current_user.id,
         )
     except ValueError as exc:
         raise HTTPException(

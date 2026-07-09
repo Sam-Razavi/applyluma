@@ -73,6 +73,7 @@ def run_cover_letter(self, job_id: str) -> dict[str, Any]:
             jd_company=jd.company_name,
             jd_title=jd.job_title,
             tone=job.tone,
+            user_id=job.user_id,
         )
 
         crud_cl.set_complete(

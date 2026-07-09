@@ -1,4 +1,5 @@
 from app.models.admin_audit_log import AdminAuditLog
+from app.models.ai_usage_log import AIUsageLog, AppSetting
 from app.models.alert_preferences import JobAlertSentLog, UserAlertPreferences
 from app.models.application import Application
 from app.models.application_contact import ApplicationContact
@@ -28,4 +29,6 @@ __all__ = [
     "UserAlertPreferences",
     "JobAlertSentLog",
     "AdminAuditLog",
+    "AIUsageLog",
+    "AppSetting",
 ]

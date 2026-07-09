@@ -7,13 +7,14 @@ HTML/CSS templates under app/services/cv_render/templates/.
 """
 import json
 import re
+import uuid
 
 from langdetect import LangDetectException, detect
 from openai import AuthenticationError, OpenAI, RateLimitError
 
 from app.core.config import settings
 from app.models.tailor_job import TailorIntensity
-from app.services import cv_render
+from app.services import ai_usage, cv_render
 
 _INTENSITY_INSTRUCTIONS: dict[TailorIntensity, str] = {
     TailorIntensity.light: (
@@ -454,7 +455,13 @@ def _parse_structured(raw: str) -> dict:
     return structured
 
 
-def _call_openai(client: OpenAI, messages: list[dict]) -> str:
+def _call_openai(
+    client: OpenAI,
+    messages: list[dict],
+    *,
+    purpose: str = "tailor",
+    user_id: uuid.UUID | None = None,
+) -> str:
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -469,6 +476,10 @@ def _call_openai(client: OpenAI, messages: list[dict]) -> str:
         raise ValueError("AI service rate limit exceeded, please try again later") from exc
     except Exception as exc:
         raise ValueError(f"AI API error: {exc}") from exc
+
+    ai_usage.record_ai_usage(
+        purpose=purpose, model="gpt-4o", usage=getattr(response, "usage", None), user_id=user_id
+    )
 
     choice = response.choices[0]
     if choice.finish_reason == "length":
@@ -501,6 +512,7 @@ def tailor_cv(
     jd_description: str,
     jd_keywords: list[str],
     intensity: TailorIntensity,
+    user_id: uuid.UUID | None = None,
 ) -> dict:
     if not settings.OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY is not configured")
@@ -524,7 +536,7 @@ def tailor_cv(
     ]
 
     client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=120.0)
-    raw = _call_openai(client, messages)
+    raw = _call_openai(client, messages, purpose="tailor", user_id=user_id)
     structured = _parse_structured(raw)
 
     # Mandatory self-audit pass: the model re-checks every claim against the
@@ -535,7 +547,9 @@ def tailor_cv(
             {"role": "assistant", "content": raw},
             {"role": "user", "content": _VERIFY_PROMPT},
         ]
-        verified_raw = _call_openai(client, verify_messages)
+        verified_raw = _call_openai(
+            client, verify_messages, purpose="tailor_verify", user_id=user_id
+        )
         structured = _parse_structured(verified_raw)
         raw, base_messages = verified_raw, verify_messages
     except ValueError:
@@ -554,7 +568,9 @@ def tailor_cv(
             {"role": "user", "content": _COMPRESS_PROMPT},
         ]
         try:
-            compressed_raw = _call_openai(client, retry_messages)
+            compressed_raw = _call_openai(
+                client, retry_messages, purpose="tailor_compress", user_id=user_id
+            )
             compressed = _postprocess(
                 _parse_structured(compressed_raw), cv_content, jd_language
             )

@@ -1,8 +1,10 @@
 import json
+import uuid
 
 from openai import AuthenticationError, OpenAI, RateLimitError
 
 from app.core.config import settings
+from app.services import ai_usage
 
 _SYSTEM_PROMPT = """\
 You are an expert CV reviewer specializing in ATS optimization and hiring.
@@ -42,6 +44,7 @@ def analyze_cv_match(
     cv_content: str,
     jd_description: str,
     jd_keywords: list[str],
+    user_id: uuid.UUID | None = None,
 ) -> dict[str, object]:
     if not settings.OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY is not configured")
@@ -73,6 +76,10 @@ def analyze_cv_match(
         raise ValueError("AI service rate limit exceeded, please try again later") from exc
     except Exception as exc:
         raise ValueError(f"AI API error: {exc}") from exc
+
+    ai_usage.record_ai_usage(
+        purpose="cv_analysis", model="gpt-4o-mini", usage=getattr(response, "usage", None), user_id=user_id
+    )
 
     raw = response.choices[0].message.content or ""
 
