@@ -270,6 +270,53 @@ export interface ContactSubmissionListResponse {
   size: number
 }
 
+
+export interface AiCostWindow {
+  cost_usd: number
+  calls: number
+  tokens: number
+}
+
+export interface AiBudgetInfo {
+  monthly_usd: number | null
+  month_to_date_usd: number
+  pct_used: number | null
+}
+
+export interface AiCostsSummary {
+  today: AiCostWindow
+  last_7_days: AiCostWindow
+  last_30_days: AiCostWindow
+  all_time: AiCostWindow
+  budget: AiBudgetInfo
+}
+
+export interface AiCostsDailyPoint {
+  date: string
+  cost_usd: number
+  calls: number
+}
+
+export interface AiCostsBreakdownItem {
+  key: string
+  cost_usd: number
+  calls: number
+  tokens: number
+}
+
+export interface AiCostsUserItem {
+  user_id: string | null
+  email: string | null
+  cost_usd: number
+  calls: number
+}
+
+export interface AiCostsBreakdown {
+  by_purpose: AiCostsBreakdownItem[]
+  by_model: AiCostsBreakdownItem[]
+  top_users: AiCostsUserItem[]
+}
+
 export const adminApi = {
   getStats(): Promise<AdminOverviewStats> {
     return client.get('/api/v1/admin/stats').then((r) => r.data)
@@ -401,5 +448,21 @@ export const adminApi = {
 
   updateContactSubmissionStatus(id: string, status: string): Promise<ContactSubmissionRow> {
     return client.patch(`/api/v1/admin/contact-submissions/${id}/status`, { status }).then((r) => r.data)
+  },
+
+  getAiCostsSummary(): Promise<AiCostsSummary> {
+    return client.get('/api/v1/admin/ai-costs/summary').then((r) => r.data)
+  },
+
+  getAiCostsDaily(days = 30): Promise<AiCostsDailyPoint[]> {
+    return client.get('/api/v1/admin/ai-costs/daily', { params: { days } }).then((r) => r.data)
+  },
+
+  getAiCostsBreakdown(days = 30): Promise<AiCostsBreakdown> {
+    return client.get('/api/v1/admin/ai-costs/breakdown', { params: { days } }).then((r) => r.data)
+  },
+
+  updateAiBudget(monthlyUsd: number | null): Promise<AiCostsSummary> {
+    return client.put('/api/v1/admin/ai-costs/budget', { monthly_usd: monthlyUsd }).then((r) => r.data)
   },
 }

@@ -72,6 +72,7 @@ def run_tailoring(self, job_id: str) -> dict[str, Any]:
             jd_description=jd.description,
             jd_keywords=jd.keywords or [],
             intensity=job.intensity,
+            user_id=job.user_id,
         )
 
         crud_tailor.set_complete(

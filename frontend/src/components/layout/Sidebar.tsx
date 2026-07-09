@@ -63,6 +63,7 @@ const ADMIN_ITEMS: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: ShieldCheckIcon },
   { to: '/admin/users', label: 'Users', icon: ShieldCheckIcon },
   { to: '/admin/ai-jobs', label: 'AI Jobs', icon: ShieldCheckIcon },
+  { to: '/admin/ai-costs', label: 'AI Costs', icon: ShieldCheckIcon },
   { to: '/admin/pipeline', label: 'Pipeline', icon: ShieldCheckIcon },
   { to: '/admin/raw-jobs', label: 'Raw Jobs', icon: ShieldCheckIcon },
   { to: '/admin/notifications', label: 'Notifications', icon: ShieldCheckIcon },

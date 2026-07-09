@@ -2,12 +2,14 @@
 Cover letter generation service: calls OpenAI and returns a polished cover letter.
 """
 import re
+import uuid
 
 from langdetect import LangDetectException, detect
 from openai import AuthenticationError, OpenAI, RateLimitError
 
 from app.core.config import settings
 from app.models.cover_letter_job import CoverLetterTone
+from app.services import ai_usage
 
 _TONE_INSTRUCTIONS: dict[CoverLetterTone, str] = {
     CoverLetterTone.formal: (
@@ -90,6 +92,7 @@ def generate_cover_letter(
     jd_company: str,
     jd_title: str,
     tone: CoverLetterTone,
+    user_id: uuid.UUID | None = None,
 ) -> dict:
     language = _detect_language(cv_content)
     contact_block = _extract_contact_block(cv_content)
@@ -124,6 +127,10 @@ def generate_cover_letter(
         raise RuntimeError("AI service authentication failed; check OPENAI_API_KEY") from exc
     except RateLimitError as exc:
         raise RuntimeError("AI service rate limit exceeded, please try again later") from exc
+
+    ai_usage.record_ai_usage(
+        purpose="cover_letter", model="gpt-4o", usage=getattr(response, "usage", None), user_id=user_id
+    )
 
     raw = response.choices[0].message.content or ""
     import json

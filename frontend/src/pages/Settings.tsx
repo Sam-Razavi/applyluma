@@ -146,13 +146,21 @@ export default function Settings() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-fg ">
-          Settings
-        </h1>
-        <p className="mt-1 text-sm text-fg-subtle ">
-          Manage your account and preferences.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-fg ">
+            Settings
+          </h1>
+          <p className="mt-1 text-sm text-fg-subtle ">
+            Manage your account and preferences.
+          </p>
+        </div>
+        <Link
+          to="/feedback"
+          className="rounded-lg border border-line-strong bg-surface px-4 py-2.5 text-sm font-semibold text-fg-muted transition hover:bg-surface-strong"
+        >
+          Send feedback
+        </Link>
       </div>
 
       {/* ── Profile ──────────────────────────────────────────────────────── */}
