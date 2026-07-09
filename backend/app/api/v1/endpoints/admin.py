@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
@@ -476,7 +476,7 @@ def update_contact_submission_status(
 
 
 @router.get("/ai-costs/summary", response_model=AiCostsSummary)
-def ai_costs_summary(admin: AdminUser, db: DbSession) -> dict:
+def ai_costs_summary(admin: AdminUser, db: DbSession) -> dict[str, Any]:
     return crud_admin.get_ai_costs_summary(db)
 
 
@@ -485,7 +485,7 @@ def ai_costs_daily(
     admin: AdminUser,
     db: DbSession,
     days: int = Query(30, ge=1, le=365),
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     return crud_admin.list_ai_costs_daily(db, days=days)
 
 
@@ -494,7 +494,7 @@ def ai_costs_breakdown(
     admin: AdminUser,
     db: DbSession,
     days: int = Query(30, ge=1, le=365),
-) -> dict:
+) -> dict[str, Any]:
     return crud_admin.get_ai_costs_breakdown(db, days=days)
 
 
@@ -504,7 +504,7 @@ def update_ai_budget(
     admin: AdminUser,
     db: DbSession,
     request: Request,
-) -> dict:
+) -> dict[str, Any]:
     crud_admin.set_ai_budget(db, body.monthly_usd)
     crud_admin.log_admin_action(
         db,
