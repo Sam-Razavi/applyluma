@@ -224,9 +224,17 @@ Also shipped and easy to miss (verified 2026-07-08):
   - Application status timeline (`ApplicationEvent` rows rendered by
     `ApplicationTimeline.tsx`) and client-side CSV export
     (`frontend/src/utils/exportCsv.ts`) on the Applications page.
-  - Alembic migration chain currently ends at `0024_raw_job_application_deadline.py`;
-    expired jobs (deadline passed — Platsbanken has deadline data) are hidden
-    from the Discover feed via `_is_live_deadline_clause`.
+  - Expired jobs (deadline passed — Platsbanken has deadline data) are hidden
+    from the Discover feed via `_is_live_deadline_clause` (migration `0024`).
+  - Feedback & contact inbox (July 2026): the public Contact form persists to
+    `contact_submissions` (migration 0026), and the authenticated in-app
+    feedback form (`POST /api/v1/feedback`, `/feedback` page, category
+    bug/feature/question/other) stores into the same table with
+    `source='in_app'` + `user_id` (migration 0027) and emails
+    `CONTACT_RECIPIENT_EMAIL`. Admins triage everything at `/admin/contact`
+    (status new/read/replied/archived, category filter, audit-logged), with a
+    new-message count badge on the admin sidebar. Alembic chain currently
+    ends at `0027_contact_submission_feedback.py`.
 
 ## Git Workflow
 
