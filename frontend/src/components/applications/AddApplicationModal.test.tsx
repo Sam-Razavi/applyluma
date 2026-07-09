@@ -192,3 +192,73 @@ describe('AddApplicationModal — duplicate warning', () => {
     expect(mockCheckDuplicate).toHaveBeenCalledWith('Acme')
   })
 })
+
+describe('AddApplicationModal — friction reducers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function todayISO() {
+    return new Date().toLocaleDateString('sv-SE')
+  }
+
+  function dateInput(): HTMLInputElement {
+    return document.querySelector('input[name="applied_date"]') as HTMLInputElement
+  }
+
+  it('preselects today as the applied date', () => {
+    renderModal()
+    expect(dateInput()).toHaveValue(todayISO())
+  })
+
+  it('fills an empty applied date with today when status moves to an applied stage', () => {
+    renderModal()
+    fireEvent.change(dateInput(), { target: { value: '' } })
+    expect(dateInput()).toHaveValue('')
+
+    const statusSelect = document.querySelector('select[name="status"]') as HTMLSelectElement
+    fireEvent.change(statusSelect, { target: { value: 'interview' } })
+    expect(dateInput()).toHaveValue(todayISO())
+  })
+
+  it('save & add another keeps the modal open with a cleared form', async () => {
+    mockCheckDuplicate.mockResolvedValue({ duplicate: false, application: null })
+    mockCreateApplication.mockResolvedValue(undefined)
+    renderModal()
+    fireEvent.change(screen.getByPlaceholderText('Spotify'), { target: { value: 'Acme' } })
+    fireEvent.change(screen.getByPlaceholderText('Backend Engineer'), {
+      target: { value: 'Developer' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save & add another' }))
+
+    await waitFor(() => expect(mockCreateApplication).toHaveBeenCalledTimes(1))
+    // Modal is still open and the form is reset for the next entry
+    expect(screen.getByRole('button', { name: 'Save application' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Spotify')).toHaveValue('')
+    expect(dateInput()).toHaveValue(todayISO())
+  })
+
+  it('pasting a URL into the import field triggers extraction immediately', async () => {
+    vi.mocked(jobApi.scrapeUrl).mockResolvedValue(scrapeResult)
+    renderModal()
+
+    const importInput = screen.getByLabelText('Import from URL')
+    fireEvent.paste(importInput, {
+      clipboardData: { getData: () => 'https://example.com/job/123' },
+    })
+
+    await waitFor(() =>
+      expect(jobApi.scrapeUrl).toHaveBeenCalledWith('https://example.com/job/123'),
+    )
+  })
+
+  it('pasting non-URL text does not trigger extraction', () => {
+    renderModal()
+    const importInput = screen.getByLabelText('Import from URL')
+    fireEvent.paste(importInput, {
+      clipboardData: { getData: () => 'just some notes' },
+    })
+    expect(jobApi.scrapeUrl).not.toHaveBeenCalled()
+  })
+})

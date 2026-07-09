@@ -1,8 +1,8 @@
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import type { AxiosError } from 'axios'
-import type { FormEvent, ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import type { ClipboardEvent, FormEvent, ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { jobApi } from '../../services/api'
 import { checkDuplicateApplication } from '../../services/applicationsApi'
@@ -19,6 +19,15 @@ interface Props {
 
 const sourceOptions = ['adzuna', 'linkedin', 'indeed', 'referral', 'company_site', 'other']
 const remoteOptions = ['remote', 'hybrid', 'onsite']
+
+// Stages where an application has actually been sent — picking one of these
+// auto-fills an empty applied date with today.
+const APPLIED_STAGES = new Set<string>(['applied', 'phone_screen', 'interview', 'offer'])
+
+function todayISO(): string {
+  // sv-SE locale formats as YYYY-MM-DD in *local* time (toISOString would be UTC)
+  return new Date().toLocaleDateString('sv-SE')
+}
 
 const initialForm: ApplicationCreate = {
   company_name: '',
@@ -43,6 +52,7 @@ function buildInitialForm(initialData?: Partial<ApplicationCreate> | null): Appl
     job_title: initialData?.job_title ?? '',
     job_url: initialData?.job_url ?? '',
     status: initialData?.status ?? 'wishlist',
+    applied_date: initialData?.applied_date ?? todayISO(),
     priority: initialData?.priority ?? 1,
   }
 }
@@ -73,6 +83,8 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [duplicateOf, setDuplicateOf] = useState<{ jobTitle: string; status: string } | null>(null)
+  const companyInputRef = useRef<HTMLInputElement>(null)
+  const saveAndAddAnotherRef = useRef(false)
 
   useEffect(() => {
     if (open) {
@@ -93,7 +105,18 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
 
   async function handleImportFromUrl(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const url = importUrl.trim()
+    await importFromUrl(importUrl.trim())
+  }
+
+  function handleImportPaste(event: ClipboardEvent<HTMLInputElement>) {
+    const pasted = event.clipboardData.getData('text').trim()
+    if (!/^https?:\/\//i.test(pasted)) return
+    event.preventDefault()
+    setImportUrl(pasted)
+    void importFromUrl(pasted)
+  }
+
+  async function importFromUrl(url: string) {
     if (!url || importing) return
     setImporting(true)
     setImportError(null)
@@ -128,6 +151,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
 
     if (!companyName || !jobTitle) {
       toast.error('Company name and job title are required')
+      saveAndAddAnotherRef.current = false
       return
     }
 
@@ -159,6 +183,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
             status: check.application.status,
           })
           setSubmitting(false)
+          saveAndAddAnotherRef.current = false
           return
         }
       } catch {
@@ -169,23 +194,37 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
     try {
       await createApplication(payload)
       toast.success('Application added')
-      setForm(initialForm)
       setDuplicateOf(null)
-      onClose()
+      if (saveAndAddAnotherRef.current) {
+        // Keep the modal open with a fresh form for the next entry.
+        setForm(buildInitialForm(null))
+        companyInputRef.current?.focus()
+      } else {
+        setForm(initialForm)
+        onClose()
+      }
     } catch {
       toast.error('Could not create application')
     } finally {
+      saveAndAddAnotherRef.current = false
       setSubmitting(false)
     }
   }
 
   function setField<K extends keyof ApplicationCreate>(field: K, value: ApplicationCreate[K]) {
     if (field === 'company_name') setDuplicateOf(null)
-    setForm((current) => ({ ...current, [field]: value }))
+    setForm((current) => {
+      const next = { ...current, [field]: value }
+      // Picking an applied-or-later stage fills an empty date with today.
+      if (field === 'status' && APPLIED_STAGES.has(String(value)) && !current.applied_date) {
+        next.applied_date = todayISO()
+      }
+      return next
+    })
   }
 
   return (
-    <Dialog open={open} onClose={close} className="relative z-modal">
+    <Dialog open={open} onClose={close} initialFocus={companyInputRef} className="relative z-modal">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center sm:p-4">
         <DialogPanel className="flex h-full w-full flex-col rounded-none bg-raised shadow-2xl sm:h-auto sm:max-h-[90vh] sm:w-[600px] sm:rounded-lg">
@@ -216,6 +255,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
                   setImportUrl(e.target.value)
                   setImportError(null)
                 }}
+                onPaste={handleImportPaste}
                 className="input flex-1"
                 placeholder="https://arbetsformedlingen.se/platsbanken/annonser/..."
               />
@@ -238,6 +278,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Company name" required>
                 <input
+                  ref={companyInputRef}
                   name="company_name"
                   value={form.company_name ?? ''}
                   onChange={(e) => setField('company_name', e.target.value)}
@@ -404,6 +445,17 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
               className="rounded-lg bg-surface px-4 py-3 text-sm font-medium text-fg-muted transition hover:bg-surface-strong disabled:opacity-50"
             >
               Cancel
+            </button>
+            <button
+              type="submit"
+              form="add-application-form"
+              disabled={submitting}
+              onClick={() => {
+                saveAndAddAnotherRef.current = true
+              }}
+              className="rounded-lg bg-surface px-4 py-3 text-sm font-semibold text-accent-text ring-1 ring-primary-600/30 transition hover:bg-primary-900/20 disabled:opacity-50"
+            >
+              Save & add another
             </button>
             <button
               type="submit"
