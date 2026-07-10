@@ -220,7 +220,19 @@ export default function Register() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-sm text-fg-subtle">
+          <p className="mt-6 text-center text-xs text-fg-subtle">
+            By creating an account, you agree to our{' '}
+            <Link to="/terms" className="font-medium text-accent-text hover:underline">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="font-medium text-accent-text hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+
+          <p className="mt-4 text-center text-sm text-fg-subtle">
             Already have an account?{' '}
             <Link to="/login" className="font-medium text-accent-text hover:underline">
               Sign in
