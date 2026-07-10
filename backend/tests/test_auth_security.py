@@ -389,6 +389,58 @@ async def test_register_duplicate_email_returns_409(monkeypatch: pytest.MonkeyPa
 
 
 # ---------------------------------------------------------------------------
+# Account deletion (GDPR right to erasure)
+# ---------------------------------------------------------------------------
+
+def test_delete_user_removes_files_on_disk(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    """crud_user.delete must erase the user's cvs/ and cover_letters/ subtrees."""
+    from unittest.mock import Mock
+
+    from app.crud import user as crud_user
+
+    monkeypatch.setattr("app.crud.user.settings.STORAGE_DIR", str(tmp_path))
+    cv_dir = tmp_path / "cvs" / str(USER_ID)
+    cl_dir = tmp_path / "cover_letters" / str(USER_ID)
+    cv_dir.mkdir(parents=True)
+    cl_dir.mkdir(parents=True)
+    (cv_dir / "resume.pdf").write_bytes(b"pdf")
+    (cl_dir / "letter.pdf").write_bytes(b"pdf")
+    # Another user's files must survive
+    other_dir = tmp_path / "cvs" / "other-user"
+    other_dir.mkdir(parents=True)
+    (other_dir / "resume.pdf").write_bytes(b"pdf")
+
+    db = Mock()
+    user = _fake_user()
+    crud_user.delete(db, user)
+
+    db.delete.assert_called_once_with(user)
+    db.commit.assert_called_once()
+    assert not cv_dir.exists()
+    assert not cl_dir.exists()
+    assert (other_dir / "resume.pdf").exists()
+
+
+def test_delete_user_succeeds_when_file_cleanup_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A disk error during file cleanup must not propagate — DB deletion already committed."""
+    from unittest.mock import Mock
+
+    from app.crud import user as crud_user
+
+    def _bad_rmtree(*args, **kwargs):
+        raise OSError("disk error")
+
+    monkeypatch.setattr("app.crud.user.shutil.rmtree", _bad_rmtree)
+
+    db = Mock()
+    user = _fake_user()
+    crud_user.delete(db, user)  # must not raise
+
+    db.delete.assert_called_once_with(user)
+    db.commit.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
 # Cookie-based refresh
 # ---------------------------------------------------------------------------
 
