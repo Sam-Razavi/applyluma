@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,6 +9,7 @@ import { authApi } from '../services/api'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
 import GoogleLoginButton from '../components/auth/GoogleLoginButton'
+import { PasswordStrengthMeter } from '../components/auth/PasswordStrengthMeter'
 
 const schema = z
   .object({
@@ -45,23 +46,6 @@ export default function Register() {
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
   const passwordValue = watch('password', '')
-
-  const strength = useMemo(() => {
-    if (!passwordValue) return { score: 0, label: '', textColor: '' }
-    let score = 0
-    if (passwordValue.length >= 8) score++
-    if (passwordValue.length >= 12) score++
-    if (/[A-Z]/.test(passwordValue) && /[0-9]/.test(passwordValue)) score++
-    if (/[^A-Za-z0-9]/.test(passwordValue)) score++
-    const capped = Math.min(score, 3)
-    const meta = [
-      { label: '', textColor: '' },
-      { label: 'Weak', textColor: 'text-chip-danger-fg' },
-      { label: 'Fair', textColor: 'text-chip-warn-fg' },
-      { label: 'Strong', textColor: 'text-chip-success-fg' },
-    ][capped]
-    return { score: capped, ...meta }
-  }, [passwordValue])
 
   async function onSubmit(data: FormData) {
     setIsSubmitting(true)
@@ -147,27 +131,7 @@ export default function Register() {
                   {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
-              {passwordValue && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex gap-1">
-                    {[1, 2, 3].map((level) => (
-                      <div
-                        key={level}
-                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                          strength.score >= level
-                            ? level === 1 ? 'bg-red-500' : level === 2 ? 'bg-amber-500' : 'bg-green-500'
-                            : 'bg-surface'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  {strength.label && (
-                    <p className="text-xs text-fg-subtle">
-                      Strength: <span className={`font-medium ${strength.textColor}`}>{strength.label}</span>
-                    </p>
-                  )}
-                </div>
-              )}
+              <PasswordStrengthMeter password={passwordValue} />
               {errors.password && (
                 <p className="mt-1 text-xs text-chip-danger-fg">{errors.password.message}</p>
               )}

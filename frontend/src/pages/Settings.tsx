@@ -17,6 +17,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { type AxiosError } from 'axios'
 import toast from 'react-hot-toast'
+import { PasswordStrengthMeter } from '../components/auth/PasswordStrengthMeter'
+import { TEMPLATE_OPTIONS } from '../components/tailor/templateOptions'
 import { cvApi } from '../services/api'
 import { getPreferences, updatePreferences, type AlertPreferences } from '../services/alertsApi'
 import { authApi } from '../services/authApi'
@@ -32,13 +34,21 @@ export default function Settings() {
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const [fullName, setFullName] = useState(user?.full_name ?? '')
+  const [preferredTemplate, setPreferredTemplate] = useState(user?.preferred_template ?? 'nordic')
   const [savingProfile, setSavingProfile] = useState(false)
+
+  const profileUnchanged =
+    fullName.trim() === (user?.full_name ?? '') &&
+    preferredTemplate === (user?.preferred_template ?? 'nordic')
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault()
     setSavingProfile(true)
     try {
-      const updated = await authApi.updateProfile(fullName.trim())
+      const updated = await authApi.updateProfile({
+        full_name: fullName.trim(),
+        preferred_template: preferredTemplate,
+      })
       setUser(updated)
       toast.success('Profile updated')
     } catch {
@@ -103,6 +113,10 @@ export default function Settings() {
     }
     if (newPassword.length < 8) {
       toast.error('New password must be at least 8 characters')
+      return
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      toast.error('New password must contain at least one letter and one number')
       return
     }
     setChangingPassword(true)
@@ -193,9 +207,29 @@ export default function Settings() {
               className="input w-full cursor-not-allowed opacity-60"
             />
           </div>
+          <div>
+            <label htmlFor="preferred-template" className="mb-1.5 block text-xs font-medium text-fg-muted ">
+              Default CV template
+            </label>
+            <select
+              id="preferred-template"
+              value={preferredTemplate}
+              onChange={(e) => setPreferredTemplate(e.target.value)}
+              className="input w-full"
+            >
+              {TEMPLATE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-fg-subtle">
+              Used as the starting template in AI Tailor.
+            </p>
+          </div>
           <button
             type="submit"
-            disabled={savingProfile || fullName.trim() === (user?.full_name ?? '')}
+            disabled={savingProfile || profileUnchanged}
             className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
           >
             {savingProfile && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
@@ -432,6 +466,7 @@ export default function Settings() {
               onChange: setNewPassword,
               show: showNew,
               onToggle: () => setShowNew((v) => !v),
+              meter: true,
             },
             {
               label: 'Confirm new password',
@@ -440,7 +475,7 @@ export default function Settings() {
               show: showNew,
               onToggle: () => setShowNew((v) => !v),
             },
-          ].map(({ label, value, onChange, show, onToggle }) => (
+          ].map(({ label, value, onChange, show, onToggle, meter }) => (
             <label key={label} className="block space-y-1.5">
               <span className="text-xs font-medium uppercase tracking-wide text-fg-muted ">
                 {label}
@@ -462,6 +497,7 @@ export default function Settings() {
                   {show ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
+              {meter && <PasswordStrengthMeter password={value} />}
             </label>
           ))}
 

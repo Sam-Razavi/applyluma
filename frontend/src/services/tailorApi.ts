@@ -4,6 +4,7 @@ import type {
   TailorIntensity,
   TailorJob,
   TailorPreview,
+  TailorPreviewHtml,
   TailorStatusResponse,
   TailorUsage,
 } from '../types/tailor'
@@ -61,6 +62,22 @@ export const tailorApi = {
       .post(`/api/v1/tailor/${jobId}/save`, {
         accepted_section_ids: acceptedSectionIds,
         cv_title: cvTitle,
+        section_overrides: sectionOverrides && Object.keys(sectionOverrides).length > 0 ? sectionOverrides : undefined,
+        section_order: sectionOrder,
+        template_id: templateId,
+      })
+      .then((r) => r.data),
+
+  previewHtml: (
+    jobId: string,
+    acceptedSectionIds: string[] | null,
+    sectionOverrides?: Record<string, string>,
+    sectionOrder?: string[],
+    templateId?: CvTemplateId,
+  ): Promise<TailorPreviewHtml> =>
+    client
+      .post<TailorPreviewHtml>(`/api/v1/tailor/${jobId}/preview-html`, {
+        accepted_section_ids: acceptedSectionIds,
         section_overrides: sectionOverrides && Object.keys(sectionOverrides).length > 0 ? sectionOverrides : undefined,
         section_order: sectionOrder,
         template_id: templateId,

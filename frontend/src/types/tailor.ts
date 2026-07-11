@@ -42,6 +42,11 @@ export interface TailorPreview {
   meta: TailorMeta
 }
 
+export interface TailorPreviewHtml {
+  html: string
+  template_id: string
+}
+
 export interface TailorUsage {
   used_today: number
   daily_limit: number | null

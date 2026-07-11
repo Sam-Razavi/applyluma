@@ -8,10 +8,15 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { authApi } from '../services/authApi'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
+import { PasswordStrengthMeter } from '../components/auth/PasswordStrengthMeter'
 
 const schema = z
   .object({
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Za-z]/, 'Include at least one letter')
+      .regex(/[0-9]/, 'Include at least one number'),
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, {
@@ -35,8 +40,11 @@ export default function ResetPassword() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+  const passwordValue = watch('password', '')
 
   async function onSubmit(data: FormData) {
     if (!token) {
@@ -105,6 +113,7 @@ export default function ResetPassword() {
                   {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
+              <PasswordStrengthMeter password={passwordValue} />
               {errors.password && (
                 <p className="mt-1 text-xs text-chip-danger-fg">{errors.password.message}</p>
               )}

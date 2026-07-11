@@ -8,6 +8,7 @@ import {
   CheckCircleIcon,
   ClipboardDocumentIcon,
   DocumentTextIcon,
+  EyeIcon,
   PencilSquareIcon,
   SparklesIcon,
   TrashIcon,
@@ -19,11 +20,13 @@ import { IntensitySelector } from '../components/tailor/IntensitySelector'
 import { SectionDiff } from '../components/tailor/SectionDiff'
 import { TailorSummary } from '../components/tailor/TailorSummary'
 import { TemplatePicker } from '../components/tailor/TemplatePicker'
+import { TemplatePreviewModal } from '../components/tailor/TemplatePreviewModal'
 import { cvApi, jobApi } from '../services/api'
 import { coverLetterApi } from '../services/coverLetterApi'
 import { createApplication } from '../services/applicationsApi'
 import { fetchJobDetail } from '../services/jobDiscoveryApi'
 import { tailorApi } from '../services/tailorApi'
+import { useAuthStore } from '../stores'
 import type { CV, JobDescription } from '../types'
 import type { DiscoveredJobDetail } from '../types/jobDiscovery'
 import type { CvTemplateId, TailorIntensity, TailorPreview, TailorUsage } from '../types/tailor'
@@ -32,6 +35,13 @@ import type { CoverLetterJob, CoverLetterTone, CoverLetterUsage } from '../types
 type Step = 'select' | 'processing' | 'review' | 'done'
 
 const POLL_INTERVAL_MS = 2500
+
+const TEMPLATE_IDS: CvTemplateId[] = ['nordic', 'classic', 'modern', 'executive']
+
+/** Narrow the wire value (users.preferred_template) to a known template id. */
+function resolveTemplate(value?: string | null): CvTemplateId {
+  return TEMPLATE_IDS.includes(value as CvTemplateId) ? (value as CvTemplateId) : 'nordic'
+}
 
 const TONE_OPTIONS: { value: CoverLetterTone; label: string; description: string }[] = [
   { value: 'formal', label: 'Formal', description: 'Professional, structured, 300–350 words' },
@@ -71,7 +81,8 @@ export default function AITailor() {
   const [editedContent, setEditedContent] = useState<Map<string, string>>(new Map())
   const [sectionOrder, setSectionOrder] = useState<string[]>([])
   const [cvTitle, setCvTitle] = useState('')
-  const [templateId, setTemplateId] = useState<CvTemplateId>('nordic')
+  const preferredTemplate = resolveTemplate(useAuthStore((s) => s.user?.preferred_template))
+  const [templateId, setTemplateId] = useState<CvTemplateId>(preferredTemplate)
   const [savedCvId, setSavedCvId] = useState<string | null>(null)
   const [savedCvTitle, setSavedCvTitle] = useState('')
 
@@ -307,6 +318,23 @@ export default function AITailor() {
     }
   }
 
+  const fetchPreviewHtml = useCallback(
+    async (previewTemplateId: CvTemplateId): Promise<string> => {
+      if (!tailorJobId || !preview) throw new Error('No tailoring result to preview')
+      const overrides: Record<string, string> = {}
+      for (const [sid, text] of editedContent) overrides[sid] = text
+      const result = await tailorApi.previewHtml(
+        tailorJobId,
+        acceptedIds.size === preview.sections.length ? null : [...acceptedIds],
+        Object.keys(overrides).length > 0 ? overrides : undefined,
+        sectionOrder.length > 0 ? sectionOrder : undefined,
+        previewTemplateId,
+      )
+      return result.html
+    },
+    [tailorJobId, preview, editedContent, acceptedIds, sectionOrder],
+  )
+
   function handleReset() {
     if (pollRef.current) window.clearInterval(pollRef.current)
     cvReadyRef.current = false
@@ -318,7 +346,7 @@ export default function AITailor() {
     setEditedContent(new Map())
     setSectionOrder([])
     setCvTitle('')
-    setTemplateId('nordic')
+    setTemplateId(preferredTemplate)
     setSavedCvId(null)
     setSavedCvTitle('')
     setCoverJobId(null)
@@ -483,6 +511,7 @@ export default function AITailor() {
               onMove={moveSection}
               onCvTitleChange={setCvTitle}
               onTemplateChange={setTemplateId}
+              onFetchPreviewHtml={fetchPreviewHtml}
               onCoverTextChange={setCoverText}
               onCoverTitleChange={setCoverTitle}
               onCopy={handleCopy}
@@ -911,6 +940,7 @@ interface ReviewStepProps {
   onMove: (id: string, direction: -1 | 1) => void
   onCvTitleChange: (value: string) => void
   onTemplateChange: (value: CvTemplateId) => void
+  onFetchPreviewHtml: (templateId: CvTemplateId) => Promise<string>
   onCoverTextChange: (value: string) => void
   onCoverTitleChange: (value: string) => void
   onCopy: () => void
@@ -935,12 +965,14 @@ function ReviewStep({
   onMove,
   onCvTitleChange,
   onTemplateChange,
+  onFetchPreviewHtml,
   onCoverTextChange,
   onCoverTitleChange,
   onCopy,
   onSave,
   onBack,
 }: ReviewStepProps) {
+  const [previewOpen, setPreviewOpen] = useState(false)
   const sectionMap = preview ? new Map(preview.sections.map((s) => [s.section_id, s])) : new Map()
   const orderedSections = sectionOrder
     .map((id) => sectionMap.get(id))
@@ -983,11 +1015,30 @@ function ReviewStep({
           </div>
 
           <div className="rounded-2xl border border-line bg-surface p-5">
-            <h3 className="text-sm font-semibold text-fg">PDF template</h3>
-            <p className="mb-3 mt-0.5 text-xs text-fg-subtle">
-              The design applied to the saved CV and the cover letter PDF.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-fg">PDF template</h3>
+                <p className="mb-3 mt-0.5 text-xs text-fg-subtle">
+                  The design applied to the saved CV and the cover letter PDF.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-semibold text-fg-muted transition hover:bg-surface-strong hover:text-fg"
+              >
+                <EyeIcon className="h-4 w-4" />
+                Preview
+              </button>
+            </div>
             <TemplatePicker value={templateId} onChange={onTemplateChange} />
+            <TemplatePreviewModal
+              open={previewOpen}
+              templateId={templateId}
+              onClose={() => setPreviewOpen(false)}
+              onTemplateChange={onTemplateChange}
+              fetchHtml={onFetchPreviewHtml}
+            />
           </div>
 
           <div className="rounded-2xl border border-line bg-surface p-5">

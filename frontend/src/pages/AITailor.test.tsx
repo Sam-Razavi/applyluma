@@ -12,7 +12,7 @@ vi.mock('../services/api', () => ({
 }))
 
 vi.mock('../services/tailorApi', () => ({
-  tailorApi: { getUsage: vi.fn(), submit: vi.fn(), getStatus: vi.fn(), getPreview: vi.fn(), save: vi.fn() },
+  tailorApi: { getUsage: vi.fn(), submit: vi.fn(), getStatus: vi.fn(), getPreview: vi.fn(), previewHtml: vi.fn(), save: vi.fn() },
 }))
 
 vi.mock('../services/coverLetterApi', () => ({

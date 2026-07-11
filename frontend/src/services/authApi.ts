@@ -8,8 +8,8 @@ export const authApi = {
   resendVerification: (): Promise<void> =>
     client.post('/api/v1/auth/resend-verification').then(() => undefined),
 
-  updateProfile: (fullName: string): Promise<User> =>
-    client.patch<User>('/api/v1/auth/me', { full_name: fullName }).then((r) => r.data),
+  updateProfile: (data: { full_name?: string; preferred_template?: string }): Promise<User> =>
+    client.patch<User>('/api/v1/auth/me', data).then((r) => r.data),
 
   changePassword: (currentPassword: string, newPassword: string): Promise<void> =>
     client

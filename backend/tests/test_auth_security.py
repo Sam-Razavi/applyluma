@@ -15,9 +15,8 @@ from jose import jwt
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import auth as auth_endpoint
-from app.core.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_user_unverified, get_db
 from app.main import app
-
 
 # ---------------------------------------------------------------------------
 # Fake collaborators
@@ -99,8 +98,8 @@ async def test_logout_returns_204_and_revokes_access_token(monkeypatch: pytest.M
     monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: fake_redis)
     monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: fake_redis)
 
-    from app.core.security import create_access_token
     from app.core.dependencies import get_current_user_id
+    from app.core.security import create_access_token
     token = create_access_token(str(USER_ID))
     app.dependency_overrides[get_current_user_id] = lambda: str(USER_ID)
 
@@ -121,8 +120,8 @@ async def test_logout_also_revokes_refresh_token(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: fake_redis)
     monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: fake_redis)
 
-    from app.core.security import create_access_token, create_refresh_token
     from app.core.dependencies import get_current_user_id
+    from app.core.security import create_access_token, create_refresh_token
     access_token = create_access_token(str(USER_ID))
     refresh_token = create_refresh_token(str(USER_ID))
     app.dependency_overrides[get_current_user_id] = lambda: str(USER_ID)
@@ -146,8 +145,8 @@ async def test_refresh_rejected_after_logout(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: fake_redis)
     monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: fake_redis)
 
-    from app.core.security import create_access_token, create_refresh_token
     from app.core.dependencies import get_current_user_id
+    from app.core.security import create_access_token, create_refresh_token
     access_token = create_access_token(str(USER_ID))
     refresh_token = create_refresh_token(str(USER_ID))
     app.dependency_overrides[get_current_user_id] = lambda: str(USER_ID)
@@ -190,8 +189,8 @@ async def test_logout_fails_open_when_redis_down(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr("app.api.v1.endpoints.auth.get_redis_client", lambda: _FailingRedis())
     monkeypatch.setattr("app.core.dependencies.get_redis_client", lambda: _FailingRedis())
 
-    from app.core.security import create_access_token
     from app.core.dependencies import get_current_user_id
+    from app.core.security import create_access_token
     app.dependency_overrides[get_current_user_id] = lambda: str(USER_ID)
 
     token = create_access_token(str(USER_ID))
@@ -516,3 +515,102 @@ async def test_refresh_accepts_token_from_cookie(monkeypatch: pytest.MonkeyPatch
     assert response.status_code == 200
     body = response.json()
     assert "access_token" in body
+
+
+# ---------------------------------------------------------------------------
+# PATCH /me — preferred template
+# ---------------------------------------------------------------------------
+
+def _full_user() -> SimpleNamespace:
+    now = datetime.now(UTC)
+    return SimpleNamespace(
+        id=USER_ID,
+        email="user@example.com",
+        full_name="Test User",
+        is_active=True,
+        is_verified=True,
+        role="user",
+        preferred_template=None,
+        stripe_customer_id=None,
+        subscription_status=None,
+        subscription_ends_at=None,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+async def _patch(path: str, json: dict) -> httpx.Response:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        return await client.patch(path, json=json)
+
+
+@pytest.mark.asyncio
+async def test_patch_me_updates_preferred_template(monkeypatch: pytest.MonkeyPatch) -> None:
+    user = _full_user()
+    app.dependency_overrides[get_current_user_unverified] = lambda: user
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+
+    def fake_update_profile(db: _FakeDb, current: SimpleNamespace, data) -> SimpleNamespace:
+        if data.preferred_template is not None:
+            current.preferred_template = data.preferred_template
+        return current
+
+    monkeypatch.setattr(auth_endpoint.crud_user, "update_profile", fake_update_profile)
+
+    response = await _patch("/api/v1/auth/me", {"preferred_template": "executive"})
+
+    assert response.status_code == 200
+    assert response.json()["preferred_template"] == "executive"
+
+
+@pytest.mark.asyncio
+async def test_patch_me_rejects_unknown_template() -> None:
+    app.dependency_overrides[get_current_user_unverified] = _full_user
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+
+    response = await _patch("/api/v1/auth/me", {"preferred_template": "papyrus"})
+
+    assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Password complexity rules (shared policy on register/change/reset)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_register_rejects_password_without_digit() -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+
+    response = await _post(
+        "/api/v1/auth/register",
+        {"email": "new@example.com", "password": "OnlyLettersHere"},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_reset_password_rejects_common_password() -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+
+    response = await _post(
+        "/api/v1/auth/reset-password",
+        {"token": "tok", "new_password": "Password123"},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_change_password_rejects_password_without_letter() -> None:
+    app.dependency_overrides[get_current_user_unverified] = _full_user
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+
+    response = await _post(
+        "/api/v1/auth/change-password",
+        {"current_password": "OldPass1", "new_password": "1234567890"},
+    )
+
+    assert response.status_code == 422

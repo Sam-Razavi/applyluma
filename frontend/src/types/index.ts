@@ -5,6 +5,7 @@ export interface User {
   is_active: boolean
   is_verified: boolean
   role: 'user' | 'admin' | 'premium'
+  preferred_template?: string | null
   stripe_customer_id?: string | null
   subscription_status?: string | null
   subscription_ends_at?: string | null
