@@ -1,11 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { authApi } from '../services/api'
 import { useAuthStore } from '../stores'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const { login, setToken } = useAuthStore()
   const processed = useRef(false)
 
@@ -13,7 +12,15 @@ export default function AuthCallback() {
     if (processed.current) return
     processed.current = true
 
-    const token = searchParams.get('token')
+    // The token travels in the URL fragment (#token=...), not the query
+    // string, so it's never sent to the server or logged. Read it directly
+    // from location.hash (react-router's useSearchParams only sees the
+    // query string) and strip it from the URL immediately so it doesn't
+    // linger in the visible address bar any longer than necessary.
+    const hashParams = new URLSearchParams(window.location.hash.slice(1))
+    const token = hashParams.get('token')
+    window.history.replaceState(null, '', window.location.pathname)
+
     if (!token) {
       navigate('/login?error=oauth_failed', { replace: true })
       return
@@ -30,7 +37,7 @@ export default function AuthCallback() {
       .catch(() => {
         navigate('/login?error=oauth_failed', { replace: true })
       })
-  }, [searchParams, login, setToken, navigate])
+  }, [login, setToken, navigate])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface">

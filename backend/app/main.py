@@ -197,10 +197,16 @@ _AUTH_RATE_LIMITS: dict[str, int] = {
     "/api/v1/auth/token": 10,
     "/api/v1/auth/register": 5,
     "/api/v1/auth/resend-verification": 3,
+    "/api/v1/auth/forgot-password": 5,
+    "/api/v1/auth/reset-password": 10,
+    "/api/v1/auth/refresh": 30,
     "/api/auth/login": 10,
     "/api/auth/token": 10,
     "/api/auth/register": 5,
     "/api/auth/resend-verification": 3,
+    "/api/auth/forgot-password": 5,
+    "/api/auth/reset-password": 10,
+    "/api/auth/refresh": 30,
 }
 
 
@@ -238,9 +244,11 @@ async def auth_rate_limit(request: Request, call_next):
 # are per user ID when authenticated, falling back to client IP.
 _EXPENSIVE_RATE_LIMITS: dict[str, int] = {
     "/api/v1/cvs/upload": 20,
-    "/api/v1/tailor": 5,
+    "/api/v1/tailor/submit": 5,
     "/api/v1/job-descriptions/scrape-url": 10,
-    "/api/v1/cover-letters": 5,
+    "/api/v1/cover-letters/generate": 5,
+    "/api/v1/auth/change-password": 10,
+    "/api/v1/auth/extension-token": 20,
     # Unauthenticated and sends two emails per request (one to a
     # caller-supplied address) — keep this tight.
     "/api/v1/contact": 3,

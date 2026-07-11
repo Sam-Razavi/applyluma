@@ -51,6 +51,11 @@ def create_application(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from None
+    except crud_application.ForeignReferenceNotOwnedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from None
 
 
 @router.get("/applied-urls")
@@ -127,7 +132,13 @@ def update_application(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApplicationPublic:
-    application = crud_application.update_application(db, application_id, current_user.id, body)
+    try:
+        application = crud_application.update_application(db, application_id, current_user.id, body)
+    except crud_application.ForeignReferenceNotOwnedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from None
     if not application:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
     if body.status == "interview" and _moved_to_interview(application):

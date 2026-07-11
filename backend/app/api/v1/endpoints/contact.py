@@ -82,8 +82,7 @@ def _wrap(body: str) -> str:
 
 
 def _admin_html(name: str, email: str, subject: str, message: str) -> str:
-    def s(t: str) -> str:
-        return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    s = email_service.escape_html
     safe_subject = s(subject).strip() or "No subject"
     safe_message = s(message).replace("\n", "<br>")
     body = f"""
@@ -116,8 +115,7 @@ def _admin_html(name: str, email: str, subject: str, message: str) -> str:
 
 
 def _confirmation_html(name: str, subject: str, message: str) -> str:
-    def s(t: str) -> str:
-        return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    s = email_service.escape_html
     safe_subject = s(subject).strip() or "No subject"
     safe_message = s(message).replace("\n", "<br>")
     preview = safe_message[:120] + ("…" if len(message) > 120 else "")

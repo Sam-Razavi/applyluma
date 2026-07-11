@@ -14,7 +14,6 @@ from app.api.v1.endpoints import auth as auth_endpoint
 from app.core.dependencies import get_db
 from app.main import app
 
-
 # ---------------------------------------------------------------------------
 # Fake collaborators
 # ---------------------------------------------------------------------------
@@ -184,3 +183,64 @@ async def test_security_headers_present_on_429_rate_limit_response(monkeypatch: 
     assert response.status_code == 429
     for header, value in EXPECTED_HEADERS.items():
         assert response.headers.get(header) == value, f"Security header missing on 429: {header}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
+        "/api/v1/auth/refresh",
+    ],
+)
+async def test_previously_unlimited_auth_endpoints_are_now_rate_limited(
+    monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    monkeypatch.setattr("app.main.get_redis_client", lambda: _AlwaysExceededRedis())
+
+    response = await _post(path, {})
+
+    assert response.status_code == 429
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "path",
+    [
+        # Real routes — the dict used to key on the router *prefix* only
+        # ("/api/v1/tailor", "/api/v1/cover-letters"), which never matches
+        # request.url.path for these endpoints, so the limit silently never
+        # fired. These assert the fix, not just headers.
+        "/api/v1/tailor/submit",
+        "/api/v1/cover-letters/generate",
+        "/api/v1/auth/change-password",
+        "/api/v1/auth/extension-token",
+    ],
+)
+async def test_expensive_endpoints_are_rate_limited_on_real_routes(
+    monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    monkeypatch.setattr("app.main.get_redis_client", lambda: _AlwaysExceededRedis())
+
+    response = await _post(path, {})
+
+    assert response.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_expensive_rate_limit_dict_keys_match_real_router_paths() -> None:
+    """Regression guard for the silent path-mismatch bug: every key in
+    _EXPENSIVE_RATE_LIMITS must be an exact, currently-registered route path,
+    not just a router prefix that happens to look similar. Uses the OpenAPI
+    schema (not app.routes) since FastAPI's route list is lazily wrapped and
+    doesn't expose flattened paths directly."""
+    from app.main import _EXPENSIVE_RATE_LIMITS
+    from app.main import app as fastapi_app
+
+    registered_paths = set(fastapi_app.openapi()["paths"].keys())
+    for limited_path in _EXPENSIVE_RATE_LIMITS:
+        assert limited_path in registered_paths, (
+            f"{limited_path!r} in _EXPENSIVE_RATE_LIMITS does not match any "
+            "registered route — the rate limit silently never fires"
+        )

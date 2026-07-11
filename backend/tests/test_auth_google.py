@@ -93,7 +93,7 @@ async def test_callback_success(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     resp = await _get("/api/v1/auth/google/callback?code=abc&state=s", cookies={"oauth_state": "s"})
     assert resp.status_code == 302
-    assert "/auth/callback?token=" in resp.headers["location"]
+    assert "/auth/callback#token=" in resp.headers["location"]
     assert "access_token" in resp.cookies
     assert recorded == [logged_in_user]
 
@@ -123,7 +123,7 @@ async def test_callback_success_via_redis_state(monkeypatch: pytest.MonkeyPatch)
     # No oauth_state cookie sent — validation must fall back to Redis.
     resp = await _get("/api/v1/auth/google/callback?code=abc&state=rstate")
     assert resp.status_code == 302
-    assert "/auth/callback?token=" in resp.headers["location"]
+    assert "/auth/callback#token=" in resp.headers["location"]
 
 
 @pytest.mark.asyncio

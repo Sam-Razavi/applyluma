@@ -103,6 +103,14 @@ def create_portal_session(
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)) -> dict[str, str]:
     _require_stripe()
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        # An empty secret makes construct_event's signature check forgeable
+        # (HMAC with an empty key is still a valid, guessable computation) —
+        # refuse to process webhooks rather than silently trust the payload.
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe webhook secret is not configured",
+        )
     payload = await request.body()
     signature = request.headers.get("stripe-signature", "")
 

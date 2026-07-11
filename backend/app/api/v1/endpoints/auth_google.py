@@ -175,8 +175,13 @@ def google_callback(
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))
 
+    # The token is in the URL fragment, not the query string: fragments are
+    # never sent to the server (not in the redirect's own request line, not
+    # in Referer headers, not to Vercel/Railway access logs), only read
+    # client-side by AuthCallback.tsx. usePageTracking also excludes this
+    # route so the token never reaches PostHog either.
     response = RedirectResponse(
-        url=f"{settings.FRONTEND_URL}/auth/callback?token={access_token}",
+        url=f"{settings.FRONTEND_URL}/auth/callback#token={access_token}",
         status_code=status.HTTP_302_FOUND,
     )
     _set_auth_cookies(response, access_token, refresh_token)
