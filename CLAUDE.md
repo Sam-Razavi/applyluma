@@ -294,7 +294,7 @@ branches `claude/admin-panel-review-4f5992` + earlier GDPR-fix work):
     fixed SQL only, no client-controlled table/column names.
   - Migration `0029_admin_user_controls.py` adds `users.last_login_at`,
     `users.login_count`, `users.daily_tailor_limit_override`. Alembic chain
-    currently ends at `0029`.
+    currently ends at `0030` (`0030_user_preferred_template.py`).
   - GDPR fix bundled into the same PR: `DELETE /api/v1/auth/me` (self-service
     account deletion) now erases the user's `cvs/{user_id}/` and
     `cover_letters/{user_id}/` subtrees under `STORAGE_DIR` after the DB
@@ -310,6 +310,27 @@ branches `claude/admin-panel-review-4f5992` + earlier GDPR-fix work):
     `[[tool.mypy.overrides]]` exemption list that every other Celery task
     module uses for the untyped `@celery_app.task` decorator; fixed by adding
     it, matching the sibling task modules).
+
+CV Templates & Tailor UX batch (July 2026, PR #134 + follow-up branch
+`claude/app-improvements-templates-l0gy4a`):
+  - Two new CV template families alongside nordic/classic: `modern` (violet
+    accents, skill chips) and `executive` (centered serif, formal small-caps),
+    each with a matching cover-letter template. Registered in
+    `cv_render/renderer.py` TEMPLATES/COVER_TEMPLATES; endpoints validate
+    against those dicts, so adding a template needs no endpoint changes.
+  - Template preview with real data: `POST /tailor/{job_id}/preview-html`
+    returns the Jinja2-rendered CV HTML (no WeasyPrint needed, works after
+    save too; 409 for pre-structured legacy jobs). Frontend
+    `TemplatePreviewModal.tsx` shows it in a sandboxed iframe (`z-modal`) with
+    in-modal template switching, opened from the AI Tailor review step.
+  - Preferred template: `users.preferred_template` (migration `0030`),
+    exposed on `UserPublic`/`UserUpdate` (validated against TEMPLATES),
+    "Default CV template" select in Settings, used as the AI Tailor starting
+    template (`resolveTemplate` narrows unknown values to nordic).
+  - Password policy: shared `app/core/password_policy.py` (min 8 + letter +
+    digit + common-password blocklist) wired into register/change/reset
+    schemas; `PasswordStrengthMeter.tsx` extracted from Register and reused
+    on Reset Password and Settings change-password.
 
 ## Git Workflow
 
@@ -613,12 +634,14 @@ TS errors block merge.
   verify `SENTRY_DSN` (backend) and `VITE_SENTRY_DSN` (frontend) are set.
 - Run `scripts/backfill_duplicates.py` once against Railway to mark historical
   cross-source duplicates (see Job Sources & Dedupe section).
-- Backlog (verified open as of 2026-07-08): keyword tag filtering on Discover,
-  duplicate-application warning (same-company check), CV completeness score,
+- Backlog (verified open as of 2026-07-11): keyword tag filtering on Discover,
   follow-up reminders, granular alert preferences, Platsbanken delisted-ad
   re-check task, additional Phase 10B edge-case tests. `FEATURE_IDEAS.md`
-  checkboxes are the authoritative list — several items were confirmed built
-  and ticked on 2026-07-08.
+  checkboxes are the authoritative list. NOTE: duplicate-application warning
+  (`GET /applications/check-duplicate` + AddApplicationModal banner) and CV
+  completeness score (`cv_completeness.py`, `CompletenessBar` on the CVs page)
+  are BUILT and live — they were stale here; auth rate limiting also already
+  exists (Redis per-IP middlewares in `app/main.py`).
 - Run the full test suite (`pytest`, `npm test`) before merging any new feature work.
 
 ## AI Development Guidelines

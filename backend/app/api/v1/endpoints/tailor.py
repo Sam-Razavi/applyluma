@@ -12,12 +12,14 @@ from app.core.dependencies import get_current_user, get_db
 from app.crud import cv as crud_cv
 from app.crud import job_description as crud_jd
 from app.crud import tailor_job as crud_tailor
-from app.models.tailor_job import TailorStatus
+from app.models.tailor_job import TailorJob, TailorStatus
 from app.models.user import User, UserRole
 from app.schemas.tailor import (
     TailorJobPublic,
     TailorMeta,
+    TailorPreviewHtmlResponse,
     TailorPreviewResponse,
+    TailorRenderOptions,
     TailorSaveRequest,
     TailorSaveResponse,
     TailorSection,
@@ -187,6 +189,63 @@ def get_preview(
     )
 
 
+def _validate_template_id(template_id: str | None) -> str:
+    """Return the effective template id, raising 422 for unknown ids."""
+    if template_id and template_id not in cv_render.TEMPLATES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unknown template '{template_id}'. "
+            f"Available: {', '.join(sorted(cv_render.TEMPLATES))}",
+        )
+    return template_id or cv_render.DEFAULT_TEMPLATE
+
+
+def _job_contact_text(db: Session, job: TailorJob, user_id: uuid.UUID) -> str:
+    source_cv = crud_cv.get_by_id(db, job.cv_id, user_id)
+    source_cv_content = source_cv.content if source_cv else ""
+    return _extract_contact_information(source_cv_content) if source_cv_content else ""
+
+
+@router.post("/{job_id}/preview-html", response_model=TailorPreviewHtmlResponse)
+def preview_tailored_html(
+    job_id: uuid.UUID,
+    body: TailorRenderOptions,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> TailorPreviewHtmlResponse:
+    """Render the tailored CV as HTML for an in-app preview.
+
+    Pure Jinja2 — no WeasyPrint required — and unlike save it stays usable
+    after the CV has been saved, so users can compare templates at any time.
+    """
+    job = crud_tailor.get_by_id(db, job_id, current_user.id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tailoring job not found")
+    if job.status != TailorStatus.complete:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Tailoring job not complete",
+        )
+    structured = (job.result_json or {}).get("structured_cv")
+    if not structured:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="HTML preview is not available for this CV (legacy result format)",
+        )
+    template_id = _validate_template_id(body.template_id)
+    context = cv_render.build_render_context(
+        structured,
+        contact_text=_job_contact_text(db, job, current_user.id),
+        accepted_section_ids=body.accepted_section_ids,
+        section_overrides=body.section_overrides,
+        section_order=body.section_order,
+    )
+    return TailorPreviewHtmlResponse(
+        html=cv_render.render_html(context, template_id),
+        template_id=template_id,
+    )
+
+
 @router.post("/{job_id}/save", response_model=TailorSaveResponse)
 def save_tailored_cv(
     job_id: uuid.UUID,
@@ -220,10 +279,7 @@ def save_tailored_cv(
             key=lambda s: order_index.get(s.get("section_id", ""), len(order_index)),
         )
 
-    source_cv = crud_cv.get_by_id(db, job.cv_id, current_user.id)
-    source_cv_content = source_cv.content if source_cv else ""
-
-    contact_text = _extract_contact_information(source_cv_content) if source_cv_content else ""
+    contact_text = _job_contact_text(db, job, current_user.id)
 
     pdf_sections = []
     full_text_parts = []
@@ -257,13 +313,7 @@ def save_tailored_cv(
     # before the structured contract (or environments without WeasyPrint) fall
     # back to the legacy ReportLab renderer.
     structured = result.get("structured_cv")
-    template_id = body.template_id or cv_render.DEFAULT_TEMPLATE
-    if body.template_id and body.template_id not in cv_render.TEMPLATES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Unknown template '{body.template_id}'. "
-            f"Available: {', '.join(sorted(cv_render.TEMPLATES))}",
-        )
+    template_id = _validate_template_id(body.template_id)
     if structured and cv_render.is_available():
         context = cv_render.build_render_context(
             structured,

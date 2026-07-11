@@ -3,7 +3,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.core.password_policy import validate_password_strength
 from app.models.user import UserRole
+from app.services.cv_render import TEMPLATES
 
 
 class UserCreate(BaseModel):
@@ -13,10 +15,8 @@ class UserCreate(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def password_min_length(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters")
-        return v
+    def password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 class UserPublic(BaseModel):
@@ -28,6 +28,7 @@ class UserPublic(BaseModel):
     is_active: bool
     is_verified: bool
     role: UserRole
+    preferred_template: str | None = None
     stripe_customer_id: str | None = None
     subscription_status: str | None = None
     subscription_ends_at: datetime | None = None
@@ -37,6 +38,14 @@ class UserPublic(BaseModel):
 
 class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, max_length=200)
+    preferred_template: str | None = None
+
+    @field_validator("preferred_template")
+    @classmethod
+    def template_must_exist(cls, v: str | None) -> str | None:
+        if v is not None and v not in TEMPLATES:
+            raise ValueError(f"Unknown template '{v}'. Available: {', '.join(sorted(TEMPLATES))}")
+        return v
 
 
 class ChangePasswordRequest(BaseModel):
@@ -45,10 +54,8 @@ class ChangePasswordRequest(BaseModel):
 
     @field_validator("new_password")
     @classmethod
-    def password_min_length(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters")
-        return v
+    def password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -57,4 +64,9 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)

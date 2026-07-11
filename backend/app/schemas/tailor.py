@@ -63,12 +63,20 @@ class TailorPreviewResponse(BaseModel):
     meta: TailorMeta
 
 
-class TailorSaveRequest(BaseModel):
+class TailorRenderOptions(BaseModel):
     accepted_section_ids: list[str] | None = None
-    cv_title: str | None = None
     section_overrides: dict[str, str] | None = None
     section_order: list[str] | None = None
     template_id: str | None = None
+
+
+class TailorSaveRequest(TailorRenderOptions):
+    cv_title: str | None = None
+
+
+class TailorPreviewHtmlResponse(BaseModel):
+    html: str
+    template_id: str
 
 
 class TailorSaveResponse(BaseModel):

@@ -583,3 +583,153 @@ async def test_usage_reports_role_limits(
 
     assert response.status_code == 200
     assert response.json()["daily_limit"] == expected_limit
+
+
+def _patch_preview_collaborators(
+    monkeypatch: pytest.MonkeyPatch,
+    result_json: dict[str, Any] | None,
+    *,
+    status: TailorStatus = TailorStatus.complete,
+    output_cv_id: uuid.UUID | None = None,
+) -> None:
+    monkeypatch.setattr(
+        tailor_endpoint.crud_tailor,
+        "get_by_id",
+        lambda db, job_id, user_id: tailor_job(
+            status, result_json=result_json, output_cv_id=output_cv_id
+        ),
+    )
+    monkeypatch.setattr(
+        tailor_endpoint.crud_cv,
+        "get_by_id",
+        lambda db, cv_id, user_id: SimpleNamespace(content="Source CV content\nsource@example.com"),
+    )
+
+
+@pytest.mark.asyncio
+async def test_preview_html_renders_structured_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Real Jinja2 render — proves the preview works without WeasyPrint."""
+    _patch_preview_collaborators(monkeypatch, structured_result())
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/preview-html",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={"template_id": "classic"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["template_id"] == "classic"
+    assert "Sam Developer" in body["html"]
+    assert "Tailored summary" in body["html"]
+
+
+@pytest.mark.asyncio
+async def test_preview_html_defaults_template_and_applies_render_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_preview_collaborators(monkeypatch, structured_result())
+    rendered: dict[str, Any] = {}
+
+    def fake_render_html(context: dict[str, Any], template_id: str = "nordic") -> str:
+        rendered["context"] = context
+        rendered["template_id"] = template_id
+        return "<html>MARK</html>"
+
+    monkeypatch.setattr(tailor_endpoint.cv_render, "render_html", fake_render_html)
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/preview-html",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={"accepted_section_ids": ["summary"]},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"html": "<html>MARK</html>", "template_id": "nordic"}
+    kinds = [b["kind"] for b in rendered["context"]["blocks"]]
+    # Rejected skills section falls back to the original text as a raw block.
+    assert "raw" in kinds
+    assert "source@example.com" in rendered["context"]["header"]["contact_bits"]
+
+
+@pytest.mark.asyncio
+async def test_preview_html_allowed_after_cv_saved(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_preview_collaborators(monkeypatch, structured_result(), output_cv_id=OUTPUT_CV_ID)
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/preview-html",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={},
+    )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_preview_html_404_for_unknown_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        tailor_endpoint.crud_tailor, "get_by_id", lambda db, job_id, user_id: None
+    )
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/preview-html",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={},
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_preview_html_409_when_job_not_complete(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_preview_collaborators(monkeypatch, None, status=TailorStatus.processing)
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/preview-html",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={},
+    )
+
+    assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_preview_html_409_for_legacy_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_preview_collaborators(monkeypatch, preview_result())  # no structured_cv key
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/preview-html",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={},
+    )
+
+    assert response.status_code == 409
+    assert "legacy" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_preview_html_422_for_unknown_template(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_preview_collaborators(monkeypatch, structured_result())
+
+    response = await request(
+        "POST",
+        f"/api/v1/tailor/{JOB_ID}/preview-html",
+        current_user=user(),
+        db=FakeDb(),
+        json_body={"template_id": "hot-pink-comic-sans"},
+    )
+
+    assert response.status_code == 422
+    assert "Unknown template" in response.json()["detail"]

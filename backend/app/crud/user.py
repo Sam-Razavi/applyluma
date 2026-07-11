@@ -134,6 +134,10 @@ def record_login(db: Session, user: User) -> None:
 def update_profile(db: Session, user: User, data: UserUpdate) -> User:
     if data.full_name is not None:
         user.full_name = data.full_name
+    # None means "unchanged" (the Settings dropdown always sends a value),
+    # matching the full_name semantics above.
+    if data.preferred_template is not None:
+        user.preferred_template = data.preferred_template
     db.commit()
     db.refresh(user)
     return user
