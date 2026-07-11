@@ -1,8 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import toast from 'react-hot-toast'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { FadeIn } from '../../components/ui/FadeIn'
-import { adminApi, type AdminUserProfile, type AdminUserRow } from '../../services/adminApi'
+import {
+  adminApi,
+  type AdminFunnelStats,
+  type AdminUserProfile,
+  type AdminUserRow,
+  type UserSignupsDailyPoint,
+} from '../../services/adminApi'
 import UserDrawer from './UserDrawer'
 
 const ROLE_BADGE: Record<AdminUserRow['role'], string> = {
@@ -18,6 +33,17 @@ interface NotifyModal {
   submitting: boolean
 }
 
+function FunnelStat({ label, value, of }: { label: string; value: number; of?: number }) {
+  const pct = of && of > 0 ? `${((value / of) * 100).toFixed(0)}%` : undefined
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <p className="text-xs font-medium text-fg-subtle">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-fg">{value.toLocaleString()}</p>
+      {pct && <p className="mt-0.5 text-xs text-fg-subtle">{pct} of registered</p>}
+    </div>
+  )
+}
+
 export default function AdminUsers() {
   const [users, setUsers] = useState<AdminUserRow[]>([])
   const [total, setTotal] = useState(0)
@@ -29,6 +55,9 @@ export default function AdminUsers() {
   const [notifyModal, setNotifyModal] = useState<NotifyModal | null>(null)
   const [profile, setProfile] = useState<AdminUserProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [funnel, setFunnel] = useState<AdminFunnelStats | null>(null)
+  const [signupsDaily, setSignupsDaily] = useState<UserSignupsDailyPoint[]>([])
+  const [growthLoading, setGrowthLoading] = useState(true)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const size = 25
@@ -73,6 +102,17 @@ export default function AdminUsers() {
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
+
+  useEffect(() => {
+    setGrowthLoading(true)
+    Promise.all([adminApi.getUserSignupsDaily(30), adminApi.getUserFunnel()])
+      .then(([daily, f]) => {
+        setSignupsDaily(daily)
+        setFunnel(f)
+      })
+      .catch(() => toast.error('Failed to load signup analytics'))
+      .finally(() => setGrowthLoading(false))
+  }, [])
 
   async function handleRoleChange(userId: string, role: AdminUserRow['role']) {
     try {
@@ -146,6 +186,64 @@ export default function AdminUsers() {
             {total > 0 ? `${total.toLocaleString()} users` : 'Loading…'}
           </p>
         </div>
+
+        {/* Growth & tailor-usage funnel */}
+        <section className="space-y-4">
+          {growthLoading && !funnel ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-20 animate-pulse rounded-2xl bg-track" />
+              ))}
+            </div>
+          ) : funnel ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <FunnelStat label="Registered" value={funnel.registered} />
+              <FunnelStat label="Verified" value={funnel.verified} of={funnel.registered} />
+              <FunnelStat label="Uploaded a CV" value={funnel.has_cv} of={funnel.registered} />
+              <FunnelStat
+                label="Attempted tailor"
+                value={funnel.attempted_tailor}
+                of={funnel.registered}
+              />
+              <FunnelStat
+                label="Completed tailor"
+                value={funnel.completed_tailor}
+                of={funnel.registered}
+              />
+            </div>
+          ) : null}
+
+          <div className="rounded-2xl border border-line bg-surface p-5">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted">
+              Daily signups (30 days)
+            </h2>
+            <div className="mt-4">
+              {signupsDaily.length === 0 ? (
+                <p className="py-10 text-center text-sm text-fg-subtle">
+                  {growthLoading ? 'Loading…' : 'No signups recorded yet.'}
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={signupsDaily} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--track)" />
+                    <XAxis dataKey="date" tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} />
+                    <YAxis tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} allowDecimals={false} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" name="Signups" stroke="#6366f1" strokeWidth={2} dot={false} />
+                    <Line
+                      type="monotone"
+                      dataKey="verified_count"
+                      name="Verified same day"
+                      stroke="#34c38f"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* Filters */}
         <div className="flex flex-col gap-3 sm:flex-row">

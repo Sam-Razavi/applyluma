@@ -59,7 +59,7 @@ export default function AdminDashboard() {
           <h2 className="mb-3 text-sm font-semibold text-fg-muted uppercase tracking-wide">
             Users
           </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             <StatCard label="Total users" value={stats?.total_users ?? 0} loading={loading} />
             <StatCard
               label="Premium"
@@ -69,6 +69,12 @@ export default function AdminDashboard() {
             />
             <StatCard label="Admins" value={stats?.admin_users ?? 0} loading={loading} />
             <StatCard label="New this week" value={stats?.new_users_this_week ?? 0} loading={loading} />
+            <StatCard
+              label="Verified"
+              value={stats?.verified_users ?? 0}
+              loading={loading}
+              sub={stats ? `${((stats.verified_users / Math.max(stats.total_users, 1)) * 100).toFixed(1)}% verified` : undefined}
+            />
           </div>
         </section>
 
@@ -77,8 +83,10 @@ export default function AdminDashboard() {
           <h2 className="mb-3 text-sm font-semibold text-fg-muted uppercase tracking-wide">
             AI Usage
           </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <StatCard label="Tailor jobs (total)" value={stats?.total_tailor_jobs ?? 0} loading={loading} />
+            <StatCard label="Tailor pending" value={stats?.tailor_jobs_pending ?? 0} loading={loading} />
+            <StatCard label="Tailor processing" value={stats?.tailor_jobs_processing ?? 0} loading={loading} />
             <StatCard label="Tailor complete" value={stats?.tailor_jobs_complete ?? 0} loading={loading} />
             <StatCard label="Tailor failed" value={stats?.tailor_jobs_failed ?? 0} loading={loading} />
             <StatCard label="Cover letters" value={stats?.total_cover_letters ?? 0} loading={loading} />

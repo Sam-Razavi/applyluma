@@ -26,6 +26,7 @@ from app.schemas.admin import (
     AdminBulkNotifyRequest,
     AdminBulkNotifyResponse,
     AdminDatabaseStatsResponse,
+    AdminFunnelStats,
     AdminLimitsUpdateRequest,
     AdminNotificationListResponse,
     AdminNotificationRow,
@@ -53,6 +54,7 @@ from app.schemas.admin import (
     RawJobAdminListResponse,
     RawJobAdminRow,
     SystemHealthResponse,
+    UserSignupsDailyPoint,
 )
 from app.services import email_service, notification_service
 
@@ -92,6 +94,18 @@ def list_users(
         page=page,
         size=size,
     )
+
+
+@router.get("/users/signups-daily", response_model=list[UserSignupsDailyPoint])
+def user_signups_daily(
+    admin: AdminUser, db: DbSession, days: int = Query(30, ge=1, le=365)
+) -> list[dict[str, Any]]:
+    return crud_admin.get_user_signups_daily(db, days=days)
+
+
+@router.get("/users/funnel", response_model=AdminFunnelStats)
+def user_funnel(admin: AdminUser, db: DbSession) -> dict[str, Any]:
+    return crud_admin.get_user_funnel_stats(db)
 
 
 @router.get("/users/{user_id}", response_model=AdminUserRow)
