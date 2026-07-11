@@ -49,6 +49,8 @@ class AdminUserRow(BaseModel):
     is_verified: bool
     subscription_status: str | None
     created_at: datetime
+    last_login_at: datetime | None = None
+    login_count: int = 0
 
 
 class AdminUserActivitySummary(BaseModel):
@@ -65,6 +67,12 @@ class AdminUserActivitySummary(BaseModel):
     unread_notifications: int
 
 
+class AdminUserAiCosts(BaseModel):
+    last_30_days_usd: float
+    all_time_usd: float
+    all_time_calls: int
+
+
 class AdminUserProfile(AdminUserRow):
     auth_provider: str | None = None
     avatar_url: str | None = None
@@ -72,7 +80,29 @@ class AdminUserProfile(AdminUserRow):
     stripe_subscription_id: str | None = None
     subscription_ends_at: datetime | None = None
     updated_at: datetime
+    daily_tailor_limit_override: int | None = None
     activity: AdminUserActivitySummary
+    ai_costs: AdminUserAiCosts
+
+
+class AdminActivityEvent(BaseModel):
+    type: str
+    title: str
+    status: str | None = None
+    timestamp: datetime
+    ref_id: uuid.UUID | None = None
+
+
+class AdminUserActivityResponse(BaseModel):
+    items: list[AdminActivityEvent]
+    total: int
+    page: int
+    size: int
+
+
+class AdminLimitsUpdateRequest(BaseModel):
+    # None = role default; 0 = blocked; N = that many tailor runs per day.
+    daily_tailor_limit_override: int | None = Field(default=None, ge=0, le=1000)
 
 
 class AdminUserListResponse(BaseModel):
@@ -383,3 +413,17 @@ class AiCostsBreakdown(BaseModel):
 
 class AiBudgetUpdate(BaseModel):
     monthly_usd: float | None = Field(default=None, ge=0)
+
+
+class AdminTableStat(BaseModel):
+    table_name: str
+    approx_row_count: int
+    total_bytes: int
+    rows_7d: int | None = None
+    rows_30d: int | None = None
+
+
+class AdminDatabaseStatsResponse(BaseModel):
+    database_size_bytes: int
+    tables: list[AdminTableStat]
+    generated_at: datetime

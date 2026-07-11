@@ -24,6 +24,8 @@ export interface AdminUserRow {
   is_verified: boolean
   subscription_status: string | null
   created_at: string
+  last_login_at: string | null
+  login_count: number
 }
 
 export interface AdminUserActivitySummary {
@@ -40,6 +42,12 @@ export interface AdminUserActivitySummary {
   unread_notifications: number
 }
 
+export interface AdminUserAiCosts {
+  last_30_days_usd: number
+  all_time_usd: number
+  all_time_calls: number
+}
+
 export interface AdminUserProfile extends AdminUserRow {
   auth_provider: string | null
   avatar_url: string | null
@@ -47,7 +55,24 @@ export interface AdminUserProfile extends AdminUserRow {
   stripe_subscription_id: string | null
   subscription_ends_at: string | null
   updated_at: string
+  daily_tailor_limit_override: number | null
   activity: AdminUserActivitySummary
+  ai_costs: AdminUserAiCosts
+}
+
+export interface AdminActivityEvent {
+  type: string
+  title: string
+  status: string | null
+  timestamp: string
+  ref_id: string | null
+}
+
+export interface AdminUserActivityResponse {
+  items: AdminActivityEvent[]
+  total: number
+  page: number
+  size: number
 }
 
 export interface AdminUserListResponse {
@@ -317,6 +342,20 @@ export interface AiCostsBreakdown {
   top_users: AiCostsUserItem[]
 }
 
+export interface AdminTableStat {
+  table_name: string
+  approx_row_count: number
+  total_bytes: number
+  rows_7d: number | null
+  rows_30d: number | null
+}
+
+export interface AdminDatabaseStatsResponse {
+  database_size_bytes: number
+  tables: AdminTableStat[]
+  generated_at: string
+}
+
 export const adminApi = {
   getStats(): Promise<AdminOverviewStats> {
     return client.get('/api/v1/admin/stats').then((r) => r.data)
@@ -341,6 +380,32 @@ export const adminApi = {
 
   getUserProfile(userId: string): Promise<AdminUserProfile> {
     return client.get(`/api/v1/admin/users/${userId}/profile`).then((r) => r.data)
+  },
+
+  getUserActivity(userId: string, page = 1, size = 25): Promise<AdminUserActivityResponse> {
+    return client
+      .get(`/api/v1/admin/users/${userId}/activity`, { params: { page, size } })
+      .then((r) => r.data)
+  },
+
+  deleteUser(userId: string): Promise<void> {
+    return client.delete(`/api/v1/admin/users/${userId}`).then(() => undefined)
+  },
+
+  sendPasswordReset(userId: string): Promise<void> {
+    return client.post(`/api/v1/admin/users/${userId}/password-reset`).then(() => undefined)
+  },
+
+  verifyUser(userId: string): Promise<AdminUserRow> {
+    return client.patch(`/api/v1/admin/users/${userId}/verify`).then((r) => r.data)
+  },
+
+  updateLimits(userId: string, dailyTailorLimitOverride: number | null): Promise<AdminUserProfile> {
+    return client
+      .patch(`/api/v1/admin/users/${userId}/limits`, {
+        daily_tailor_limit_override: dailyTailorLimitOverride,
+      })
+      .then((r) => r.data)
   },
 
   listAiJobs(params: {
@@ -464,5 +529,9 @@ export const adminApi = {
 
   updateAiBudget(monthlyUsd: number | null): Promise<AiCostsSummary> {
     return client.put('/api/v1/admin/ai-costs/budget', { monthly_usd: monthlyUsd }).then((r) => r.data)
+  },
+
+  getDatabaseStats(): Promise<AdminDatabaseStatsResponse> {
+    return client.get('/api/v1/admin/database/stats').then((r) => r.data)
   },
 }

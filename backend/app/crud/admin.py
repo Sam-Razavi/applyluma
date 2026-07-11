@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import case, func, or_, select, text
+from sqlalchemy import case, delete, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.models.admin_audit_log import AdminAuditLog
@@ -100,6 +100,37 @@ def set_user_active(db: Session, user: User, is_active: bool) -> User:
     return user
 
 
+def set_user_verified(db: Session, user: User) -> User:
+    user.is_verified = True
+    user.verification_token = None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def set_user_tailor_limit_override(db: Session, user: User, value: int | None) -> User:
+    user.daily_tailor_limit_override = value
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete_user_admin(db: Session, user_id: uuid.UUID) -> bool:
+    """Hard-delete a user. All owned rows are removed by DB-level ON DELETE
+    CASCADE; contact_submissions / ai_usage_logs / admin_audit_log keep their
+    rows with user references set to NULL. A Core DELETE avoids the ORM
+    loading every child collection just to delete it. On-disk CV/cover-letter
+    files are erased afterward, same as self-service account deletion
+    (GDPR right to erasure)."""
+    from app.crud.user import _remove_user_files  # avoid a module-level cycle
+
+    result = db.execute(delete(User).where(User.id == user_id))
+    db.commit()
+    if result.rowcount:
+        _remove_user_files(str(user_id))
+    return bool(result.rowcount)
+
+
 def log_admin_action(
     db: Session,
     *,
@@ -174,6 +205,22 @@ def get_user_profile_admin(db: Session, user_id: uuid.UUID) -> dict[str, Any] | 
         ) or 0,
     }
 
+    now = datetime.now(UTC)
+    ai_cost_base = select(func.coalesce(func.sum(AIUsageLog.cost_usd), 0)).where(
+        AIUsageLog.user_id == user_id
+    )
+    ai_costs = {
+        "last_30_days_usd": float(
+            db.scalar(ai_cost_base.where(AIUsageLog.created_at >= now - timedelta(days=30))) or 0
+        ),
+        "all_time_usd": float(db.scalar(ai_cost_base) or 0),
+        "all_time_calls": int(
+            db.scalar(
+                select(func.count()).select_from(AIUsageLog).where(AIUsageLog.user_id == user_id)
+            ) or 0
+        ),
+    }
+
     return {
         "id": user.id,
         "email": user.email,
@@ -183,14 +230,93 @@ def get_user_profile_admin(db: Session, user_id: uuid.UUID) -> dict[str, Any] | 
         "is_verified": user.is_verified,
         "subscription_status": user.subscription_status,
         "created_at": user.created_at,
+        "last_login_at": user.last_login_at,
+        "login_count": user.login_count or 0,
         "auth_provider": user.auth_provider,
         "avatar_url": user.avatar_url,
         "stripe_customer_id": user.stripe_customer_id,
         "stripe_subscription_id": user.stripe_subscription_id,
         "subscription_ends_at": user.subscription_ends_at,
         "updated_at": user.updated_at,
+        "daily_tailor_limit_override": user.daily_tailor_limit_override,
         "activity": activity,
+        "ai_costs": ai_costs,
     }
+
+
+# One SELECT arm per user-owned table, all shaped (type, title, status, ts, ref_id)
+# so they can be UNIONed into a single chronological feed. Notifications are
+# deliberately excluded — they'd drown the real actions.
+_ACTIVITY_UNION_SQL = """
+    SELECT CASE WHEN c.is_tailored THEN 'cv_tailored' ELSE 'cv_uploaded' END AS type,
+           COALESCE(c.title, c.filename, 'CV') AS title,
+           NULL::text AS status, c.created_at AS ts, c.id AS ref_id
+    FROM cvs c WHERE c.user_id = :user_id
+    UNION ALL
+    SELECT 'application_created', COALESCE(a.job_title, '?') || ' @ ' || COALESCE(a.company_name, '?'),
+           a.status::text, a.created_at, a.id
+    FROM applications a WHERE a.user_id = :user_id
+    UNION ALL
+    SELECT 'application_event',
+           COALESCE(a.company_name, '?') || ': ' || ae.event_type
+               || COALESCE(' → ' || ae.new_value, ''),
+           NULL::text, ae.created_at, ae.id
+    FROM application_events ae JOIN applications a ON a.id = ae.application_id
+    WHERE a.user_id = :user_id
+    UNION ALL
+    SELECT 'tailor_job', COALESCE(jd.job_title || ' @ ' || jd.company_name, 'CV tailoring'),
+           tj.status::text, tj.created_at, tj.id
+    FROM tailor_jobs tj LEFT JOIN job_descriptions jd ON jd.id = tj.job_description_id
+    WHERE tj.user_id = :user_id
+    UNION ALL
+    SELECT 'cover_letter', COALESCE(jd.job_title || ' @ ' || jd.company_name, 'Cover letter'),
+           cj.status::text, cj.created_at, cj.id
+    FROM cover_letter_jobs cj LEFT JOIN job_descriptions jd ON jd.id = cj.job_description_id
+    WHERE cj.user_id = :user_id
+    UNION ALL
+    SELECT 'saved_job', COALESCE(r.title || ' @ ' || r.company, 'Saved job'),
+           NULL::text, sj.created_at, sj.id
+    FROM saved_jobs sj LEFT JOIN raw_job_postings r ON r.id = sj.raw_job_posting_id
+    WHERE sj.user_id = :user_id
+    UNION ALL
+    SELECT 'job_description', COALESCE(jd.job_title, 'Job description')
+               || COALESCE(' @ ' || jd.company_name, ''),
+           NULL::text, jd.created_at, jd.id
+    FROM job_descriptions jd WHERE jd.user_id = :user_id
+    UNION ALL
+    SELECT 'contact_submission', cs.subject, cs.category::text, cs.created_at, cs.id
+    FROM contact_submissions cs WHERE cs.user_id = :user_id
+"""
+
+
+def get_user_activity(
+    db: Session,
+    user_id: uuid.UUID,
+    *,
+    page: int = 1,
+    size: int = 25,
+) -> tuple[list[dict[str, Any]], int]:
+    params: dict[str, Any] = {"user_id": user_id, "limit": size, "offset": (page - 1) * size}
+    total = db.execute(
+        text(f"SELECT COUNT(*) FROM ({_ACTIVITY_UNION_SQL}) events"), params
+    ).scalar() or 0
+    rows = db.execute(
+        text(
+            f"SELECT type, title, status, ts, ref_id FROM ({_ACTIVITY_UNION_SQL}) events "
+            "ORDER BY ts DESC LIMIT :limit OFFSET :offset"
+        ),
+        params,
+    ).mappings().all()
+    return [
+        {
+            "type": r["type"],
+            "title": r["title"],
+            "status": r["status"],
+            "timestamp": r["ts"],
+            "ref_id": r["ref_id"],
+        }
+        for r in rows
+    ], int(total)
 
 
 def list_ai_jobs(
@@ -862,3 +988,73 @@ def set_ai_budget(db: Session, monthly_usd: float | None) -> None:
 
     value = "" if monthly_usd is None else str(monthly_usd)
     ai_usage.set_setting(db, ai_usage.BUDGET_SETTING_KEY, value)
+
+
+# ── Database stats ───────────────────────────────────────────────────────────
+
+# Fixed allowlist of tables whose growth can be measured via created_at.
+# Never derived from client input — the stats endpoint takes no parameters.
+_GROWTH_TABLES: dict[str, Any] = {}
+
+
+def _growth_tables() -> dict[str, Any]:
+    # Lazy import to avoid circulars at module import time.
+    if not _GROWTH_TABLES:
+        from app.models.job import RawJobPosting
+
+        _GROWTH_TABLES.update(
+            {
+                "users": (User, User.created_at),
+                "cvs": (CV, CV.created_at),
+                "job_descriptions": (JobDescription, JobDescription.created_at),
+                "tailor_jobs": (TailorJob, TailorJob.created_at),
+                "cover_letter_jobs": (CoverLetterJob, CoverLetterJob.created_at),
+                "applications": (Application, Application.created_at),
+                "saved_jobs": (SavedJob, SavedJob.created_at),
+                "notifications": (Notification, Notification.created_at),
+                "raw_job_postings": (RawJobPosting, RawJobPosting.scraped_at),
+                "ai_usage_logs": (AIUsageLog, AIUsageLog.created_at),
+                "contact_submissions": (ContactSubmission, ContactSubmission.created_at),
+                "admin_audit_log": (AdminAuditLog, AdminAuditLog.created_at),
+            }
+        )
+    return _GROWTH_TABLES
+
+
+def get_database_stats(db: Session) -> dict[str, Any]:
+    db_size = int(db.execute(text("SELECT pg_database_size(current_database())")).scalar() or 0)
+    rows = db.execute(
+        text(
+            "SELECT c.relname AS table_name, "
+            "GREATEST(c.reltuples, 0)::bigint AS approx_row_count, "
+            "pg_total_relation_size(c.oid) AS total_bytes "
+            "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+            "WHERE n.nspname = 'public' AND c.relkind = 'r' "
+            "ORDER BY pg_total_relation_size(c.oid) DESC"
+        )
+    ).mappings().all()
+
+    now = datetime.now(UTC)
+    growth: dict[str, tuple[int, int]] = {}
+    for table_name, (model, ts_column) in _growth_tables().items():
+        rows_7d = db.scalar(
+            select(func.count()).select_from(model).where(ts_column >= now - timedelta(days=7))
+        ) or 0
+        rows_30d = db.scalar(
+            select(func.count()).select_from(model).where(ts_column >= now - timedelta(days=30))
+        ) or 0
+        growth[table_name] = (int(rows_7d), int(rows_30d))
+
+    tables = []
+    for r in rows:
+        g = growth.get(r["table_name"])
+        tables.append(
+            {
+                "table_name": r["table_name"],
+                "approx_row_count": int(r["approx_row_count"]),
+                "total_bytes": int(r["total_bytes"]),
+                "rows_7d": g[0] if g else None,
+                "rows_30d": g[1] if g else None,
+            }
+        )
+    return {"database_size_bytes": db_size, "tables": tables, "generated_at": now}

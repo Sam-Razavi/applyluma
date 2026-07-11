@@ -1,13 +1,19 @@
+import logging
 import secrets
+import shutil
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 
 _RESET_TOKEN_TTL_HOURS = 1
+
+logger = logging.getLogger(__name__)
 
 
 def get_by_email(db: Session, email: str) -> User | None:
@@ -119,6 +125,12 @@ def authenticate(db: Session, email: str, password: str) -> User | None:
     return user
 
 
+def record_login(db: Session, user: User) -> None:
+    user.last_login_at = datetime.now(UTC)
+    user.login_count = (user.login_count or 0) + 1
+    db.commit()
+
+
 def update_profile(db: Session, user: User, data: UserUpdate) -> User:
     if data.full_name is not None:
         user.full_name = data.full_name
@@ -135,8 +147,28 @@ def update_password(db: Session, user: User, new_password: str) -> User:
 
 
 def delete(db: Session, user: User) -> None:
+    user_id = str(user.id)
     db.delete(user)
     db.commit()
+    _remove_user_files(user_id)
+
+
+def _remove_user_files(user_id: str) -> None:
+    """Erase the user's files on disk (GDPR right to erasure).
+
+    Runs after the DB commit — a disk failure must never abort account deletion,
+    so errors are logged and swallowed.
+    """
+    try:
+        storage_root = Path(settings.STORAGE_DIR).resolve()
+        for subdir in ("cvs", "cover_letters"):
+            shutil.rmtree(storage_root / subdir / user_id, ignore_errors=True)
+    except Exception:
+        logger.warning(
+            "Failed to remove files for deleted user",
+            extra={"user_id": user_id},
+            exc_info=True,
+        )
 
 
 def get_by_password_reset_token(db: Session, token: str) -> User | None:

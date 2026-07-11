@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
+import * as Sentry from '@sentry/react'
 import { ErrorBoundary } from './ErrorBoundary'
+
+vi.mock('@sentry/react', () => ({
+  captureException: vi.fn(),
+}))
 
 // Suppress React's error boundary console output in tests
 beforeAll(() => {
@@ -9,6 +14,10 @@ beforeAll(() => {
 
 afterAll(() => {
   vi.mocked(console.error).mockRestore()
+})
+
+beforeEach(() => {
+  vi.mocked(Sentry.captureException).mockClear()
 })
 
 function Bomb(): JSX.Element {
@@ -33,6 +42,18 @@ describe('ErrorBoundary', () => {
     )
     expect(screen.getByText('Something went wrong')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+  })
+
+  it('reports the error to Sentry', () => {
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>
+    )
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Test explosion' }),
+      expect.anything(),
+    )
   })
 
   it('resets error state when Try again is clicked', () => {

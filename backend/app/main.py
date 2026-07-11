@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 import sentry_sdk
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Query
 from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.requests import Request
@@ -20,6 +20,7 @@ from app.api.v1.endpoints.applications import router as applications_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.billing import router as billing_router
 from app.api.v1.endpoints.cvs import router as cvs_router
+from app.api.v1.endpoints.health import _check_db
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.job_bookmark import router as job_bookmark_router
 from app.api.v1.endpoints.job_search import router as job_search_router
@@ -30,6 +31,7 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.dependencies import get_redis_client
 from app.core.logging_config import setup_logging
+from app.db.session import SessionLocal
 
 _INSECURE_DEFAULT_KEY = "change-me-in-production"
 
@@ -358,6 +360,20 @@ async def docs_alias() -> RedirectResponse:
 app.include_router(compat_router)
 
 
-@app.get("/health", tags=["health"])
-async def health_check() -> dict[str, str]:
+@app.get("/health", tags=["health"], response_model=None)
+async def health_check(deep: bool = Query(False)) -> dict[str, str] | JSONResponse:
+    if not deep:
+        return {"status": "ok", "version": settings.VERSION}
+
+    db = SessionLocal()
+    try:
+        check = _check_db(db)
+    finally:
+        db.close()
+
+    if check["status"] != "ok":
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "version": settings.VERSION, "checks": {"db": check}},
+        )
     return {"status": "ok", "version": settings.VERSION}

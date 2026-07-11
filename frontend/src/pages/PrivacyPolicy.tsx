@@ -2,7 +2,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold text-fg mb-2">Privacy Policy</h1>
-      <p className="text-sm text-fg-subtle mb-10">Last updated: June 2026</p>
+      <p className="text-sm text-fg-subtle mb-10">Last updated: July 2026</p>
 
       <div className="prose prose-gray max-w-none space-y-8 text-fg-muted">
 
@@ -46,7 +46,7 @@ export default function PrivacyPolicy() {
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li><strong>OpenAI</strong> — CV tailoring, cover letter generation, job match scoring</li>
             <li><strong>Stripe</strong> — subscription billing and payment processing</li>
-            <li><strong>SendGrid (Twilio)</strong> — transactional email delivery</li>
+            <li><strong>Resend</strong> — transactional email delivery</li>
             <li><strong>Railway</strong> — backend hosting and database</li>
             <li><strong>Vercel</strong> — frontend hosting and (with consent) anonymous usage analytics</li>
             <li><strong>PostHog</strong> — (with consent) product analytics for understanding feature usage</li>

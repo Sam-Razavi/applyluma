@@ -73,8 +73,9 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 
 - Market intelligence dashboard for job volume, salary bands, remote share, growth, top companies, skills, location, seniority, and job-type mix.
 - Resume-vs-market comparison for authenticated users with uploaded CVs.
-- Admin screens for user management and pipeline health visibility.
+- Admin screens for user management (activity timeline, delete/password-reset/verify, per-user AI cost and tailor-limit overrides), database table stats, and pipeline health visibility.
 - Daily scraping and transform pipeline backed by Airflow, dbt, PostgreSQL, and Redis caching.
+- Three-layer monitoring (external uptime pinger, internal health watchdog, Sentry) — see [docs/MONITORING.md](docs/MONITORING.md).
 
 ### Browser Extension
 

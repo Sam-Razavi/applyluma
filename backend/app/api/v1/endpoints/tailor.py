@@ -41,8 +41,16 @@ _DAILY_LIMIT: dict[UserRole, int | None] = {
 }
 
 
+def effective_daily_limit(user: User) -> int | None:
+    """Per-user admin override beats the role default. None = unlimited
+    (admin role default); an override of 0 blocks tailoring entirely."""
+    if user.daily_tailor_limit_override is not None:
+        return user.daily_tailor_limit_override
+    return _DAILY_LIMIT.get(user.role, 1)
+
+
 def _check_rate_limit(db: Session, user: User) -> None:
-    limit = _DAILY_LIMIT.get(user.role, 1)
+    limit = effective_daily_limit(user)
     if limit is None:
         return
     used = crud_tailor.count_today(db, user.id)
@@ -59,7 +67,7 @@ def get_usage(
     db: DbSession,
 ) -> TailorUsageResponse:
     used = crud_tailor.count_today(db, current_user.id)
-    limit = _DAILY_LIMIT.get(current_user.role, 1)
+    limit = effective_daily_limit(current_user)
     now = datetime.now(UTC)
     next_midnight = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     return TailorUsageResponse(
