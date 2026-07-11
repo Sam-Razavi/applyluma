@@ -5,6 +5,7 @@ export interface AdminOverviewStats {
   premium_users: number
   admin_users: number
   new_users_this_week: number
+  verified_users: number
   total_cvs: number
   total_job_descriptions: number
   total_applications: number
@@ -12,7 +13,22 @@ export interface AdminOverviewStats {
   tailor_jobs_complete: number
   tailor_jobs_failed: number
   tailor_jobs_pending: number
+  tailor_jobs_processing: number
   total_cover_letters: number
+}
+
+export interface UserSignupsDailyPoint {
+  date: string
+  count: number
+  verified_count: number
+}
+
+export interface AdminFunnelStats {
+  registered: number
+  verified: number
+  has_cv: number
+  attempted_tailor: number
+  completed_tailor: number
 }
 
 export interface AdminUserRow {
@@ -359,6 +375,14 @@ export interface AdminDatabaseStatsResponse {
 export const adminApi = {
   getStats(): Promise<AdminOverviewStats> {
     return client.get('/api/v1/admin/stats').then((r) => r.data)
+  },
+
+  getUserSignupsDaily(days = 30): Promise<UserSignupsDailyPoint[]> {
+    return client.get('/api/v1/admin/users/signups-daily', { params: { days } }).then((r) => r.data)
+  },
+
+  getUserFunnel(): Promise<AdminFunnelStats> {
+    return client.get('/api/v1/admin/users/funnel').then((r) => r.data)
   },
 
   listUsers(params: {

@@ -29,6 +29,7 @@ def get_overview_stats(db: Session) -> dict:
             func.sum(case((User.role == UserRole.premium, 1), else_=0)).label("premium"),
             func.sum(case((User.role == UserRole.admin, 1), else_=0)).label("admin"),
             func.sum(case((User.created_at >= one_week_ago, 1), else_=0)).label("new_this_week"),
+            func.sum(case((User.is_verified, 1), else_=0)).label("verified"),
         ).select_from(User)
     ).one()
 
@@ -38,6 +39,7 @@ def get_overview_stats(db: Session) -> dict:
             func.sum(case((TailorJob.status == TailorStatus.complete, 1), else_=0)).label("complete"),
             func.sum(case((TailorJob.status == TailorStatus.failed, 1), else_=0)).label("failed"),
             func.sum(case((TailorJob.status == TailorStatus.pending, 1), else_=0)).label("pending"),
+            func.sum(case((TailorJob.status == TailorStatus.processing, 1), else_=0)).label("processing"),
         ).select_from(TailorJob)
     ).one()
 
@@ -51,6 +53,7 @@ def get_overview_stats(db: Session) -> dict:
         "premium_users": int(user_stats.premium or 0),
         "admin_users": int(user_stats.admin or 0),
         "new_users_this_week": int(user_stats.new_this_week or 0),
+        "verified_users": int(user_stats.verified or 0),
         "total_cvs": total_cvs,
         "total_job_descriptions": total_jds,
         "total_applications": total_applications,
@@ -58,6 +61,7 @@ def get_overview_stats(db: Session) -> dict:
         "tailor_jobs_complete": int(tailor_stats.complete or 0),
         "tailor_jobs_failed": int(tailor_stats.failed or 0),
         "tailor_jobs_pending": int(tailor_stats.pending or 0),
+        "tailor_jobs_processing": int(tailor_stats.processing or 0),
         "total_cover_letters": total_cover_letters,
     }
 
@@ -832,6 +836,56 @@ def get_jobs_over_time(db: Session, days: int = 14) -> list[dict[str, Any]]:
         }
         for i in range(days - 1, -1, -1)
     ]
+
+
+def get_user_signups_daily(db: Session, days: int = 30) -> list[dict[str, Any]]:
+    cutoff = datetime.now(UTC) - timedelta(days=days)
+    rows = db.execute(
+        text(
+            "SELECT DATE(created_at) AS d, COUNT(*) AS c, "
+            "SUM(CASE WHEN is_verified THEN 1 ELSE 0 END) AS vc "
+            "FROM users WHERE created_at >= :cutoff GROUP BY DATE(created_at)"
+        ),
+        {"cutoff": cutoff},
+    ).all()
+    counts = {r.d.isoformat(): (int(r.c), int(r.vc or 0)) for r in rows}
+    today = datetime.now(UTC).date()
+    return [
+        {
+            "date": (today - timedelta(days=i)).isoformat(),
+            "count": counts.get((today - timedelta(days=i)).isoformat(), (0, 0))[0],
+            "verified_count": counts.get((today - timedelta(days=i)).isoformat(), (0, 0))[1],
+        }
+        for i in range(days - 1, -1, -1)
+    ]
+
+
+def get_user_funnel_stats(db: Session) -> dict[str, Any]:
+    """Registration -> tailor-completion drop-off, one stage per query.
+
+    Deliberately five independent COUNT(DISTINCT ...) queries rather than a
+    single join/CTE: joining users to cvs/tailor_jobs directly would fan out
+    and overcount any user with more than one CV or tailor job.
+    """
+    registered = db.scalar(select(func.count()).select_from(User)) or 0
+    verified = db.scalar(select(func.count()).select_from(User).where(User.is_verified)) or 0
+    has_cv = db.scalar(select(func.count(func.distinct(CV.user_id)))) or 0
+    attempted_tailor = db.scalar(select(func.count(func.distinct(TailorJob.user_id)))) or 0
+    completed_tailor = (
+        db.scalar(
+            select(func.count(func.distinct(TailorJob.user_id))).where(
+                TailorJob.status == TailorStatus.complete
+            )
+        )
+        or 0
+    )
+    return {
+        "registered": registered,
+        "verified": verified,
+        "has_cv": has_cv,
+        "attempted_tailor": attempted_tailor,
+        "completed_tailor": completed_tailor,
+    }
 
 
 def get_jobs_by_source(db: Session) -> list[dict[str, Any]]:

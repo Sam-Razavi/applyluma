@@ -28,6 +28,7 @@ class AdminOverviewStats(BaseModel):
     premium_users: int
     admin_users: int
     new_users_this_week: int
+    verified_users: int
     total_cvs: int
     total_job_descriptions: int
     total_applications: int
@@ -35,7 +36,22 @@ class AdminOverviewStats(BaseModel):
     tailor_jobs_complete: int
     tailor_jobs_failed: int
     tailor_jobs_pending: int
+    tailor_jobs_processing: int
     total_cover_letters: int
+
+
+class UserSignupsDailyPoint(BaseModel):
+    date: str
+    count: int
+    verified_count: int
+
+
+class AdminFunnelStats(BaseModel):
+    registered: int
+    verified: int
+    has_cv: int
+    attempted_tailor: int
+    completed_tailor: int
 
 
 class AdminUserRow(BaseModel):

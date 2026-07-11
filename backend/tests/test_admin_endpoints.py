@@ -28,6 +28,7 @@ SAMPLE_STATS = {
     "premium_users": 5,
     "admin_users": 1,
     "new_users_this_week": 3,
+    "verified_users": 20,
     "total_cvs": 30,
     "total_job_descriptions": 20,
     "total_applications": 60,
@@ -35,6 +36,7 @@ SAMPLE_STATS = {
     "tailor_jobs_complete": 10,
     "tailor_jobs_failed": 2,
     "tailor_jobs_pending": 3,
+    "tailor_jobs_processing": 0,
     "total_cover_letters": 8,
 }
 
@@ -134,9 +136,79 @@ async def test_stats_returns_expected_fields(monkeypatch: pytest.MonkeyPatch) ->
     assert data["premium_users"] == 5
     assert data["admin_users"] == 1
     assert data["new_users_this_week"] == 3
+    assert data["verified_users"] == 20
     assert data["total_tailor_jobs"] == 15
     assert data["tailor_jobs_complete"] == 10
+    assert data["tailor_jobs_processing"] == 0
     assert data["total_cover_letters"] == 8
+
+
+# ── User signups-daily / funnel endpoints ─────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_signups_daily_requires_admin_role() -> None:
+    response = await request(
+        "GET", "/api/v1/admin/users/signups-daily", current_user=regular_user()
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_signups_daily_returns_expected_shape(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin,
+        "get_user_signups_daily",
+        lambda db, days=30: [{"date": "2026-07-11", "count": 3, "verified_count": 1}],
+    )
+
+    response = await request(
+        "GET", "/api/v1/admin/users/signups-daily?days=7", current_user=admin_user()
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data == [{"date": "2026-07-11", "count": 3, "verified_count": 1}]
+
+
+@pytest.mark.asyncio
+async def test_funnel_requires_admin_role() -> None:
+    response = await request("GET", "/api/v1/admin/users/funnel", current_user=regular_user())
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_funnel_returns_expected_shape(monkeypatch: pytest.MonkeyPatch) -> None:
+    sample_funnel = {
+        "registered": 59,
+        "verified": 12,
+        "has_cv": 9,
+        "attempted_tailor": 0,
+        "completed_tailor": 0,
+    }
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin, "get_user_funnel_stats", lambda db: sample_funnel
+    )
+
+    response = await request("GET", "/api/v1/admin/users/funnel", current_user=admin_user())
+
+    assert response.status_code == 200
+    assert response.json() == sample_funnel
+
+
+@pytest.mark.asyncio
+async def test_signups_daily_route_not_swallowed_by_user_id_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression guard: /users/signups-daily and /users/funnel must be
+    registered before /users/{user_id}, or FastAPI routes them into the
+    uuid.UUID-typed user_id param and returns 422 instead of the real data."""
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin, "get_user_signups_daily", lambda db, days=30: []
+    )
+    response = await request(
+        "GET", "/api/v1/admin/users/signups-daily", current_user=admin_user()
+    )
+    assert response.status_code == 200
 
 
 # ── User list endpoint ────────────────────────────────────────────────────────

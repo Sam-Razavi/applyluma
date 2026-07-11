@@ -13,6 +13,8 @@ const {
   mockSendPasswordReset,
   mockVerifyUser,
   mockUpdateLimits,
+  mockGetUserSignupsDaily,
+  mockGetUserFunnel,
 } = vi.hoisted(() => ({
   mockListUsers: vi.fn(),
   mockGetUserProfile: vi.fn(),
@@ -24,6 +26,8 @@ const {
   mockSendPasswordReset: vi.fn(),
   mockVerifyUser: vi.fn(),
   mockUpdateLimits: vi.fn(),
+  mockGetUserSignupsDaily: vi.fn(),
+  mockGetUserFunnel: vi.fn(),
 }))
 
 vi.mock('../../services/adminApi', () => ({
@@ -38,6 +42,8 @@ vi.mock('../../services/adminApi', () => ({
     sendPasswordReset: mockSendPasswordReset,
     verifyUser: mockVerifyUser,
     updateLimits: mockUpdateLimits,
+    getUserSignupsDaily: mockGetUserSignupsDaily,
+    getUserFunnel: mockGetUserFunnel,
   },
 }))
 
@@ -122,6 +128,31 @@ describe('AdminUsers', () => {
     mockListUsers.mockResolvedValue({ items: users, total: 2, page: 1, size: 25 })
     mockGetUserProfile.mockResolvedValue(profile)
     mockGetUserActivity.mockResolvedValue(activityPage1)
+    mockGetUserSignupsDaily.mockResolvedValue([
+      { date: '2026-07-10', count: 2, verified_count: 1 },
+      { date: '2026-07-11', count: 1, verified_count: 0 },
+    ])
+    mockGetUserFunnel.mockResolvedValue({
+      registered: 59,
+      verified: 12,
+      has_cv: 9,
+      attempted_tailor: 0,
+      completed_tailor: 0,
+    })
+  })
+
+  it('shows the signup funnel with counts fetched from the API', async () => {
+    render(<AdminUsers />)
+
+    expect(await screen.findByText('Registered')).toBeInTheDocument()
+    expect(screen.getByText('59')).toBeInTheDocument()
+    expect(screen.getByText('Verified')).toBeInTheDocument()
+    expect(screen.getByText('12')).toBeInTheDocument()
+    expect(screen.getByText('Uploaded a CV')).toBeInTheDocument()
+    expect(screen.getByText('9')).toBeInTheDocument()
+    expect(screen.getByText('Attempted tailor')).toBeInTheDocument()
+    expect(screen.getByText('Completed tailor')).toBeInTheDocument()
+    expect(mockGetUserSignupsDaily).toHaveBeenCalledWith(30)
   })
 
   it('shows a Last login column, formatted for logged-in users and a dash otherwise', async () => {
