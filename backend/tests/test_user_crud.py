@@ -7,8 +7,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.core.security import get_password_hash
@@ -307,3 +305,26 @@ def test_create_password_reset_token_sets_expiry() -> None:
     assert user.password_reset_token == token
     assert user.password_reset_expires_at is not None
     assert db.committed
+
+
+def test_update_profile_sets_preferred_template() -> None:
+    from app.schemas.user import UserUpdate
+    user = _make_user()
+    user.preferred_template = None
+    db = _FakeDb(user=user)
+
+    crud_user.update_profile(db, user, UserUpdate(preferred_template="modern"))
+
+    assert user.preferred_template == "modern"
+    assert db.committed
+
+
+def test_update_profile_keeps_preferred_template_when_omitted() -> None:
+    from app.schemas.user import UserUpdate
+    user = _make_user()
+    user.preferred_template = "executive"
+    db = _FakeDb(user=user)
+
+    crud_user.update_profile(db, user, UserUpdate(full_name="New Name"))
+
+    assert user.preferred_template == "executive"

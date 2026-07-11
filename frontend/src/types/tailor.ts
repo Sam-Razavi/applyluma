@@ -1,6 +1,6 @@
 export type TailorIntensity = 'light' | 'medium' | 'aggressive'
 export type TailorStatus = 'pending' | 'processing' | 'complete' | 'failed'
-export type CvTemplateId = 'nordic' | 'classic'
+export type CvTemplateId = 'nordic' | 'classic' | 'modern' | 'executive'
 
 export interface TailorJob {
   id: string
@@ -40,6 +40,11 @@ export interface TailorPreview {
   language: string
   sections: TailorSection[]
   meta: TailorMeta
+}
+
+export interface TailorPreviewHtml {
+  html: string
+  template_id: string
 }
 
 export interface TailorUsage {
