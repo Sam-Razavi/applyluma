@@ -401,7 +401,7 @@ export default function Jobs() {
       <Dialog open={addOpen} onClose={() => !submitting && (setAddOpen(false), reset())} className="relative z-50">
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="bg-surface rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+          <DialogPanel className="bg-raised rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line flex-shrink-0">
               <DialogTitle className="text-base font-semibold text-fg">Add Job</DialogTitle>
               <button onClick={() => !submitting && (setAddOpen(false), reset())} className="h-8 w-8 flex items-center justify-center rounded-lg text-fg-subtle hover:text-fg-muted hover:bg-surface-strong">
@@ -454,7 +454,7 @@ export default function Jobs() {
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} className="relative z-50">
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="bg-surface rounded-2xl shadow-xl max-w-sm w-full p-6">
+          <DialogPanel className="bg-raised rounded-2xl shadow-xl max-w-sm w-full p-6">
             <div className="flex items-start gap-4">
               <div className="h-10 w-10 bg-chip-danger rounded-xl flex items-center justify-center flex-shrink-0">
                 <ExclamationCircleIcon className="h-5 w-5 text-chip-danger-fg" />
