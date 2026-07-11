@@ -339,6 +339,15 @@ def send_notification(
         title=body.title,
         body=body.body,
     )
+    crud_admin.log_admin_action(
+        db,
+        admin_user_id=admin.id,
+        target_user_id=user_id,
+        action="user.notified",
+        details={"type": body.type, "title": body.title},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
 
 
 @router.post("/notifications/bulk", response_model=AdminBulkNotifyResponse)

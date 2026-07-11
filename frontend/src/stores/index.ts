@@ -52,6 +52,8 @@ export const useAuthStore = create<AuthState>()(
         partialize: (state) => ({ isAuthenticated: state.isAuthenticated, user: state.user }),
       },
     ),
-    { name: 'AuthStore' },
+    // Redux DevTools can inspect this store's live memory state, which
+    // includes the in-memory token/refreshToken — only wire it up in dev.
+    { name: 'AuthStore', enabled: import.meta.env.DEV },
   ),
 )

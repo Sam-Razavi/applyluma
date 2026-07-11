@@ -201,6 +201,36 @@ async def test_activity_returns_paginated_events(monkeypatch: pytest.MonkeyPatch
     assert captured == {"user_id": USER_ID, "page": 2, "size": 10}
 
 
+# ── Send single-user notification ────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_send_notification_writes_audit_log(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin, "get_user_by_id_admin", lambda db, uid: sample_user()
+    )
+    monkeypatch.setattr(
+        admin_endpoint.notification_service, "create_notification", lambda db, **kwargs: None
+    )
+    audits: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin,
+        "log_admin_action",
+        lambda db, **kwargs: audits.append(kwargs),
+    )
+
+    response = await request(
+        "POST",
+        f"/api/v1/admin/users/{USER_ID}/notify",
+        current_user=admin_user(),
+        json_body={"title": "Heads up", "body": "Your CV was reviewed."},
+    )
+
+    assert response.status_code == 204
+    assert len(audits) == 1
+    assert audits[0]["action"] == "user.notified"
+    assert audits[0]["target_user_id"] == USER_ID
+
+
 # ── Delete user ───────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio

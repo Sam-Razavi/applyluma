@@ -1,5 +1,15 @@
 from app.core.config import settings
 
+
+def escape_html(text: str) -> str:
+    """Escape user-controlled text before interpolating it into an HTML email
+    body. Notification/verification bodies and names ultimately come from
+    user-supplied data (full_name, application company/job title, etc.) and
+    are otherwise inserted into raw HTML f-strings with no templating engine
+    autoescape to fall back on."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 EMAIL_TEMPLATES = {
     "verify_email": {
         "subject": "Verify your ApplyLuma email",
@@ -33,16 +43,18 @@ EMAIL_TEMPLATES = {
 
 
 def template_email(type: str, title: str, body: str) -> tuple[str, str]:
+    safe_body = escape_html(body)
     template = EMAIL_TEMPLATES.get(type)
     if not template:
-        return title, f"<p>{body}</p>"
-    return template["subject"], f"{template['body']}<p>{body}</p>"
+        return title, f"<p>{safe_body}</p>"
+    return template["subject"], f"{template['body']}<p>{safe_body}</p>"
 
 
 def send_welcome_verification_email(to_email: str, token: str, full_name: str = "") -> None:
     frontend_url = settings.FRONTEND_URL.rstrip("/")
     verify_url = f"{frontend_url}/verify-email?token={token}"
-    greeting = f"Welcome, {full_name.split()[0]}!" if full_name.strip() else "Welcome to ApplyLuma!"
+    safe_name = escape_html(full_name.split()[0]) if full_name.strip() else ""
+    greeting = f"Welcome, {safe_name}!" if safe_name else "Welcome to ApplyLuma!"
     subject = "Welcome to ApplyLuma — please verify your email"
     html_body = f"""<!DOCTYPE html>
 <html lang="en">

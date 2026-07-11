@@ -174,6 +174,36 @@ async def test_webhook_bad_signature_returns_400(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
+async def test_webhook_returns_503_when_webhook_secret_unconfigured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty STRIPE_WEBHOOK_SECRET makes construct_event's HMAC check
+    forgeable (empty key is still a valid, guessable computation) — the
+    endpoint must refuse to process webhooks rather than trust the payload."""
+    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", "sk_test_123")
+    monkeypatch.setattr(settings, "STRIPE_WEBHOOK_SECRET", "")
+
+    called = False
+
+    def mock_construct_event(payload, sig_header, secret):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(billing_endpoint.stripe.Webhook, "construct_event", mock_construct_event)
+
+    response = await request(
+        "POST",
+        "/api/v1/billing/webhook",
+        db=FakeDb(user()),
+        content=b"{}",
+        headers={"stripe-signature": "anything"},
+    )
+
+    assert response.status_code == 503
+    assert called is False
+
+
+@pytest.mark.asyncio
 async def test_portal_endpoint_returns_url(monkeypatch: pytest.MonkeyPatch) -> None:
     configure_stripe(monkeypatch)
     captured: dict[str, Any] = {}

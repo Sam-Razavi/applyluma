@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 from app.models.application import Application
 from app.models.application_contact import ApplicationContact
 from app.models.application_event import ApplicationEvent
+from app.models.cv import CV
 from app.models.job import RawJobPosting
+from app.models.job_description import JobDescription
 from app.schemas.application import ApplicationContactCreate, ApplicationCreate, ApplicationUpdate
 from app.schemas.application_analytics import (
     ApplicationAnalytics,
@@ -39,6 +41,33 @@ class MissingApplicationFieldsError(ValueError):
     pass
 
 
+class ForeignReferenceNotOwnedError(ValueError):
+    pass
+
+
+def _validate_owned_references(db: Session, user_id: uuid.UUID, values: dict[str, Any]) -> None:
+    """cv_id/job_description_id are client-suppliable foreign keys into
+    per-user tables — without this check a client could point an application
+    at another user's CV or job description by UUID."""
+    cv_id = values.get("cv_id")
+    if cv_id is not None:
+        owned = db.query(CV.id).filter(CV.id == cv_id, CV.user_id == user_id).first()
+        if not owned:
+            raise ForeignReferenceNotOwnedError("cv_id does not belong to the current user")
+
+    job_description_id = values.get("job_description_id")
+    if job_description_id is not None:
+        owned = (
+            db.query(JobDescription.id)
+            .filter(JobDescription.id == job_description_id, JobDescription.user_id == user_id)
+            .first()
+        )
+        if not owned:
+            raise ForeignReferenceNotOwnedError(
+                "job_description_id does not belong to the current user"
+            )
+
+
 def list_applied_job_urls(db: Session, user_id: uuid.UUID) -> list[str]:
     """Return URLs of jobs where the user has an application with status != wishlist."""
     rows = (
@@ -56,6 +85,7 @@ def list_applied_job_urls(db: Session, user_id: uuid.UUID) -> list[str]:
 
 def create_application(db: Session, user_id: uuid.UUID, data: ApplicationCreate) -> Application:
     values = data.model_dump()
+    _validate_owned_references(db, user_id, values)
     raw_job_posting_id = values.get("raw_job_posting_id")
 
     if raw_job_posting_id:
@@ -163,6 +193,7 @@ def update_application(
         return None
 
     updates = data.model_dump(exclude_unset=True)
+    _validate_owned_references(db, user_id, updates)
     old_status = application.status
     for field, value in updates.items():
         setattr(application, field, value)
