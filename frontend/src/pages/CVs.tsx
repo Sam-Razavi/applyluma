@@ -374,7 +374,7 @@ export default function CVs() {
       >
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="bg-surface rounded-2xl shadow-xl max-w-sm w-full p-6">
+          <DialogPanel className="bg-raised rounded-2xl shadow-xl max-w-sm w-full p-6">
             <div className="flex items-start gap-4">
               <div className="h-10 w-10 bg-chip-danger rounded-xl flex items-center justify-center flex-shrink-0">
                 <ExclamationCircleIcon className="h-5 w-5 text-chip-danger-fg" />

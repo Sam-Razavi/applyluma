@@ -165,7 +165,7 @@ export default function UserDrawer({ profile, loading, onClose, onUserChanged }:
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <aside className="h-full w-full max-w-xl overflow-y-auto bg-surface p-6 shadow-xl">
+      <aside className="h-full w-full max-w-xl overflow-y-auto bg-raised p-6 shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-fg">User Profile</h3>
