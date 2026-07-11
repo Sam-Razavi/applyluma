@@ -6,7 +6,11 @@ version: "3.9"
 # Usage:
 #   1. Copy .env.airflow.example to .env.airflow and fill in credentials
 #   2. docker compose --env-file .env.airflow up -d
-#   3. Visit http://localhost:8080 (user: airflow, pass: airflow)
+#   3. Visit http://localhost:8080 (default user: airflow, pass: airflow --
+#      airflow-init only sets this on first run; change it immediately via
+#      `docker compose exec airflow-webserver airflow users reset-password
+#      --username airflow --password '<new-password>'`, and never expose
+#      this port beyond localhost/your LAN)
 #   4. Enable DAGs: scrape_swedish_jobs, extract_keywords
 
 x-airflow-common: &airflow-common
@@ -17,7 +21,9 @@ x-airflow-common: &airflow-common
     AIRFLOW__CELERY__BROKER_URL: ${AIRFLOW__CELERY__BROKER_URL}
     AIRFLOW__CELERY__RESULT_BACKEND: ${AIRFLOW__CELERY__RESULT_BACKEND}
     AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-}
-    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY:-applyluma-airflow-dev}
+    # No fallback: a hardcoded default here would sign webserver sessions
+    # with a value committed in this public repo. Must be set in .env.airflow.
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY:?AIRFLOW__WEBSERVER__SECRET_KEY must be set in .env.airflow}
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__LOGGING__LOGGING_LEVEL: INFO

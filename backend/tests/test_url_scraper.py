@@ -102,6 +102,69 @@ def test_validate_url_dns_failure_is_allowed(monkeypatch: pytest.MonkeyPatch) ->
 
 
 # ---------------------------------------------------------------------------
+# _validate_request_hook — SSRF-via-redirect regression coverage
+#
+# _validate_url alone only checks the URL the caller supplied; scrape_job_url
+# fetches with follow_redirects=True, so a URL that passes validation but
+# 302s to a private/metadata address would bypass the guard entirely unless
+# every hop is re-validated. _validate_request_hook is the httpx "request"
+# event hook that does that.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_validate_request_hook_blocks_private_redirect_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import httpx as real_httpx
+
+    def resolve(host: str, *_a: object, **_kw: object) -> list:
+        if host == "attacker.example.com":
+            return _addr("93.184.216.34")  # public — passes the initial check
+        return _addr("169.254.169.254")  # metadata endpoint — the redirect target
+
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", resolve)
+    request = real_httpx.Request("GET", "http://169.254.169.254/latest/meta-data/")
+
+    with pytest.raises(ValueError, match="private"):
+        await url_scraper._validate_request_hook(request)
+
+
+@pytest.mark.asyncio
+async def test_scrape_job_url_rejects_ssrf_redirect_end_to_end(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Full integration: scrape_job_url must reject a URL that starts out
+    public but 302-redirects to a private address, using the real httpx
+    redirect-following machinery (not a fake client that skips it)."""
+    import httpx as real_httpx
+
+    def resolve(host: str, *_a: object, **_kw: object) -> list:
+        if host == "attacker.example.com":
+            return _addr("93.184.216.34")
+        return _addr("169.254.169.254")
+
+    monkeypatch.setattr(url_scraper.socket, "getaddrinfo", resolve)
+
+    def handler(request: real_httpx.Request) -> real_httpx.Response:
+        if request.url.host == "attacker.example.com":
+            return real_httpx.Response(
+                302, headers={"Location": "http://169.254.169.254/latest/meta-data/"}
+            )
+        return real_httpx.Response(200, text="should never be reached")
+
+    transport = real_httpx.MockTransport(handler)
+    original_async_client = real_httpx.AsyncClient
+    monkeypatch.setattr(
+        url_scraper.httpx,
+        "AsyncClient",
+        lambda **kw: original_async_client(transport=transport, **kw),
+    )
+
+    with pytest.raises((ValueError, real_httpx.HTTPError)):
+        await url_scraper.scrape_job_url("http://attacker.example.com/job")
+
+
+# ---------------------------------------------------------------------------
 # _meta helper
 # ---------------------------------------------------------------------------
 

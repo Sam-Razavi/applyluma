@@ -147,6 +147,52 @@ async def test_create_application(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_application_rejects_unowned_cv_reference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def mock_create(db, user_id, data):
+        raise applications_endpoint.crud_application.ForeignReferenceNotOwnedError(
+            "cv_id does not belong to the current user"
+        )
+
+    monkeypatch.setattr(applications_endpoint.crud_application, "create_application", mock_create)
+
+    response = await request(
+        "POST",
+        "/api/v1/applications",
+        current_user=user(),
+        json_body={
+            "company_name": "Spotify",
+            "job_title": "Backend Engineer",
+            "cv_id": str(uuid.uuid4()),
+        },
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_application_rejects_unowned_job_description_reference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def mock_update(db, application_id, user_id, data):
+        raise applications_endpoint.crud_application.ForeignReferenceNotOwnedError(
+            "job_description_id does not belong to the current user"
+        )
+
+    monkeypatch.setattr(applications_endpoint.crud_application, "update_application", mock_update)
+
+    response = await request(
+        "PATCH",
+        f"/api/v1/applications/{APPLICATION_ID}",
+        current_user=user(),
+        json_body={"job_description_id": str(uuid.uuid4())},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_check_duplicate_found(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: dict[str, Any] = {}
 

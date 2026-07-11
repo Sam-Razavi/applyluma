@@ -175,6 +175,15 @@ def _validate_url(url: str) -> None:
             raise ValueError("URL resolves to a private or reserved address")
 
 
+async def _validate_request_hook(request: httpx.Request) -> None:
+    """httpx 'request' event hook: re-run SSRF validation on every request in
+    a redirect chain, not just the URL the caller originally supplied.
+    Without this, a URL that passes validation up front but then 302s to a
+    private/metadata address bypasses the guard entirely, since
+    follow_redirects=True fetches redirect targets without re-validating them."""
+    _validate_url(str(request.url))
+
+
 def _meta(soup: BeautifulSoup, *attrs: str) -> str:
     for attr in attrs:
         tag = soup.find("meta", attrs={"property": attr}) or soup.find(
@@ -337,7 +346,9 @@ def _openai_clean(raw: dict[str, str]) -> dict[str, str]:
 
 async def _fetch_platsbanken_ad(ad_id: str, url: str) -> dict[str, str]:
     """Fetch a Platsbanken ad from the official JobTech API instead of scraping."""
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(
+        timeout=10, event_hooks={"request": [_validate_request_hook]}
+    ) as client:
         response = await client.get(_JOBTECH_AD_URL.format(ad_id=ad_id))
         if response.status_code == 404:
             raise ValueError(
@@ -384,7 +395,10 @@ async def _fetch_linkedin_guest(job_id: str, url: str) -> dict[str, str] | None:
     """Best-effort fetch of a LinkedIn job via the public guest endpoint."""
     try:
         async with httpx.AsyncClient(
-            headers=_HEADERS, follow_redirects=True, timeout=10
+            headers=_HEADERS,
+            follow_redirects=True,
+            timeout=10,
+            event_hooks={"request": [_validate_request_hook]},
         ) as client:
             response = await client.get(_LINKEDIN_GUEST_URL.format(job_id=job_id))
             response.raise_for_status()
@@ -417,7 +431,10 @@ async def scrape_job_url(url: str) -> dict[str, str]:
 
     try:
         async with httpx.AsyncClient(
-            headers=_HEADERS, follow_redirects=True, timeout=10
+            headers=_HEADERS,
+            follow_redirects=True,
+            timeout=10,
+            event_hooks={"request": [_validate_request_hook]},
         ) as client:
             response = await client.get(url)
             response.raise_for_status()
