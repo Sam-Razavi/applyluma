@@ -8,11 +8,13 @@ ApplyLuma repository.
 - ApplyLuma is an AI-powered job search and resume optimization platform.
 - Production frontend: https://applyluma.com
 - Production backend: https://applyluma-production.up.railway.app
-- Status: All phases through the browser extension are live in production on
-  `main`. `dev` is synced with `main`.
+- Status: All phases through the Admin Control Center & GDPR Fixes (July 2026)
+  are live in production on `main`. `dev` is synced with `main` as of 2026-07-11.
 - All major features are working, including authentication, resume analysis, job
   search, job description management, the analytics dashboard, AI CV Tailor,
-  Swedish job discovery with AI-powered match scoring, and the browser extension.
+  Swedish job discovery with AI-powered match scoring, the browser extension, and
+  the full admin control center (user management, activity timelines, health
+  watchdog, database stats).
 
 ## Current Phase
 
@@ -27,6 +29,11 @@ ApplyLuma repository.
 - Admin Dashboard / Pipeline Health: ✅ COMPLETE — /admin pages incl. pipeline health
 - Job Sources & Dedupe (July 2026): ✅ COMPLETE — RemoteOK source, dynamic source
   filter, cross-source rolling-window dedupe, "Hide applied jobs" Discover filter
+- Structured CV Tailoring & Templates (July 2026): ✅ COMPLETE — OpenAI Structured
+  Outputs, Jinja2/WeasyPrint renderer, anti-fabrication hardening
+- Admin Control Center & GDPR Fixes (July 2026): ✅ COMPLETE — activity timeline,
+  login tracking, health watchdog + `/health?deep=1`, user delete/reset/verify/
+  limits, `/admin/database` stats, account-deletion file erasure
 
 Phase 9 delivered the AI CV Tailor feature end-to-end:
   - Celery worker tailors CV sections against a job description using OpenAI.
@@ -241,8 +248,68 @@ Also shipped and easy to miss (verified 2026-07-08):
     `PRICES_PER_MTOK`. Admin dashboard at `/admin/ai-costs` (stat cards, daily
     chart, by-feature breakdown, top users) with an admin-configurable monthly
     budget (`app_settings` KV table) that emails CONTACT_RECIPIENT_EMAIL once
-    at 80% and once at 100% per month. Alembic chain currently ends at
-    `0028_ai_usage_logs.py`.
+    at 80% and once at 100% per month. Migration `0028_ai_usage_logs.py`.
+
+Admin Control Center & GDPR Fixes delivered in July 2026 (merged via PR #127,
+branches `claude/admin-panel-review-4f5992` + earlier GDPR-fix work):
+  - Login tracking: `users.last_login_at` / `users.login_count`, updated on
+    password login, the OAuth2-form login endpoint, and Google OAuth callback
+    (`crud_user.record_login`). Surfaced in `/admin/users` (Last Login column)
+    and the user profile drawer.
+  - Per-user activity timeline: `GET /admin/users/{id}/activity` builds a
+    chronological feed via a SQL `UNION ALL` across CVs, applications,
+    application events, tailor jobs, cover letters, saved jobs, job
+    descriptions, and contact submissions (`crud_admin.get_user_activity`,
+    `crud/admin.py`). Rendered in the "Timeline" section of
+    `frontend/src/pages/admin/UserDrawer.tsx` (extracted out of `AdminUsers.tsx`
+    for size), with "Load more" pagination.
+  - Health watchdog: `app/tasks/watchdog.py` (Celery task
+    `run_health_watchdog`, beat schedule `*/15` minutes) checks db/redis/celery
+    (reusing `endpoints/health.py` probes), pipeline freshness, and an AI
+    tailor/cover-letter failure spike (`WATCHDOG_FAILURE_SPIKE_THRESHOLD`,
+    default 5/hour). State persisted in `app_settings` key
+    `health_watchdog_state`; emails `CONTACT_RECIPIENT_EMAIL` only on a state
+    transition (mirrors the AI budget alert throttle pattern), never on repeat
+    degraded runs. `GET /health?deep=1` added for external uptime monitors
+    (returns 503 on a real DB check failure; plain `/health` stays instant for
+    Railway's own health probe). Live red/amber status banner
+    (`AdminStatusBanner.tsx`, polls every 60s) mounted in `AdminRoute.tsx`
+    above all `/admin/*` pages. Full setup guide: `docs/MONITORING.md`
+    (three layers — UptimeRobot external pinger, the watchdog, and Sentry;
+    Sentry's `ErrorBoundary.tsx` gap for caught render errors was also closed).
+  - User management additions in `endpoints/admin.py` /
+    `frontend/src/pages/admin/UserDrawer.tsx`, all audit-logged: `DELETE
+    /admin/users/{id}` (Postgres FK cascades handle child rows; blocks
+    self-delete and deleting other admins; requires typing the user's email in
+    a `ConfirmDialog` with the new `requireText` prop); `POST
+    /admin/users/{id}/password-reset` (reuses `crud_user.create_password_reset_token`
+    + the existing reset-email flow); `PATCH /admin/users/{id}/verify`;
+    `PATCH /admin/users/{id}/limits` sets `users.daily_tailor_limit_override`
+    (nullable int: `None` = role default, `0` = blocked, N = that many/day),
+    read via `tailor.py`'s `effective_daily_limit(user)`; per-user AI spend
+    (30d/all-time) added to the profile response.
+  - `GET /admin/database/stats` + `/admin/database` page: per-table row counts
+    (`pg_class.reltuples`), sizes (`pg_total_relation_size`), and 7/30-day
+    growth for tables with a `created_at`/`scraped_at` column — read-only,
+    fixed SQL only, no client-controlled table/column names.
+  - Migration `0029_admin_user_controls.py` adds `users.last_login_at`,
+    `users.login_count`, `users.daily_tailor_limit_override`. Alembic chain
+    currently ends at `0029`.
+  - GDPR fix bundled into the same PR: `DELETE /api/v1/auth/me` (self-service
+    account deletion) now erases the user's `cvs/{user_id}/` and
+    `cover_letters/{user_id}/` subtrees under `STORAGE_DIR` after the DB
+    commit (`crud_user.delete` → `_remove_user_files`, disk errors logged and
+    swallowed, never block deletion). `delete_user_admin` (the admin-delete
+    path above) calls the same helper so both delete paths leave no orphaned
+    files. Register page now shows a terms/privacy agreement notice.
+  - Validation: backend `pytest` 570 passed, `ruff check` and `mypy app/`
+    clean; frontend `npm test` 245 passed, `npm run type-check` and
+    `npm run build` passed. CI (`.github/workflows/ci.yml`) also runs ESLint
+    and mypy — mypy caught one real gap during this work (the new
+    `app.tasks.watchdog` module wasn't in `pyproject.toml`'s
+    `[[tool.mypy.overrides]]` exemption list that every other Celery task
+    module uses for the untyped `@celery_app.task` decorator; fixed by adding
+    it, matching the sibling task modules).
 
 ## Git Workflow
 
@@ -310,6 +377,14 @@ External APIs:
 - `frontend/vercel.json`: Vercel configuration with rewrites.
 - `airflow/dags/`: Job scraping and dbt transform DAGs.
 - `.github/workflows/data-pipeline-tests.yml`: CI for Airflow + dbt tests.
+- `.github/workflows/ci.yml`: CI for backend (ruff, mypy, pytest) and frontend
+  (ESLint, `tsc --noEmit`, Vitest, `npm run build`). mypy runs in `strict`
+  mode; new modules with untyped decorators (e.g. `@celery_app.task`) must be
+  added to `backend/pyproject.toml`'s `[[tool.mypy.overrides]]` list like
+  their sibling modules, or CI fails.
+- `docs/MONITORING.md`: three-layer monitoring setup (UptimeRobot external
+  pinger, internal health watchdog, Sentry) — read before touching
+  `app/tasks/watchdog.py` or `/health`.
 
 ## Environment Variables
 
@@ -336,12 +411,24 @@ All tests live alongside the code they test. Run them before merging to `main`.
 Location: `frontend/src/`
 Run: `cd frontend && npm test`
 
-Files:
+29 test files as of 2026-07-11 (245 tests); representative files, not exhaustive
+— run `find frontend/src -name '*.test.ts*'` for the full current list:
 - `src/stores/auth.test.ts` — auth store (login, logout, setUser, setLoading)
 - `src/pages/Login.test.tsx` — Login page (render, validation, success, error)
 - `src/utils/formatters.test.ts` — currency, date, percentage, titleCase formatters
 - `src/pages/Discover.test.tsx` — job feed, save flow, empty state, error toast
 - `src/pages/SavedJobs.test.tsx` — saved jobs load, star, delete, collection tabs
+- `src/pages/admin/AdminAiCosts.test.tsx` — stat cards, budget save/validation, top users
+- `src/pages/admin/AdminPipeline.test.tsx` — pipeline health cards and charts
+- `src/pages/admin/AdminUsers.test.tsx` — last-login column, drawer timeline/AI-spend,
+  delete-requires-typed-email, tailor-limit save/clear
+- `src/pages/admin/AdminDatabase.test.tsx` — table stats rendering, error state
+- `src/components/layout/AdminStatusBanner.test.tsx` — hidden when healthy, red/amber
+  banner on unhealthy/degraded, 60s poll (fake timers)
+- `src/components/ui/ConfirmDialog.test.tsx` — default behavior unchanged,
+  `requireText` gating, clears typed value on cancel
+- `src/components/ui/ErrorBoundary.test.tsx` — fallback UI, chunk-load reload,
+  Sentry `captureException` reporting
 
 Setup: `vite.config.ts` has `test: { globals: true, environment: 'jsdom' }`.
 The `src/test/setup.ts` imports `@testing-library/jest-dom`.
@@ -357,11 +444,13 @@ Rules for adding frontend tests:
 Location: `backend/tests/`
 Run: `cd backend && pytest`
 
-Files:
+45 test files as of 2026-07-11 (570 tests); representative files, not exhaustive
+— run `ls backend/tests/*.py` for the full current list:
 - `tests/test_cv_endpoints.py` — CV upload, list, get, update, set-default, delete
 - `tests/test_jd_endpoints.py` — job description create, list, get, delete
 - `tests/test_tailor_downloads.py` — authenticated PDF download endpoints
-- `tests/test_tailor_endpoints.py` — AI tailor job endpoints
+- `tests/test_tailor_endpoints.py` — AI tailor job endpoints, including
+  `effective_daily_limit` (admin override vs. role default) coverage
 - `tests/test_tailor_service.py` — tailor service unit tests (structured outputs contract)
 - `tests/test_tailor_regression.py` — tailoring regressions: dropped data, fabricated skills
 - `tests/test_cv_render.py` — structured CV renderer: context, HTML templates, PDF (skips
@@ -372,12 +461,23 @@ Files:
 - `tests/test_application_analytics.py` — application analytics endpoint
 - `tests/test_notifications.py` — notification list, mark-read, stale-app task
 - `tests/test_billing_endpoints.py` — Stripe checkout, webhook, portal
-- `tests/test_health_endpoints.py` — health and detailed health checks
+- `tests/test_health_endpoints.py` — health/detailed-health checks + `/health?deep=1`
+  (instant on plain, 503 on real DB failure)
 - `tests/test_cv_history_endpoints.py` — CV history tree and diff endpoints
 - `tests/test_job_search_endpoints.py` — Adzuna job search + caching
 - `tests/test_job_crud.py` — `_compute_skill_gap` unit tests (matched/missing, no-CV, no-keywords)
 - `tests/test_job_bookmark_endpoint.py` — bookmark creation, idempotency, scoring, notes, saved-urls (14 tests)
 - `tests/test_extension_support.py` — extension-token and applied-urls endpoints (4 tests)
+- `tests/test_admin_endpoints.py` — core admin endpoints (stats, users list/role/active,
+  ai-jobs, pipeline, raw-jobs, system health, audit logs, billing, contact, ai-costs)
+- `tests/test_admin_user_controls.py` — activity timeline, delete (incl. GDPR file
+  erasure via `crud_admin.delete_user_admin`), password-reset, verify, tailor-limit
+  override, `/admin/database/stats`
+- `tests/test_watchdog.py` — health watchdog state transitions (ok→degraded emails
+  once, repeat-degraded silent, new failing check re-emails, recovery email)
+- `tests/test_auth_security.py` — token revocation, refresh edge cases, forgot/reset
+  password, login-records-last-login, account-deletion file erasure (GDPR)
+- `tests/test_auth_google.py` — Google OAuth login/callback flow + login tracking
 - Phase 10B alert preference endpoints and high-match alert task are implemented;
   add focused endpoint/task tests when extending alert behavior further.
 
@@ -441,11 +541,21 @@ Rules for adding dbt tests:
 
 ### CI
 
-`.github/workflows/data-pipeline-tests.yml` runs on push/PR to `main` and `dev`:
-- `airflow-tests` job: installs pinned packages, runs both airflow test files.
-- `dbt-tests` job: installs pinned dbt, runs `dbt deps` then `dbt parse`.
+Two workflows run on push/PR to `main` and `dev`:
 
-Vercel runs its own TypeScript build check on every PR — all TS errors block merge.
+- `.github/workflows/data-pipeline-tests.yml`:
+  - `airflow-tests` job: installs pinned packages, runs both airflow test files.
+  - `dbt-tests` job: installs pinned dbt, runs `dbt deps` then `dbt parse`.
+- `.github/workflows/ci.yml`:
+  - `backend` job (`Backend — lint, type-check, test`): `ruff check app/`,
+    `mypy app/` (strict mode — see Key Files note on `[[tool.mypy.overrides]]`),
+    then `pytest`.
+  - `frontend` job (`Frontend — lint, type-check, test`): `npm run lint`
+    (ESLint), `npm run type-check` (`tsc --noEmit`), `npm test` (Vitest),
+    `npm run build`.
+
+Vercel runs its own TypeScript build check and preview deploy on every PR — all
+TS errors block merge.
 
 ## Recent Critical Fixes
 
@@ -469,7 +579,7 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 ## Known Issues
 
-- 470 backend tests and 204 frontend tests passing as of 2026-07-08.
+- 570 backend tests and 245 frontend tests passing as of 2026-07-11.
 - `npm install` reported 2 moderate frontend dependency vulnerabilities; do not
   run `npm audit fix --force` casually because it can introduce breaking
   dependency upgrades.
@@ -479,12 +589,28 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
   Airflow. The aggregation code has no per-source coupling (verified 2026-07-08),
   so any staleness is operational, not a code defect — check `/admin/pipeline`
   for current status.
+- The health watchdog (`app/tasks/watchdog.py`) only fires if a Celery **beat**
+  service is deployed separately from the web/worker services (see
+  `backend/railway.beat.json` / `scripts/start-beat.sh`) — verify that service
+  exists in Railway, since none of the other scheduled tasks (deadline
+  reminders, weekly summary, high-match alerts) fire without it either.
+- Verify an external uptime pinger (e.g. UptimeRobot) is configured against
+  `/health?deep=1` — it's the only monitoring layer that catches a total
+  process crash; see `docs/MONITORING.md` for setup steps.
 
 ## Next Steps
 
 - Resume the standard `dev → feature branch → dev → main` workflow for all new work.
 - Admin Dashboard / Pipeline Health has shipped: `/admin/pipeline` health panel plus
   charts, backed by read-only endpoints under `/api/v1/admin/pipeline/`.
+- Admin Control Center has shipped (see July 2026 phase entry above): activity
+  timeline, login tracking, health watchdog, `/admin/database`, and the
+  delete/password-reset/verify/tailor-limit user controls.
+- Post-deploy follow-ups from the Admin Control Center work: confirm
+  `alembic upgrade head` applied migration `0029` on Railway; confirm a
+  Celery beat service is running so the watchdog and other scheduled tasks
+  actually fire; set up an external uptime pinger per `docs/MONITORING.md`;
+  verify `SENTRY_DSN` (backend) and `VITE_SENTRY_DSN` (frontend) are set.
 - Run `scripts/backfill_duplicates.py` once against Railway to mark historical
   cross-source duplicates (see Job Sources & Dedupe section).
 - Backlog (verified open as of 2026-07-08): keyword tag filtering on Discover,
@@ -499,7 +625,7 @@ Vercel runs its own TypeScript build check on every PR — all TS errors block m
 
 When working on this project:
 - Always work in `dev` or create a feature branch from `dev`. `dev` is synced
-  with `main` as of 2026-06-16.
+  with `main` as of 2026-07-11.
 - Test in `dev` before merging to `main`. Never push breaking changes to `main`.
 - Use Railway logs to verify backend deployments.
 - Check both Railway and Vercel for production status.
