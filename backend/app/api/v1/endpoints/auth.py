@@ -132,6 +132,7 @@ def login(
         )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+    crud_user.record_login(db, user)
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))
     _set_auth_cookies(response, access_token, refresh_token)
@@ -170,6 +171,7 @@ def login_oauth2(
         )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+    crud_user.record_login(db, user)
     return Token(access_token=create_access_token(str(user.id)))
 
 

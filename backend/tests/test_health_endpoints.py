@@ -9,6 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import app.main as main_module
 from app.api.v1.endpoints import health as health_endpoint
 from app.core.dependencies import get_db, get_redis_client
 from app.main import app
@@ -22,6 +23,9 @@ class FakeDb:
         if self.fail:
             raise RuntimeError("database unavailable")
         return 1
+
+    def close(self) -> None:
+        pass
 
 
 class FakeRedis:
@@ -76,6 +80,28 @@ async def test_health_returns_200() -> None:
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_health_deep_returns_200_when_db_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(main_module, "SessionLocal", lambda: FakeDb())
+
+    response = await request("GET", "/health?deep=1")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_health_deep_returns_503_when_db_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(main_module, "SessionLocal", lambda: FakeDb(fail=True))
+
+    response = await request("GET", "/health?deep=1")
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["status"] == "unhealthy"
+    assert body["checks"]["db"]["status"] == "unhealthy"
 
 
 @pytest.mark.asyncio

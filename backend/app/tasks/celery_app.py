@@ -65,6 +65,7 @@ celery_app = Celery(
         "app.tasks.notifications",
         "app.tasks.matching",
         "app.tasks.cover_letter",
+        "app.tasks.watchdog",
     ],
 )
 
@@ -93,6 +94,10 @@ celery_app.conf.update(
         "notify-high-match-jobs-daily": {
             "task": "app.tasks.notifications.notify_high_match_jobs",
             "schedule": crontab(hour=3, minute=30),
+        },
+        "health-watchdog-every-15-min": {
+            "task": "app.tasks.watchdog.run_health_watchdog",
+            "schedule": crontab(minute="*/15"),
         },
     },
 )

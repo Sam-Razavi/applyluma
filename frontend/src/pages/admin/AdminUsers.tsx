@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import toast from 'react-hot-toast'
 import { FadeIn } from '../../components/ui/FadeIn'
 import { adminApi, type AdminUserProfile, type AdminUserRow } from '../../services/adminApi'
+import UserDrawer from './UserDrawer'
 
 const ROLE_BADGE: Record<AdminUserRow['role'], string> = {
   user: 'bg-chip-accent text-accent-text',
@@ -123,6 +124,16 @@ export default function AdminUsers() {
     setProfileLoading(false)
   }
 
+  function handleUserChanged() {
+    fetchUsers()
+    if (profile) {
+      adminApi
+        .getUserProfile(profile.id)
+        .then(setProfile)
+        .catch(() => undefined)
+    }
+  }
+
   const start = (page - 1) * size + 1
   const end = Math.min(page * size, total)
 
@@ -171,7 +182,7 @@ export default function AdminUsers() {
             <table className="min-w-full divide-y divide-line ">
               <thead className="bg-surface ">
                 <tr>
-                  {['Email', 'Name', 'Role', 'Status', 'Active', 'Joined', 'Actions'].map((h) => (
+                  {['Email', 'Name', 'Role', 'Status', 'Active', 'Joined', 'Last login', 'Actions'].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle "
@@ -226,6 +237,15 @@ export default function AdminUsers() {
                         month: 'short',
                         day: 'numeric',
                       })}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-fg-subtle">
+                      {u.last_login_at
+                        ? new Date(u.last_login_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })
+                        : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-3">
@@ -331,80 +351,13 @@ export default function AdminUsers() {
         document.body,
       )}
 
-      {(profile || profileLoading) && createPortal(
-        <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/40"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeProfile()
-          }}
-        >
-          <aside className="h-full w-full max-w-xl overflow-y-auto bg-surface p-6 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-fg">User Profile</h3>
-                <p className="mt-1 text-sm text-fg-subtle">
-                  {profile?.email ?? 'Loading user details...'}
-                </p>
-              </div>
-              <button
-                onClick={closeProfile}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-surface-strong"
-              >
-                Close
-              </button>
-            </div>
-
-            {profileLoading ? (
-              <div className="mt-6 space-y-3">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-12 animate-pulse rounded-lg bg-track" />
-                ))}
-              </div>
-            ) : profile && (
-              <div className="mt-6 space-y-6">
-                <section className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    ['Name', profile.full_name ?? '-'],
-                    ['Role', profile.role],
-                    ['Active', profile.is_active ? 'yes' : 'no'],
-                    ['Verified', profile.is_verified ? 'yes' : 'no'],
-                    ['Auth provider', profile.auth_provider ?? '-'],
-                    ['Subscription', profile.subscription_status ?? '-'],
-                    ['Joined', new Date(profile.created_at).toLocaleString()],
-                    ['Updated', new Date(profile.updated_at).toLocaleString()],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-xl border border-line bg-surface-strong p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">{label}</p>
-                      <p className="mt-1 break-all text-sm text-fg">{value}</p>
-                    </div>
-                  ))}
-                </section>
-
-                <section>
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-fg-muted">Activity</h4>
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    {Object.entries(profile.activity).map(([key, value]) => (
-                      <div key={key} className="rounded-xl border border-line bg-surface-strong p-3">
-                        <p className="text-xs capitalize text-fg-subtle">{key.replace(/_/g, ' ')}</p>
-                        <p className="mt-1 text-2xl font-bold text-fg">{value.toLocaleString()}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section>
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-fg-muted">Billing IDs</h4>
-                  <div className="mt-3 space-y-2 text-xs text-fg-subtle">
-                    <p className="break-all"><span className="font-semibold">Customer:</span> {profile.stripe_customer_id ?? '-'}</p>
-                    <p className="break-all"><span className="font-semibold">Subscription:</span> {profile.stripe_subscription_id ?? '-'}</p>
-                    <p><span className="font-semibold">Ends:</span> {profile.subscription_ends_at ? new Date(profile.subscription_ends_at).toLocaleString() : '-'}</p>
-                  </div>
-                </section>
-              </div>
-            )}
-          </aside>
-        </div>,
-        document.body,
+      {(profile || profileLoading) && (
+        <UserDrawer
+          profile={profile}
+          loading={profileLoading}
+          onClose={closeProfile}
+          onUserChanged={handleUserChanged}
+        />
       )}
     </FadeIn>
   )

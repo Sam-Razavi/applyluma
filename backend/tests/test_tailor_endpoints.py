@@ -47,8 +47,16 @@ def clear_overrides() -> Iterator[None]:
     app.dependency_overrides.clear()
 
 
-def user(role: UserRole = UserRole.user) -> SimpleNamespace:
-    return SimpleNamespace(id=USER_ID, role=role, is_active=True)
+def user(
+    role: UserRole = UserRole.user,
+    daily_tailor_limit_override: int | None = None,
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=USER_ID,
+        role=role,
+        is_active=True,
+        daily_tailor_limit_override=daily_tailor_limit_override,
+    )
 
 
 def cv(content: str | None = "Python developer") -> SimpleNamespace:
@@ -204,6 +212,92 @@ async def test_submit_enforces_daily_limit(monkeypatch: pytest.MonkeyPatch) -> N
     )
 
     assert response.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_submit_override_zero_blocks_even_under_role_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(tailor_endpoint.crud_tailor, "count_today", lambda db, user_id: 0)
+
+    response = await request(
+        "POST",
+        "/api/v1/tailor/submit",
+        current_user=user(daily_tailor_limit_override=0),
+        json_body={
+            "cv_id": str(CV_ID),
+            "job_description_id": str(JD_ID),
+            "intensity": "medium",
+        },
+    )
+
+    assert response.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_submit_override_raises_ceiling_above_role_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(tailor_endpoint.crud_tailor, "count_today", lambda db, user_id: 3)
+    monkeypatch.setattr(tailor_endpoint.crud_cv, "get_by_id", lambda db, cv_id, user_id: cv())
+    monkeypatch.setattr(tailor_endpoint.crud_jd, "get_by_id", lambda db, jd_id, user_id: jd())
+    monkeypatch.setattr(
+        tailor_endpoint.crud_tailor,
+        "create",
+        lambda *args, **kwargs: tailor_job(),
+    )
+    monkeypatch.setattr(
+        tailor_endpoint.crud_tailor,
+        "set_task_id",
+        lambda db, job, celery_task_id: job,
+    )
+    monkeypatch.setattr(
+        tailor_endpoint.run_tailoring,
+        "delay",
+        lambda job_id: SimpleNamespace(id="celery-task-1"),
+    )
+
+    # role default is 1/day; override raises it to 5, so 3 used today still passes.
+    response = await request(
+        "POST",
+        "/api/v1/tailor/submit",
+        current_user=user(daily_tailor_limit_override=5),
+        json_body={
+            "cv_id": str(CV_ID),
+            "job_description_id": str(JD_ID),
+            "intensity": "medium",
+        },
+    )
+
+    assert response.status_code == 202
+
+
+@pytest.mark.asyncio
+async def test_usage_admin_role_ignores_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tailor_endpoint.crud_tailor, "count_today", lambda db, user_id: 0)
+
+    response = await request(
+        "GET",
+        "/api/v1/tailor/usage",
+        current_user=user(UserRole.admin, daily_tailor_limit_override=None),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["daily_limit"] is None
+
+
+@pytest.mark.asyncio
+async def test_usage_reflects_override_for_user_role(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tailor_endpoint.crud_tailor, "count_today", lambda db, user_id: 0)
+
+    response = await request(
+        "GET",
+        "/api/v1/tailor/usage",
+        current_user=user(UserRole.user, daily_tailor_limit_override=7),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["daily_limit"] == 7
 
 
 @pytest.mark.asyncio

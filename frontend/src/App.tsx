@@ -53,6 +53,7 @@ const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications')
 const AdminBilling = lazy(() => import('./pages/admin/AdminBilling'))
 const AdminContactInbox = lazy(() => import('./pages/admin/AdminContactInbox'))
 const AdminAiCosts = lazy(() => import('./pages/admin/AdminAiCosts'))
+const AdminDatabase = lazy(() => import('./pages/admin/AdminDatabase'))
 
 export default function App() {
   const { isAuthenticated } = useAuthStore()
@@ -120,6 +121,7 @@ export default function App() {
               <Route path="admin/billing" element={<AdminBilling />} />
               <Route path="admin/contact" element={<AdminContactInbox />} />
               <Route path="admin/ai-costs" element={<AdminAiCosts />} />
+              <Route path="admin/database" element={<AdminDatabase />} />
             </Route>
           </Route>
         </Route>

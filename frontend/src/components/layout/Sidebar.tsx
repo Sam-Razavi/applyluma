@@ -70,6 +70,7 @@ const ADMIN_ITEMS: NavItem[] = [
   { to: '/admin/billing', label: 'Billing', icon: ShieldCheckIcon },
   { to: '/admin/contact', label: 'Contact', icon: ShieldCheckIcon },
   { to: '/admin/system', label: 'System', icon: ShieldCheckIcon },
+  { to: '/admin/database', label: 'Database', icon: ShieldCheckIcon },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: ShieldCheckIcon },
 ]
 

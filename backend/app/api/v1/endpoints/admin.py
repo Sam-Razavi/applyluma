@@ -11,9 +11,11 @@ from app.api.v1.endpoints.health import _check_adzuna, _check_celery, _check_db,
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db, get_redis_client
 from app.crud import admin as crud_admin
+from app.crud import user as crud_user
 from app.models.user import User, UserRole
 from app.schemas.admin import (
     AdminActiveUpdateRequest,
+    AdminActivityEvent,
     AdminAiJobListResponse,
     AdminAiJobRow,
     AdminAuditLogListResponse,
@@ -23,11 +25,14 @@ from app.schemas.admin import (
     AdminBillingUserRow,
     AdminBulkNotifyRequest,
     AdminBulkNotifyResponse,
+    AdminDatabaseStatsResponse,
+    AdminLimitsUpdateRequest,
     AdminNotificationListResponse,
     AdminNotificationRow,
     AdminNotifyRequest,
     AdminOverviewStats,
     AdminRoleUpdateRequest,
+    AdminUserActivityResponse,
     AdminUserListResponse,
     AdminUserProfile,
     AdminUserRow,
@@ -49,7 +54,7 @@ from app.schemas.admin import (
     RawJobAdminRow,
     SystemHealthResponse,
 )
-from app.services import notification_service
+from app.services import email_service, notification_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
@@ -102,6 +107,147 @@ def get_user_profile(user_id: uuid.UUID, admin: AdminUser, db: DbSession) -> Adm
     profile = crud_admin.get_user_profile_admin(db, user_id)
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return AdminUserProfile.model_validate(profile)
+
+
+@router.get("/users/{user_id}/activity", response_model=AdminUserActivityResponse)
+def user_activity(
+    user_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    page: int = Query(1, ge=1),
+    size: int = Query(25, ge=1, le=100),
+) -> AdminUserActivityResponse:
+    user = crud_admin.get_user_by_id_admin(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    items, total = crud_admin.get_user_activity(db, user_id, page=page, size=size)
+    return AdminUserActivityResponse(
+        items=[AdminActivityEvent.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        size=size,
+    )
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    request: Request,
+) -> None:
+    if user_id == admin.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own account")
+    user = crud_admin.get_user_by_id_admin(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.role == UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete another admin — demote them to user first",
+        )
+    # The audit row's target FK is nulled by the delete, so keep the identity in details.
+    deleted_email, deleted_role = user.email, str(user.role)
+    crud_admin.delete_user_admin(db, user_id)
+    crud_admin.log_admin_action(
+        db,
+        admin_user_id=admin.id,
+        action="user.deleted",
+        details={"email": deleted_email, "role": deleted_role, "deleted_user_id": str(user_id)},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    logger.warning(
+        "admin_user_deleted",
+        extra={"admin_id": str(admin.id), "deleted_user_id": str(user_id), "email": deleted_email},
+    )
+
+
+@router.post("/users/{user_id}/password-reset", status_code=status.HTTP_204_NO_CONTENT)
+def send_password_reset(
+    user_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    request: Request,
+) -> None:
+    user = crud_admin.get_user_by_id_admin(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not user.hashed_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User signs in with Google and has no password to reset",
+        )
+    token = crud_user.create_password_reset_token(db, user)
+    try:
+        email_service.send_password_reset_email(user.email, token)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to send password reset email"
+        ) from None
+    crud_admin.log_admin_action(
+        db,
+        admin_user_id=admin.id,
+        target_user_id=user_id,
+        action="user.password_reset_sent",
+        details={"email": user.email},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+
+@router.patch("/users/{user_id}/verify", response_model=AdminUserRow)
+def verify_user(
+    user_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    request: Request,
+) -> AdminUserRow:
+    user = crud_admin.get_user_by_id_admin(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.is_verified:
+        return AdminUserRow.model_validate(user)
+    updated = crud_admin.set_user_verified(db, user)
+    crud_admin.log_admin_action(
+        db,
+        admin_user_id=admin.id,
+        target_user_id=user_id,
+        action="user.verified",
+        details={"email": updated.email},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return AdminUserRow.model_validate(updated)
+
+
+@router.patch("/users/{user_id}/limits", response_model=AdminUserProfile)
+def update_limits(
+    user_id: uuid.UUID,
+    body: AdminLimitsUpdateRequest,
+    admin: AdminUser,
+    db: DbSession,
+    request: Request,
+) -> AdminUserProfile:
+    user = crud_admin.get_user_by_id_admin(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    previous = user.daily_tailor_limit_override
+    crud_admin.set_user_tailor_limit_override(db, user, body.daily_tailor_limit_override)
+    crud_admin.log_admin_action(
+        db,
+        admin_user_id=admin.id,
+        target_user_id=user_id,
+        action="user.limits_changed",
+        details={
+            "previous_daily_tailor_limit_override": previous,
+            "new_daily_tailor_limit_override": body.daily_tailor_limit_override,
+        },
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    profile = crud_admin.get_user_profile_admin(db, user_id)
     return AdminUserProfile.model_validate(profile)
 
 
@@ -376,6 +522,11 @@ def system_health(
     else:
         overall_status = "ok"
     return SystemHealthResponse(status=overall_status, version=settings.VERSION, checks=checks)
+
+
+@router.get("/database/stats", response_model=AdminDatabaseStatsResponse)
+def database_stats(admin: AdminUser, db: DbSession) -> AdminDatabaseStatsResponse:
+    return AdminDatabaseStatsResponse.model_validate(crud_admin.get_database_stats(db))
 
 
 @router.get("/audit-logs", response_model=AdminAuditLogListResponse)

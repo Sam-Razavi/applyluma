@@ -125,6 +125,12 @@ def authenticate(db: Session, email: str, password: str) -> User | None:
     return user
 
 
+def record_login(db: Session, user: User) -> None:
+    user.last_login_at = datetime.now(UTC)
+    user.login_count = (user.login_count or 0) + 1
+    db.commit()
+
+
 def update_profile(db: Session, user: User, data: UserUpdate) -> User:
     if data.full_name is not None:
         user.full_name = data.full_name
