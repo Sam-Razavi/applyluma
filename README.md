@@ -56,7 +56,12 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 - Secure sign-up, login, password reset, email verification, and session handling.
 - CV upload (PDF, DOCX, and Markdown), parsing, AI analysis, version history, and authenticated PDF downloads.
 - AI CV Tailor with asynchronous processing, section review, save, and export.
-- Cover Letter Generator with formal, friendly, and concise tones.
+  Tailored output uses OpenAI Structured Outputs and renders through a choice
+  of PDF templates (Nordic and Classic) via a Jinja2/WeasyPrint pipeline, with
+  anti-fabrication checks (self-audit pass, numeric-claim guard) validating
+  every claim against the source CV.
+- Cover Letter Generator with formal, friendly, and concise tones, rendered in
+  the matching template family with the candidate's letterhead.
 - Job description manager with URL scraping for publicly accessible job posts.
 - Application tracker with status history, contact notes, timeline, and analytics.
 - Email/password and Google OAuth sign-in, in-app notification center, and Stripe billing (checkout, customer portal, webhooks) for the premium plan.
@@ -91,6 +96,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 | --- | --- |
 | Frontend | React, TypeScript, Vite, Tailwind CSS, Framer Motion, Zustand, Recharts |
 | Backend | FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, Celery |
+| CV/Cover Letter Rendering | Jinja2 + WeasyPrint (templated PDF generation), legacy ReportLab fallback |
 | AI | OpenAI API for resume analysis, CV tailoring, cover letters, extraction, and scoring |
 | Data | Apache Airflow on Astro Cloud, dbt, Railway PostgreSQL |
 | Extension | Manifest V3, content scripts, Chrome/Firefox storage APIs |
