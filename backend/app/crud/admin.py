@@ -119,9 +119,15 @@ def delete_user_admin(db: Session, user_id: uuid.UUID) -> bool:
     """Hard-delete a user. All owned rows are removed by DB-level ON DELETE
     CASCADE; contact_submissions / ai_usage_logs / admin_audit_log keep their
     rows with user references set to NULL. A Core DELETE avoids the ORM
-    loading every child collection just to delete it."""
+    loading every child collection just to delete it. On-disk CV/cover-letter
+    files are erased afterward, same as self-service account deletion
+    (GDPR right to erasure)."""
+    from app.crud.user import _remove_user_files  # avoid a module-level cycle
+
     result = db.execute(delete(User).where(User.id == user_id))
     db.commit()
+    if result.rowcount:
+        _remove_user_files(str(user_id))
     return bool(result.rowcount)
 
 

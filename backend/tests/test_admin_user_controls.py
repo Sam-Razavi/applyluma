@@ -541,3 +541,60 @@ async def test_database_stats_returns_shape(monkeypatch: pytest.MonkeyPatch) -> 
     assert data["tables"][0]["table_name"] == "raw_job_postings"
     assert data["tables"][0]["rows_7d"] == 70
     assert data["tables"][1]["rows_7d"] is None
+
+
+# ── crud_admin.delete_user_admin: real CRUD, not the endpoint mock ────────────
+
+class _FakeExecuteResult:
+    def __init__(self, rowcount: int) -> None:
+        self.rowcount = rowcount
+
+
+class _FakeCoreDb:
+    def __init__(self, rowcount: int) -> None:
+        self.rowcount = rowcount
+        self.committed = False
+
+    def execute(self, _stmt: Any) -> _FakeExecuteResult:
+        return _FakeExecuteResult(self.rowcount)
+
+    def commit(self) -> None:
+        self.committed = True
+
+
+def test_delete_user_admin_erases_files_same_as_self_service_delete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Admin-initiated delete must trigger the same GDPR file erasure as
+    crud_user.delete (self-service account deletion) — it bypasses the ORM
+    with a Core DELETE for the DB row, so file cleanup needs an explicit call."""
+    from app.crud import admin as crud_admin_module
+
+    erased: list[str] = []
+    monkeypatch.setattr(
+        "app.crud.user._remove_user_files", lambda user_id: erased.append(user_id)
+    )
+
+    db = _FakeCoreDb(rowcount=1)
+    result = crud_admin_module.delete_user_admin(db, USER_ID)
+
+    assert result is True
+    assert db.committed is True
+    assert erased == [str(USER_ID)]
+
+
+def test_delete_user_admin_skips_file_erasure_when_user_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.crud import admin as crud_admin_module
+
+    erased: list[str] = []
+    monkeypatch.setattr(
+        "app.crud.user._remove_user_files", lambda user_id: erased.append(user_id)
+    )
+
+    db = _FakeCoreDb(rowcount=0)
+    result = crud_admin_module.delete_user_admin(db, USER_ID)
+
+    assert result is False
+    assert erased == []
