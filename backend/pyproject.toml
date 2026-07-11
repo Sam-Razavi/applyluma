@@ -117,6 +117,7 @@ module = [
     "app.tasks.notifications",
     "app.tasks.sample",
     "app.tasks.tailor",
+    "app.tasks.watchdog",
 ]
 ignore_errors = true
 
