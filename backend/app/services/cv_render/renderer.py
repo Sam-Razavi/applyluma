@@ -20,10 +20,14 @@ _TEMPLATE_DIR = Path(__file__).parent / "templates"
 TEMPLATES: dict[str, str] = {
     "nordic": "nordic.html",
     "classic": "classic.html",
+    "modern": "modern.html",
+    "executive": "executive.html",
 }
 COVER_TEMPLATES: dict[str, str] = {
     "nordic": "cover_nordic.html",
     "classic": "cover_classic.html",
+    "modern": "cover_modern.html",
+    "executive": "cover_executive.html",
 }
 DEFAULT_TEMPLATE = "nordic"
 

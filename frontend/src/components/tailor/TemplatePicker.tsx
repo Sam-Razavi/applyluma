@@ -11,6 +11,16 @@ const OPTIONS: { value: CvTemplateId; label: string; description: string }[] = [
     label: 'Classic',
     description: 'Clean black-and-white layout. Maximum ATS compatibility.',
   },
+  {
+    value: 'modern',
+    label: 'Modern',
+    description: 'Violet accents with skill chips. Bold look for tech and startup roles.',
+  },
+  {
+    value: 'executive',
+    label: 'Executive',
+    description: 'Centered serif layout with refined rules. Formal, senior-level tone.',
+  },
 ]
 
 // Fixed miniature previews of the PDF templates — intentionally hardcoded
@@ -50,9 +60,50 @@ function ClassicThumb() {
   )
 }
 
+function ModernThumb() {
+  return (
+    <div className="h-24 w-full overflow-hidden rounded-md border border-line bg-white">
+      <div className="border-b-2 border-[#6D28D9] px-2 pb-1.5 pt-2">
+        <div className="h-1.5 w-14 rounded-sm bg-[#4C1D95]" />
+        <div className="mt-1 h-1 w-20 rounded-sm bg-gray-500" />
+      </div>
+      <div className="space-y-1 px-2 py-1.5">
+        <div className="h-1 w-10 rounded-sm bg-[#4C1D95]" />
+        <div className="flex gap-1">
+          <div className="h-2 w-8 rounded-sm bg-[#F3EEFB]" />
+          <div className="h-2 w-6 rounded-sm bg-[#F3EEFB]" />
+          <div className="h-2 w-7 rounded-sm bg-[#F3EEFB]" />
+        </div>
+        <div className="h-1 w-full rounded-sm bg-gray-300" />
+        <div className="h-1 w-5/6 rounded-sm bg-gray-300" />
+      </div>
+    </div>
+  )
+}
+
+function ExecutiveThumb() {
+  return (
+    <div className="h-24 w-full overflow-hidden rounded-md border border-line bg-white">
+      <div className="flex flex-col items-center border-b border-gray-800 px-2 pb-1.5 pt-2">
+        <div className="h-1.5 w-14 rounded-sm bg-gray-800" />
+        <div className="mt-1 h-1 w-16 rounded-sm bg-[#6E3B3B]" />
+      </div>
+      <div className="space-y-1 px-2 py-1.5">
+        <div className="mx-auto h-1 w-10 rounded-sm bg-gray-700" />
+        <div className="mx-auto h-px w-6 bg-[#6E3B3B]" />
+        <div className="h-1 w-full rounded-sm bg-gray-300" />
+        <div className="h-1 w-5/6 rounded-sm bg-gray-300" />
+        <div className="h-1 w-4/6 rounded-sm bg-gray-300" />
+      </div>
+    </div>
+  )
+}
+
 const THUMBS: Record<CvTemplateId, () => JSX.Element> = {
   nordic: NordicThumb,
   classic: ClassicThumb,
+  modern: ModernThumb,
+  executive: ExecutiveThumb,
 }
 
 interface Props {
