@@ -170,6 +170,7 @@ def google_callback(
         full_name=user_info.get("name"),
         avatar_url=user_info.get("picture"),
     )
+    crud_user.record_login(db, user)
 
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))

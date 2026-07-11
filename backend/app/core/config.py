@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     CONTACT_VERIFY_SECRET: str = ""
     # Override via CONTACT_RECIPIENT_EMAIL env var in production.
     CONTACT_RECIPIENT_EMAIL: str = "sam@samincodes.com"
+    # Failed tailor + cover-letter jobs in the trailing hour that trigger a
+    # health watchdog alert.
+    WATCHDOG_FAILURE_SPIKE_THRESHOLD: int = 5
 
 
 settings = Settings()

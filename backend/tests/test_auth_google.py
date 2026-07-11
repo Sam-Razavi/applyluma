@@ -83,13 +83,19 @@ async def test_callback_success(monkeypatch: pytest.MonkeyPatch) -> None:
         "_fetch_google_user_info",
         lambda tok: {"id": "g123", "email": "x@example.com", "name": "X", "picture": "http://p"},
     )
+    logged_in_user = SimpleNamespace(id=USER_ID)
     monkeypatch.setattr(
-        auth_google.crud_user, "upsert_google_user", lambda *a, **kw: SimpleNamespace(id=USER_ID)
+        auth_google.crud_user, "upsert_google_user", lambda *a, **kw: logged_in_user
+    )
+    recorded: list[SimpleNamespace] = []
+    monkeypatch.setattr(
+        auth_google.crud_user, "record_login", lambda db, u: recorded.append(u)
     )
     resp = await _get("/api/v1/auth/google/callback?code=abc&state=s", cookies={"oauth_state": "s"})
     assert resp.status_code == 302
     assert "/auth/callback?token=" in resp.headers["location"]
     assert "access_token" in resp.cookies
+    assert recorded == [logged_in_user]
 
 
 @pytest.mark.asyncio
@@ -113,6 +119,7 @@ async def test_callback_success_via_redis_state(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(
         auth_google.crud_user, "upsert_google_user", lambda *a, **kw: SimpleNamespace(id=USER_ID)
     )
+    monkeypatch.setattr(auth_google.crud_user, "record_login", lambda db, u: None)
     # No oauth_state cookie sent — validation must fall back to Redis.
     resp = await _get("/api/v1/auth/google/callback?code=abc&state=rstate")
     assert resp.status_code == 302

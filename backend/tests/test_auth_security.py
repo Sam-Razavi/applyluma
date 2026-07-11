@@ -205,6 +205,51 @@ async def test_logout_fails_open_when_redis_down(monkeypatch: pytest.MonkeyPatch
 
 
 # ---------------------------------------------------------------------------
+# Login tracking
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_login_records_login_on_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    user = _fake_user()
+    monkeypatch.setattr(auth_endpoint.crud_user, "authenticate", lambda db, email, pw: user)
+    recorded: list[SimpleNamespace] = []
+    monkeypatch.setattr(auth_endpoint.crud_user, "record_login", lambda db, u: recorded.append(u))
+
+    response = await _post("/api/v1/auth/login", {"email": user.email, "password": "pw"})
+
+    assert response.status_code == 200
+    assert recorded == [user]
+
+
+@pytest.mark.asyncio
+async def test_login_does_not_record_login_on_bad_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    monkeypatch.setattr(auth_endpoint.crud_user, "authenticate", lambda db, email, pw: None)
+    recorded: list[SimpleNamespace] = []
+    monkeypatch.setattr(auth_endpoint.crud_user, "record_login", lambda db, u: recorded.append(u))
+
+    response = await _post("/api/v1/auth/login", {"email": "nobody@example.com", "password": "pw"})
+
+    assert response.status_code == 401
+    assert recorded == []
+
+
+@pytest.mark.asyncio
+async def test_login_does_not_record_login_for_inactive_user(monkeypatch: pytest.MonkeyPatch) -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    user = _fake_user(active=False)
+    monkeypatch.setattr(auth_endpoint.crud_user, "authenticate", lambda db, email, pw: user)
+    recorded: list[SimpleNamespace] = []
+    monkeypatch.setattr(auth_endpoint.crud_user, "record_login", lambda db, u: recorded.append(u))
+
+    response = await _post("/api/v1/auth/login", {"email": user.email, "password": "pw"})
+
+    assert response.status_code == 400
+    assert recorded == []
+
+
+# ---------------------------------------------------------------------------
 # Forgot password
 # ---------------------------------------------------------------------------
 
