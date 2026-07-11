@@ -59,6 +59,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 - Cover Letter Generator with formal, friendly, and concise tones.
 - Job description manager with URL scraping for publicly accessible job posts.
 - Application tracker with status history, contact notes, timeline, and analytics.
+- Email/password and Google OAuth sign-in, in-app notification center, and Stripe billing (checkout, customer portal, webhooks) for the premium plan.
 
 ### Job Discovery
 
@@ -73,7 +74,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 
 - Market intelligence dashboard for job volume, salary bands, remote share, growth, top companies, skills, location, seniority, and job-type mix.
 - Resume-vs-market comparison for authenticated users with uploaded CVs.
-- Admin screens for user management (activity timeline, delete/password-reset/verify, per-user AI cost and tailor-limit overrides), database table stats, and pipeline health visibility.
+- Admin panel covering user management (activity timeline, delete/password-reset/verify, per-user AI cost and tailor-limit overrides), AI job monitoring with cost/budget tracking, billing overview, contact/feedback inbox, notification center, raw job postings, database table stats, audit logs, and pipeline health.
 - Daily scraping and transform pipeline backed by Airflow, dbt, PostgreSQL, and Redis caching.
 - Three-layer monitoring (external uptime pinger, internal health watchdog, Sentry) — see [docs/MONITORING.md](docs/MONITORING.md).
 
@@ -171,21 +172,21 @@ npm run dev
 
 ## Testing
 
-ApplyLuma ships with **591 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
+ApplyLuma ships with **832 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
 
 | Suite | Tests | Coverage |
 | --- | --- | --- |
-| Backend — Pytest (async, ASGI transport) | 414 across 36 files | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, billing), Celery tasks, auth and security |
-| Frontend — Vitest + React Testing Library | 160 across 18 files | Pages, Zustand stores, components, and formatters |
+| Backend — Pytest (async, ASGI transport) | 570 across 45 files | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, billing), Celery tasks (incl. the health watchdog), admin controls, auth and security |
+| Frontend — Vitest + React Testing Library | 245 across 29 files | Pages, Zustand stores, components, and formatters |
 | Airflow — Pytest | 10 across 2 files | DAG integrity (load, cycles, required params) and DAG logic |
 | dbt | 7 SQL assertions + `dbt parse` | Data-quality assertions and project validation |
 
 ```bash
-# Backend
-cd backend && python -m pytest
+# Backend — lint, type-check, test
+cd backend && ruff check app/ && mypy app/ && python -m pytest
 
-# Frontend
-cd frontend && npm test
+# Frontend — lint, type-check, test, build
+cd frontend && npm run lint && npm run type-check && npm test && npm run build
 
 # Airflow DAG integrity
 PYTHONPATH=$(pwd)/airflow/dags:$(pwd)/airflow/plugins pytest airflow/tests/
