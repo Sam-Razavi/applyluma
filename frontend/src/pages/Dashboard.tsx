@@ -9,8 +9,10 @@ import {
   MagnifyingGlassIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline'
+import ErrorState from '../components/ui/ErrorState'
 import { FadeIn } from '../components/ui/FadeIn'
 import JobFreshnessStat from '../components/analytics/JobFreshnessStat'
+import { getErrorMessage } from '../lib/errors'
 import { useAuthStore } from '../stores'
 import { useApplicationsStore } from '../stores/applications'
 import { cvApi, jobApi } from '../services/api'
@@ -27,18 +29,26 @@ export default function Dashboard() {
 
   const applications = useApplicationsStore((s) => s.applications)
   const stats = useApplicationsStore((s) => s.stats)
+  const applicationsError = useApplicationsStore((s) => s.error)
   const fetchApplications = useApplicationsStore((s) => s.fetchApplications)
 
   const [cvs, setCvs] = useState<CV[]>([])
   const [jds, setJds] = useState<JobDescription[]>([])
   const [loading, setLoading] = useState(true)
+  const [cvJdError, setCvJdError] = useState<string | null>(null)
 
   useEffect(() => {
     document.title = 'Dashboard | ApplyLuma'
     void Promise.all([
       fetchApplications(),
-      cvApi.list().then(setCvs).catch((err: unknown) => console.error('Failed to load CVs', err)),
-      jobApi.list().then(setJds).catch((err: unknown) => console.error('Failed to load job descriptions', err)),
+      cvApi
+        .list()
+        .then(setCvs)
+        .catch((err: unknown) => setCvJdError(getErrorMessage(err, 'Failed to load your CVs and job descriptions'))),
+      jobApi
+        .list()
+        .then(setJds)
+        .catch((err: unknown) => setCvJdError(getErrorMessage(err, 'Failed to load your CVs and job descriptions'))),
     ]).finally(() => setLoading(false))
   }, [fetchApplications])
 
@@ -68,8 +78,14 @@ export default function Dashboard() {
   const topStats = [
     {
       label: 'CVs',
-      value: loading ? '—' : String(cvs.length),
-      sub: cvs.length === 0 ? 'Upload your first CV' : cvs.length === 1 ? '1 CV uploaded' : `${cvs.length} CVs uploaded`,
+      value: loading ? '—' : cvJdError ? '—' : String(cvs.length),
+      sub: cvJdError
+        ? 'Could not load'
+        : cvs.length === 0
+          ? 'Upload your first CV'
+          : cvs.length === 1
+            ? '1 CV uploaded'
+            : `${cvs.length} CVs uploaded`,
       href: '/cvs',
       icon: <DocumentTextIcon className="h-5 w-5 text-accent-text" />,
       bg: 'bg-chip-accent',
@@ -90,8 +106,8 @@ export default function Dashboard() {
     },
     {
       label: 'Job Descriptions',
-      value: loading ? '—' : String(jds.length),
-      sub: jds.length === 0 ? 'Add a job to get started' : `${jds.length} saved`,
+      value: loading ? '—' : cvJdError ? '—' : String(jds.length),
+      sub: cvJdError ? 'Could not load' : jds.length === 0 ? 'Add a job to get started' : `${jds.length} saved`,
       href: '/jobs',
       icon: <MagnifyingGlassIcon className="h-5 w-5 text-accent-text" />,
       bg: 'bg-chip-accent',
@@ -149,8 +165,10 @@ export default function Dashboard() {
         {/* Live ingestion stat — shows the platform is actively finding jobs */}
         <JobFreshnessStat />
 
-        {/* Onboarding checklist — hidden once all 3 steps are done */}
-        <OnboardingChecklist hasCv={cvs.length > 0} hasJd={jds.length > 0} loading={loading} />
+        {/* Onboarding checklist — hidden once all 3 steps are done, or if the CV/JD load failed */}
+        {!cvJdError && (
+          <OnboardingChecklist hasCv={cvs.length > 0} hasJd={jds.length > 0} loading={loading} />
+        )}
 
         {/* Stats row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -197,6 +215,8 @@ export default function Dashboard() {
                   <div key={i} className="h-8 animate-pulse rounded-lg bg-track" />
                 ))}
               </div>
+            ) : applicationsError ? (
+              <ErrorState size="compact" description={applicationsError} onRetry={fetchApplications} />
             ) : applications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <BriefcaseIcon className="h-8 w-8 text-fg-subtle" />
@@ -249,6 +269,8 @@ export default function Dashboard() {
                   <div key={i} className="h-10 animate-pulse rounded-lg bg-track" />
                 ))}
               </div>
+            ) : applicationsError ? (
+              <ErrorState size="compact" description={applicationsError} onRetry={fetchApplications} />
             ) : recentApplications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <BriefcaseIcon className="h-8 w-8 text-fg-subtle" />

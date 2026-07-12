@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ExclamationTriangleIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import JobCard from '../components/discover/JobCard'
@@ -11,9 +11,12 @@ import AddApplicationModal from '../components/applications/AddApplicationModal'
 import JobSearchBar, { type SearchSource } from '../components/jobs/JobSearchBar'
 import JobResultList from '../components/jobs/JobResultList'
 import SearchJobDetail from '../components/jobs/SearchJobDetail'
+import ErrorBanner from '../components/ui/ErrorBanner'
+import ErrorState from '../components/ui/ErrorState'
 import { FadeIn } from '../components/ui/FadeIn'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { staggerItem } from '../lib/animations'
+import { getErrorMessage } from '../lib/errors'
 import { deleteSavedJob, fetchDiscoveredJobs, saveJob } from '../services/jobDiscoveryApi'
 import { searchJobs, type AdzunaJobResult, type JobSearchResponse } from '../services/jobSearchApi'
 import type { ApplicationCreate } from '../types/application'
@@ -76,6 +79,7 @@ export default function Discover() {
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [searchInput, setSearchInput] = useState('')
@@ -116,6 +120,7 @@ export default function Discover() {
       abortRef.current = new AbortController()
 
       setLoading(true)
+      if (replace) setLoadError(null)
       try {
         const results = await fetchDiscoveredJobs({
           ...nextFilters,
@@ -139,6 +144,7 @@ export default function Discover() {
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
         toast.error('Failed to load jobs')
+        if (replace) setLoadError(getErrorMessage(err, 'Failed to load jobs'))
       } finally {
         setLoading(false)
         setInitialLoad(false)
@@ -330,6 +336,10 @@ export default function Discover() {
                     <SkeletonCard key={i} />
                   ))}
                 </div>
+              ) : loadError ? (
+                <div className="rounded-2xl border border-line bg-surface">
+                  <ErrorState description={loadError} onRetry={() => void loadJobs(filters, 1, true)} />
+                </div>
               ) : jobs.length === 0 ? (
                 <div className="rounded-2xl border border-line bg-surface px-6 py-16 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-surface">
@@ -438,12 +448,7 @@ export default function Discover() {
             </div>
           )}
 
-          {searchError && (
-            <div className="flex items-center gap-2 rounded-xl border border-chip-danger bg-chip-danger px-4 py-3 text-sm text-chip-danger-fg">
-              <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
-              {searchError}
-            </div>
-          )}
+          {searchError && <ErrorBanner message={searchError} />}
 
           {searchLoading ? (
             <div className="grid gap-4">

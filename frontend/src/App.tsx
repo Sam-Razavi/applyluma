@@ -6,6 +6,7 @@ import { initTheme } from './stores/theme'
 import { usePageTracking } from './hooks/usePageTracking'
 import { useCookieConsent } from './hooks/useCookieConsent'
 import { CookieBanner } from './components/ui/CookieBanner'
+import { OfflineBanner } from './components/ui/OfflineBanner'
 import Layout from './components/layout/Layout'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -41,6 +42,7 @@ const BillingSuccess = lazy(() => import('./pages/BillingSuccess'))
 const BillingCancel = lazy(() => import('./pages/BillingCancel'))
 const Contact = lazy(() => import('./pages/Contact'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const Forbidden = lazy(() => import('./pages/Forbidden'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
@@ -95,7 +97,7 @@ export default function App() {
 
         {/* Protected app shell */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<ErrorBoundary><AppLayout /></ErrorBoundary>}>
+          <Route element={<AppLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="cvs" element={<CVs />} />
             <Route path="jobs" element={<Jobs />} />
@@ -128,6 +130,7 @@ export default function App() {
           </Route>
         </Route>
 
+            <Route path="forbidden" element={<Forbidden />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
@@ -138,6 +141,7 @@ export default function App() {
       {consent === 'accepted' && <SpeedInsights />}
 
       <CookieBanner consent={consent} onAccept={accept} onDecline={decline} />
+      <OfflineBanner />
     </>
   )
 }

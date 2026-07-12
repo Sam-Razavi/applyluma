@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
+import ErrorBanner from '../../components/ui/ErrorBanner'
 import { FadeIn } from '../../components/ui/FadeIn'
 import { adminApi, type AdminOverviewStats } from '../../services/adminApi'
 
@@ -50,9 +51,7 @@ export default function AdminDashboard() {
           <p className="mt-1 text-sm text-fg-subtle ">Platform-wide statistics at a glance.</p>
         </div>
 
-        {error && (
-          <div className="rounded-xl border border-chip-danger bg-chip-danger p-4 text-sm text-chip-danger-fg">{error}</div>
-        )}
+        {error && <ErrorBanner message={error} />}
 
         {/* Users */}
         <section>

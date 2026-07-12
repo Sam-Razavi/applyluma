@@ -1,5 +1,8 @@
 import * as Sentry from '@sentry/react'
 import { Component, type ReactNode } from 'react'
+import { motion } from 'framer-motion'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { ease, variants } from '../../lib/animations'
 
 interface Props {
   children: ReactNode
@@ -46,23 +49,30 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback
       return (
-        <div className="min-h-[400px] flex flex-col items-center justify-center gap-4 text-center p-8">
-          <div className="h-12 w-12 rounded-full bg-chip-danger flex items-center justify-center">
-            <svg className="h-6 w-6 text-chip-danger-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            </svg>
-          </div>
+        <motion.div
+          initial={variants.scaleIn.initial}
+          animate={variants.scaleIn.animate}
+          transition={ease.standard}
+          className="min-h-[400px] flex flex-col items-center justify-center gap-4 text-center p-8"
+        >
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            className="h-16 w-16 rounded-2xl bg-chip-danger flex items-center justify-center"
+          >
+            <ExclamationTriangleIcon className="h-8 w-8 text-chip-danger-fg" aria-hidden="true" />
+          </motion.div>
           <h2 className="text-xl font-semibold text-fg">Something went wrong</h2>
           <p className="text-sm text-fg-subtle max-w-sm">
-            An unexpected error occurred. Refresh the page or contact support if the problem persists.
+            Something on this page hit a snag. Try again, or head back if it keeps happening.
           </p>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
           >
             Try again
           </button>
-        </div>
+        </motion.div>
       )
     }
     return this.props.children

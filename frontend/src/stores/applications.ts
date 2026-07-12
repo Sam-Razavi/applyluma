@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { getErrorMessage } from '../lib/errors'
 import {
   addApplicationContact,
   createApplication as createApplicationRequest,
@@ -57,10 +58,6 @@ function countStats(applications: Application[]): ApplicationStats {
   )
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Application request failed'
-}
-
 export const useApplicationsStore = create<ApplicationsState>()(
   devtools(
     (set, get) => ({
@@ -81,7 +78,7 @@ export const useApplicationsStore = create<ApplicationsState>()(
           ])
           set({ applications, stats, isLoading: false })
         } catch (error) {
-          set({ error: getErrorMessage(error), isLoading: false })
+          set({ error: getErrorMessage(error, 'Application request failed'), isLoading: false })
         }
       },
 
@@ -128,7 +125,7 @@ export const useApplicationsStore = create<ApplicationsState>()(
             applications: previous,
             stats: countStats(previous),
             selectedApplication: selected,
-            error: getErrorMessage(error),
+            error: getErrorMessage(error, 'Application request failed'),
           })
           throw error
         }

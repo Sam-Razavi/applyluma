@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react'
-import EmptyState from './EmptyState'
-import ErrorState from './ErrorState'
+import EmptyState from '../ui/EmptyState'
+import ErrorState from '../ui/ErrorState'
 import LoadingSkeleton from './LoadingSkeleton'
 
 interface ChartCardProps {
@@ -47,9 +47,12 @@ export default function ChartCard({
         {loading ? (
           <LoadingSkeleton />
         ) : error ? (
-          <ErrorState error={error} onRetry={onRetry} />
+          <ErrorState title="Failed to load data" description={error} onRetry={onRetry} />
         ) : empty ? (
-          <EmptyState description={emptyMessage} />
+          <EmptyState
+            title="No data available"
+            description={emptyMessage ?? 'Data will appear here once the analytics pipeline runs'}
+          />
         ) : (
           children
         )}

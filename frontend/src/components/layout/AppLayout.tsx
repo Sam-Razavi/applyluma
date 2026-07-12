@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
+import { ErrorBoundary } from '../ui/ErrorBoundary'
 import RouteFallback from '../ui/RouteFallback'
 import { useInactivityLogout } from '../../hooks/useInactivityLogout'
 import { useNotificationsStore } from '../../stores/notifications'
@@ -104,7 +105,9 @@ export default function AppLayout() {
               transition={{ duration: 0.2 }}
             >
               <Suspense fallback={<RouteFallback />}>
-                <Outlet />
+                <ErrorBoundary>
+                  <Outlet />
+                </ErrorBoundary>
               </Suspense>
             </motion.div>
           </AnimatePresence>

@@ -5,7 +5,6 @@ import {
   ArrowDownTrayIcon,
   CheckCircleIcon,
   ClockIcon,
-  ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   TrashIcon,
@@ -19,6 +18,7 @@ import KanbanBoard from '../components/applications/KanbanBoard'
 import PersonalAnalytics from '../components/applications/PersonalAnalytics'
 import { STATUS_META } from '../components/applications/statusMeta'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import ErrorBanner from '../components/ui/ErrorBanner'
 import { useApplicationsStore } from '../stores/applications'
 import type { ApplicationStatus } from '../types/application'
 import { APPLICATION_STATUSES } from '../types/application'
@@ -271,12 +271,7 @@ export default function Applications() {
             </div>
           </div>
 
-          {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-chip-danger bg-chip-danger px-4 py-3 text-sm text-chip-danger-fg">
-              <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
-              {error}
-            </div>
-          )}
+          {error && <ErrorBanner message={error} />}
 
           {isSelectMode && (
             <div className="flex items-center gap-2 rounded-xl border border-primary-600/30 bg-primary-900/20 px-4 py-3 text-sm text-accent-text">
