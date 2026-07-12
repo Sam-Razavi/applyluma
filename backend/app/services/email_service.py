@@ -122,6 +122,21 @@ def send_password_reset_email(to_email: str, token: str) -> None:
     send_email(to_email, subject, html_body)
 
 
+def send_magic_link_email(to_email: str, token: str) -> None:
+    frontend_url = settings.FRONTEND_URL.rstrip("/")
+    login_url = f"{frontend_url}/magic-login?token={token}"
+    subject = "Your ApplyLuma sign-in link"
+    html_body = (
+        "<p>Click the button below to sign in to ApplyLuma.</p>"
+        f'<p><a href="{login_url}" style="background:#6366f1;color:#fff;padding:10px 20px;'
+        f'border-radius:8px;text-decoration:none;font-weight:bold;">Sign in to ApplyLuma</a></p>'
+        f'<p>Or copy this link: {login_url}</p>'
+        "<p>This link expires in 15 minutes and can be used once. "
+        "If you did not request it, you can safely ignore this email.</p>"
+    )
+    send_email(to_email, subject, html_body)
+
+
 def send_email(to_email: str, subject: str, html_body: str) -> None:
     if not settings.RESEND_API_KEY:
         return

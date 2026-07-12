@@ -26,6 +26,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const ExtensionAuth = lazy(() => import('./pages/ExtensionAuth'))
 const AuthCallback = lazy(() => import('./pages/AuthCallback'))
+const MagicLogin = lazy(() => import('./pages/MagicLogin'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const CVs = lazy(() => import('./pages/CVs'))
 const Jobs = lazy(() => import('./pages/Jobs'))
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="extension-auth" element={<ExtensionAuth />} />
         <Route path="auth/callback" element={<AuthCallback />} />
+        <Route path="magic-login" element={<MagicLogin />} />
 
         {/* Protected app shell */}
         <Route element={<ProtectedRoute />}>

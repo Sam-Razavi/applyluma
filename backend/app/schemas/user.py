@@ -62,6 +62,21 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+
+
+class MagicLinkVerifyRequest(BaseModel):
+    token: str
+
+
+class AuthProvidersResponse(BaseModel):
+    google: bool
+    linkedin: bool
+    github: bool
+    magic_link: bool
+
+
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str = Field(max_length=128)

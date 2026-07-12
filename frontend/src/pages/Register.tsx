@@ -8,7 +8,8 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { authApi } from '../services/api'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
-import GoogleLoginButton from '../components/auth/GoogleLoginButton'
+import OAuthButtons from '../components/auth/OAuthButtons'
+import { useAuthProviders } from '../hooks/useAuthProviders'
 import { PasswordStrengthMeter } from '../components/auth/PasswordStrengthMeter'
 
 const schema = z
@@ -37,6 +38,7 @@ export default function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const providers = useAuthProviders()
 
   const {
     register,
@@ -180,7 +182,7 @@ export default function Register() {
               <div className="h-px flex-1 bg-line" />
             </div>
             <div className="mt-4">
-              <GoogleLoginButton />
+              <OAuthButtons providers={providers} />
             </div>
           </div>
 
