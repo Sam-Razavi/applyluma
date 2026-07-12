@@ -57,7 +57,8 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 - CV upload (PDF, DOCX, and Markdown), parsing, AI analysis, version history, and authenticated PDF downloads.
 - AI CV Tailor with asynchronous processing, section review, save, and export.
   Tailored output uses OpenAI Structured Outputs and renders through a choice
-  of PDF templates (Nordic and Classic) via a Jinja2/WeasyPrint pipeline, with
+  of PDF templates (Nordic, Classic, Modern, Executive, Atlas, and Compact)
+  via a Jinja2/WeasyPrint pipeline, with
   anti-fabrication checks (self-audit pass, numeric-claim guard) validating
   every claim against the source CV.
 - Cover Letter Generator with formal, friendly, and concise tones, rendered in

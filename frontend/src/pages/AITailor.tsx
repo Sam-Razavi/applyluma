@@ -36,7 +36,7 @@ type Step = 'select' | 'processing' | 'review' | 'done'
 
 const POLL_INTERVAL_MS = 2500
 
-const TEMPLATE_IDS: CvTemplateId[] = ['nordic', 'classic', 'modern', 'executive']
+const TEMPLATE_IDS: CvTemplateId[] = ['nordic', 'classic', 'modern', 'executive', 'atlas', 'compact']
 
 /** Narrow the wire value (users.preferred_template) to a known template id. */
 function resolveTemplate(value?: string | null): CvTemplateId {

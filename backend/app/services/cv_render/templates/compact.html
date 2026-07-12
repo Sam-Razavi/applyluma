@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+<meta charset="utf-8">
+<title>{{ header.full_name }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 11mm 11mm 14mm 11mm;
+    @bottom-center {
+      content: string(candidate-name) "  ·  " counter(page) " / " counter(pages);
+      font-family: Inter, "Segoe UI", Arial, "DejaVu Sans", sans-serif;
+      font-size: 7pt;
+      color: #5B6874;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Inter, "Segoe UI", Arial, "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    line-height: 1.28;
+    color: #1F2933;
+  }
+
+  /* ---- Header: single tight block ---- */
+  .header {
+    border-bottom: 0.6mm solid #0369A1;
+    padding-bottom: 2mm;
+  }
+  .header h1 {
+    string-set: candidate-name content();
+    font-size: 16pt;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #1F2933;
+  }
+  .headline {
+    margin-top: 0.6mm;
+    font-size: 9.6pt;
+    font-weight: 600;
+    color: #0369A1;
+  }
+  .contact {
+    margin-top: 1.2mm;
+    font-size: 8pt;
+    color: #5B6874;
+    word-break: break-word;
+  }
+  .contact span + span::before {
+    content: "  ·  ";
+    color: #9AA8B3;
+  }
+
+  main { padding-top: 2.6mm; }
+
+  /* ---- Section headings: small caps, minimal margins ---- */
+  h2 {
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #0369A1;
+    border-bottom: 0.4pt solid #C9D4DB;
+    padding-bottom: 0.7mm;
+    margin: 2.8mm 0 1.4mm 0;
+    break-after: avoid;
+  }
+  main > section:first-child h2 { margin-top: 0; }
+
+  /* ---- Summary ---- */
+  .summary p { margin-bottom: 0.8mm; text-align: justify; }
+
+  /* ---- Skills: plain category lines, no panel ---- */
+  .skill-row { margin-bottom: 0.6mm; }
+  .skill-row:last-child { margin-bottom: 0; }
+  .skill-cat { font-weight: 700; color: #1F2933; }
+
+  /* ---- Entries (experience / projects / education) ---- */
+  .entry { break-inside: avoid; margin-bottom: 1.8mm; }
+  .entry:last-child { margin-bottom: 0; }
+  .entry-head { overflow: hidden; }
+  .dates {
+    float: right;
+    font-size: 7.8pt;
+    color: #5B6874;
+    padding-top: 0.4mm;
+    padding-left: 3mm;
+    white-space: nowrap;
+  }
+  .role { font-weight: 700; font-size: 9.4pt; color: #1F2933; }
+  .org { font-weight: 600; color: #0369A1; }
+  .role-sep { color: #9AA8B3; padding: 0 0.7mm; }
+  .subtitle { color: #5B6874; font-size: 8.6pt; margin-top: 0.2mm; }
+  .link-line { font-size: 7.8pt; color: #0369A1; word-break: break-word; margin-top: 0.2mm; }
+  ul { list-style: none; margin: 0.6mm 0 0 0; }
+  ul li {
+    padding-left: 3.2mm;
+    margin-bottom: 0.4mm;
+    text-align: justify;
+  }
+  ul li::before {
+    content: "–";
+    color: #0369A1;
+    display: inline-block;
+    width: 3.2mm;
+    margin-left: -3.2mm;
+  }
+  .stack {
+    margin-top: 0.5mm;
+    font-size: 7.8pt;
+    color: #5B6874;
+  }
+  .stack b { color: #1F2933; font-weight: 600; }
+
+  /* ---- Certifications ---- */
+  .cert-line { margin-bottom: 0.5mm; }
+  .cert-line b { color: #1F2933; font-weight: 600; }
+  .cert-meta { color: #5B6874; font-size: 8.6pt; }
+
+  /* ---- Raw fallback lines ---- */
+  .raw-line { margin-bottom: 0.5mm; }
+  .raw-bullet { padding-left: 3.2mm; margin-bottom: 0.5mm; }
+  .raw-bullet::before {
+    content: "–";
+    color: #0369A1;
+    display: inline-block;
+    width: 3.2mm;
+    margin-left: -3.2mm;
+  }
+</style>
+</head>
+<body>
+
+{% macro raw_lines(lines) %}
+  {% for line in lines %}
+    {% if line.bullet %}
+    <div class="raw-bullet">{{ line.text }}</div>
+    {% else %}
+    <div class="raw-line">{{ line.text }}</div>
+    {% endif %}
+  {% endfor %}
+{% endmacro %}
+
+<div class="header">
+  <h1>{{ header.full_name }}</h1>
+  {% if header.target_headline %}
+  <div class="headline">{{ header.target_headline }}</div>
+  {% endif %}
+  {% if header.contact_bits %}
+  <div class="contact">
+    {% for bit in header.contact_bits %}<span>{{ bit }}</span>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<main>
+{% for block in blocks %}
+<section>
+  <h2>{{ block.title }}</h2>
+  {% if block.kind == 'summary' %}
+  <div class="summary">
+    {% for para in block.text.split('\n') if para.strip() %}
+    <p>{{ para }}</p>
+    {% endfor %}
+  </div>
+  {% elif block.kind == 'skills' %}
+    {% for group in block.groups %}
+    <div class="skill-row">
+      <span class="skill-cat">{{ group.category }}:</span> {{ group['items'] | join(', ') }}
+    </div>
+    {% endfor %}
+  {% elif block.kind == 'experience' %}
+    {% for e in block.entries %}
+    <div class="entry">
+      {% if e.kind == 'raw' %}
+      {{ raw_lines(e.lines) }}
+      {% else %}
+      <div class="entry-head">
+        <span class="dates">{{ e.dates }}{% if e.location %} · {{ e.location }}{% endif %}</span>
+        <span class="role">{{ e.title }}</span><span class="role-sep">—</span><span class="org">{{ e.company }}</span>
+      </div>
+      <ul>
+        {% for b in e.bullets %}<li>{{ b }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% elif block.kind == 'projects' %}
+    {% for p in block.entries %}
+    <div class="entry">
+      {% if p.kind == 'raw' %}
+      {{ raw_lines(p.lines) }}
+      {% else %}
+      <div class="entry-head">
+        <span class="role">{{ p.name }}</span>{% if p.subtitle %}<span class="role-sep">—</span><span class="subtitle">{{ p.subtitle }}</span>{% endif %}
+      </div>
+      {% if p.url %}<div class="link-line">{{ p.url }}</div>{% endif %}
+      <ul>
+        {% for b in p.bullets %}<li>{{ b }}</li>{% endfor %}
+      </ul>
+      {% if p.stack %}<div class="stack"><b>Stack:</b> {{ p.stack | join(', ') }}</div>{% endif %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% elif block.kind == 'education' %}
+    {% for ed in block.entries %}
+    <div class="entry">
+      {% if ed.kind == 'raw' %}
+      {{ raw_lines(ed.lines) }}
+      {% else %}
+      <div class="entry-head">
+        <span class="dates">{{ ed.dates }}</span>
+        <span class="role">{{ ed.degree }}</span><span class="role-sep">—</span><span class="org">{{ ed.institution }}</span>
+      </div>
+      {% if ed.details %}<div class="subtitle">{{ ed.details }}</div>{% endif %}
+      {% if ed.relevant_coursework %}
+      <div class="stack"><b>{% if language == 'sv' %}Relevanta kurser{% else %}Relevant coursework{% endif %}:</b> {{ ed.relevant_coursework | join(', ') }}</div>
+      {% endif %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% elif block.kind == 'certifications' %}
+    {% for c in block['items'] %}
+    <div class="cert-line">
+      <b>{{ c.name }}</b>{% if c.issuer %} <span class="cert-meta">— {{ c.issuer }}</span>{% endif %}{% if c.date %} <span class="cert-meta">({{ c.date }})</span>{% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    {{ raw_lines(block.lines) }}
+  {% endif %}
+</section>
+{% endfor %}
+</main>
+
+</body>
+</html>

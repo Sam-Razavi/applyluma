@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+<meta charset="utf-8">
+<title>{{ header.full_name }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 12mm 18mm 15mm 18mm;
+    @bottom-center {
+      content: string(candidate-name);
+      font-family: Inter, "Segoe UI", Arial, "DejaVu Sans", sans-serif;
+      font-size: 7pt;
+      color: #5B6874;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Inter, "Segoe UI", Arial, "DejaVu Sans", sans-serif;
+    font-size: 9.6pt;
+    line-height: 1.45;
+    color: #1F2933;
+  }
+
+  .header {
+    border-bottom: 0.6mm solid #0369A1;
+    padding-bottom: 2mm;
+  }
+  .header h1 {
+    string-set: candidate-name content();
+    font-size: 14.5pt;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #1F2933;
+  }
+  .contact {
+    margin-top: 1.2mm;
+    font-size: 8pt;
+    color: #5B6874;
+    word-break: break-word;
+  }
+  .contact span + span::before {
+    content: "  ·  ";
+    color: #9AA8B3;
+  }
+
+  main { padding-top: 6mm; }
+
+  .subject {
+    font-size: 10.8pt;
+    font-weight: 700;
+    color: #0369A1;
+    margin-bottom: 4.6mm;
+  }
+
+  .body p { margin-bottom: 3mm; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>{{ header.full_name }}</h1>
+  {% if header.contact_bits %}
+  <div class="contact">
+    {% for bit in header.contact_bits %}<span>{{ bit }}</span>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<main>
+  {% if title %}
+  <div class="subject">{{ title }}</div>
+  {% endif %}
+  <div class="body">
+    {% for para in paragraphs %}
+    <p>
+      {% for line in para %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}
+    </p>
+    {% endfor %}
+  </div>
+</main>
+
+</body>
+</html>
