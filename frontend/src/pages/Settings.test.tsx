@@ -84,6 +84,8 @@ describe('Settings — default CV template', () => {
     expect(select.value).toBe('executive')
     expect(screen.getByRole('option', { name: 'Nordic' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Modern' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Atlas' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Compact' })).toBeInTheDocument()
   })
 
   it('defaults to nordic when no preference is stored', async () => {
