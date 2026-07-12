@@ -19,6 +19,7 @@ import toast from 'react-hot-toast'
 import { IntensitySelector } from '../components/tailor/IntensitySelector'
 import { SectionDiff } from '../components/tailor/SectionDiff'
 import { TailorSummary } from '../components/tailor/TailorSummary'
+import { TailorTips } from '../components/tailor/TailorTips'
 import { TemplatePicker } from '../components/tailor/TemplatePicker'
 import { TemplatePreviewModal } from '../components/tailor/TemplatePreviewModal'
 import { cvApi, jobApi } from '../services/api'
@@ -892,33 +893,36 @@ function ProcessingStep({ wantCv, wantCover }: { wantCv: boolean; wantCover: boo
   }, [])
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-8">
-      <h2 className="mb-6 text-base font-semibold text-fg">{heading}</h2>
-      <ol className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        {steps.map((s, index) => {
-          const done = index < activeStep
-          const active = index === activeStep
-          return (
-            <li key={s.label} className="flex min-w-0 items-start gap-3 sm:flex-1">
-              <div
-                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                  done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-track'
-                }`}
-              >
-                {done && (
-                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <div>
-                <p className={`text-sm font-medium ${active ? 'text-fg' : 'text-fg-subtle'}`}>{s.label}</p>
-                {active && <p className="mt-0.5 text-xs text-fg-subtle">{s.sublabel}</p>}
-              </div>
-            </li>
-          )
-        })}
-      </ol>
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl border border-line bg-surface p-8">
+        <h2 className="mb-6 text-base font-semibold text-fg">{heading}</h2>
+        <ol className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          {steps.map((s, index) => {
+            const done = index < activeStep
+            const active = index === activeStep
+            return (
+              <li key={s.label} className="flex min-w-0 items-start gap-3 sm:flex-1">
+                <div
+                  className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
+                    done ? 'bg-green-500' : active ? 'animate-pulse bg-brand-500' : 'bg-track'
+                  }`}
+                >
+                  {done && (
+                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p className={`text-sm font-medium ${active ? 'text-fg' : 'text-fg-subtle'}`}>{s.label}</p>
+                  {active && <p className="mt-0.5 text-xs text-fg-subtle">{s.sublabel}</p>}
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+      <TailorTips />
     </div>
   )
 }
