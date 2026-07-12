@@ -21,4 +21,14 @@ export const TEMPLATE_OPTIONS: { value: CvTemplateId; label: string; description
     label: 'Executive',
     description: 'Centered serif layout with refined rules. Formal, senior-level tone.',
   },
+  {
+    value: 'atlas',
+    label: 'Atlas',
+    description: 'Two-column layout with an emerald sidebar for skills and education. Best for human readers; some ATS systems parse two columns less reliably.',
+  },
+  {
+    value: 'compact',
+    label: 'Compact',
+    description: 'Dense single-column layout with tight spacing. Fits more experience into two pages.',
+  },
 ]

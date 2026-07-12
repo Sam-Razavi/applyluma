@@ -77,11 +77,57 @@ function ExecutiveThumb() {
   )
 }
 
+function AtlasThumb() {
+  return (
+    <div className="h-24 w-full overflow-hidden rounded-md border border-line bg-white">
+      <div className="border-b-2 border-[#0E9F6E] bg-[#173F32] px-2 pb-1.5 pt-2">
+        <div className="h-1.5 w-14 rounded-sm bg-white/90" />
+        <div className="mt-1 h-1 w-20 rounded-sm bg-[#C4E5D5]" />
+      </div>
+      <div className="flex gap-1.5 px-2 py-1.5">
+        <div className="w-1/3 space-y-1 rounded-sm bg-[#EAF3EF] p-1">
+          <div className="h-1 w-8 rounded-sm bg-[#14532D]" />
+          <div className="h-1 w-full rounded-sm bg-gray-300" />
+          <div className="h-1 w-5/6 rounded-sm bg-gray-300" />
+        </div>
+        <div className="flex-1 space-y-1">
+          <div className="h-1 w-10 rounded-sm bg-[#14532D]" />
+          <div className="h-1 w-full rounded-sm bg-gray-300" />
+          <div className="h-1 w-5/6 rounded-sm bg-gray-300" />
+          <div className="h-1 w-4/6 rounded-sm bg-gray-300" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CompactThumb() {
+  return (
+    <div className="h-24 w-full overflow-hidden rounded-md border border-line bg-white">
+      <div className="border-b border-[#0369A1] px-2 pb-1 pt-1.5">
+        <div className="h-1.5 w-14 rounded-sm bg-gray-900" />
+        <div className="mt-0.5 h-1 w-16 rounded-sm bg-[#0369A1]" />
+      </div>
+      <div className="space-y-0.5 px-2 py-1">
+        <div className="h-1 w-8 rounded-sm bg-[#0369A1]" />
+        <div className="h-0.5 w-full rounded-sm bg-gray-300" />
+        <div className="h-0.5 w-5/6 rounded-sm bg-gray-300" />
+        <div className="h-0.5 w-full rounded-sm bg-gray-300" />
+        <div className="h-1 w-8 rounded-sm bg-[#0369A1]" />
+        <div className="h-0.5 w-full rounded-sm bg-gray-300" />
+        <div className="h-0.5 w-4/6 rounded-sm bg-gray-300" />
+      </div>
+    </div>
+  )
+}
+
 const THUMBS: Record<CvTemplateId, () => JSX.Element> = {
   nordic: NordicThumb,
   classic: ClassicThumb,
   modern: ModernThumb,
   executive: ExecutiveThumb,
+  atlas: AtlasThumb,
+  compact: CompactThumb,
 }
 
 interface Props {
