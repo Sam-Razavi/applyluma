@@ -332,6 +332,24 @@ CV Templates & Tailor UX batch (July 2026, PR #134 + follow-up branch
     schemas; `PasswordStrengthMeter.tsx` extracted from Register and reused
     on Reset Password and Settings change-password.
 
+Atlas & Compact CV templates (July 2026, branch `claude/cv-templates-scope-r92q4w`):
+  - Two more template families, bringing the total to six: `atlas` (two-column
+    with an emerald sidebar for skills/education/certifications; float-based
+    layout because WeasyPrint cannot fragment flex containers across page
+    breaks) and `compact` (dense single-column, ~11mm margins / 9pt type, for
+    fitting more into the 2-page limit), each with a matching cover-letter
+    template. Atlas fixes column assignment by block kind (raw/unknown blocks
+    fall through to the main column) and only follows `section_order` within
+    each column. Backend needed just the dict entries + 4 HTML files; the
+    parametrized `test_cv_render.py` tests auto-cover new templates. Frontend
+    additions when adding a template: `CvTemplateId` union (`types/tailor.ts`),
+    `TEMPLATE_OPTIONS` (`templateOptions.ts`), a thumb in `TemplatePicker.tsx`,
+    and the `TEMPLATE_IDS` narrowing array in `AITailor.tsx`.
+  - Photo/image templates were considered and deliberately deferred: they
+    require a whole photo-upload pipeline (endpoint, resize, storage under
+    `cvs/{user_id}/`, GDPR erasure), not just a template — treat as a
+    separate feature.
+
 Multi-provider login (July 2026, branch `claude/app-improvements-templates-l0gy4a`):
   - LinkedIn OAuth (OIDC, `auth_linkedin.py`) and GitHub OAuth
     (`auth_github.py`, with `/user/emails` fallback for null public emails)

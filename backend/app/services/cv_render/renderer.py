@@ -22,12 +22,16 @@ TEMPLATES: dict[str, str] = {
     "classic": "classic.html",
     "modern": "modern.html",
     "executive": "executive.html",
+    "atlas": "atlas.html",
+    "compact": "compact.html",
 }
 COVER_TEMPLATES: dict[str, str] = {
     "nordic": "cover_nordic.html",
     "classic": "cover_classic.html",
     "modern": "cover_modern.html",
     "executive": "cover_executive.html",
+    "atlas": "cover_atlas.html",
+    "compact": "cover_compact.html",
 }
 DEFAULT_TEMPLATE = "nordic"
 
