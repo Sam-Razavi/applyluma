@@ -28,21 +28,41 @@ def get_by_google_id(db: Session, google_id: str) -> User | None:
     return db.query(User).filter(User.google_id == google_id).first()
 
 
-def upsert_google_user(
+def get_by_linkedin_id(db: Session, linkedin_id: str) -> User | None:
+    return db.query(User).filter(User.linkedin_id == linkedin_id).first()
+
+
+def get_by_github_id(db: Session, github_id: str) -> User | None:
+    return db.query(User).filter(User.github_id == github_id).first()
+
+
+def upsert_oauth_user(
     db: Session,
     *,
-    google_id: str,
+    provider: str,
+    id_attr: str,
+    provider_user_id: str,
     email: str,
     full_name: str | None = None,
     avatar_url: str | None = None,
 ) -> User:
-    """Resolve a Google-authenticated user, creating or linking as needed.
+    """Resolve an OAuth-authenticated user, creating or linking as needed.
 
-    - If a user with this google_id exists, update the avatar and return it.
-    - Else if a user with this email exists, link the Google account to it.
-    - Else create a new passwordless, pre-verified Google user.
+    - If a user with this provider id exists, update the avatar and return it.
+    - Else if a user with this email exists, link the provider account to it.
+    - Else create a new passwordless, pre-verified user.
+
+    `id_attr` is the User column holding the provider's user id
+    (google_id / linkedin_id / github_id).
     """
-    user = get_by_google_id(db, google_id)
+    # Built per call so the module-level getters resolve dynamically
+    # (tests monkeypatch them on this module).
+    getters = {
+        "google_id": get_by_google_id,
+        "linkedin_id": get_by_linkedin_id,
+        "github_id": get_by_github_id,
+    }
+    user = getters[id_attr](db, provider_user_id)
     if user:
         user.avatar_url = avatar_url
         if full_name and not user.full_name:
@@ -53,8 +73,8 @@ def upsert_google_user(
 
     user = get_by_email(db, email)
     if user:
-        user.google_id = google_id
-        user.auth_provider = "google"
+        setattr(user, id_attr, provider_user_id)
+        user.auth_provider = provider
         user.avatar_url = avatar_url
         user.is_verified = True
         if full_name and not user.full_name:
@@ -65,17 +85,36 @@ def upsert_google_user(
 
     user = User(
         email=email,
-        google_id=google_id,
         full_name=full_name,
         avatar_url=avatar_url,
-        auth_provider="google",
+        auth_provider=provider,
         is_active=True,
         is_verified=True,
+        **{id_attr: provider_user_id},
     )
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
+
+
+def upsert_google_user(
+    db: Session,
+    *,
+    google_id: str,
+    email: str,
+    full_name: str | None = None,
+    avatar_url: str | None = None,
+) -> User:
+    return upsert_oauth_user(
+        db,
+        provider="google",
+        id_attr="google_id",
+        provider_user_id=google_id,
+        email=email,
+        full_name=full_name,
+        avatar_url=avatar_url,
+    )
 
 
 def get_by_id(db: Session, user_id: str) -> User | None:

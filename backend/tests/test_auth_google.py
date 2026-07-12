@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.api.v1.endpoints import auth_google
+from app.api.v1.endpoints import auth_google, oauth_common
 from app.core.config import settings
 from app.core.dependencies import get_db
 from app.crud import user as crud_user
@@ -109,7 +109,7 @@ async def test_callback_success_via_redis_state(monkeypatch: pytest.MonkeyPatch)
         def delete(self, key: str) -> None:
             pass
 
-    monkeypatch.setattr(auth_google, "get_redis_client", lambda: FakeRedis())
+    monkeypatch.setattr(oauth_common, "get_redis_client", lambda: FakeRedis())
     monkeypatch.setattr(auth_google, "_exchange_code_for_tokens", lambda code: {"access_token": "ga"})
     monkeypatch.setattr(
         auth_google,
@@ -135,7 +135,7 @@ async def test_callback_state_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
         def delete(self, key: str) -> None:
             pass
 
-    monkeypatch.setattr(auth_google, "get_redis_client", lambda: FakeRedis())
+    monkeypatch.setattr(oauth_common, "get_redis_client", lambda: FakeRedis())
     resp = await _get("/api/v1/auth/google/callback?code=abc&state=bad", cookies={"oauth_state": "good"})
     assert resp.status_code == 302
     assert "error=oauth_failed" in resp.headers["location"]

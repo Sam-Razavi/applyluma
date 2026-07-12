@@ -350,6 +350,30 @@ Atlas & Compact CV templates (July 2026, branch `claude/cv-templates-scope-r92q4
     `cvs/{user_id}/`, GDPR erasure), not just a template — treat as a
     separate feature.
 
+Multi-provider login (July 2026, branch `claude/app-improvements-templates-l0gy4a`):
+  - LinkedIn OAuth (OIDC, `auth_linkedin.py`) and GitHub OAuth
+    (`auth_github.py`, with `/user/emails` fallback for null public emails)
+    alongside Google. Shared plumbing (state store/consume, auth cookies,
+    success/failure redirects) extracted to `endpoints/oauth_common.py`;
+    generalized `crud_user.upsert_oauth_user` (google/linkedin/github id
+    columns; `upsert_google_user` is now a thin wrapper). Migration
+    `0032` does not exist yet — chain ends at `0031_oauth_provider_ids.py`
+    (`users.linkedin_id` / `users.github_id`).
+  - Magic-link email sign-in (existing accounts only, enumeration-safe):
+    `POST /auth/magic-link` (Redis `magic_login:{token}`, 15 min, single
+    use, rate-limited 3/min) + `POST /auth/magic-link/verify` (returns
+    TokenPair + cookies like password login, marks user verified);
+    `/magic-login` frontend route consumes the emailed link.
+  - `GET /auth/providers` reports which methods are configured
+    (client IDs / RESEND_API_KEY); `useAuthProviders` hook +
+    `OAuthButtons.tsx` render only enabled buttons on Login/Register
+    (Google-only fallback if the fetch fails). `GoogleLoginButton.tsx`
+    was removed.
+  - New Railway env vars when enabling: `LINKEDIN_CLIENT_ID/SECRET/
+    REDIRECT_URI`, `GITHUB_CLIENT_ID/SECRET/REDIRECT_URI` (redirect URIs
+    point at `/api/v1/auth/{provider}/callback`). Code ships dark (501 +
+    hidden button) until set.
+
 ## Git Workflow
 
 Branch structure:

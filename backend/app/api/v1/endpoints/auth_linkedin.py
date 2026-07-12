@@ -1,3 +1,9 @@
+"""LinkedIn login via "Sign In with LinkedIn using OpenID Connect".
+
+Same shape as auth_google: /login redirects to the consent screen with a
+CSRF state; /callback validates state, exchanges the code, reads the OIDC
+userinfo endpoint, and upserts the user.
+"""
 import logging
 import secrets
 from typing import Any
@@ -13,71 +19,72 @@ from app.core.config import settings
 from app.core.dependencies import get_db
 from app.crud import user as crud_user
 
-router = APIRouter(prefix="/auth/google", tags=["auth"])
+router = APIRouter(prefix="/auth/linkedin", tags=["auth"])
 logger = logging.getLogger(__name__)
 
-GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+LINKEDIN_AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization"
+LINKEDIN_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
+LINKEDIN_USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
 
 
 @router.get("/login")
-def google_login() -> RedirectResponse:
-    """Redirect the user to Google's consent screen."""
-    if not settings.GOOGLE_CLIENT_ID:
+def linkedin_login() -> RedirectResponse:
+    """Redirect the user to LinkedIn's consent screen."""
+    if not settings.LINKEDIN_CLIENT_ID:
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Google OAuth is not configured",
+            detail="LinkedIn OAuth is not configured",
         )
 
     state = secrets.token_urlsafe(32)
     oauth_common.store_state(state)
     params = {
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "client_id": settings.LINKEDIN_CLIENT_ID,
+        "redirect_uri": settings.LINKEDIN_REDIRECT_URI,
         "response_type": "code",
-        "scope": "openid email profile",
-        "access_type": "offline",
-        "prompt": "select_account",
+        "scope": "openid profile email",
         "state": state,
     }
-    return oauth_common.state_cookie_redirect(f"{GOOGLE_AUTH_URL}?{urlencode(params)}", state)
+    return oauth_common.state_cookie_redirect(f"{LINKEDIN_AUTH_URL}?{urlencode(params)}", state)
 
 
 @router.get("/callback")
-def google_callback(
+def linkedin_callback(
     request: Request,
     code: str | None = Query(default=None),
     state: str | None = Query(default=None),
     error: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
-    """Handle Google's redirect: validate state, exchange code, upsert user, issue tokens."""
+    """Handle LinkedIn's redirect: validate state, exchange code, upsert user, issue tokens."""
     if error or not code:
-        logger.warning("google_oauth_callback_error", extra={"error": error})
+        logger.warning("linkedin_oauth_callback_error", extra={"error": error})
         return oauth_common.login_failed_redirect()
 
     cookie_state = request.cookies.get(oauth_common.STATE_COOKIE)
     if not oauth_common.consume_state(state, cookie_state):
-        logger.warning("google_oauth_state_mismatch")
+        logger.warning("linkedin_oauth_state_mismatch")
         return oauth_common.login_failed_redirect()
 
     try:
         token_data = _exchange_code_for_tokens(code)
-        user_info = _fetch_google_user_info(token_data["access_token"])
+        user_info = _fetch_linkedin_user_info(token_data["access_token"])
     except (httpx.HTTPError, KeyError):
-        logger.exception("google_oauth_exchange_failed")
+        logger.exception("linkedin_oauth_exchange_failed")
         return oauth_common.login_failed_redirect()
 
-    google_id = user_info.get("id")
+    # OIDC userinfo: `sub` is the stable member id.
+    linkedin_id = user_info.get("sub")
     email = user_info.get("email")
-    if not google_id or not email:
-        logger.warning("google_oauth_missing_profile_fields")
+    if not linkedin_id or not email:
+        logger.warning("linkedin_oauth_missing_profile_fields")
         return oauth_common.login_failed_redirect()
 
-    user = crud_user.upsert_google_user(
+    user = crud_user.upsert_oauth_user(
         db,
-        google_id=str(google_id),
+        provider="linkedin",
+        id_attr="linkedin_id",
+        provider_user_id=str(linkedin_id),
         email=str(email),
         full_name=user_info.get("name"),
         avatar_url=user_info.get("picture"),
@@ -88,12 +95,12 @@ def google_callback(
 def _exchange_code_for_tokens(code: str) -> dict[str, Any]:
     with httpx.Client(timeout=10.0) as client:
         resp = client.post(
-            GOOGLE_TOKEN_URL,
+            LINKEDIN_TOKEN_URL,
             data={
                 "code": code,
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+                "client_id": settings.LINKEDIN_CLIENT_ID,
+                "client_secret": settings.LINKEDIN_CLIENT_SECRET,
+                "redirect_uri": settings.LINKEDIN_REDIRECT_URI,
                 "grant_type": "authorization_code",
             },
         )
@@ -102,11 +109,11 @@ def _exchange_code_for_tokens(code: str) -> dict[str, Any]:
         return data
 
 
-def _fetch_google_user_info(google_access_token: str) -> dict[str, Any]:
+def _fetch_linkedin_user_info(linkedin_access_token: str) -> dict[str, Any]:
     with httpx.Client(timeout=10.0) as client:
         resp = client.get(
-            GOOGLE_USERINFO_URL,
-            headers={"Authorization": f"Bearer {google_access_token}"},
+            LINKEDIN_USERINFO_URL,
+            headers={"Authorization": f"Bearer {linkedin_access_token}"},
         )
         resp.raise_for_status()
         data: dict[str, Any] = resp.json()

@@ -1,7 +1,23 @@
 import client from '../api/client'
-import type { User } from '../types'
+import type { TokenPair, User } from '../types'
+
+export interface AuthProviders {
+  google: boolean
+  linkedin: boolean
+  github: boolean
+  magic_link: boolean
+}
 
 export const authApi = {
+  getProviders: (): Promise<AuthProviders> =>
+    client.get<AuthProviders>('/api/v1/auth/providers').then((r) => r.data),
+
+  requestMagicLink: (email: string): Promise<void> =>
+    client.post('/api/v1/auth/magic-link', { email }).then(() => undefined),
+
+  verifyMagicLink: (token: string): Promise<TokenPair> =>
+    client.post<TokenPair>('/api/v1/auth/magic-link/verify', { token }).then((r) => r.data),
+
   verifyEmail: (token: string): Promise<User> =>
     client.get<User>(`/api/v1/auth/verify-email?token=${encodeURIComponent(token)}`).then((r) => r.data),
 
