@@ -15,8 +15,10 @@ import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import { StarIcon as StarOutline } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { CompletenessBar, CompletenessChecklist } from '../components/cvs/CvCompleteness'
+import ErrorState from '../components/ui/ErrorState'
 import VersionDiffViewer from '../components/cvs/VersionDiffViewer'
 import VersionHistory from '../components/cvs/VersionHistory'
+import { getErrorMessage } from '../lib/errors'
 import { cvApi } from '../services/api'
 import type { CV, CVVersionNode } from '../types'
 
@@ -64,6 +66,7 @@ function SkeletonRow() {
 export default function CVs() {
   const [cvs, setCvs] = useState<CV[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [pendingTitle, setPendingTitle] = useState('')
   const [uploadPct, setUploadPct] = useState<number | null>(null)
@@ -73,13 +76,23 @@ export default function CVs() {
   const [deleting, setDeleting] = useState(false)
   const [checklistFor, setChecklistFor] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadCvs = useCallback(() => {
+    setLoading(true)
+    setLoadError(null)
     cvApi
       .list()
       .then(setCvs)
-      .catch(() => toast.error('Failed to load CVs'))
+      .catch((err: unknown) => {
+        const message = getErrorMessage(err, 'Failed to load CVs')
+        setLoadError(message)
+        toast.error(message)
+      })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    loadCvs()
+  }, [loadCvs])
 
   const onDrop = useCallback((accepted: File[], rejected: FileRejection[]) => {
     if (rejected.length > 0) {
@@ -250,6 +263,8 @@ export default function CVs() {
               <SkeletonRow key={i} />
             ))}
           </div>
+        ) : loadError ? (
+          <ErrorState description={loadError} onRetry={loadCvs} />
         ) : cvs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <div className="h-12 w-12 bg-chip-accent rounded-xl flex items-center justify-center mb-3">

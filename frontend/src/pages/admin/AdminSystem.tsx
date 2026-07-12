@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ErrorBanner from '../../components/ui/ErrorBanner'
 import { FadeIn } from '../../components/ui/FadeIn'
 import { adminApi, type SystemHealthResponse } from '../../services/adminApi'
 
@@ -30,7 +31,7 @@ export default function AdminSystem() {
           <p className="mt-1 text-sm text-fg-subtle">Runtime checks for core infrastructure and external configuration.</p>
         </div>
 
-        {error && <div className="rounded-xl border border-chip-danger bg-chip-danger p-4 text-sm text-chip-danger-fg">{error}</div>}
+        {error && <ErrorBanner message={error} />}
 
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2">

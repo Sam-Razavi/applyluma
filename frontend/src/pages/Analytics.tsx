@@ -3,6 +3,7 @@ import AnalyticsHeader from '../components/analytics/AnalyticsHeader'
 import JobFreshnessStat from '../components/analytics/JobFreshnessStat'
 import ChartCard from '../components/analytics/ChartCard'
 import KPICard from '../components/analytics/KPICard'
+import { getErrorMessage } from '../lib/errors'
 import { lazyWithRetry } from '../lib/lazyWithRetry'
 import { analyticsApi, cvApi } from '../services/api'
 import { useAuthStore } from '../stores'
@@ -83,10 +84,6 @@ function chartFallback() {
   return <div className="h-48 animate-pulse rounded-lg bg-track md:h-72" aria-hidden="true" />
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Failed to load data'
-}
-
 interface AnalyticsSnapshot {
   marketHealth: JobMarketHealth | null
   trendingSkills: SkillTrend[]
@@ -161,7 +158,7 @@ function applySettledResult<T>(
     return
   }
 
-  snapshot.errors[key] = getErrorMessage(result.reason)
+  snapshot.errors[key] = getErrorMessage(result.reason, 'Failed to load data')
 }
 
 async function fetchInitialAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
@@ -264,7 +261,7 @@ async function fetchInitialResumeSnapshot(): Promise<ResumeSnapshot> {
       cvs: [],
       selectedResumeId: '',
       resumeComparison: null,
-      error: getErrorMessage(error),
+      error: getErrorMessage(error, 'Failed to load data'),
     }
   }
 }
@@ -326,7 +323,7 @@ export default function Analytics() {
       setMarketHealth(await analyticsApi.jobMarketHealth())
       setEndpointError('marketHealth', null)
     } catch (error) {
-      setEndpointError('marketHealth', getErrorMessage(error))
+      setEndpointError('marketHealth', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('marketHealth', false)
     }
@@ -338,7 +335,7 @@ export default function Analytics() {
       setTrendingSkills(await analyticsApi.trendingSkills(20, 1))
       setEndpointError('trendingSkills', null)
     } catch (error) {
-      setEndpointError('trendingSkills', getErrorMessage(error))
+      setEndpointError('trendingSkills', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('trendingSkills', false)
     }
@@ -350,7 +347,7 @@ export default function Analytics() {
       setSalaryInsights(await analyticsApi.salaryInsights())
       setEndpointError('salaryInsights', null)
     } catch (error) {
-      setEndpointError('salaryInsights', getErrorMessage(error))
+      setEndpointError('salaryInsights', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('salaryInsights', false)
     }
@@ -362,7 +359,7 @@ export default function Analytics() {
       setHiringPatterns(await analyticsApi.hiringPatterns(30, 'daily'))
       setEndpointError('hiringPatterns', null)
     } catch (error) {
-      setEndpointError('hiringPatterns', getErrorMessage(error))
+      setEndpointError('hiringPatterns', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('hiringPatterns', false)
     }
@@ -374,7 +371,7 @@ export default function Analytics() {
       setCompanyInsights(await analyticsApi.companyInsights(20))
       setEndpointError('companyInsights', null)
     } catch (error) {
-      setEndpointError('companyInsights', getErrorMessage(error))
+      setEndpointError('companyInsights', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('companyInsights', false)
     }
@@ -386,7 +383,7 @@ export default function Analytics() {
       setSkillDemand(await analyticsApi.skillDemand(20, 0))
       setEndpointError('skillDemand', null)
     } catch (error) {
-      setEndpointError('skillDemand', getErrorMessage(error))
+      setEndpointError('skillDemand', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('skillDemand', false)
     }
@@ -398,7 +395,7 @@ export default function Analytics() {
       setLocationTrends(await analyticsApi.locationTrends())
       setEndpointError('locationTrends', null)
     } catch (error) {
-      setEndpointError('locationTrends', getErrorMessage(error))
+      setEndpointError('locationTrends', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('locationTrends', false)
     }
@@ -410,7 +407,7 @@ export default function Analytics() {
       setIndustryBreakdown(await analyticsApi.industryBreakdown())
       setEndpointError('industryBreakdown', null)
     } catch (error) {
-      setEndpointError('industryBreakdown', getErrorMessage(error))
+      setEndpointError('industryBreakdown', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('industryBreakdown', false)
     }
@@ -422,7 +419,7 @@ export default function Analytics() {
       setExperienceLevels(await analyticsApi.experienceLevels())
       setEndpointError('experienceLevels', null)
     } catch (error) {
-      setEndpointError('experienceLevels', getErrorMessage(error))
+      setEndpointError('experienceLevels', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('experienceLevels', false)
     }
@@ -434,7 +431,7 @@ export default function Analytics() {
       setJobTypeMix(await analyticsApi.jobTypeMix())
       setEndpointError('jobTypeMix', null)
     } catch (error) {
-      setEndpointError('jobTypeMix', getErrorMessage(error))
+      setEndpointError('jobTypeMix', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('jobTypeMix', false)
     }
@@ -446,7 +443,7 @@ export default function Analytics() {
       setSalaryBySkill(await analyticsApi.salaryBySkill(20))
       setEndpointError('salaryBySkill', null)
     } catch (error) {
-      setEndpointError('salaryBySkill', getErrorMessage(error))
+      setEndpointError('salaryBySkill', getErrorMessage(error, 'Failed to load data'))
     } finally {
       setEndpointLoading('salaryBySkill', false)
     }
@@ -473,7 +470,7 @@ export default function Analytics() {
         setResumeComparison(targetResumeId ? await analyticsApi.comparison(targetResumeId) : null)
         setEndpointError('resumeComparison', null)
       } catch (error) {
-        setEndpointError('resumeComparison', getErrorMessage(error))
+        setEndpointError('resumeComparison', getErrorMessage(error, 'Failed to load data'))
       } finally {
         setEndpointLoading('resumeComparison', false)
       }
@@ -557,7 +554,7 @@ export default function Analytics() {
         console.error('Failed to load analytics:', error)
         setErrors(
           LOAD_KEYS.reduce(
-            (state, key) => ({ ...state, [key]: getErrorMessage(error) }),
+            (state, key) => ({ ...state, [key]: getErrorMessage(error, 'Failed to load data') }),
             {} as Record<LoadKey, string | null>,
           ),
         )

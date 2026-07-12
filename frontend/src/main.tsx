@@ -10,8 +10,22 @@ import App from './App'
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: [Sentry.browserTracingIntegration()],
+    // Exclude Sentry's own GlobalHandlers integration since we register explicit
+    // window 'error'/'unhandledrejection' listeners below — keeps error reporting
+    // documented in-repo instead of relying on undocumented default-integration
+    // behavior, without double-reporting the same error.
+    integrations: (defaults) => [
+      ...defaults.filter((integration) => integration.name !== 'GlobalHandlers'),
+      Sentry.browserTracingIntegration(),
+    ],
     tracesSampleRate: 0.1,
+  })
+
+  window.addEventListener('error', (event) => {
+    Sentry.captureException(event.error ?? event.message)
+  })
+  window.addEventListener('unhandledrejection', (event) => {
+    Sentry.captureException(event.reason)
   })
 }
 

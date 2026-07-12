@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import ErrorBanner from '../../components/ui/ErrorBanner'
 import { FadeIn } from '../../components/ui/FadeIn'
 import {
   adminApi,
@@ -110,9 +111,7 @@ export default function AdminPipeline() {
           </p>
         </div>
 
-        {error && (
-          <div className="rounded-xl border border-chip-danger bg-chip-danger p-4 text-sm text-chip-danger-fg">{error}</div>
-        )}
+        {error && <ErrorBanner message={error} />}
 
         {loading ? (
           <div className="grid gap-4 lg:grid-cols-2">
