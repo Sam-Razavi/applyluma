@@ -91,6 +91,17 @@ async def structured_http_exception_handler(request: Request, exc: FastAPIHTTPEx
     )
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "An unexpected error occurred. Please try again.",
+            "code": _HTTP_ERROR_CODES[500],
+        },
+    )
+
+
 # CORS configuration with Vercel preview URL support
 static_origins: list[str] = settings.BACKEND_CORS_ORIGINS
 
@@ -174,15 +185,10 @@ async def analytics_rate_limit(request: Request, call_next):
                 return JSONResponse(
                     status_code=429,
                     content={
-                        "success": False,
-                        "data": None,
-                        "metadata": None,
-                        "error": {
-                            "code": "RATE_LIMITED",
-                            "message": "Rate limit exceeded",
-                            "details": {"limit_per_minute": settings.RATE_LIMIT_PER_MINUTE},
-                        },
+                        "detail": "Rate limit exceeded",
+                        "code": "TOO_MANY_REQUESTS",
                     },
+                    headers={"Retry-After": "60"},
                 )
         except Exception:
             # Analytics endpoints are public; a Redis outage should not make

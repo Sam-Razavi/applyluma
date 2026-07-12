@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ErrorBanner from '../../components/ui/ErrorBanner'
 import { FadeIn } from '../../components/ui/FadeIn'
 import { adminApi, type AdminDatabaseStatsResponse } from '../../services/adminApi'
 
@@ -44,11 +45,7 @@ export default function AdminDatabase() {
           </p>
         </div>
 
-        {error && (
-          <div className="rounded-xl border border-chip-danger bg-chip-danger p-4 text-sm text-chip-danger-fg">
-            {error}
-          </div>
-        )}
+        {error && <ErrorBanner message={error} />}
 
         {loading ? (
           <div className="space-y-3">
