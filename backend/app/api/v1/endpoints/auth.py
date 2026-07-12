@@ -20,8 +20,11 @@ from app.crud import user as crud_user
 from app.models.user import User
 from app.schemas.token import LoginRequest, LogoutRequest, RefreshRequest, Token, TokenPair
 from app.schemas.user import (
+    AuthProvidersResponse,
     ChangePasswordRequest,
     ForgotPasswordRequest,
+    MagicLinkRequest,
+    MagicLinkVerifyRequest,
     ResetPasswordRequest,
     UserCreate,
     UserPublic,
@@ -348,3 +351,83 @@ def reset_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired password reset link",
         )
+
+
+_MAGIC_LINK_PREFIX = "magic_login:"
+_MAGIC_LINK_TTL_SECONDS = 900
+
+
+@router.post("/magic-link", status_code=status.HTTP_204_NO_CONTENT)
+def request_magic_link(
+    body: MagicLinkRequest,
+    db: Session = Depends(get_db),
+) -> None:
+    """Email a one-time sign-in link. Sign-in only: unknown emails get no
+    account and no email, but the response is always 204 to prevent
+    enumeration."""
+    user = crud_user.get_by_email(db, body.email)
+    if not user or not user.is_active:
+        return
+    token = secrets.token_urlsafe(32)
+    try:
+        get_redis_client().setex(f"{_MAGIC_LINK_PREFIX}{token}", _MAGIC_LINK_TTL_SECONDS, str(user.id))
+    except Exception:
+        logger.error("magic_link_redis_store_failed", exc_info=True)
+        return
+    try:
+        email_service.send_magic_link_email(user.email, token)
+    except Exception:
+        logger.error(
+            "Failed to send magic link email",
+            extra={"user_id": str(user.id)},
+            exc_info=True,
+        )
+
+
+@router.post("/magic-link/verify", response_model=TokenPair)
+def verify_magic_link(
+    body: MagicLinkVerifyRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> TokenPair:
+    """Exchange a one-time magic-link token for a session (single use)."""
+    invalid = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid or expired sign-in link",
+    )
+    try:
+        redis_client = get_redis_client()
+        key = f"{_MAGIC_LINK_PREFIX}{body.token}"
+        user_id = redis_client.get(key)
+        if user_id:
+            redis_client.delete(key)
+    except Exception:
+        logger.error("magic_link_redis_check_failed", exc_info=True)
+        raise invalid from None
+    if not user_id:
+        raise invalid
+
+    user = crud_user.get_by_id(db, str(user_id))
+    if not user or not user.is_active:
+        raise invalid
+    # Completing the link proves mailbox ownership.
+    if not user.is_verified:
+        user.is_verified = True
+        db.commit()
+
+    crud_user.record_login(db, user)
+    access_token = create_access_token(str(user.id))
+    refresh_token = create_refresh_token(str(user.id))
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenPair(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.get("/providers", response_model=AuthProvidersResponse)
+def auth_providers() -> AuthProvidersResponse:
+    """Which login methods are configured — drives the frontend's button row."""
+    return AuthProvidersResponse(
+        google=bool(settings.GOOGLE_CLIENT_ID),
+        linkedin=bool(settings.LINKEDIN_CLIENT_ID),
+        github=bool(settings.GITHUB_CLIENT_ID),
+        magic_link=bool(settings.RESEND_API_KEY),
+    )

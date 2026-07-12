@@ -6,8 +6,10 @@ import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { authApi } from '../services/api'
+import { authApi as authExtraApi } from '../services/authApi'
 import { useAuthStore } from '../stores'
-import GoogleLoginButton from '../components/auth/GoogleLoginButton'
+import { useAuthProviders } from '../hooks/useAuthProviders'
+import OAuthButtons from '../components/auth/OAuthButtons'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
 
@@ -31,8 +33,12 @@ const loginNotices: Record<string, { title: string; message: string }> = {
     message: 'We signed you out after a period of inactivity to keep your account safe.',
   },
   oauth_failed: {
-    title: 'Google sign-in failed',
-    message: 'Something went wrong during Google sign-in. Please try again.',
+    title: 'Social sign-in failed',
+    message: 'Something went wrong during sign-in with your provider. Please try again.',
+  },
+  magic_link_failed: {
+    title: 'Sign-in link invalid',
+    message: 'That sign-in link is invalid or has expired. Request a new one below.',
   },
 }
 
@@ -55,6 +61,11 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [magicOpen, setMagicOpen] = useState(false)
+  const [magicEmail, setMagicEmail] = useState('')
+  const [magicSending, setMagicSending] = useState(false)
+  const [magicSent, setMagicSent] = useState(false)
+  const providers = useAuthProviders()
   const loginNotice = loginNotices[searchParams.get('reason') ?? searchParams.get('error') ?? '']
 
   const {
@@ -62,6 +73,21 @@ export default function Login() {
     handleSubmit,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+  async function handleMagicLink(e: React.FormEvent) {
+    e.preventDefault()
+    if (!magicEmail.trim()) return
+    setMagicSending(true)
+    try {
+      await authExtraApi.requestMagicLink(magicEmail.trim())
+    } catch {
+      // Same response either way: never reveal whether the account exists.
+    } finally {
+      // Anti-enumeration: identical confirmation whether or not the email matched.
+      setMagicSent(true)
+      setMagicSending(false)
+    }
+  }
 
   async function onSubmit(data: FormData) {
     setServerError(null)
@@ -172,8 +198,48 @@ export default function Login() {
               <div className="h-px flex-1 bg-surface" />
             </div>
             <div className="mt-4">
-              <GoogleLoginButton />
+              <OAuthButtons providers={providers} />
             </div>
+            {providers.magic_link && (
+            <div className="mt-4 text-center">
+              {magicSent ? (
+                <p className="text-sm text-fg-subtle">
+                  If an account exists for that email, a sign-in link is on its way.
+                  Check your inbox.
+                </p>
+              ) : magicOpen ? (
+                <form onSubmit={handleMagicLink} className="space-y-3 text-left">
+                  <label htmlFor="magic-email" className="block text-sm font-medium text-fg-muted">
+                    Email for your sign-in link
+                  </label>
+                  <input
+                    id="magic-email"
+                    type="email"
+                    value={magicEmail}
+                    onChange={(e) => setMagicEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className={inputClass}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    disabled={magicSending || !magicEmail.trim()}
+                    className="w-full py-2.5 px-4 border border-line-strong rounded-lg text-sm font-medium text-fg hover:bg-surface-strong disabled:opacity-60 transition-colors"
+                  >
+                    {magicSending ? 'Sending…' : 'Email me a sign-in link'}
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setMagicOpen(true)}
+                  className="text-sm font-medium text-accent-text hover:underline"
+                >
+                  Email me a sign-in link instead
+                </button>
+              )}
+            </div>
+            )}
           </div>
 
           <p className="mt-6 text-center text-sm text-fg-subtle">

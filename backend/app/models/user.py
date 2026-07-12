@@ -56,6 +56,8 @@ class User(Base, TimestampMixin):
     login_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     # NULL = role default; 0 = blocked; N = that many tailor runs per day.
     daily_tailor_limit_override: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    linkedin_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    github_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     # NULL = app default (nordic); one of cv_render.TEMPLATES otherwise.
     preferred_template: Mapped[str | None] = mapped_column(String(32), nullable=True)
 

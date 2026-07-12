@@ -200,6 +200,8 @@ _AUTH_RATE_LIMITS: dict[str, int] = {
     "/api/v1/auth/forgot-password": 5,
     "/api/v1/auth/reset-password": 10,
     "/api/v1/auth/refresh": 30,
+    "/api/v1/auth/magic-link": 3,
+    "/api/v1/auth/magic-link/verify": 10,
     "/api/auth/login": 10,
     "/api/auth/token": 10,
     "/api/auth/register": 5,
@@ -207,6 +209,8 @@ _AUTH_RATE_LIMITS: dict[str, int] = {
     "/api/auth/forgot-password": 5,
     "/api/auth/reset-password": 10,
     "/api/auth/refresh": 30,
+    "/api/auth/magic-link": 3,
+    "/api/auth/magic-link/verify": 10,
 }
 
 
