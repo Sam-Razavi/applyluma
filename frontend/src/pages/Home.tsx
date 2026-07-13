@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 const FEATURES = [
@@ -34,6 +35,10 @@ const STEPS = [
 ]
 
 export default function Home() {
+  useEffect(() => {
+    document.title = 'ApplyLuma — AI-powered job search & CV tailoring'
+  }, [])
+
   return (
     <div className="space-y-24 pb-16">
 
