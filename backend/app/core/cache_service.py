@@ -13,6 +13,7 @@ class CacheService:
     SCORE_TTL_SECONDS = 24 * 3600   # 24 hours
     KEYWORD_TTL_SECONDS = 7 * 86400  # 7 days
     JOB_FEED_TTL_SECONDS = 3600      # 1 hour
+    TAILOR_RESULT_TTL_SECONDS = 24 * 3600  # 24 hours
 
     def __init__(self, redis_client: redis.Redis | None = None) -> None:
         if redis_client is not None:
@@ -112,6 +113,27 @@ class CacheService:
         keys = list(self._redis.scan_iter("feed:*"))
         if keys:
             self._redis.delete(*keys)
+
+    # ------------------------------------------------------------------
+    # Tailor results (structured CV output keyed on a hash of its inputs)
+    # ------------------------------------------------------------------
+
+    def get_cached_tailor_result(self, cache_key: str) -> dict | None:
+        raw = self._redis.get(f"tailor_result:{cache_key}")
+        if raw is None:
+            return None
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
+    def set_cached_tailor_result(
+        self,
+        cache_key: str,
+        result: dict,
+        ttl_seconds: int = TAILOR_RESULT_TTL_SECONDS,
+    ) -> None:
+        self._redis.setex(f"tailor_result:{cache_key}", ttl_seconds, json.dumps(result))
 
     # ------------------------------------------------------------------
     # Private helpers

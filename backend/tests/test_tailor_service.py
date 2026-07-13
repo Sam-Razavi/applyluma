@@ -248,6 +248,59 @@ def test_tailor_cv_rejects_missing_api_key(monkeypatch: pytest.MonkeyPatch) -> N
         )
 
 
+def test_tailor_cache_key_is_stable_for_identical_inputs() -> None:
+    key_a = tailor_service.tailor_cache_key(
+        None, "cv text", "jd text", ["Python", "SQL"], TailorIntensity.medium
+    )
+    key_b = tailor_service.tailor_cache_key(
+        None, "cv text", "jd text", ["Python", "SQL"], TailorIntensity.medium
+    )
+    assert key_a == key_b
+
+
+def test_tailor_cache_key_ignores_keyword_order() -> None:
+    key_a = tailor_service.tailor_cache_key(
+        None, "cv text", "jd text", ["Python", "SQL"], TailorIntensity.medium
+    )
+    key_b = tailor_service.tailor_cache_key(
+        None, "cv text", "jd text", ["SQL", "Python"], TailorIntensity.medium
+    )
+    assert key_a == key_b
+
+
+def test_tailor_cache_key_changes_with_cv_content() -> None:
+    key_a = tailor_service.tailor_cache_key(
+        None, "cv text one", "jd text", [], TailorIntensity.medium
+    )
+    key_b = tailor_service.tailor_cache_key(
+        None, "cv text two", "jd text", [], TailorIntensity.medium
+    )
+    assert key_a != key_b
+
+
+def test_tailor_cache_key_changes_with_intensity() -> None:
+    key_a = tailor_service.tailor_cache_key(None, "cv", "jd", [], TailorIntensity.light)
+    key_b = tailor_service.tailor_cache_key(None, "cv", "jd", [], TailorIntensity.aggressive)
+    assert key_a != key_b
+
+
+def test_tailor_cache_key_scopes_by_user() -> None:
+    import uuid as uuid_module
+
+    user_a = uuid_module.uuid4()
+    user_b = uuid_module.uuid4()
+    key_a = tailor_service.tailor_cache_key(user_a, "cv", "jd", [], TailorIntensity.medium)
+    key_b = tailor_service.tailor_cache_key(user_b, "cv", "jd", [], TailorIntensity.medium)
+    assert key_a != key_b
+
+
+def test_tailor_cache_key_accepts_plain_string_intensity() -> None:
+    """Defensive: some callers may pass an already-unwrapped enum value."""
+    key_enum = tailor_service.tailor_cache_key(None, "cv", "jd", [], TailorIntensity.medium)
+    key_str = tailor_service.tailor_cache_key(None, "cv", "jd", [], "medium")
+    assert key_enum == key_str
+
+
 def test_tailor_cv_rejects_non_json_response(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "OPENAI_API_KEY", "test-key")
     monkeypatch.setattr(tailor_service, "OpenAI", FakeOpenAI)

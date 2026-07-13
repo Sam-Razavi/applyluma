@@ -17,6 +17,39 @@ JOB_ID = str(uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
 USER_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
 
+class _FakeCache:
+    """In-memory stand-in for CacheService so tests never touch real Redis."""
+
+    def __init__(self, get_raises: bool = False, set_raises: bool = False):
+        self.store: dict[str, dict] = {}
+        self.get_raises = get_raises
+        self.set_raises = set_raises
+        self.get_calls: list[str] = []
+        self.set_calls: list[tuple[str, dict]] = []
+
+    def get_cached_tailor_result(self, cache_key: str):
+        self.get_calls.append(cache_key)
+        if self.get_raises:
+            raise RuntimeError("redis down")
+        return self.store.get(cache_key)
+
+    def set_cached_tailor_result(self, cache_key: str, result: dict, ttl_seconds: int | None = None):
+        self.set_calls.append((cache_key, result))
+        if self.set_raises:
+            raise RuntimeError("redis down")
+        self.store[cache_key] = result
+
+
+class _FakeDelay:
+    """Records .delay(...) calls made against a Celery task without dispatching."""
+
+    def __init__(self):
+        self.calls: list[dict] = []
+
+    def __call__(self, **kwargs):
+        self.calls.append(kwargs)
+
+
 # ---------------------------------------------------------------------------
 # Shared fake collaborators
 # ---------------------------------------------------------------------------
@@ -124,6 +157,15 @@ def test_run_tailoring_job_already_complete(monkeypatch: pytest.MonkeyPatch) -> 
     assert "already" in result["error"]
 
 
+def _patch_tailor_common(monkeypatch: pytest.MonkeyPatch, cache: _FakeCache) -> _FakeDelay:
+    monkeypatch.setattr(tailor_tasks.crud_tailor, "set_processing", lambda db, j: None)
+    monkeypatch.setattr(tailor_tasks.crud_tailor, "set_complete", lambda db, j, **kw: None)
+    monkeypatch.setattr(tailor_tasks, "CacheService", lambda: cache)
+    notify_delay = _FakeDelay()
+    monkeypatch.setattr(tailor_tasks.send_notification_async, "delay", notify_delay)
+    return notify_delay
+
+
 def test_run_tailoring_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
     job = _make_tailor_job()
     db = _FakeDb(job=job, cv=_make_cv(), jd=_make_jd())
@@ -131,11 +173,75 @@ def test_run_tailoring_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
 
     fake_result = {"sections": [], "language": "en"}
     monkeypatch.setattr(tailor_tasks, "tailor_cv", lambda **kw: fake_result)
-    monkeypatch.setattr(tailor_tasks.crud_tailor, "set_processing", lambda db, j: None)
-    monkeypatch.setattr(tailor_tasks.crud_tailor, "set_complete", lambda db, j, **kw: None)
+    cache = _FakeCache()
+    notify_delay = _patch_tailor_common(monkeypatch, cache)
+
+    result = tailor_tasks.run_tailoring.run(JOB_ID)
+
+    assert result == {"status": "complete", "job_id": JOB_ID}
+    # The result was cached for next time, and the completion notification
+    # was dispatched async rather than sent inline.
+    assert cache.set_calls == [(cache.get_calls[0], fake_result)]
+    assert len(notify_delay.calls) == 1
+    assert notify_delay.calls[0]["type"] == "tailor_complete"
+    assert notify_delay.calls[0]["send_email"] is True
+
+
+def test_run_tailoring_cache_hit_skips_tailor_cv(monkeypatch: pytest.MonkeyPatch) -> None:
+    job = _make_tailor_job()
+    db = _FakeDb(job=job, cv=_make_cv(), jd=_make_jd())
+    monkeypatch.setattr(tailor_tasks, "SessionLocal", lambda: db)
+
+    tailor_cv_calls: list[dict] = []
     monkeypatch.setattr(
-        tailor_tasks.notification_service, "create_notification", lambda db, **kw: None
+        tailor_tasks, "tailor_cv", lambda **kw: tailor_cv_calls.append(kw) or {"language": "en"}
     )
+    cache = _FakeCache()
+    cached_result = {"sections": [], "language": "en", "structured_cv": {}}
+    # Pre-seed the cache under the exact key run_tailoring will compute.
+    key = tailor_tasks.tailor_cache_key(
+        job.user_id, db._cv.content, db._jd.description, db._jd.keywords or [], job.intensity
+    )
+    cache.store[key] = cached_result
+    _patch_tailor_common(monkeypatch, cache)
+
+    result = tailor_tasks.run_tailoring.run(JOB_ID)
+
+    assert result == {"status": "complete", "job_id": JOB_ID}
+    assert tailor_cv_calls == []  # no OpenAI call made on a cache hit
+    assert cache.set_calls == []  # re-caching an already-cached result is pointless
+
+
+def test_run_tailoring_cache_read_failure_falls_back_to_fresh_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Redis outage on the cache read must not break tailoring."""
+    job = _make_tailor_job()
+    db = _FakeDb(job=job, cv=_make_cv(), jd=_make_jd())
+    monkeypatch.setattr(tailor_tasks, "SessionLocal", lambda: db)
+
+    fake_result = {"sections": [], "language": "en"}
+    monkeypatch.setattr(tailor_tasks, "tailor_cv", lambda **kw: fake_result)
+    cache = _FakeCache(get_raises=True)
+    _patch_tailor_common(monkeypatch, cache)
+
+    result = tailor_tasks.run_tailoring.run(JOB_ID)
+
+    assert result == {"status": "complete", "job_id": JOB_ID}
+
+
+def test_run_tailoring_cache_write_failure_still_completes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Redis outage on the cache write must not break tailoring either."""
+    job = _make_tailor_job()
+    db = _FakeDb(job=job, cv=_make_cv(), jd=_make_jd())
+    monkeypatch.setattr(tailor_tasks, "SessionLocal", lambda: db)
+
+    fake_result = {"sections": [], "language": "en"}
+    monkeypatch.setattr(tailor_tasks, "tailor_cv", lambda **kw: fake_result)
+    cache = _FakeCache(set_raises=True)
+    _patch_tailor_common(monkeypatch, cache)
 
     result = tailor_tasks.run_tailoring.run(JOB_ID)
 

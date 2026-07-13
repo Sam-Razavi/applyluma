@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import desc, exists, func, not_
@@ -13,6 +14,42 @@ from app.services import notification_service
 from app.tasks.celery_app import celery_app
 
 TERMINAL_STATUSES = ("rejected", "withdrawn", "offer")
+
+
+@celery_app.task(name="app.tasks.notifications.send_notification_async")
+def send_notification_async(
+    user_id: str,
+    type: str,  # noqa: A002 - matches notification_service.create_notification's param name
+    title: str,
+    body: str,
+    related_id: str | None = None,
+    related_type: str | None = None,
+    send_email: bool = False,
+    email: str | None = None,
+) -> dict[str, str]:
+    """Create a notification row (and optionally send its email) out of band.
+
+    Used by tasks whose own completion the user is actively waiting on (e.g.
+    CV tailoring) so a slow outbound email send never adds to that wait —
+    the caller dispatches this via .delay() after its own job is already
+    marked complete.
+    """
+    db = SessionLocal()
+    try:
+        notification_service.create_notification(
+            db,
+            user_id=uuid.UUID(user_id),
+            type=type,
+            title=title,
+            body=body,
+            related_id=uuid.UUID(related_id) if related_id else None,
+            related_type=related_type,
+            send_email=send_email,
+            email=email,
+        )
+        return {"status": "sent"}
+    finally:
+        db.close()
 
 APPLICATION_STATUSES = (
     "wishlist",
