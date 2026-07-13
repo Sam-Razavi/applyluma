@@ -78,6 +78,16 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     timezone="UTC",
     enable_utc=True,
+    # Route the user-facing AI generation tasks to their own queue so they
+    # aren't stuck behind batch matching jobs or beat-scheduled notification
+    # runs under a single-concurrency (--pool=solo) worker. The default
+    # worker (start-worker.sh) still listens to both queues, so this is a
+    # no-op unless a second worker process is deployed listening only to
+    # "ai_pipeline" (scripts/start-worker-ai.sh).
+    task_routes={
+        "app.tasks.tailor.*": {"queue": "ai_pipeline"},
+        "app.tasks.cover_letter.*": {"queue": "ai_pipeline"},
+    },
     beat_schedule={
         "check-upcoming-deadlines-daily": {
             "task": "app.tasks.notifications.check_upcoming_deadlines",

@@ -5,6 +5,7 @@ returns typed CV content plus a section-by-section diff derived from it.
 The model generates CONTENT ONLY; all layout and styling live in the fixed
 HTML/CSS templates under app/services/cv_render/templates/.
 """
+import hashlib
 import json
 import re
 import uuid
@@ -15,6 +16,29 @@ from openai import AuthenticationError, OpenAI, RateLimitError
 from app.core.config import settings
 from app.models.tailor_job import TailorIntensity
 from app.services import ai_usage, cv_render
+
+
+def tailor_cache_key(
+    user_id: uuid.UUID | None,
+    cv_content: str,
+    jd_description: str,
+    jd_keywords: list[str],
+    intensity: TailorIntensity,
+) -> str:
+    """Stable key for caching a tailor_cv() result. Scoped per-user so a
+    cache hit only ever returns a user's own prior result, and naturally
+    invalidates itself whenever the CV or job description content changes
+    (different content -> different hash -> cache miss), with no explicit
+    invalidation logic needed."""
+    intensity_value = intensity.value if hasattr(intensity, "value") else str(intensity)
+    payload = "\x1f".join([
+        str(user_id or ""),
+        cv_content,
+        jd_description,
+        ",".join(sorted(jd_keywords or [])),
+        intensity_value,
+    ])
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 _INTENSITY_INSTRUCTIONS: dict[TailorIntensity, str] = {
     TailorIntensity.light: (

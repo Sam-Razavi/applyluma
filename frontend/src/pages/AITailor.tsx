@@ -170,7 +170,8 @@ export default function AITailor() {
 
   function startPolling(enabledCv: boolean, enabledCover: boolean, cvId: string | null, coverId: string | null) {
     if (pollRef.current) window.clearInterval(pollRef.current)
-    pollRef.current = window.setInterval(async () => {
+
+    async function poll() {
       try {
         if (enabledCv && cvId && !cvReadyRef.current) {
           const status = await tailorApi.getStatus(cvId)
@@ -210,7 +211,10 @@ export default function AITailor() {
       } catch {
         // Polling tolerates transient network errors.
       }
-    }, POLL_INTERVAL_MS)
+    }
+
+    void poll()
+    pollRef.current = window.setInterval(poll, POLL_INTERVAL_MS)
   }
 
   async function handleSubmit() {
