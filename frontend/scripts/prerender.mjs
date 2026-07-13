@@ -6,6 +6,12 @@ const DIST = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 
 const PAGES = [
   {
+    path: '/',
+    title: 'ApplyLuma — AI-powered job search & CV tailoring',
+    description: 'ApplyLuma helps you land your next job faster. AI-powered CV tailoring, cover letter generation, Swedish job discovery, and application tracking — all in one place.',
+    canonical: 'https://applyluma.com/',
+  },
+  {
     path: '/login',
     title: 'Log in — ApplyLuma',
     description: 'Sign in to your ApplyLuma account to tailor your CV, discover jobs, and track applications.',
