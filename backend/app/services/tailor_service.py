@@ -250,7 +250,12 @@ CV does not state verbatim; invented outcomes or achievements; inflated \
 seniority or titles; courses or certifications not named in the CV.
 3. Internships must still be labelled internships; personal or academic \
 projects must not read as employment.
-4. Do NOT add any new content, and do not change the language.
+4. Do NOT add any new content. Required output language: {jd_language} (the \
+job description's language) — every field, heading, bullet, and category \
+name must be in {jd_language}. If anything is written in a different \
+language (including the candidate CV's own language), or only partially is, \
+translate it into {jd_language} now while keeping the facts unchanged. Keep \
+technology/product names in their original form.
 Return the corrected JSON in the exact same schema. If a value is already \
 fully supported, keep it unchanged.
 """
@@ -265,7 +270,9 @@ relevant roles.
 - Keep ALL projects and ALL education entries, but compress the least relevant \
 to their strongest 1–2 bullets.
 - Do not remove truthful evidence that directly matches an essential job \
-requirement. Do not change the language. Do not alter contact details.
+requirement. Keep every field in {jd_language} (the job description's \
+language) — do not revert any field to the candidate CV's original \
+language. Do not alter contact details.
 """
 
 
@@ -569,7 +576,7 @@ def tailor_cv(
     try:
         verify_messages = messages + [
             {"role": "assistant", "content": raw},
-            {"role": "user", "content": _VERIFY_PROMPT},
+            {"role": "user", "content": _VERIFY_PROMPT.format(jd_language=jd_language)},
         ]
         verified_raw = _call_openai(
             client, verify_messages, purpose="tailor_verify", user_id=user_id
@@ -589,7 +596,7 @@ def tailor_cv(
     if pages is not None and pages > 2:
         retry_messages = base_messages + [
             {"role": "assistant", "content": raw},
-            {"role": "user", "content": _COMPRESS_PROMPT},
+            {"role": "user", "content": _COMPRESS_PROMPT.format(jd_language=jd_language)},
         ]
         try:
             compressed_raw = _call_openai(

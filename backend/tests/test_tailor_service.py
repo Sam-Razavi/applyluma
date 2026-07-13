@@ -128,6 +128,58 @@ def test_tailor_cv_runs_verification_pass(monkeypatch: pytest.MonkeyPatch) -> No
     assert "audit your own output" in verify_call["messages"][3]["content"]
 
 
+def test_verify_pass_restates_jd_language(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(tailor_service, "OpenAI", FakeOpenAI)
+    # CV and JD are in different languages so `jd_language` is unambiguous.
+    monkeypatch.setattr(
+        tailor_service, "detect", lambda text: "sv" if "Behover" in text else "en"
+    )
+
+    tailor_service.tailor_cv(
+        cv_content=CV_TEXT,
+        jd_description="Behover Python och SQL",
+        jd_keywords=["Python", "SQL"],
+        intensity=TailorIntensity.medium,
+    )
+
+    verify_call = FakeOpenAI.all_calls[1]
+    assert "Required output language: sv" in verify_call["messages"][3]["content"]
+
+
+def test_compress_pass_restates_jd_language(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(tailor_service, "OpenAI", FakeOpenAI)
+    monkeypatch.setattr(
+        tailor_service, "detect", lambda text: "sv" if "Behover" in text else "en"
+    )
+    # Force the "exceeds two pages" branch on the first probe, then let the
+    # compressed result look shorter so it is kept.
+    page_counts = iter([3, 1])
+    monkeypatch.setattr(
+        tailor_service, "_probe_page_count", lambda *args, **kwargs: next(page_counts)
+    )
+
+    tailor_service.tailor_cv(
+        cv_content=CV_TEXT,
+        jd_description="Behover Python och SQL",
+        jd_keywords=["Python", "SQL"],
+        intensity=TailorIntensity.medium,
+    )
+
+    assert len(FakeOpenAI.all_calls) == 3
+    compress_call = FakeOpenAI.all_calls[2]
+    assert "Keep every field in sv" in compress_call["messages"][-1]["content"]
+
+
+def test_verify_and_compress_prompts_format_safely() -> None:
+    verify_text = tailor_service._VERIFY_PROMPT.format(jd_language="sv")
+    compress_text = tailor_service._COMPRESS_PROMPT.format(jd_language="sv")
+
+    assert "sv" in verify_text
+    assert "sv" in compress_text
+
+
 def test_tailor_cv_result_contains_structured_cv_and_sections(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
