@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -26,6 +26,10 @@ const inputClass =
   'w-full rounded-lg border border-line-strong px-3 py-2.5 text-sm placeholder-fg-subtle shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition'
 
 export default function Contact() {
+  useEffect(() => {
+    document.title = 'Contact — ApplyLuma'
+  }, [])
+
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
