@@ -234,7 +234,10 @@ class KeywordExtractor:
         0.6 — case-insensitive word-boundary match
         0.0 — not found
 
-        Word boundaries prevent "React" matching "Reactive", and the phrase
+        Lookaround guards are used instead of \\b so symbol-suffixed
+        keywords like "C++" and "C#" still match — a trailing \\b never
+        matches immediately after a non-word character such as '+' or '#'.
+        These guards prevent "React" matching "Reactive", and the phrase
         check prevents "Apache Kafka" matching when both words appear in
         unrelated parts of the text.
         """
@@ -242,18 +245,21 @@ class KeywordExtractor:
         kw_lower = keyword.lower()
         kw_words = kw_lower.split()
 
-        # Exact case-sensitive word-boundary match
-        if re.search(r"\b" + re.escape(keyword) + r"\b", text):
+        # Exact case-sensitive match
+        exact_pattern = r"(?<![A-Za-z0-9])" + re.escape(keyword) + r"(?![A-Za-z0-9])"
+        if re.search(exact_pattern, text):
             return 1.0
 
         if len(kw_words) > 1:
             # Require multi-word term to appear as an actual phrase
-            phrase_pattern = r"\b" + r"[\s\-/]+" .join(re.escape(w) for w in kw_words) + r"\b"
+            phrase_body = r"[\s\-/]+".join(re.escape(w) for w in kw_words)
+            phrase_pattern = r"(?<![a-z0-9])" + phrase_body + r"(?![a-z0-9])"
             if re.search(phrase_pattern, text_lower):
                 return 0.8
         else:
-            # Single-word case-insensitive word-boundary match
-            if re.search(r"\b" + re.escape(kw_lower) + r"\b", text_lower):
+            # Single-word case-insensitive match
+            single_pattern = r"(?<![a-z0-9])" + re.escape(kw_lower) + r"(?![a-z0-9])"
+            if re.search(single_pattern, text_lower):
                 return 0.6
 
         return 0.0
