@@ -123,6 +123,57 @@ def test_dedupe_sql_is_cross_source_rolling_window():
     assert "ORDER BY scraped_at ASC" in sql
     assert "DATE(scraped_at) = CURRENT_DATE" in sql
 
+def test_keyword_extraction_no_substring_false_positives():
+    from job_scrapers.keyword_extraction import extract_keywords_simple
+
+    def matched(text):
+        return {kw for kw, _kw_type, _conf, _freq in extract_keywords_simple(text)}
+
+    assert "Go" not in matched("We use Golang and Google Cloud")
+    assert "Go" in matched("Experience with Go required")
+
+    assert "Java" not in matched("JavaScript and TypeScript")
+    java_and_js = extract_keywords_simple("Java and JavaScript")
+    java_and_js_by_kw = {kw: (conf, freq) for kw, _kw_type, conf, freq in java_and_js}
+    assert "Java" in java_and_js_by_kw
+    assert java_and_js_by_kw["Java"][1] == 1
+
+    assert "SQL" not in matched("PostgreSQL, MySQL and NoSQL stores")
+    assert "SQL" in matched("strong SQL skills")
+
+
+def test_keyword_extraction_symbol_suffixed_keywords():
+    from job_scrapers.keyword_extraction import extract_keywords_simple
+
+    matched = {kw for kw, _kw_type, _conf, _freq in extract_keywords_simple("C++ and C# experience")}
+    assert "C++" in matched
+    assert "C#" in matched
+
+
+def test_keyword_extraction_multi_word_flexible_separator():
+    from job_scrapers.keyword_extraction import extract_keywords_simple
+
+    assert any(kw == "Machine Learning" for kw, *_ in extract_keywords_simple("machine learning"))
+    assert any(kw == "Machine Learning" for kw, *_ in extract_keywords_simple("machine-learning"))
+
+
+def test_keyword_extraction_confidence_by_case():
+    from job_scrapers.keyword_extraction import extract_keywords_simple
+
+    exact = {kw: conf for kw, _kw_type, conf, _freq in extract_keywords_simple("We use Python daily")}
+    assert exact["Python"] == 1.0
+
+    different_case = {kw: conf for kw, _kw_type, conf, _freq in extract_keywords_simple("We use python daily")}
+    assert different_case["Python"] == 0.6
+
+
+def test_keyword_extraction_empty_input():
+    from job_scrapers.keyword_extraction import extract_keywords_simple
+
+    assert extract_keywords_simple("") == []
+    assert extract_keywords_simple(None) == []
+
+
 @patch("transform_jobs.PostgresHook")
 def test_calculate_daily_metrics_no_rows(mock_hook):
     from transform_jobs import calculate_daily_metrics

@@ -25,36 +25,12 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "plugins"))
 sys.path.insert(0, "/opt/airflow/plugins")
 
+from job_scrapers.keyword_extraction import extract_keywords_simple  # noqa: E402
+
 logger = logging.getLogger(__name__)
 
 POSTGRES_CONN_ID = "postgres_default"
 REDIS_URL = os.environ.get("AIRFLOW__CELERY__BROKER_URL", "redis://localhost:6379/0")
-
-# Simple inline skill lists for Airflow (no heavy NLP dependency in worker)
-_SIMPLE_SKILLS: list[tuple[str, str]] = [
-    # (keyword, category)
-    ("Python", "technical_skills"), ("JavaScript", "technical_skills"),
-    ("TypeScript", "technical_skills"), ("Java", "technical_skills"),
-    ("Go", "technical_skills"), ("Rust", "technical_skills"),
-    ("C++", "technical_skills"), ("C#", "technical_skills"),
-    ("SQL", "technical_skills"), ("PostgreSQL", "technical_skills"),
-    ("MySQL", "technical_skills"), ("MongoDB", "technical_skills"),
-    ("Redis", "technical_skills"), ("Docker", "technical_skills"),
-    ("Kubernetes", "technical_skills"), ("Linux", "technical_skills"),
-    ("AWS", "technical_skills"), ("GCP", "technical_skills"),
-    ("Azure", "technical_skills"), ("Machine Learning", "technical_skills"),
-    ("FastAPI", "frameworks"), ("Django", "frameworks"), ("Flask", "frameworks"),
-    ("React", "frameworks"), ("Vue", "frameworks"), ("Angular", "frameworks"),
-    ("NextJS", "frameworks"), ("Spring", "frameworks"), ("SpringBoot", "frameworks"),
-    ("Git", "tools"), ("GitHub", "tools"), ("Jira", "tools"),
-    ("Jenkins", "tools"), ("Terraform", "tools"), ("Ansible", "tools"),
-    ("Leadership", "soft_skills"), ("Communication", "soft_skills"),
-    ("Agile", "soft_skills"), ("Scrum", "soft_skills"),
-    ("Swedish", "languages"), ("English", "languages"),
-    ("Svenska", "languages"), ("Engelska", "languages"),
-    ("AWS Solutions Architect", "certifications"),
-    ("CKA", "certifications"), ("CKAD", "certifications"),
-]
 
 
 def _get_db_conn_str() -> str:
@@ -64,15 +40,7 @@ def _get_db_conn_str() -> str:
 
 def _extract_keywords_simple(text: str) -> list[tuple[str, str, float, int]]:
     """Return list of (keyword, type, confidence, frequency)."""
-    text_lower = text.lower()
-    results = []
-    for keyword, kw_type in _SIMPLE_SKILLS:
-        kw_lower = keyword.lower()
-        if kw_lower in text_lower:
-            freq = text_lower.count(kw_lower)
-            confidence = 1.0 if keyword in text else 0.6
-            results.append((keyword, kw_type, confidence, freq))
-    return results
+    return extract_keywords_simple(text)
 
 
 def extract_keywords_for_new_jobs(**context: Any) -> int:
