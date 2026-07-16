@@ -1,8 +1,13 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'fs'
 import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 
-const DIST = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const DIST = resolve(ROOT, 'dist')
+const DIST_SSR = resolve(ROOT, 'dist-ssr')
+
+// Routes whose raw HTML should contain real page content (not just meta tags).
+const SSR_ROUTES = new Set(['/', '/terms', '/privacy', '/contact'])
 
 const PAGES = [
   {
@@ -45,6 +50,8 @@ const PAGES = [
 
 const template = readFileSync(resolve(DIST, 'index.html'), 'utf-8')
 
+const { render } = await import(pathToFileURL(resolve(DIST_SSR, 'prerender-entry.js')).href)
+
 for (const page of PAGES) {
   let html = template
     .replace(
@@ -80,10 +87,28 @@ for (const page of PAGES) {
       `<meta name="twitter:description" content="${page.description}" />`,
     )
 
+  if (SSR_ROUTES.has(page.path)) {
+    try {
+      const markup = render(page.path)
+      if (!markup.includes('<h1')) {
+        throw new Error(`rendered markup for ${page.path} does not contain an <h1>`)
+      }
+      html = html.replace('<div id="root"></div>', `<div id="root">${markup}</div>`)
+    } catch (err) {
+      console.error(`  failed to pre-render body HTML for ${page.path}`)
+      console.error(err)
+      process.exit(1)
+    }
+  }
+
+  // page.path.slice(1) is '' for '/', which resolves to DIST itself — so
+  // this also rewrites dist/index.html for the root route.
   const dir = resolve(DIST, page.path.slice(1))
   mkdirSync(dir, { recursive: true })
   writeFileSync(resolve(dir, 'index.html'), html)
   console.log(`  pre-rendered ${page.path}`)
 }
+
+rmSync(DIST_SSR, { recursive: true, force: true })
 
 console.log(`\n  ${PAGES.length} pages pre-rendered.`)
