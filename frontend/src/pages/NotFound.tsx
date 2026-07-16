@@ -3,8 +3,10 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, HomeIcon, MapIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
 import { FadeIn } from '../components/ui/FadeIn'
 import { useAuthStore } from '../stores'
+import { useNoIndex } from '../hooks/useNoIndex'
 
 export default function NotFound() {
+  useNoIndex()
   const token = useAuthStore((state) => state.token)
   const primaryDestination = token ? '/dashboard' : '/'
   const primaryLabel = token ? 'Go to dashboard' : 'Go home'

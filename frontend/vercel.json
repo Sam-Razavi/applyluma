@@ -28,6 +28,15 @@
       ]
     },
     {
+      "source": "/(dashboard|cvs|jobs|discover|saved-jobs|job-search|applications|ai-tailor|cover-letter|analytics|settings|feedback|plans|billing|admin|extension-auth|auth|magic-login|check-email|verify-email|forgot-password|reset-password|forbidden)(/.*)?",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
