@@ -39,14 +39,6 @@
     <!-- Mobile browser theme colour -->
     <meta name="theme-color" content="#080E12" />
 
-    <!-- Fonts: Plus Jakarta Sans (display) + Inter (body) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;600;700&display=swap"
-      rel="stylesheet"
-    />
-
     <!-- JSON-LD structured data -->
     <script type="application/ld+json">
     [
@@ -55,7 +47,7 @@
         "@type": "Organization",
         "name": "ApplyLuma",
         "url": "https://applyluma.com",
-        "logo": "https://applyluma.com/favicon.svg",
+        "logo": "https://applyluma.com/icon-512.png",
         "description": "AI-powered job search and resume optimization platform."
       },
       {
@@ -76,22 +68,14 @@
           },
           {
             "@type": "Offer",
-            "price": "9.99",
-            "priceCurrency": "USD",
             "name": "Premium plan",
-            "billingIncrement": "month"
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": 9.99,
+              "priceCurrency": "USD",
+              "billingDuration": "P1M"
+            }
           }
-        ]
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://applyluma.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Register", "item": "https://applyluma.com/register" },
-          { "@type": "ListItem", "position": 3, "name": "Login", "item": "https://applyluma.com/login" },
-          { "@type": "ListItem", "position": 4, "name": "Terms", "item": "https://applyluma.com/terms" },
-          { "@type": "ListItem", "position": 5, "name": "Privacy", "item": "https://applyluma.com/privacy" }
         ]
       }
     ]
