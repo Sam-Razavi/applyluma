@@ -87,7 +87,6 @@ export const useApplicationsStore = create<ApplicationsState>()(
         set((state) => ({
           applications: [application, ...state.applications],
           stats: countStats([application, ...state.applications]),
-          selectedApplication: application,
         }))
         return application
       },
