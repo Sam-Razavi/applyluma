@@ -83,7 +83,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [duplicateOf, setDuplicateOf] = useState<{ jobTitle: string; status: string } | null>(null)
-  const companyInputRef = useRef<HTMLInputElement>(null)
+  const importUrlInputRef = useRef<HTMLInputElement>(null)
   const saveAndAddAnotherRef = useRef(false)
 
   useEffect(() => {
@@ -198,7 +198,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
       if (saveAndAddAnotherRef.current) {
         // Keep the modal open with a fresh form for the next entry.
         setForm(buildInitialForm(null))
-        companyInputRef.current?.focus()
+        importUrlInputRef.current?.focus()
       } else {
         setForm(initialForm)
         onClose()
@@ -224,7 +224,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
   }
 
   return (
-    <Dialog open={open} onClose={close} initialFocus={companyInputRef} className="relative z-modal">
+    <Dialog open={open} onClose={close} initialFocus={importUrlInputRef} className="relative z-modal">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center sm:p-4">
         <DialogPanel className="flex h-full w-full flex-col rounded-none bg-raised shadow-2xl sm:h-auto sm:max-h-[90vh] sm:w-[600px] sm:rounded-lg">
@@ -248,6 +248,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
             </label>
             <div className="flex gap-2">
               <input
+                ref={importUrlInputRef}
                 id="application-import-url"
                 type="url"
                 value={importUrl}
@@ -278,7 +279,6 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Company name" required>
                 <input
-                  ref={companyInputRef}
                   name="company_name"
                   value={form.company_name ?? ''}
                   onChange={(e) => setField('company_name', e.target.value)}
