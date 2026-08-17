@@ -33,7 +33,7 @@ const initialForm: ApplicationCreate = {
   company_name: '',
   job_title: '',
   job_url: '',
-  status: 'wishlist',
+  status: 'applied',
   applied_date: null,
   source: '',
   salary_min: null,
@@ -51,7 +51,7 @@ function buildInitialForm(initialData?: Partial<ApplicationCreate> | null): Appl
     company_name: initialData?.company_name ?? '',
     job_title: initialData?.job_title ?? '',
     job_url: initialData?.job_url ?? '',
-    status: initialData?.status ?? 'wishlist',
+    status: initialData?.status ?? 'applied',
     applied_date: initialData?.applied_date ?? todayISO(),
     priority: initialData?.priority ?? 1,
   }
