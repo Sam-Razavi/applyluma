@@ -11,6 +11,7 @@ from app.api.v1.endpoints.health import _check_adzuna, _check_celery, _check_db,
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db, get_redis_client
 from app.crud import admin as crud_admin
+from app.crud import inbound_email as crud_inbound_email
 from app.crud import user as crud_user
 from app.models.user import User, UserRole
 from app.schemas.admin import (
@@ -27,6 +28,8 @@ from app.schemas.admin import (
     AdminBulkNotifyResponse,
     AdminDatabaseStatsResponse,
     AdminFunnelStats,
+    AdminInboundEmailListResponse,
+    AdminInboundEmailRow,
     AdminLimitsUpdateRequest,
     AdminNotificationListResponse,
     AdminNotificationRow,
@@ -550,6 +553,54 @@ def system_health(
 @router.get("/database/stats", response_model=AdminDatabaseStatsResponse)
 def database_stats(admin: AdminUser, db: DbSession) -> AdminDatabaseStatsResponse:
     return AdminDatabaseStatsResponse.model_validate(crud_admin.get_database_stats(db))
+
+
+@router.get("/inbound-emails", response_model=AdminInboundEmailListResponse)
+def inbound_emails(
+    admin: AdminUser,
+    db: DbSession,
+    matched: bool | None = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(25, ge=1, le=100),
+) -> AdminInboundEmailListResponse:
+    """Forwarded mail and what the matcher made of it.
+
+    Read-only, so it is not audit-logged — consistent with the other admin
+    listings. Exists to judge matcher accuracy against real mail before any of
+    this drives a status change.
+    """
+    rows, total = crud_inbound_email.list_for_admin(
+        db,
+        skip=(page - 1) * size,
+        limit=size,
+        matched=matched,
+    )
+    return AdminInboundEmailListResponse(
+        items=[
+            AdminInboundEmailRow(
+                id=row.id,
+                user_id=row.user_id,
+                from_address=row.from_address,
+                from_domain=row.from_domain,
+                subject=row.subject,
+                snippet=row.snippet,
+                message_id=row.message_id,
+                received_at=row.received_at,
+                vendor=row.vendor,
+                matched_application_id=row.matched_application_id,
+                matched_company_name=company_name,
+                matched_job_title=job_title,
+                match_confidence=row.match_confidence,
+                match_method=row.match_method,
+                match_reason=row.match_reason,
+                created_at=row.created_at,
+            )
+            for row, company_name, job_title in rows
+        ],
+        total=total,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/audit-logs", response_model=AdminAuditLogListResponse)

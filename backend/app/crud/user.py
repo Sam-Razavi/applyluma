@@ -90,6 +90,7 @@ def upsert_oauth_user(
         auth_provider=provider,
         is_active=True,
         is_verified=True,
+        inbox_token=new_inbox_token(),
         **{id_attr: provider_user_id},
     )
     db.add(user)
@@ -125,12 +126,45 @@ def get_by_id(db: Session, user_id: str) -> User | None:
         return None
 
 
+def new_inbox_token() -> str:
+    """Mint the secret half of a user's inbound-email address.
+
+    Hex rather than ``token_urlsafe`` because this ends up in an email
+    local-part: hex survives the MTAs and vendors that normalise case, where a
+    mixed-case token with ``-``/``_`` can silently fail to resolve.
+    """
+    return secrets.token_hex(16)
+
+
+def get_by_inbox_token(db: Session, token: str) -> User | None:
+    """Resolve an inbound-address token to its owner.
+
+    Guards the empty string explicitly so a malformed recipient can never match
+    the accounts that predate the column.
+    """
+    cleaned = (token or "").strip().lower()
+    if not cleaned:
+        return None
+    return db.query(User).filter(User.inbox_token == cleaned).first()
+
+
+def ensure_inbox_token(db: Session, user: User) -> str:
+    """Return the user's inbound token, minting one if they predate the column."""
+    if user.inbox_token:
+        return user.inbox_token
+    user.inbox_token = new_inbox_token()
+    db.commit()
+    db.refresh(user)
+    return user.inbox_token
+
+
 def create(db: Session, user_in: UserCreate) -> User:
     user = User(
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         verification_token=secrets.token_urlsafe(32),
+        inbox_token=new_inbox_token(),
     )
     db.add(user)
     db.commit()

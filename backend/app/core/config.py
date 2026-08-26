@@ -69,5 +69,14 @@ class Settings(BaseSettings):
     # health watchdog alert.
     WATCHDOG_FAILURE_SPIKE_THRESHOLD: int = 5
 
+    # Inbound email ingestion. Users forward job mail to
+    # u-{inbox_token}@{INBOUND_EMAIL_DOMAIN}; an inbound-parse vendor accepts
+    # the SMTP delivery and POSTs it to /api/v1/inbound/email.
+    # The webhook refuses to process anything while the secret is empty, so
+    # the feature ships dark until all three are set.
+    INBOUND_EMAIL_VENDOR: str = "generic"
+    INBOUND_EMAIL_WEBHOOK_SECRET: str = ""
+    INBOUND_EMAIL_DOMAIN: str = ""
+
 
 settings = Settings()

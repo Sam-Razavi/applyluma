@@ -71,6 +71,7 @@ const ADMIN_ITEMS: NavItem[] = [
   { to: '/admin/contact', label: 'Contact', icon: ShieldCheckIcon },
   { to: '/admin/system', label: 'System', icon: ShieldCheckIcon },
   { to: '/admin/database', label: 'Database', icon: ShieldCheckIcon },
+  { to: '/admin/inbound-mail', label: 'Inbound Mail', icon: ShieldCheckIcon },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: ShieldCheckIcon },
 ]
 

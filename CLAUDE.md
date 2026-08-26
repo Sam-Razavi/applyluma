@@ -374,6 +374,50 @@ Multi-provider login (July 2026, branch `claude/app-improvements-templates-l0gy4
     point at `/api/v1/auth/{provider}/callback`). Code ships dark (501 +
     hidden button) until set.
 
+Inbound Email Ingestion (August 2026, first slice):
+  - Users forward job mail to `u-{inbox_token}@{INBOUND_EMAIL_DOMAIN}`; an
+    inbound-parse vendor accepts SMTP delivery and POSTs the parsed message to
+    `POST /api/v1/inbound/email`. Chosen over Gmail/Graph API integration
+    because forwarding is provider-agnostic (Hotmail, Gmail, custom domains all
+    work with one code path) and avoids Google's restricted-scope security
+    assessment.
+  - **Scope is deliberately ingest + match + admin view only** — no
+    classification, no notifications, no status changes, no `ApplicationEvent`
+    writes, no user-facing UI. The open question is whether an arbitrary
+    recruiter email can be matched to the right application; everything else
+    waits on that answer.
+  - Vendor-agnostic adapter in `app/services/inbound_email/`: `base.py`
+    (`NormalizedEmail` + `InboundAdapter` Protocol), `generic.py` (HMAC-SHA256
+    over the raw body — works with a Cloudflare Email Worker and with `curl`),
+    `registry.py`. Adding Postmark/Mailgun/SendGrid means one sibling module
+    plus a registry entry; nothing else changes.
+  - `matcher.py` is a pure function (`score_email`) with no DB or I/O. Signals:
+    job_url domain (90), company-name/sender-domain (80), ATS sender + company
+    in subject (75), company in subject (60), ATS + company in body (55).
+    Threshold 70; below it the row is stored **unmatched** with the reasoning
+    preserved. Matching is on the `From:` header, never the envelope sender —
+    forwarding rewrites the envelope to the user's own address.
+  - Retention is metadata + a 2000-char snippet, never full bodies. Truncation
+    happens in the endpoint **before** enqueueing, because the Celery broker is
+    itself durable storage. `ondelete="CASCADE"` on `user_id` handles erasure.
+  - Admin view at `/admin/inbound-mail` (`GET /api/v1/admin/inbound-emails`)
+    shows what arrived, what it matched to, the confidence, and the reason.
+  - Migration `0032_inbound_emails.py` adds the table plus `users.inbox_token`
+    (backfilled for existing users). Alembic chain now ends at `0032`.
+  - Env vars: `INBOUND_EMAIL_VENDOR`, `INBOUND_EMAIL_DOMAIN`,
+    `INBOUND_EMAIL_WEBHOOK_SECRET`. The webhook returns 503 until the secret
+    and domain are set, so the feature ships dark.
+  - Ops before it can receive mail: MX record for the `in.` subdomain at
+    Namecheap (never touch the apex MX), vendor webhook pointed at Railway, and
+    `alembic upgrade head`.
+  - Known gaps, deliberate: a *manually* forwarded message carries the user's
+    own address in `From:` (only auto-forward preserves the original), so those
+    land unmatched; `message/rfc822` "forward as attachment" is not unwrapped;
+    registrable-domain uses last-two-labels so multi-part suffixes like
+    `.co.uk` degrade to a missed match; `PrivacyPolicy.tsx` must be updated
+    before any non-admin user is exposed to this.
+
+
 ## Git Workflow
 
 Branch structure:
@@ -538,6 +582,13 @@ Run: `cd backend && pytest`
   override, `/admin/database/stats`
 - `tests/test_watchdog.py` — health watchdog state transitions (ok→degraded emails
   once, repeat-degraded silent, new failing check re-emails, recovery email)
+- `tests/test_inbound_email_matcher.py` — matcher scoring (pure, no DB/HTTP): domain
+  signals, ATS routing, suffix-safety, whole-word matching, ambiguity, thresholds
+- `tests/test_inbound_email_endpoint.py` — webhook security (valid/bad/missing
+  signature, unconfigured secret → 503 without verifying, unknown token → 200,
+  oversized body → 413, snippet truncated before enqueue, loop guard)
+- `tests/test_inbound_email_task.py` — dedupe (vendor retry + concurrent race),
+  unmatched rows still recorded, session always closed
 - `tests/test_auth_security.py` — token revocation, refresh edge cases, forgot/reset
   password, login-records-last-login, account-deletion file erasure (GDPR)
 - `tests/test_auth_google.py` — Google OAuth login/callback flow + login tracking
