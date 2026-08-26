@@ -372,6 +372,32 @@ export interface AdminDatabaseStatsResponse {
   generated_at: string
 }
 
+export interface AdminInboundEmailRow {
+  id: string
+  user_id: string
+  from_address: string
+  from_domain: string
+  subject: string | null
+  snippet: string | null
+  message_id: string | null
+  received_at: string | null
+  vendor: string
+  matched_application_id: string | null
+  matched_company_name: string | null
+  matched_job_title: string | null
+  match_confidence: number
+  match_method: string
+  match_reason: string | null
+  created_at: string
+}
+
+export interface AdminInboundEmailListResponse {
+  items: AdminInboundEmailRow[]
+  total: number
+  page: number
+  size: number
+}
+
 export const adminApi = {
   getStats(): Promise<AdminOverviewStats> {
     return client.get('/api/v1/admin/stats').then((r) => r.data)
@@ -557,5 +583,13 @@ export const adminApi = {
 
   getDatabaseStats(): Promise<AdminDatabaseStatsResponse> {
     return client.get('/api/v1/admin/database/stats').then((r) => r.data)
+  },
+
+  listInboundEmails(params: {
+    matched?: boolean
+    page?: number
+    size?: number
+  }): Promise<AdminInboundEmailListResponse> {
+    return client.get('/api/v1/admin/inbound-emails', { params }).then((r) => r.data)
   },
 }

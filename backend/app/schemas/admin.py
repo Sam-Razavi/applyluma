@@ -443,3 +443,29 @@ class AdminDatabaseStatsResponse(BaseModel):
     database_size_bytes: int
     tables: list[AdminTableStat]
     generated_at: datetime
+
+
+class AdminInboundEmailRow(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    from_address: str
+    from_domain: str
+    subject: str | None = None
+    snippet: str | None = None
+    message_id: str | None = None
+    received_at: datetime | None = None
+    vendor: str
+    matched_application_id: uuid.UUID | None = None
+    matched_company_name: str | None = None
+    matched_job_title: str | None = None
+    match_confidence: int
+    match_method: str
+    match_reason: str | None = None
+    created_at: datetime
+
+
+class AdminInboundEmailListResponse(BaseModel):
+    items: list[AdminInboundEmailRow]
+    total: int
+    page: int
+    size: int

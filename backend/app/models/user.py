@@ -60,6 +60,11 @@ class User(Base, TimestampMixin):
     github_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     # NULL = app default (nordic); one of cv_render.TEMPLATES otherwise.
     preferred_template: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Secret half of the user's inbound-email address,
+    # u-{inbox_token}@{INBOUND_EMAIL_DOMAIN}. Anyone holding it can post mail
+    # into this account, so it is a bearer credential: unique, unguessable,
+    # and replaceable by writing a new value.
+    inbox_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
 
     cvs: Mapped[list["CV"]] = relationship(
         "CV",

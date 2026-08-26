@@ -22,6 +22,7 @@ from app.api.v1.endpoints.billing import router as billing_router
 from app.api.v1.endpoints.cvs import router as cvs_router
 from app.api.v1.endpoints.health import _check_db
 from app.api.v1.endpoints.health import router as health_router
+from app.api.v1.endpoints.inbound_email import router as inbound_email_router
 from app.api.v1.endpoints.job_bookmark import router as job_bookmark_router
 from app.api.v1.endpoints.job_search import router as job_search_router
 from app.api.v1.endpoints.jobs import router as jobs_discovery_router
@@ -262,6 +263,10 @@ _EXPENSIVE_RATE_LIMITS: dict[str, int] = {
     # Unauthenticated and sends two emails per request (one to a
     # caller-supplied address) — keep this tight.
     "/api/v1/contact": 3,
+    # Vendor webhook, so there is no user to key on and every user's mail
+    # shares one bucket per vendor egress IP. Generous on purpose: this is an
+    # abuse ceiling, not a per-user limit, and a 429 here drops real mail.
+    "/api/v1/inbound/email": 300,
 }
 
 
@@ -315,6 +320,7 @@ app.include_router(job_search_router, prefix=settings.API_V1_STR, tags=["jobs"])
 app.include_router(jobs_discovery_router, prefix=settings.API_V1_STR, tags=["jobs-discovery"])
 app.include_router(saved_jobs_router, prefix=settings.API_V1_STR, tags=["saved-jobs"])
 app.include_router(billing_router, prefix=settings.API_V1_STR, tags=["billing"])
+app.include_router(inbound_email_router, prefix=settings.API_V1_STR, tags=["inbound-email"])
 app.include_router(notifications_router, prefix=settings.API_V1_STR, tags=["notifications"])
 app.include_router(job_bookmark_router, prefix=settings.API_V1_STR, tags=["job-bookmark"])
 

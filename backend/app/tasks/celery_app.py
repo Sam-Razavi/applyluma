@@ -66,6 +66,7 @@ celery_app = Celery(
         "app.tasks.matching",
         "app.tasks.cover_letter",
         "app.tasks.watchdog",
+        "app.tasks.inbound_email",
     ],
 )
 
