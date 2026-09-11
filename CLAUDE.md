@@ -409,7 +409,24 @@ Inbound Email Ingestion (August 2026, first slice):
     and domain are set, so the feature ships dark.
   - Ops before it can receive mail: MX record for the `in.` subdomain at
     Namecheap (never touch the apex MX), vendor webhook pointed at Railway, and
-    `alembic upgrade head`.
+    `alembic upgrade head` (which runs itself on deploy via
+    `scripts/start-web.sh`). Full runbook: `docs/INBOUND_EMAIL.md`.
+  - Mailgun adapter (September 2026): `mailgun.py` alongside `generic.py`.
+    Mailgun posts a **form** body (multipart, or urlencoded with no
+    attachments) and carries its signature **inside the body**, not a header —
+    which is why `InboundAdapter.verify` takes raw bytes. Signature is
+    `HMAC_SHA256(webhook_signing_key, timestamp + token)`; that key is NOT the
+    sending API key. Parses the envelope `recipient` (a BCC'd forwarding
+    address appears nowhere in To) and the `from` **header**, prefers
+    `stripped-text` over `body-plain`, and skips attachment parts unread. No
+    timestamp-freshness check on purpose: Mailgun retries for hours and a
+    narrow window would reject real mail, while replay is already neutralised
+    by the dedupe key.
+  - Address format lives in `address.py` (`build_inbox_address` /
+    `parse_inbox_token`) so the webhook and the admin view cannot drift.
+    `inbox_address` is exposed on `AdminUserProfile` and rendered with a copy
+    button in `UserDrawer.tsx` — **admin-only**, because the token is a bearer
+    credential and there is no user-facing privacy copy yet.
   - Known gaps, deliberate: a *manually* forwarded message carries the user's
     own address in `From:` (only auto-forward preserves the original), so those
     land unmatched; `message/rfc822` "forward as attachment" is not unwrapped;
@@ -589,6 +606,10 @@ Run: `cd backend && pytest`
   oversized body → 413, snippet truncated before enqueue, loop guard)
 - `tests/test_inbound_email_task.py` — dedupe (vendor retry + concurrent race),
   unmatched rows still recorded, session always closed
+- `tests/test_inbound_email_mailgun.py` — Mailgun adapter: signature accept/reject
+  (wrong, empty, tampered, non-hex), multipart + urlencoded bodies, attachments
+  skipped, header-sender-not-envelope-sender, stripped-text preference; plus
+  forwarding-address build/parse round trip
 - `tests/test_auth_security.py` — token revocation, refresh edge cases, forgot/reset
   password, login-records-last-login, account-deletion file erasure (GDPR)
 - `tests/test_auth_google.py` — Google OAuth login/callback flow + login tracking

@@ -18,6 +18,7 @@ from app.models.job_description import JobDescription
 from app.models.notification import Notification
 from app.models.tailor_job import TailorJob, TailorStatus
 from app.models.user import User, UserRole
+from app.services.inbound_email.address import build_inbox_address as inbound_address_for
 
 
 def get_overview_stats(db: Session) -> dict:
@@ -243,6 +244,7 @@ def get_user_profile_admin(db: Session, user_id: uuid.UUID) -> dict[str, Any] | 
         "subscription_ends_at": user.subscription_ends_at,
         "updated_at": user.updated_at,
         "daily_tailor_limit_override": user.daily_tailor_limit_override,
+        "inbox_address": inbound_address_for(user),
         "activity": activity,
         "ai_costs": ai_costs,
     }

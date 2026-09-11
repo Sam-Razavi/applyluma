@@ -97,6 +97,10 @@ class AdminUserProfile(AdminUserRow):
     subscription_ends_at: datetime | None = None
     updated_at: datetime
     daily_tailor_limit_override: int | None = None
+    # Full forwarding address, or None while INBOUND_EMAIL_DOMAIN is unset.
+    # Admin-only: it is a bearer credential, so it must not reach a
+    # non-admin-facing response.
+    inbox_address: str | None = None
     activity: AdminUserActivitySummary
     ai_costs: AdminUserAiCosts
 

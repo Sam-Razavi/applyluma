@@ -9,9 +9,11 @@ from __future__ import annotations
 
 from app.services.inbound_email.base import InboundAdapter
 from app.services.inbound_email.generic import GenericAdapter
+from app.services.inbound_email.mailgun import MailgunAdapter
 
 _ADAPTERS: dict[str, InboundAdapter] = {
     GenericAdapter.name: GenericAdapter(),
+    MailgunAdapter.name: MailgunAdapter(),
 }
 
 DEFAULT_ADAPTER = GenericAdapter.name
