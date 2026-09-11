@@ -72,6 +72,8 @@ export interface AdminUserProfile extends AdminUserRow {
   subscription_ends_at: string | null
   updated_at: string
   daily_tailor_limit_override: number | null
+  /** Forwarding address for inbound mail; null until INBOUND_EMAIL_DOMAIN is set. */
+  inbox_address: string | null
   activity: AdminUserActivitySummary
   ai_costs: AdminUserAiCosts
 }

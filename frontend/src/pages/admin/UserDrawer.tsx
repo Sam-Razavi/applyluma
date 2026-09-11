@@ -24,6 +24,18 @@ function formatUsd(usd: number): string {
   return `$${usd.toFixed(2)}`
 }
 
+/** The clipboard API throws on insecure origins and when permission is denied,
+ *  so failure has to be visible rather than a silently dead button. */
+async function copyInboxAddress(address: string | null): Promise<void> {
+  if (!address) return
+  try {
+    await navigator.clipboard.writeText(address)
+    toast.success('Address copied')
+  } catch {
+    toast.error('Could not copy — select the address and copy it manually')
+  }
+}
+
 const ACTIVITY_LABELS: Record<string, string> = {
   cv_uploaded: 'CV uploaded',
   cv_tailored: 'CV tailored',
@@ -207,6 +219,38 @@ export default function UserDrawer({ profile, loading, onClose, onUserChanged }:
                   <p className="mt-1 break-all text-sm text-fg">{value}</p>
                 </div>
               ))}
+            </section>
+
+            <section>
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-fg-muted">
+                Inbound mail address
+              </h4>
+              {profile.inbox_address ? (
+                <>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <code className="flex-1 break-all rounded-xl border border-line bg-surface-strong p-3 text-sm text-fg">
+                      {profile.inbox_address}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => void copyInboxAddress(profile.inbox_address)}
+                      className="rounded-lg bg-surface px-4 py-3 text-sm font-medium text-fg-muted transition hover:bg-surface-strong"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-fg-subtle">
+                    Job mail forwarded here is matched against this user&rsquo;s applications.
+                    Treat it like a password &mdash; anyone holding it can post mail into the
+                    account.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-sm text-fg-subtle">
+                  Not available &mdash; set <code>INBOUND_EMAIL_DOMAIN</code> on the backend to
+                  enable inbound mail.
+                </p>
+              )}
             </section>
 
             <section>

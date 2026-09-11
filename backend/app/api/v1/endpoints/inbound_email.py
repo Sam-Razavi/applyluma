@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import re
 from typing import Any
 
 from fastapi import APIRouter, Request, Response, status
@@ -25,6 +24,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.crud import user as crud_user
 from app.db.session import SessionLocal
+from app.services.inbound_email.address import parse_inbox_token
 from app.services.inbound_email.base import InboundParseError, NormalizedEmail
 from app.services.inbound_email.matcher import normalize_domain
 from app.services.inbound_email.registry import UnknownVendorError, get_adapter
@@ -41,9 +41,6 @@ MAX_BODY_BYTES = 10 * 1024 * 1024
 # anything durable — the broker included — sees them.
 SNIPPET_CHARS = 2000
 
-# u-<token>@domain, tolerating a +suffix so users can subaddress.
-_RECIPIENT_RE = re.compile(r"^u-([0-9a-zA-Z]{8,64})(\+[^@]*)?$")
-
 # Spelled numerically: starlette renamed the 413 constant, and the old name
 # now emits a deprecation warning while the new one is not on every version.
 _HTTP_413 = 413
@@ -51,19 +48,7 @@ _HTTP_413 = 413
 _ACCEPTED = {"status": "accepted"}
 _IGNORED = {"status": "ignored"}
 
-
-def parse_inbox_token(recipient: str, domain: str) -> str | None:
-    """Extract the inbox token from a recipient address, or None."""
-    address = recipient.strip().lower()
-    if "<" in address and ">" in address:
-        address = address[address.rfind("<") + 1 : address.rfind(">")]
-    if "@" not in address or not domain:
-        return None
-    local, _, host = address.rpartition("@")
-    if host != domain.strip().lower():
-        return None
-    match = _RECIPIENT_RE.match(local)
-    return match.group(1) if match else None
+__all__ = ["router", "parse_inbox_token", "build_dedupe_key"]
 
 
 def build_dedupe_key(*, message_id: str | None, email: NormalizedEmail) -> str:
