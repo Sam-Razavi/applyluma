@@ -120,21 +120,30 @@ reason it decided that.
 ## Testing without any of the above
 
 The `generic` adapter accepts a signed JSON body, so the pipeline can be
-exercised end to end before touching DNS. Set
-`INBOUND_EMAIL_VENDOR=generic` with a secret of your choosing, then:
+exercised end to end before touching DNS or creating a vendor account.
 
-```bash
-SECRET='your-secret'
-BODY='{"to":"u-YOUR_TOKEN@in.applyluma.com","from":"Careers <careers@spotify.com>","subject":"Your application to Spotify","text":"Thanks for applying.","message_id":"<test-1@spotify.com>"}'
-SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $NF}')
-curl -X POST https://applyluma-production.up.railway.app/api/v1/inbound/email \
-  -H "Content-Type: application/json" \
-  -H "X-ApplyLuma-Signature: $SIG" \
-  -d "$BODY"
+Set `INBOUND_EMAIL_VENDOR=generic` plus a secret of your choosing, then run:
+
+```
+python backend/scripts/send_test_inbound_email.py \
+    --address u-YOURTOKEN@in.applyluma.com \
+    --secret  YOUR_INBOUND_EMAIL_WEBHOOK_SECRET
 ```
 
-Expect `{"status":"accepted"}`. Switch `INBOUND_EMAIL_VENDOR` back to
-`mailgun` afterwards.
+Standard library only, so it needs no virtualenv and works the same on
+Windows, macOS and Linux. It prints the HTTP status and what to do about it.
+Expect `HTTP 202`, then check `/admin/inbound-mail`.
+
+Useful flags:
+
+- `--from "HR <hr@klarna.com>"` and `--subject "..."` — simulate a company you
+  actually have an application for, to see a match rather than an unmatched row.
+- `--message-id "<fixed@test>"` — reuse an id across runs to confirm duplicates
+  are dropped (the second run should not create a second row).
+- `--dry-run` — print the signed request without sending it.
+- `--url http://localhost:8000/api/v1/inbound/email` — target a local server.
+
+Switch `INBOUND_EMAIL_VENDOR` back to `mailgun` afterwards.
 
 ## Troubleshooting
 
