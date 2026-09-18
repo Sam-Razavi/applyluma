@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
 from app.crud import application as crud_application
+from app.crud import inbound_email as crud_inbound_email
 from app.models.user import User
 from app.schemas.application import (
     ApplicationContactCreate,
@@ -15,6 +16,8 @@ from app.schemas.application import (
     ApplicationSummary,
     ApplicationUpdate,
     DuplicateCheckResponse,
+    EmailSuggestion,
+    EmailSuggestionList,
 )
 from app.schemas.application_analytics import ApplicationAnalytics
 from app.services import notification_service
@@ -113,6 +116,95 @@ def get_application_analytics(
     return crud_application.get_analytics(db, current_user.id)
 
 
+def _suggestion_payload(row, company_name: str, job_title: str, current_status: str) -> dict:
+    return {
+        "id": row.id,
+        "application_id": row.matched_application_id,
+        "company_name": company_name,
+        "job_title": job_title,
+        "current_status": current_status,
+        "suggested_status": row.suggested_status,
+        "classification": row.classification,
+        "confidence": row.classification_confidence,
+        "evidence": row.evidence,
+        "from_address": row.from_address,
+        "subject": row.subject,
+        "received_at": row.received_at,
+    }
+
+
+@router.get("/email-suggestions", response_model=EmailSuggestionList)
+def list_email_suggestions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> EmailSuggestionList:
+    """Status changes proposed by forwarded email, awaiting the user's decision.
+
+    Nothing here has been applied. Suggestions whose application has since been
+    moved to the proposed status by hand are skipped rather than shown as
+    no-ops.
+    """
+    rows = crud_inbound_email.list_pending_suggestions(db, current_user.id)
+    items = []
+    for row, company_name, job_title in rows:
+        application = crud_application.get_application(
+            db, row.matched_application_id, current_user.id
+        )
+        if application is None or application.status == row.suggested_status:
+            continue
+        items.append(
+            EmailSuggestion.model_validate(
+                _suggestion_payload(row, company_name, job_title, application.status)
+            )
+        )
+    return EmailSuggestionList(items=items)
+
+
+@router.post("/email-suggestions/{suggestion_id}/accept", response_model=ApplicationSummary)
+def accept_email_suggestion(
+    suggestion_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApplicationSummary:
+    """Apply a suggested status change.
+
+    Goes through the normal update path so the timeline records it exactly
+    like a manual change — an automated edit the user cannot see afterwards
+    would be worse than no automation.
+    """
+    row = crud_inbound_email.get_pending_suggestion(db, suggestion_id, current_user.id)
+    if row is None or not row.suggested_status or not row.matched_application_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Suggestion not found")
+
+    application = crud_application.update_application(
+        db,
+        row.matched_application_id,
+        current_user.id,
+        ApplicationUpdate(status=row.suggested_status),
+    )
+    if application is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    crud_inbound_email.set_suggestion_state(db, row, "accepted")
+    return ApplicationSummary.model_validate(application)
+
+
+@router.post(
+    "/email-suggestions/{suggestion_id}/dismiss", status_code=status.HTTP_204_NO_CONTENT
+)
+def dismiss_email_suggestion(
+    suggestion_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    row = crud_inbound_email.get_pending_suggestion(db, suggestion_id, current_user.id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Suggestion not found")
+    crud_inbound_email.set_suggestion_state(db, row, "dismissed")
+
+
+# Declared before /{application_id}: FastAPI matches in order, and a literal
+# path segment must win over the UUID path parameter.
 @router.get("/{application_id}", response_model=ApplicationPublic)
 def get_application(
     application_id: uuid.UUID,

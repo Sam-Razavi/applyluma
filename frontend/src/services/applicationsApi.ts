@@ -84,3 +84,37 @@ export function deleteApplicationContact(
     .delete(`/api/v1/applications/${applicationId}/contacts/${contactId}`)
     .then(() => undefined)
 }
+
+export interface EmailSuggestion {
+  id: string
+  application_id: string
+  company_name: string
+  job_title: string
+  current_status: ApplicationStatus
+  suggested_status: ApplicationStatus
+  classification: string
+  confidence: number
+  /** The sentence the classification was based on. */
+  evidence: string | null
+  from_address: string
+  subject: string | null
+  received_at: string | null
+}
+
+export function listEmailSuggestions(): Promise<{ items: EmailSuggestion[] }> {
+  return client
+    .get<{ items: EmailSuggestion[] }>('/api/v1/applications/email-suggestions')
+    .then((r) => r.data)
+}
+
+export function acceptEmailSuggestion(suggestionId: string): Promise<Application> {
+  return client
+    .post<Application>(`/api/v1/applications/email-suggestions/${suggestionId}/accept`)
+    .then((r) => r.data)
+}
+
+export function dismissEmailSuggestion(suggestionId: string): Promise<void> {
+  return client
+    .post(`/api/v1/applications/email-suggestions/${suggestionId}/dismiss`)
+    .then(() => undefined)
+}

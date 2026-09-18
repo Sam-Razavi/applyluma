@@ -143,3 +143,27 @@ class ApplicationSummary(BaseModel):
 class ApplicationPublic(ApplicationSummary):
     events: list[ApplicationEventPublic] = Field(default_factory=list)
     contacts: list[ApplicationContactPublic] = Field(default_factory=list)
+
+
+class EmailSuggestion(BaseModel):
+    """A pending proposal, from a forwarded email, to move an application."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    application_id: uuid.UUID
+    company_name: str
+    job_title: str
+    current_status: ApplicationStatus
+    suggested_status: ApplicationStatus
+    classification: str
+    confidence: int
+    # The sentence the classification was based on, so the user can judge it.
+    evidence: str | None = None
+    from_address: str
+    subject: str | None = None
+    received_at: datetime | None = None
+
+
+class EmailSuggestionList(BaseModel):
+    items: list[EmailSuggestion]
