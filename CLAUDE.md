@@ -427,6 +427,29 @@ Inbound Email Ingestion (August 2026, first slice):
     `inbox_address` is exposed on `AdminUserProfile` and rendered with a copy
     button in `UserDrawer.tsx` — **admin-only**, because the token is a bearer
     credential and there is no user-facing privacy copy yet.
+  - Suggestions slice (September 2026): `classifier.py` reads what an email
+    *says* — rejection / interview / offer / acknowledged — with keyword
+    phrases in **English and Swedish** (diacritics folded, so ASCII phrase
+    lists match "Tyvärr"). Pure function, no model call: rejections and
+    invitations are formulaic enough that keywords cover most real mail, and
+    starting here shows how far that gets before paying for an LLM. Ambiguous
+    mail returns None rather than guessing. `SUGGEST_THRESHOLD = 70`; bare
+    "unfortunately" and acknowledgements score 50 so they are recorded without
+    prompting anyone.
+  - **Nothing is applied automatically.** A suggestion is raised only when the
+    email was *both* matched to an application *and* confidently classified;
+    it writes a notification and a `pending` row, and the user confirms on the
+    Applications page (`EmailSuggestions.tsx`). Accepting goes through
+    `crud_application.update_application`, so the timeline records it exactly
+    like a manual change. `suggestion_state` (none/pending/accepted/dismissed)
+    is also the guard against one email prompting twice.
+  - The evidence sentence is always shown with a suggestion: a prompt whose
+    reasoning is invisible is one nobody can sensibly accept ("we'll keep your
+    CV on file" is exactly the phrasing that fools a keyword matcher).
+  - Migration `0033_inbound_email_suggestions.py`; Alembic chain ends at `0033`.
+  - `/applications/email-suggestions` routes are declared **before**
+    `/{application_id}` — FastAPI matches in declaration order, and the literal
+    path was otherwise parsed as a UUID and 422'd (there is a regression test).
   - Known gaps, deliberate: a *manually* forwarded message carries the user's
     own address in `From:` (only auto-forward preserves the original), so those
     land unmatched; `message/rfc822` "forward as attachment" is not unwrapped;
@@ -606,6 +629,14 @@ Run: `cd backend && pytest`
   oversized body → 413, snippet truncated before enqueue, loop guard)
 - `tests/test_inbound_email_task.py` — dedupe (vendor retry + concurrent race),
   unmatched rows still recorded, session always closed
+- `tests/test_inbound_email_classifier.py` — classification (pure): English and
+  Swedish rejection/interview/offer, diacritic folding, rejection outranking an
+  interview invitation, bare "unfortunately" staying below threshold,
+  acknowledgements never prompting, evidence extraction and truncation
+- `tests/test_email_suggestions.py` — suggestion endpoints: list with evidence,
+  already-satisfied suggestions hidden, accept routing through the normal update
+  path, dismiss leaving the application untouched, cross-user ids 404, and a
+  regression test that `/email-suggestions` is not shadowed by `/{application_id}`
 - `tests/test_inbound_email_mailgun.py` — Mailgun adapter: signature accept/reject
   (wrong, empty, tampered, non-hex), multipart + urlencoded bodies, attachments
   skipped, header-sender-not-envelope-sender, stripped-text preference; plus

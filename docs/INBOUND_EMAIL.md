@@ -20,12 +20,27 @@ Recruiter emails you
 The forwarding step is what makes this provider-agnostic: nothing depends on
 which mailbox the user has.
 
-## What this does NOT do yet
+## What happens to a matched email
 
-Reading `/admin/inbound-mail` is currently the whole point. Matched mail does
-**not** change an application's status, send a notification, or write to the
-timeline. That is deliberate: the first question is whether matching is
-accurate enough on real mail to be trusted with those actions.
+Once a message is matched to an application it is also classified — rejection,
+interview invitation, offer, or a plain acknowledgement — in English and
+Swedish.
+
+When the classification is confident, you get a notification and a prompt at
+the top of the **Applications** page:
+
+> **Svea Solar** — Backend Engineer
+> Applied → Rejected
+> *"Tyvärr har du inte gått vidare i processen."*
+> [Update to Rejected] [Dismiss]
+
+**Nothing changes until you click.** The sentence the decision was based on is
+always shown, because "we'll keep your CV on file" reads like a rejection to a
+keyword matcher and you need to be able to see that before accepting. Accepting
+records the change on the application timeline exactly like a manual edit.
+
+Acknowledgements ("thanks for applying") and vague mail never prompt — they are
+recorded and visible in `/admin/inbound-mail`, nothing more.
 
 ---
 
