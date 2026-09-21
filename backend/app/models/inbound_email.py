@@ -31,6 +31,8 @@ class InboundEmail(Base, TimestampMixin):
         # same message arrives more than once as a matter of course.
         UniqueConstraint("user_id", "dedupe_key", name="uq_inbound_emails_user_dedupe"),
         Index("ix_inbound_emails_user_created", "user_id", "created_at"),
+        # Read on every Applications page load to find pending suggestions.
+        Index("ix_inbound_emails_user_suggestion_state", "user_id", "suggestion_state"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -58,6 +60,24 @@ class InboundEmail(Base, TimestampMixin):
     # so a wrong or missing match can be diagnosed without the original body.
     match_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     vendor: Mapped[str] = mapped_column(String(32))
+
+    # What the message appears to say: rejection / interview / offer /
+    # acknowledged, or NULL when nothing recognisable was found.
+    classification: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    classification_confidence: Mapped[int] = mapped_column(
+        SmallInteger, default=0, server_default="0"
+    )
+    # The status the user would be moving the application to if they accept.
+    suggested_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # The sentence the classification was based on. Shown with the suggestion:
+    # a prompt whose reasoning is invisible is one nobody can sensibly accept.
+    evidence: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # none -> nothing to act on; pending -> awaiting the user; accepted /
+    # dismissed -> they decided. Also the guard that stops one email raising
+    # the same suggestion twice.
+    suggestion_state: Mapped[str] = mapped_column(
+        String(16), default="none", server_default="none"
+    )
 
     user: Mapped["User"] = relationship("User")
     matched_application: Mapped["Application | None"] = relationship("Application")

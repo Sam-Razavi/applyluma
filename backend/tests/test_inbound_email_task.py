@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -29,6 +30,34 @@ class FakeDb:
 
     def rollback(self) -> None:
         pass
+
+    def get(self, model: Any, pk: Any) -> Any:
+        """Session.get, used when building the suggestion notification."""
+        return SimpleNamespace(company_name="Svea Solar")
+
+
+
+def _record(sink: dict[str, Any], kwargs: dict[str, Any]) -> SimpleNamespace:
+    """Stand in for crud.create: capture the kwargs, return a row like the real one.
+
+    The real function always returns the persisted InboundEmail, and the task
+    reads suggestion_state off it, so the stub has to do the same.
+    """
+    sink.update(kwargs)
+    classification = kwargs.get("classification")
+    suggest = (
+        classification is not None
+        and classification.should_suggest
+        and kwargs["match"].application_id is not None
+    )
+    return SimpleNamespace(
+        id=uuid.uuid4(),
+        user_id=kwargs["user_id"],
+        matched_application_id=kwargs["match"].application_id,
+        from_address=kwargs.get("from_address", ""),
+        classification=getattr(classification, "kind", None),
+        suggestion_state="pending" if suggest else "none",
+    )
 
 
 def payload(**overrides: Any) -> dict[str, Any]:
@@ -72,7 +101,7 @@ def test_matching_email_is_persisted_with_its_match(monkeypatch: pytest.MonkeyPa
         ],
     )
     monkeypatch.setattr(
-        task_module.crud_inbound_email, "create", lambda db, **kw: created.update(kw)
+        task_module.crud_inbound_email, "create", lambda db, **kw: _record(created, kw)
     )
 
     result = task_module.process_inbound_email(payload())
@@ -125,7 +154,7 @@ def test_unmatched_email_is_still_recorded(monkeypatch: pytest.MonkeyPatch) -> N
     )
     monkeypatch.setattr(task_module.crud_inbound_email, "list_match_candidates", lambda db, u: [])
     monkeypatch.setattr(
-        task_module.crud_inbound_email, "create", lambda db, **kw: created.update(kw)
+        task_module.crud_inbound_email, "create", lambda db, **kw: _record(created, kw)
     )
 
     result = task_module.process_inbound_email(payload())
@@ -153,3 +182,70 @@ def test_snippet_is_truncated_to_the_column_ceiling() -> None:
 def test_truncate_snippet_handles_empty_input() -> None:
     assert crud_inbound_email.truncate_snippet(None) is None
     assert crud_inbound_email.truncate_snippet("   ") is None
+
+
+def test_confident_classification_on_a_matched_email_raises_a_suggestion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Matched plus confidently classified is the only combination that prompts."""
+    created: dict[str, Any] = {}
+    notified: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        task_module.crud_inbound_email, "exists_for_dedupe_key", lambda db, **kw: False
+    )
+    monkeypatch.setattr(
+        task_module.crud_inbound_email,
+        "list_match_candidates",
+        lambda db, user_id: [
+            crud_inbound_email.MatchCandidate(APPLICATION_ID, "Svea Solar", None)
+        ],
+    )
+    monkeypatch.setattr(
+        task_module.crud_inbound_email, "create", lambda db, **kw: _record(created, kw)
+    )
+    monkeypatch.setattr(
+        task_module,
+        "notification_service",
+        SimpleNamespace(create_notification=lambda db, **kw: notified.append(kw)),
+    )
+
+    result = task_module.process_inbound_email(
+        payload(
+            from_domain="sveasolar.com",
+            subject="Din ansokan till Svea Solar",
+            snippet="Tyvarr har du inte gatt vidare i processen.",
+        )
+    )
+
+    assert result["suggestion"] == "pending"
+    assert created["classification"].kind == "rejection"
+    assert created["classification"].suggested_status == "rejected"
+    assert len(notified) == 1
+    assert notified[0]["type"] == "email_status_suggestion"
+    assert notified[0]["related_type"] == "application"
+
+
+def test_unmatched_email_never_raises_a_suggestion(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A clear rejection from an unknown company must not prompt anything."""
+    created: dict[str, Any] = {}
+    notified: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        task_module.crud_inbound_email, "exists_for_dedupe_key", lambda db, **kw: False
+    )
+    monkeypatch.setattr(task_module.crud_inbound_email, "list_match_candidates", lambda db, u: [])
+    monkeypatch.setattr(
+        task_module.crud_inbound_email, "create", lambda db, **kw: _record(created, kw)
+    )
+    monkeypatch.setattr(
+        task_module,
+        "notification_service",
+        SimpleNamespace(create_notification=lambda db, **kw: notified.append(kw)),
+    )
+
+    result = task_module.process_inbound_email(
+        payload(subject="Update", snippet="Unfortunately we will not be moving forward.")
+    )
+
+    assert result["status"] == "unmatched"
+    assert result["suggestion"] == "none"
+    assert notified == []

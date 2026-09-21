@@ -13,13 +13,52 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.crud import inbound_email as crud_inbound_email
 from app.db.session import SessionLocal
+from app.models.application import Application
+from app.models.inbound_email import InboundEmail
+from app.services import notification_service
+from app.services.inbound_email.classifier import classify
 from app.services.inbound_email.matcher import score_email
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
+
+_SUGGESTION_TITLES = {
+    "rejection": "Possible rejection",
+    "interview": "Possible interview invitation",
+    "offer": "Possible offer",
+}
+
+
+def _notify_suggestion(db: Session, row: InboundEmail) -> None:
+    """Tell the user an email looks like a status change, without applying it.
+
+    Never lets a notification failure lose the email: the row is already
+    committed, and the suggestion is still visible on the Applications page
+    even if this does not land.
+    """
+    try:
+        application = db.get(Application, row.matched_application_id)
+        company = getattr(application, "company_name", None) or "an application"
+        title = _SUGGESTION_TITLES.get(str(row.classification), "Application update")
+        notification_service.create_notification(
+            db,
+            user_id=row.user_id,
+            type="email_status_suggestion",
+            title=f"{title} from {company}",
+            body=(
+                f"An email from {row.from_address} looks like a {row.classification}. "
+                f"Open Applications to confirm or dismiss."
+            ),
+            related_id=row.matched_application_id,
+            related_type="application",
+        )
+    except Exception:
+        logger.exception("inbound_email_notification_failed", extra={"inbound_email_id": str(row.id)})
 
 
 def _parse_received_at(value: str | None) -> datetime | None:
@@ -60,9 +99,10 @@ def process_inbound_email(payload: dict[str, Any]) -> dict[str, str]:
             snippet=snippet,
             candidates=candidates,
         )
+        classification = classify(subject, snippet)
 
         try:
-            crud_inbound_email.create(
+            row = crud_inbound_email.create(
                 db,
                 user_id=user_id,
                 dedupe_key=dedupe_key,
@@ -74,16 +114,21 @@ def process_inbound_email(payload: dict[str, Any]) -> dict[str, str]:
                 received_at=_parse_received_at(payload.get("received_at")),
                 vendor=str(payload.get("vendor") or "unknown"),
                 match=match,
+                classification=classification,
             )
         except IntegrityError:
             # Concurrent duplicate delivery won the race; its row is equivalent.
             db.rollback()
             return {"status": "duplicate"}
 
+        if row.suggestion_state == "pending":
+            _notify_suggestion(db, row)
+
         return {
             "status": "matched" if match.application_id else "unmatched",
             "confidence": str(match.confidence),
             "method": match.method,
+            "suggestion": row.suggestion_state,
         }
     finally:
         db.close()
