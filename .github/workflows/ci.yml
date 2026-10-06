@@ -77,3 +77,29 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  extension:
+    name: Extension — validate manifest and package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: applyluma-extension
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate and build store zip
+        run: ./scripts/package.sh
+
+      - name: Upload store zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: applyluma-extension
+          path: applyluma-extension/dist/*.zip

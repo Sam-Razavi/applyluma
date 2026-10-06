@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold text-fg mb-2">Privacy Policy</h1>
-      <p className="text-sm text-fg-subtle mb-10">Last updated: July 2026</p>
+      <p className="text-sm text-fg-subtle mb-10">Last updated: October 2026</p>
 
       <div className="prose prose-gray max-w-none space-y-8 text-fg-muted">
 
@@ -63,7 +63,39 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">5. Data Retention</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">5. Browser Extension</h2>
+          <p>
+            The optional ApplyLuma extension for Chrome and Firefox works only on job
+            posting pages on LinkedIn, Indeed, Glassdoor and Arbetsförmedlingen. It does
+            not read any other website and does not record your browsing history.
+          </p>
+          <ul className="list-disc list-inside mt-2 space-y-2">
+            <li>
+              <strong>What it reads:</strong> the title, company, link and description of
+              the job posting you are viewing, so it can pre-fill the save form.
+            </li>
+            <li>
+              <strong>What it sends to us:</strong> only the job details (and any note) you
+              choose to save, sent to your ApplyLuma account when you click save or use
+              the keyboard shortcut. Nothing is sent while you just browse.
+            </li>
+            <li>
+              <strong>What it stores in your browser:</strong> your ApplyLuma sign-in token,
+              the job details from the current page (discarded after 15 minutes), and the
+              links of jobs you have already saved or applied to, used to mark them on job
+              boards.
+            </li>
+          </ul>
+          <p className="mt-3">
+            Saved jobs are handled like any other data in your account under this policy.
+            Uninstalling the extension or choosing "Disconnect account" removes everything
+            it stored in your browser. Data from the extension is never sold or used for
+            advertising.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-fg mb-3">6. Data Retention</h2>
           <p>
             We retain your data for as long as your account is active. If you delete your
             account, your personal data is deleted within 30 days, except where we are
@@ -72,7 +104,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">6. Your Rights (GDPR)</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">7. Your Rights (GDPR)</h2>
           <p>If you are in the EU/EEA, you have the right to:</p>
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li><strong>Access</strong> — request a copy of the data we hold about you</li>
@@ -92,7 +124,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">7. Cookies</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">8. Cookies</h2>
           <p className="mb-3">We use two categories of cookies:</p>
           <ul className="list-disc list-inside space-y-2">
             <li>
@@ -120,7 +152,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">8. Security</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">9. Security</h2>
           <p>
             We use industry-standard security measures including HTTPS, hashed passwords,
             JWT authentication, and role-based access control. No method of transmission over
@@ -129,7 +161,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">9. Changes to This Policy</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">10. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. Material changes will be
             communicated by email or via an in-app notice.
@@ -137,7 +169,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">10. Contact</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">11. Contact</h2>
           <p>
             For privacy questions or to exercise your rights, contact us at{' '}
             <a href="mailto:support@applyluma.com" className="text-accent-text hover:underline">
