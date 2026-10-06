@@ -151,6 +151,22 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
   - `/extension-auth` page in the web app mints a bearer token and auto-copies to clipboard.
   - JOB_SITE_PATTERNS covers `se.indeed.com`, `arbetsformedlingen.se`, and
     `www.arbetsformedlingen.se`.
+  - Store-release prep (October 2026, v1.0.0, branch
+    `claude/extension-store-release`): `scripts/package.sh` validates the
+    manifest + JS syntax and builds `dist/applyluma-extension-<ver>.zip` (same
+    zip for Chrome Web Store and Firefox AMO); CI `extension` job runs it and
+    uploads the zip as an artifact. Listing copy, permission justifications,
+    data disclosures and 1280x800 screenshots live in `store/`
+    (`STORE_LISTING.md`, regenerate images with `node store/generate-assets.js`).
+    `tabs` permission dropped (host permissions already cover `tabs.query`
+    on job sites, so no "browsing history" install warning). Manifest carries
+    both `background.service_worker` (Chrome) and `background.scripts`
+    (Firefox) plus Firefox `data_collection_permissions`. Real "AL" icons
+    replaced the placeholder squares. Privacy policy section 5 "Browser
+    Extension" discloses what it reads/sends/stores; disconnecting now also
+    clears the cached saved/applied URL lists to match that wording.
+    Not yet done: the actual store submissions (need a developer account and
+    a reviewer test account).
 
 Job Sources & Dedupe delivered in July 2026:
   - New RemoteOK scraper (`airflow/plugins/job_scrapers/remoteok_client.py`) in the

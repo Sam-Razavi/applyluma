@@ -1,24 +1,27 @@
 {
   "manifest_version": 3,
   "name": "ApplyLuma",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Save job postings from LinkedIn, Indeed, Glassdoor, and Arbetsförmedlingen to ApplyLuma with one click.",
   "homepage_url": "https://applyluma.com",
-  "permissions": ["storage", "tabs", "alarms", "notifications"],
+  "permissions": ["storage", "alarms", "notifications"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "browser_specific_settings": {
     "gecko": {
       "id": "applyluma@applyluma.com",
-      "strict_min_version": "109.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["websiteContent", "authenticationInfo"]
+      }
     }
   },
   "commands": {
     "quick-save": {
       "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
       },
       "description": "Save current job to ApplyLuma"
     }
@@ -44,7 +47,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://arbetsformedlingen.se/*"],
+      "matches": ["https://arbetsformedlingen.se/*", "https://www.arbetsformedlingen.se/*"],
       "js": ["content/platsbanken.js"],
       "run_at": "document_idle"
     },
@@ -64,7 +67,8 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
   },
   "icons": {
     "16": "icons/icon16.png",

@@ -206,12 +206,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) void refreshSavedUrls();
 });
 
-// Refresh on token change: connect triggers a refresh; disconnect clears the badge.
+// Refresh on token change: connect triggers a refresh; disconnect clears the
+// badge and the cached account data (the privacy policy promises this).
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
   if (changes.applyluma_token?.newValue) {
     void refreshSavedUrls();
   } else if (changes.applyluma_token && !changes.applyluma_token.newValue) {
     updateBadge([]);
+    void chrome.storage.local.remove(['savedUrls', 'appliedUrls']);
   }
 });

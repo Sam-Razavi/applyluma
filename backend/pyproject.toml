@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]>=0.115.0",
     "uvicorn[standard]>=0.30.0",
-    "sqlalchemy>=2.0.0",
+    "sqlalchemy>=2.0.0,<2.1",  # 2.1 defaults postgresql:// to psycopg v3; we ship psycopg2
     "alembic>=1.13.0",
     "psycopg2-binary>=2.9.9",
     "pydantic>=2.7.0",
