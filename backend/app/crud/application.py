@@ -70,8 +70,13 @@ def _validate_owned_references(db: Session, user_id: uuid.UUID, values: dict[str
 
 
 def list_applied_job_urls(db: Session, user_id: uuid.UUID) -> list[str]:
-    """Return URLs of jobs where the user has an application with status != wishlist."""
-    rows = (
+    """Return URLs of jobs where the user has an application with status != wishlist.
+
+    Covers both applications linked to a scraped posting (whose canonical URL
+    lives on the posting) and ones added by hand or by URL import, which only
+    carry their own ``job_url``.
+    """
+    linked = (
         db.query(RawJobPosting.url)
         .join(Application, Application.raw_job_posting_id == RawJobPosting.id)
         .filter(
@@ -81,7 +86,17 @@ def list_applied_job_urls(db: Session, user_id: uuid.UUID) -> list[str]:
         )
         .all()
     )
-    return [r.url for r in rows]
+    own = (
+        db.query(Application.job_url)
+        .filter(
+            Application.user_id == user_id,
+            Application.status != "wishlist",
+            Application.job_url.isnot(None),
+            Application.job_url != "",
+        )
+        .all()
+    )
+    return list(dict.fromkeys([r[0] for r in linked] + [r[0] for r in own]))
 
 
 def create_application(db: Session, user_id: uuid.UUID, data: ApplicationCreate) -> Application:

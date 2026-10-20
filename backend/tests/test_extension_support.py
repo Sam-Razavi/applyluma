@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import applications as applications_endpoint
 from app.core.dependencies import get_current_user, get_db
+from app.crud import application as crud_application
 from app.main import app
 
 USER_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
@@ -84,3 +85,30 @@ async def test_applied_urls_returns_url_list(monkeypatch: pytest.MonkeyPatch) ->
 async def test_applied_urls_requires_auth() -> None:
     resp = await _request("GET", "/api/v1/applications/applied-urls", authenticated=False)
     assert resp.status_code == 401
+
+
+def test_list_applied_job_urls_includes_unlinked_applications() -> None:
+    """Applications added by hand or URL import have no raw_job_posting_id;
+    their own job_url must still count as applied."""
+    results = iter(
+        [
+            [("https://linkedin.com/jobs/view/1",)],  # linked to a scraped posting
+            [("https://example.com/manual",), ("https://linkedin.com/jobs/view/1",)],
+        ]
+    )
+
+    class Query:
+        def join(self, *args: object) -> Query:
+            return self
+
+        def filter(self, *args: object) -> Query:
+            return self
+
+        def all(self) -> list[tuple[str]]:
+            return next(results)
+
+    db = SimpleNamespace(query=lambda *args: Query())
+    assert crud_application.list_applied_job_urls(db, USER_ID) == [
+        "https://linkedin.com/jobs/view/1",
+        "https://example.com/manual",
+    ]

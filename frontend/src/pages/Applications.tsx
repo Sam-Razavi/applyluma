@@ -73,6 +73,9 @@ export default function Applications() {
 
   const filteredApplications = useMemo(() => {
     let result = applications
+    if (filters.status) {
+      result = result.filter((application) => application.status === filters.status)
+    }
     const search = filters.search.trim().toLowerCase()
     if (search) {
       result = result.filter((application) =>
@@ -92,7 +95,7 @@ export default function Applications() {
       )
     }
     return result
-  }, [applications, filters.search, staleFilter, staleThreshold])
+  }, [applications, filters.status, filters.search, staleFilter, staleThreshold])
 
   const todayCount = useMemo(() => {
     const startOfToday = new Date()
@@ -236,10 +239,7 @@ export default function Applications() {
             <div className="flex flex-wrap gap-2">
               <select
                 value={filters.status}
-                onChange={(e) => {
-                  setFilters({ status: e.target.value as ApplicationStatus | '' })
-                  queueMicrotask(() => void fetchApplications())
-                }}
+                onChange={(e) => setFilters({ status: e.target.value as ApplicationStatus | '' })}
                 className="rounded-xl border border-line bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">All statuses</option>
@@ -294,18 +294,18 @@ export default function Applications() {
               <h2 className="text-sm font-semibold text-fg">
                 {staleFilter
                   ? 'No stale applications'
-                  : filters.search
+                  : filters.search || filters.status
                     ? 'No matching applications'
                     : 'No applications yet'}
               </h2>
               <p className="mt-1 text-sm text-fg-subtle">
                 {staleFilter
                   ? `All active applications have had activity in the last ${STALE_DAYS} days.`
-                  : filters.search
+                  : filters.search || filters.status
                     ? 'Adjust the search or status filter to broaden the board.'
                     : 'Add your first application to start tracking your pipeline.'}
               </p>
-              {!filters.search && !staleFilter && (
+              {!filters.search && !filters.status && !staleFilter && (
                 <button
                   type="button"
                   onClick={() => setAddOpen(true)}
