@@ -76,17 +76,32 @@ def get_applied_urls(
 
 @router.get("/check-duplicate", response_model=DuplicateCheckResponse)
 def check_duplicate_application(
-    company: str = Query(min_length=1),
+    company: str | None = Query(default=None, min_length=1),
+    job_url: str | None = Query(default=None, min_length=1),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Report whether the user already has an open application for this company.
+    """Report whether the user has already tracked this job.
 
-    Open means any status except rejected/withdrawn. Used by the add-application
-    form to warn before creating a likely duplicate; creation is never blocked.
+    A matching job URL (any status) is the strongest signal and wins; otherwise
+    an open application (any status except rejected/withdrawn) at the same
+    company is reported. Used by the add-application form to warn right after
+    URL extraction and again before saving; creation is never blocked.
     """
-    existing = crud_application.find_open_duplicate(db, current_user.id, company)
-    return {"duplicate": existing is not None, "application": existing}
+    if not company and not job_url:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide company or job_url",
+        )
+    if job_url:
+        existing = crud_application.find_by_job_url(db, current_user.id, job_url)
+        if existing is not None:
+            return {"duplicate": True, "match": "url", "application": existing}
+    if company:
+        existing = crud_application.find_open_duplicate(db, current_user.id, company)
+        if existing is not None:
+            return {"duplicate": True, "match": "company", "application": existing}
+    return {"duplicate": False, "match": None, "application": None}
 
 
 @router.get("", response_model=list[ApplicationSummary])

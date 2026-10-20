@@ -47,15 +47,51 @@ describe('applicationsApi', () => {
       vi.mocked(client.get).mockResolvedValue({ data: [] })
       await applicationsApi.fetchApplications('applied')
       expect(client.get).toHaveBeenCalledWith('/api/v1/applications', {
-        params: { status: 'applied' },
+        params: { status: 'applied', skip: 0, limit: 500 },
       })
     })
 
-    it('omits params when no status filter given', async () => {
+    it('omits the status param when no status filter given', async () => {
       vi.mocked(client.get).mockResolvedValue({ data: [] })
       await applicationsApi.fetchApplications()
       expect(client.get).toHaveBeenCalledWith('/api/v1/applications', {
-        params: undefined,
+        params: { skip: 0, limit: 500 },
+      })
+    })
+
+    it('fetches every page instead of stopping at the first one', async () => {
+      const fullPage = Array.from({ length: 500 }, (_, i) => ({ ...mockApp, id: `app-${i}` }))
+      vi.mocked(client.get)
+        .mockResolvedValueOnce({ data: fullPage })
+        .mockResolvedValueOnce({ data: [{ ...mockApp, id: 'app-500' }] })
+
+      const result = await applicationsApi.fetchApplications()
+
+      expect(result).toHaveLength(501)
+      expect(client.get).toHaveBeenCalledTimes(2)
+      expect(client.get).toHaveBeenLastCalledWith('/api/v1/applications', {
+        params: { skip: 500, limit: 500 },
+      })
+    })
+  })
+
+  describe('checkDuplicateApplication', () => {
+    it('sends company and job_url when both are given', async () => {
+      vi.mocked(client.get).mockResolvedValue({ data: { duplicate: false, match: null, application: null } })
+      await applicationsApi.checkDuplicateApplication({
+        company: 'Acme',
+        jobUrl: 'https://example.com/jobs/1',
+      })
+      expect(client.get).toHaveBeenCalledWith('/api/v1/applications/check-duplicate', {
+        params: { company: 'Acme', job_url: 'https://example.com/jobs/1' },
+      })
+    })
+
+    it('omits empty values', async () => {
+      vi.mocked(client.get).mockResolvedValue({ data: { duplicate: false, match: null, application: null } })
+      await applicationsApi.checkDuplicateApplication({ company: '', jobUrl: 'https://example.com/1' })
+      expect(client.get).toHaveBeenCalledWith('/api/v1/applications/check-duplicate', {
+        params: { job_url: 'https://example.com/1' },
       })
     })
   })

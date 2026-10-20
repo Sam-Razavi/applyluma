@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { jobApi } from '../../services/api'
 import { checkDuplicateApplication } from '../../services/applicationsApi'
+import type { DuplicateCheckResponse } from '../../services/applicationsApi'
 import { useApplicationsStore } from '../../stores/applications'
 import type { ApplicationCreate, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
@@ -64,6 +65,25 @@ function toNumber(value: FormDataEntryValue | null): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+interface DuplicateInfo {
+  match: 'url' | 'company'
+  companyName: string
+  jobTitle: string
+  status: string
+  createdAt: string
+}
+
+function toDuplicateInfo(check: DuplicateCheckResponse | undefined): DuplicateInfo | null {
+  if (!check?.duplicate || !check.application) return null
+  return {
+    match: check.match ?? 'company',
+    companyName: check.application.company_name,
+    jobTitle: check.application.job_title,
+    status: check.application.status,
+    createdAt: check.application.created_at,
+  }
+}
+
 function sourceFromUrl(url: string): string {
   try {
     const hostname = new URL(url).hostname
@@ -82,7 +102,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
-  const [duplicateOf, setDuplicateOf] = useState<{ jobTitle: string; status: string } | null>(null)
+  const [duplicateOf, setDuplicateOf] = useState<DuplicateInfo | null>(null)
   const importUrlInputRef = useRef<HTMLInputElement>(null)
   const saveAndAddAnotherRef = useRef(false)
 
@@ -131,6 +151,17 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
         source: current.source || sourceFromUrl(url),
       }))
       setImportUrl('')
+      // Tell the user right away if this job is already tracked, rather than
+      // only once they press Save.
+      try {
+        const check = await checkDuplicateApplication({
+          company: result.company_name,
+          jobUrl: result.url || url,
+        })
+        setDuplicateOf(toDuplicateInfo(check))
+      } catch {
+        // The check is advisory; a failure must not hide the extracted data.
+      }
     } catch (err) {
       const detail = (err as AxiosError<{ detail?: unknown }>)?.response?.data?.detail
       setImportError(
@@ -172,16 +203,15 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
 
     setSubmitting(true)
 
-    // Warn once if an open application for this company already exists;
-    // a second submit ("Add anyway") skips the check and proceeds.
+    // Warn once if this job (same URL) or an open application at this company
+    // is already tracked; a second submit ("Add anyway") skips the check.
     if (!duplicateOf) {
       try {
-        const check = await checkDuplicateApplication(companyName)
-        if (check.duplicate && check.application) {
-          setDuplicateOf({
-            jobTitle: check.application.job_title,
-            status: check.application.status,
-          })
+        const duplicate = toDuplicateInfo(
+          await checkDuplicateApplication({ company: companyName, jobUrl: payload.job_url }),
+        )
+        if (duplicate) {
+          setDuplicateOf(duplicate)
           setSubmitting(false)
           saveAndAddAnotherRef.current = false
           return
@@ -212,7 +242,7 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
   }
 
   function setField<K extends keyof ApplicationCreate>(field: K, value: ApplicationCreate[K]) {
-    if (field === 'company_name') setDuplicateOf(null)
+    if (field === 'company_name' || field === 'job_url') setDuplicateOf(null)
     setForm((current) => {
       const next = { ...current, [field]: value }
       // Picking an applied-or-later stage fills an empty date with today.
@@ -276,6 +306,8 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
             onSubmit={handleSubmit}
             className="flex-1 space-y-4 overflow-y-auto p-6"
           >
+            {duplicateOf && <DuplicateWarning duplicate={duplicateOf} />}
+
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Company name" required>
                 <input
@@ -421,17 +453,6 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
               />
             </Field>
 
-            {duplicateOf && (
-              <div
-                role="alert"
-                className="rounded-lg border border-chip-warn bg-chip-warn px-4 py-3 text-sm text-chip-warn-fg"
-              >
-                You already have an open application at{' '}
-                <span className="font-semibold">{form.company_name}</span>:{' '}
-                &ldquo;{duplicateOf.jobTitle}&rdquo; ({duplicateOf.status.replace('_', ' ')}).
-                Click &ldquo;Add anyway&rdquo; if this is a different role.
-              </div>
-            )}
           </form>
 
           <div
@@ -469,6 +490,32 @@ export default function AddApplicationModal({ open, onClose, initialData }: Prop
         </DialogPanel>
       </div>
     </Dialog>
+  )
+}
+
+function DuplicateWarning({ duplicate }: { duplicate: DuplicateInfo }) {
+  const status = duplicate.status.replace('_', ' ')
+  const added = new Date(duplicate.createdAt).toLocaleDateString()
+  return (
+    <div
+      role="alert"
+      className="rounded-lg border border-chip-warn bg-chip-warn px-4 py-3 text-sm text-chip-warn-fg"
+    >
+      {duplicate.match === 'url' ? (
+        <>
+          <span className="font-semibold">You&rsquo;ve already added this job:</span>{' '}
+          &ldquo;{duplicate.jobTitle}&rdquo; at {duplicate.companyName} ({status}, added {added}).
+          Click &ldquo;Add anyway&rdquo; to save it again.
+        </>
+      ) : (
+        <>
+          You already have an open application at{' '}
+          <span className="font-semibold">{duplicate.companyName}</span>: &ldquo;
+          {duplicate.jobTitle}&rdquo; ({status}, added {added}). Click &ldquo;Add anyway&rdquo; if
+          this is a different role.
+        </>
+      )}
+    </div>
   )
 }
 

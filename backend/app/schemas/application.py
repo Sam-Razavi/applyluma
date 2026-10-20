@@ -27,6 +27,9 @@ class DuplicateApplicationInfo(BaseModel):
 
 class DuplicateCheckResponse(BaseModel):
     duplicate: bool
+    # "url": same posting already tracked; "company": another open
+    # application at the same company (possibly a different role).
+    match: Literal["url", "company"] | None = None
     application: DuplicateApplicationInfo | None = None
 
 
