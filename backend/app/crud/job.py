@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, desc, func, nullslast, or_
+from sqlalchemy import ColumnElement, desc, exists, func, nullslast, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -31,6 +31,47 @@ def _is_live_deadline_clause() -> ColumnElement[bool]:
         RawJobPosting.application_deadline.is_(None),
         RawJobPosting.application_deadline >= datetime.now(UTC),
     )
+
+
+def _url_key_sql(column: Any) -> ColumnElement[str]:
+    """SQL twin of ``_url_key``: case-insensitive, trailing slashes ignored."""
+    return func.rtrim(func.lower(column), "/")
+
+
+def _url_key(url: str) -> str:
+    return url.lower().rstrip("/")
+
+
+def _applied_by_url_clause(user_id: uuid.UUID) -> ColumnElement[bool]:
+    """True when the user has an application whose own job_url is this posting's URL.
+
+    Applications added by hand or by URL import carry no raw_job_posting_id,
+    so the id join alone misses jobs the user applied to from outside Discover.
+    """
+    return exists().where(
+        Application.user_id == user_id,
+        _url_key_sql(Application.job_url) == _url_key_sql(RawJobPosting.url),
+    )
+
+
+def _applications_by_url(
+    db: Session, user_id: uuid.UUID, postings: list[RawJobPosting]
+) -> dict[str, Application]:
+    """Map URL key -> the user's most recent application with that job_url."""
+    keys = {_url_key(p.url) for p in postings if p.url}
+    if not keys:
+        return {}
+    rows = (
+        db.query(Application)
+        .filter(
+            Application.user_id == user_id,
+            _url_key_sql(Application.job_url).in_(keys),
+        )
+        .order_by(Application.created_at.asc())
+        .all()
+    )
+    # Ascending order, so the newest application per URL wins.
+    return {_url_key(a.job_url): a for a in rows if a.job_url}
 
 
 def list_sources(db: Session) -> list[dict[str, Any]]:
@@ -110,8 +151,9 @@ def list_jobs(
         )
     if hide_applied:
         # The Application outerjoin above is scoped to this user, so this only
-        # hides jobs the current user has already tracked an application for.
-        q = q.filter(Application.id.is_(None))
+        # hides jobs the current user has already tracked an application for —
+        # either linked from Discover or added elsewhere with the same URL.
+        q = q.filter(Application.id.is_(None)).filter(~_applied_by_url_clause(user_id))
     if keywords:
         keyword_ids = (
             db.query(ExtractedKeyword.raw_job_posting_id)
@@ -130,8 +172,13 @@ def list_jobs(
     offset = (page - 1) * limit
     rows = q.offset(offset).limit(limit).all()
 
+    by_url = _applications_by_url(
+        db, user_id, [posting for posting, _, application, _ in rows if application is None]
+    )
     results = []
     for posting, score, application, saved in rows:
+        if application is None and posting.url:
+            application = by_url.get(_url_key(posting.url))
         results.append(
             _job_to_dict(
                 posting, score, application, saved=saved, keywords=posting.keywords
@@ -175,6 +222,8 @@ def get_job_with_score(
         return None
 
     posting, score, application, jd, saved = row
+    if application is None and posting.url:
+        application = _applications_by_url(db, user_id, [posting]).get(_url_key(posting.url))
     matched_skills, missing_skills = _compute_skill_gap(db, user_id, posting)
 
     # Surface whether this job already has a completed tailored CV / cover letter

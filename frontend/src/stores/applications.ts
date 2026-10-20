@@ -71,9 +71,12 @@ export const useApplicationsStore = create<ApplicationsState>()(
       fetchApplications: async () => {
         set({ isLoading: true, error: null })
         try {
-          const { status } = get().filters
+          // Always load every application. The status filter is applied on the
+          // Applications page itself: this list is shared with the Dashboard
+          // and is what create/update/delete recount stats from, so it must
+          // never be a filtered subset.
           const [applications, stats] = await Promise.all([
-            fetchApplicationsRequest(status || undefined),
+            fetchApplicationsRequest(),
             fetchStats(),
           ])
           set({ applications, stats, isLoading: false })
