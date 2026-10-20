@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import applications as applications_endpoint
 from app.core.dependencies import get_current_user, get_db
+from app.crud import application as crud_application
 from app.main import app
 
 USER_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
@@ -106,6 +107,7 @@ async def request(
     current_user: SimpleNamespace | None = None,
     json_body: dict[str, Any] | None = None,
     db: FakeDb | None = None,
+    params: dict[str, Any] | None = None,
 ) -> httpx.Response:
     if current_user is not None:
         app.dependency_overrides[get_current_user] = lambda: current_user
@@ -114,7 +116,7 @@ async def request(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
     ) as client:
-        return await client.request(method, path, json=json_body)
+        return await client.request(method, path, json=json_body, params=params)
 
 
 @pytest.mark.asyncio
@@ -217,6 +219,7 @@ async def test_check_duplicate_found(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["duplicate"] is True
+    assert body["match"] == "company"
     assert body["application"]["job_title"] == "Backend Engineer"
     assert body["application"]["status"] == "applied"
     assert calls == {"user_id": USER_ID, "company_name": "Spotify"}
@@ -237,11 +240,126 @@ async def test_check_duplicate_not_found(monkeypatch: pytest.MonkeyPatch) -> Non
     )
 
     assert response.status_code == 200
-    assert response.json() == {"duplicate": False, "application": None}
+    assert response.json() == {"duplicate": False, "match": None, "application": None}
 
 
 @pytest.mark.asyncio
-async def test_check_duplicate_requires_company_param() -> None:
+async def test_check_duplicate_url_match_wins_over_company(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: dict[str, Any] = {}
+
+    def mock_find_by_url(db, user_id, job_url):
+        calls["job_url"] = job_url
+        return SimpleNamespace(
+            id=APPLICATION_ID,
+            company_name="Spotify",
+            job_title="Data Engineer",
+            status="rejected",
+            created_at=CREATED_AT,
+        )
+
+    def mock_find_company(db, user_id, company_name):
+        raise AssertionError("company lookup should not run after a URL match")
+
+    monkeypatch.setattr(
+        applications_endpoint.crud_application, "find_by_job_url", mock_find_by_url
+    )
+    monkeypatch.setattr(
+        applications_endpoint.crud_application, "find_open_duplicate", mock_find_company
+    )
+
+    response = await request(
+        "GET",
+        "/api/v1/applications/check-duplicate",
+        current_user=user(),
+        params={"company": "Spotify", "job_url": "https://jobs.example.com/42"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["duplicate"] is True
+    assert body["match"] == "url"
+    assert body["application"]["status"] == "rejected"
+    assert calls == {"job_url": "https://jobs.example.com/42"}
+
+
+@pytest.mark.asyncio
+async def test_check_duplicate_falls_back_to_company(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        applications_endpoint.crud_application,
+        "find_by_job_url",
+        lambda db, user_id, job_url: None,
+    )
+    monkeypatch.setattr(
+        applications_endpoint.crud_application,
+        "find_open_duplicate",
+        lambda db, user_id, company_name: SimpleNamespace(
+            id=APPLICATION_ID,
+            company_name="Spotify",
+            job_title="Backend Engineer",
+            status="applied",
+            created_at=CREATED_AT,
+        ),
+    )
+
+    response = await request(
+        "GET",
+        "/api/v1/applications/check-duplicate",
+        current_user=user(),
+        params={"company": "Spotify", "job_url": "https://jobs.example.com/99"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["match"] == "company"
+
+
+@pytest.mark.parametrize(
+    ("a", "b"),
+    [
+        ("https://www.Example.com/jobs/42/", "http://example.com/jobs/42"),
+        ("https://example.com/jobs/42#apply", "example.com/jobs/42"),
+        (
+            "https://www.linkedin.com/jobs/view/123/?refId=abc&trackingId=xyz&utm_source=mail",
+            "https://linkedin.com/jobs/view/123",
+        ),
+        ("https://se.indeed.com/viewjob?jk=1&from=serp", "https://se.indeed.com/viewjob?jk=1"),
+    ],
+)
+def test_normalize_job_url_equivalent(a: str, b: str) -> None:
+    assert crud_application.normalize_job_url(a) == crud_application.normalize_job_url(b)
+
+
+def test_find_by_job_url_matches_normalized_url_any_status() -> None:
+    rows = [
+        SimpleNamespace(job_url="https://other.example.com/1", status="applied"),
+        SimpleNamespace(job_url="https://www.example.com/jobs/42/?utm_source=x", status="rejected"),
+    ]
+
+    class Query:
+        def filter(self, *args: Any) -> Query:
+            return self
+
+        def order_by(self, *args: Any) -> Query:
+            return self
+
+        def all(self) -> list[SimpleNamespace]:
+            return rows
+
+    db = SimpleNamespace(query=lambda *args: Query())
+    found = crud_application.find_by_job_url(db, USER_ID, "http://example.com/jobs/42")
+    assert found is rows[1]
+    assert crud_application.find_by_job_url(db, USER_ID, "http://example.com/jobs/43") is None
+
+
+def test_normalize_job_url_keeps_identifying_params() -> None:
+    assert crud_application.normalize_job_url(
+        "https://se.indeed.com/viewjob?jk=1"
+    ) != crud_application.normalize_job_url("https://se.indeed.com/viewjob?jk=2")
+
+
+@pytest.mark.asyncio
+async def test_check_duplicate_requires_company_or_job_url() -> None:
     response = await request(
         "GET",
         "/api/v1/applications/check-duplicate",

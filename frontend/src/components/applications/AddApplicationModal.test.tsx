@@ -88,6 +88,68 @@ describe('AddApplicationModal — import from URL', () => {
     })
   })
 
+  it('warns right after extraction when the job URL is already tracked', async () => {
+    vi.mocked(jobApi.scrapeUrl).mockResolvedValue(scrapeResult)
+    mockCheckDuplicate.mockResolvedValue({
+      duplicate: true,
+      match: 'url',
+      application: {
+        id: '1',
+        company_name: 'Acme AB',
+        job_title: 'Systemutvecklare',
+        status: 'rejected',
+        created_at: '2026-01-01T00:00:00Z',
+      },
+    })
+    renderModal()
+
+    fireEvent.change(screen.getByLabelText('Import from URL'), {
+      target: { value: scrapeResult.url },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Extract' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('already added this job')
+    expect(alert).toHaveTextContent('Systemutvecklare')
+    expect(mockCheckDuplicate).toHaveBeenCalledWith({
+      company: 'Acme AB',
+      jobUrl: scrapeResult.url,
+    })
+    expect(mockCreateApplication).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Add anyway' })).toBeInTheDocument()
+  })
+
+  it('shows no warning after extraction when the job is new', async () => {
+    vi.mocked(jobApi.scrapeUrl).mockResolvedValue(scrapeResult)
+    mockCheckDuplicate.mockResolvedValue({ duplicate: false, match: null, application: null })
+    renderModal()
+
+    fireEvent.change(screen.getByLabelText('Import from URL'), {
+      target: { value: scrapeResult.url },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Extract' }))
+
+    await waitFor(() => expect(mockCheckDuplicate).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save application' })).toBeInTheDocument()
+  })
+
+  it('still fills the form when the duplicate check fails', async () => {
+    vi.mocked(jobApi.scrapeUrl).mockResolvedValue(scrapeResult)
+    mockCheckDuplicate.mockRejectedValue(new Error('network'))
+    renderModal()
+
+    fireEvent.change(screen.getByLabelText('Import from URL'), {
+      target: { value: scrapeResult.url },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Extract' }))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Spotify')).toHaveValue('Acme AB')
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('shows the backend error detail inline on failure', async () => {
     vi.mocked(jobApi.scrapeUrl).mockRejectedValue({
       response: { data: { detail: 'This page requires a login to view job details.' } },
@@ -137,6 +199,7 @@ describe('AddApplicationModal — duplicate warning', () => {
 
   const openDuplicate = {
     duplicate: true,
+    match: 'company',
     application: {
       id: '1',
       company_name: 'Acme',
@@ -189,7 +252,7 @@ describe('AddApplicationModal — duplicate warning', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save application' }))
 
     await waitFor(() => expect(mockCreateApplication).toHaveBeenCalledTimes(1))
-    expect(mockCheckDuplicate).toHaveBeenCalledWith('Acme')
+    expect(mockCheckDuplicate).toHaveBeenCalledWith({ company: 'Acme', jobUrl: null })
   })
 })
 

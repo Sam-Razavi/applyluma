@@ -18,12 +18,24 @@ function normalizeApplication(application: Application): Application {
   }
 }
 
-export function fetchApplications(statusFilter?: ApplicationStatus): Promise<Application[]> {
-  return client
-    .get<Application[]>('/api/v1/applications', {
-      params: statusFilter ? { status: statusFilter } : undefined,
+// The list endpoint caps each page (default 100, max 500). The board filters
+// and searches client-side, so it needs every application, not just the
+// first page — fetch pages until a short one comes back.
+const APPLICATIONS_PAGE_SIZE = 500
+
+export async function fetchApplications(statusFilter?: ApplicationStatus): Promise<Application[]> {
+  const all: Application[] = []
+  for (let skip = 0; ; skip += APPLICATIONS_PAGE_SIZE) {
+    const { data } = await client.get<Application[]>('/api/v1/applications', {
+      params: {
+        ...(statusFilter ? { status: statusFilter } : {}),
+        skip,
+        limit: APPLICATIONS_PAGE_SIZE,
+      },
     })
-    .then((r) => r.data.map(normalizeApplication))
+    all.push(...data.map(normalizeApplication))
+    if (data.length < APPLICATIONS_PAGE_SIZE) return all
+  }
 }
 
 export function createApplication(data: ApplicationCreate): Promise<Application> {
@@ -32,6 +44,8 @@ export function createApplication(data: ApplicationCreate): Promise<Application>
 
 export interface DuplicateCheckResponse {
   duplicate: boolean
+  /** "url": this exact posting is already tracked; "company": another open application there. */
+  match: 'url' | 'company' | null
   application: {
     id: string
     company_name: string
@@ -41,9 +55,15 @@ export interface DuplicateCheckResponse {
   } | null
 }
 
-export function checkDuplicateApplication(company: string): Promise<DuplicateCheckResponse> {
+export function checkDuplicateApplication(query: {
+  company?: string | null
+  jobUrl?: string | null
+}): Promise<DuplicateCheckResponse> {
+  const params: Record<string, string> = {}
+  if (query.company) params.company = query.company
+  if (query.jobUrl) params.job_url = query.jobUrl
   return client
-    .get<DuplicateCheckResponse>('/api/v1/applications/check-duplicate', { params: { company } })
+    .get<DuplicateCheckResponse>('/api/v1/applications/check-duplicate', { params })
     .then((r) => r.data)
 }
 

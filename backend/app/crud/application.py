@@ -1,6 +1,7 @@
 import uuid
 from collections.abc import Sequence
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
@@ -163,6 +164,57 @@ def find_open_duplicate(db: Session, user_id: uuid.UUID, company_name: str) -> A
         .order_by(Application.created_at.desc())
         .first()
     )
+
+
+# Query parameters that only track where a click came from; two links to the
+# same posting that differ only in these are the same job.
+_TRACKING_PARAMS = frozenset(
+    {"ref", "refid", "trackingid", "trk", "src", "source", "from", "fbclid", "gclid"}
+)
+
+
+def normalize_job_url(url: str) -> str:
+    """Reduce a job URL to a comparable key.
+
+    Ignores scheme, a leading ``www.``, letter case in the host, the fragment,
+    a trailing slash and tracking parameters, so the link pasted from an email
+    matches the one copied from the browser bar.
+    """
+    raw = url.strip()
+    if "://" not in raw:
+        raw = f"https://{raw}"
+    parts = urlsplit(raw)
+    host = parts.netloc.lower().removeprefix("www.")
+    path = parts.path.rstrip("/")
+    query = urlencode(
+        sorted(
+            (key, value)
+            for key, value in parse_qsl(parts.query, keep_blank_values=True)
+            if not key.lower().startswith("utm_") and key.lower() not in _TRACKING_PARAMS
+        )
+    )
+    return f"{host}{path}?{query}" if query else f"{host}{path}"
+
+
+def find_by_job_url(db: Session, user_id: uuid.UUID, job_url: str) -> Application | None:
+    """Return the user's most recent application for the same posting URL, if any.
+
+    Any status counts: having been rejected for this exact posting still means
+    the user already applied to it.
+    """
+    key = normalize_job_url(job_url)
+    if not key:
+        return None
+    candidates = (
+        db.query(Application)
+        .filter(Application.user_id == user_id, Application.job_url.isnot(None))
+        .order_by(Application.created_at.desc())
+        .all()
+    )
+    for application in candidates:
+        if application.job_url and normalize_job_url(application.job_url) == key:
+            return application
+    return None
 
 
 def get_applications(
