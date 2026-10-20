@@ -6,12 +6,18 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from app.core.cache_service import CacheService
+from app.crud import job as crud_job
 from app.db.session import SessionLocal
 from app.models.job import JobMatchingScore, RawJobPosting
 from app.services.matching_service import MatchingService
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
+# Postings scored per task run. A forced rescore covers the whole live feed by
+# chaining runs of this size, so a single-concurrency worker can still pick up
+# other queued tasks (e.g. a user's CV tailoring) between batches.
+BATCH_LIMIT = 200
 
 
 @celery_app.task(
@@ -20,16 +26,28 @@ logger = logging.getLogger(__name__)
     max_retries=2,
     default_retry_delay=30,
 )
-def compute_job_matching_scores(self, user_id: str) -> dict:
-    """Compute or refresh matching scores for all recent jobs for one user.
+def compute_job_matching_scores(
+    self, user_id: str, force: bool = False, rescore_before: str | None = None
+) -> dict:
+    """Compute or refresh matching scores for live jobs for one user, newest first.
 
-    Skips jobs whose score was computed within the last 24 hours.
+    Normally skips jobs whose score was computed within the last 24 hours.
+    ``force`` is used when the user's default CV changes: every existing score
+    was computed against the old CV, so anything scored before now is redone.
+    It runs as a chain of BATCH_LIMIT-sized tasks carrying the same
+    ``rescore_before`` timestamp until no stale score is left.
     """
     db = SessionLocal()
     cache = CacheService()
     try:
         uid = uuid.UUID(user_id)
-        cutoff = datetime.now(UTC) - timedelta(hours=24)
+        if force and rescore_before is None:
+            rescore_before = datetime.now(UTC).isoformat()
+        cutoff = (
+            datetime.fromisoformat(rescore_before)
+            if rescore_before
+            else datetime.now(UTC) - timedelta(hours=24)
+        )
 
         # Find recent postings not yet (freshly) scored for this user
         already_scored_subq = (
@@ -41,13 +59,17 @@ def compute_job_matching_scores(self, user_id: str) -> dict:
             .subquery()
         )
 
+        # Newest first, so freshly scraped jobs get a score (and can trigger a
+        # high-match alert) before older ones are refreshed.
         postings = (
             db.query(RawJobPosting)
             .filter(
                 RawJobPosting.is_duplicate.is_(False),
+                crud_job._is_live_deadline_clause(),
                 ~RawJobPosting.id.in_(already_scored_subq),
             )
-            .limit(200)
+            .order_by(RawJobPosting.scraped_at.desc())
+            .limit(BATCH_LIMIT)
             .all()
         )
 
@@ -122,6 +144,10 @@ def compute_job_matching_scores(self, user_id: str) -> dict:
             scored += 1
 
         db.commit()
+        # A full batch means more stale scores may remain. Stop if nothing could
+        # be scored, so postings that always fail cannot loop forever.
+        if rescore_before and len(postings) == BATCH_LIMIT and scored > 0:
+            compute_job_matching_scores.delay(user_id, rescore_before=rescore_before)
         return {"status": "ok", "scored": scored}
 
     except Exception as exc:

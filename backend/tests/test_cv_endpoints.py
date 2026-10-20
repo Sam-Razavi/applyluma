@@ -209,6 +209,39 @@ async def test_delete_cv_removes_file_and_record(monkeypatch: pytest.MonkeyPatch
     assert not cv_file.exists()
     assert len(deleted) == 1
 
+
+@pytest.mark.parametrize(("is_default", "expected"), [(True, [USER_ID]), (False, [])])
+@pytest.mark.asyncio
+async def test_delete_cv_rescores_only_when_default_removed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, is_default: bool, expected: list
+) -> None:
+    cv = cv_data(is_default=is_default)
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(tmp_path))
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "get_by_id", lambda db, cv_id, user_id: cv)
+    monkeypatch.setattr(cvs_endpoint.crud_cv, "delete", lambda db, cv_obj: None)
+    triggered: list = []
+    monkeypatch.setattr(cvs_endpoint, "_enqueue_match_scoring", triggered.append)
+
+    response = await request("DELETE", f"/api/v1/cvs/{CV_ID}", current_user=user())
+
+    assert response.status_code == 204
+    assert triggered == expected
+
+
+def test_enqueue_match_scoring_forces_a_full_rescore(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.tasks import matching as matching_tasks
+
+    calls: list = []
+    monkeypatch.setattr(
+        matching_tasks.compute_job_matching_scores,
+        "delay",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+
+    cvs_endpoint._enqueue_match_scoring(USER_ID)
+
+    assert calls == [((str(USER_ID),), {"force": True})]
+
 @pytest.mark.asyncio
 async def test_upload_cv_rejects_unsupported_type(monkeypatch: pytest.MonkeyPatch) -> None:
     files = {"file": ("test.txt", b"plain text content", "text/plain")}

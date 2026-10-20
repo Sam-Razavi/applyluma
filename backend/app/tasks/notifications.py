@@ -1,14 +1,15 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import desc, exists, func, not_
+from sqlalchemy import and_, desc, exists, func, not_
 from sqlalchemy.orm import joinedload
 
 from app.crud import alert_preferences as crud_alert_preferences
+from app.crud import job as crud_job
 from app.db.session import SessionLocal
 from app.models.alert_preferences import JobAlertSentLog
 from app.models.application import Application
-from app.models.job import JobMatchingScore
+from app.models.job import JobMatchingScore, RawJobPosting
 from app.models.user import User
 from app.services import notification_service
 from app.tasks.celery_app import celery_app
@@ -201,6 +202,14 @@ def notify_high_match_jobs() -> dict[str, int]:
                 .filter(
                     JobMatchingScore.user_id == pref.user_id,
                     JobMatchingScore.overall_score >= pref.score_threshold,
+                    # Same visibility rules as the Discover feed: never alert on a
+                    # cross-source duplicate or a job whose deadline has passed.
+                    JobMatchingScore.job.has(
+                        and_(
+                            RawJobPosting.is_duplicate.is_(False),
+                            crud_job._is_live_deadline_clause(),
+                        )
+                    ),
                     not_(
                         exists().where(
                             (JobAlertSentLog.user_id == pref.user_id)
