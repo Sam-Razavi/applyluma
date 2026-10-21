@@ -67,6 +67,7 @@ celery_app = Celery(
         "app.tasks.cover_letter",
         "app.tasks.watchdog",
         "app.tasks.inbound_email",
+        "app.tasks.job_retention",
     ],
 )
 
@@ -104,7 +105,14 @@ celery_app.conf.update(
         },
         "notify-high-match-jobs-daily": {
             "task": "app.tasks.notifications.notify_high_match_jobs",
-            "schedule": crontab(hour=3, minute=30),
+            # After the Airflow keyword DAG (03:30 UTC) has enqueued the daily
+            # match scoring, so the alert sees that day's scores.
+            "schedule": crontab(hour=4, minute=30),
+        },
+        "archive-and-purge-job-postings-daily": {
+            "task": "app.tasks.job_retention.archive_and_purge_job_postings",
+            # Before the 02:00 UTC scrape, so the day's feed starts clean.
+            "schedule": crontab(hour=1, minute=0),
         },
         "health-watchdog-every-15-min": {
             "task": "app.tasks.watchdog.run_health_watchdog",

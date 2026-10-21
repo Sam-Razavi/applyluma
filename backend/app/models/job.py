@@ -36,6 +36,11 @@ class RawJobPosting(Base):
         DateTime(timezone=True), nullable=True
     )
     raw_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    # Set by the daily retention task (app/tasks/job_retention.py); archived
+    # postings are hidden from every user-facing job surface.
+    archived_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     scraped_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

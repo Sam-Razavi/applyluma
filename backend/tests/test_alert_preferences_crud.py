@@ -169,3 +169,19 @@ def test_is_due_weekly_overdue_returns_true() -> None:
         last_sent_at=datetime.now(UTC) - timedelta(days=8),
     )
     assert crud_alert_preferences._is_due(pref, datetime.now(UTC))
+
+
+@pytest.mark.parametrize("frequency, interval", [("daily", 1), ("weekly", 7)])
+def test_is_due_when_the_scheduled_run_fires_slightly_early(frequency: str, interval: int) -> None:
+    """Beat fires at the same time each day; a run a moment earlier than the
+    last one must still count as due, or that alert is skipped entirely."""
+    last_sent = datetime(2026, 10, 20, 4, 30, 0, 500_000, tzinfo=UTC)
+    now = last_sent + timedelta(days=interval) - timedelta(milliseconds=300)
+    pref = _make_pref(frequency=frequency, last_sent_at=last_sent)
+    assert crud_alert_preferences._is_due(pref, now)
+
+
+def test_is_due_daily_not_due_twice_in_one_day() -> None:
+    last_sent = datetime(2026, 10, 20, 4, 30, tzinfo=UTC)
+    pref = _make_pref(frequency="daily", last_sent_at=last_sent)
+    assert not crud_alert_preferences._is_due(pref, last_sent + timedelta(hours=12))
