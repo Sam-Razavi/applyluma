@@ -114,6 +114,7 @@ module = [
     "app.services.url_scraper",
     "app.tasks.cover_letter",
     "app.tasks.inbound_email",
+    "app.tasks.job_retention",
     "app.tasks.matching",
     "app.tasks.notifications",
     "app.tasks.sample",

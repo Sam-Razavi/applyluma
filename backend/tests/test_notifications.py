@@ -648,7 +648,11 @@ def test_high_match_alert_query_excludes_duplicate_and_expired_jobs(
         def commit(self): pass
         def close(self): pass
 
-    pref = SimpleNamespace(user_id=USER_ID, score_threshold=80, last_sent_at=None)
+    # A previous alert was sent: the query must still not depend on when
+    # scores were computed (that filter could suppress alerts indefinitely).
+    pref = SimpleNamespace(
+        user_id=USER_ID, score_threshold=80, last_sent_at=datetime.now(UTC) - timedelta(days=1)
+    )
     monkeypatch.setattr(notification_tasks, "SessionLocal", lambda: _TaskDb())
     monkeypatch.setattr(
         notification_tasks.crud_alert_preferences, "due_for_alert", lambda db, now: [pref]
@@ -661,3 +665,5 @@ def test_high_match_alert_query_excludes_duplicate_and_expired_jobs(
     )
     assert "raw_job_postings.is_duplicate IS false" in sql
     assert "raw_job_postings.application_deadline IS NULL" in sql
+    assert "raw_job_postings.archived_at IS NULL" in sql
+    assert "computed_at" not in sql

@@ -224,8 +224,11 @@ def notify_high_match_jobs() -> dict[str, int]:
                     ),
                 )
             )
-            if pref.last_sent_at is not None:
-                score_query = score_query.filter(JobMatchingScore.computed_at > pref.last_sent_at)
+            # No "computed after last_sent_at" filter: JobAlertSentLog already
+            # stops a job alerting twice, and that filter could suppress alerts
+            # indefinitely — a run that found nothing still advances
+            # last_sent_at past every existing score, and scores are only
+            # recomputed for a sample of jobs each day.
 
             matches = score_query.order_by(desc(JobMatchingScore.overall_score)).limit(10).all()
             if not matches:

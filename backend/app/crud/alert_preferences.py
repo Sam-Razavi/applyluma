@@ -48,8 +48,15 @@ def due_for_alert(
     return [pref for pref in preferences if _is_due(pref, now)]
 
 
+# The beat schedule fires at the same wall-clock time every day, so the gap
+# between two runs is a hair over or under 24h. Without slack, a run that
+# starts a fraction of a second earlier than the previous one is "not due"
+# and that day's (or week's) alert is silently skipped.
+_DUE_SLACK = timedelta(hours=1)
+
+
 def _is_due(preferences: UserAlertPreferences, now: datetime) -> bool:
     if preferences.last_sent_at is None:
         return True
     interval = timedelta(days=7 if preferences.frequency == "weekly" else 1)
-    return preferences.last_sent_at < now - interval
+    return preferences.last_sent_at <= now - interval + _DUE_SLACK

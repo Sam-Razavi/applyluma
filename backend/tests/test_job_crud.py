@@ -141,6 +141,7 @@ def test_is_live_deadline_clause_allows_null_or_future_deadline() -> None:
 
     assert "application_deadline IS NULL" in sql
     assert "application_deadline" in sql
+    assert "archived_at IS NULL" in sql
 
 
 # ------------------------------------------------------------------

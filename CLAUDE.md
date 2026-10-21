@@ -474,6 +474,24 @@ Inbound Email Ingestion (August 2026, first slice):
     before any non-admin user is exposed to this.
 
 
+Job retention & alert fixes (October 2026, fixes issues #77 and #92):
+  - Daily Celery task `app/tasks/job_retention.py` (beat 01:00 UTC):
+    archives postings whose deadline passed or that are older than 30 days
+    (`raw_job_postings.archived_at`, migration `0034`; Alembic chain ends at
+    `0034`), strips archived unreferenced postings' description/raw_data and
+    deletes their keywords and match scores, and deletes archived postings
+    90 days later. Postings a user saved or applied to keep their content
+    and are never deleted while referenced. The slim row is kept 90 days
+    because the scrapers insert with `ON CONFLICT DO NOTHING`; deleting an
+    ad still listed at its source would let it be re-inserted as new.
+  - "Live" for every user-facing job surface is `crud.job._is_live_deadline_clause`
+    (not archived AND deadline not passed): Discover, sources, match
+    scoring, and high-match alerts all use it.
+  - High-match alerts: removed the `computed_at > last_sent_at` filter
+    (dedupe is `job_alert_sent_log`; that filter could suppress alerts
+    forever), `_is_due` has 1h slack so a run firing a moment early is not
+    skipped, and the alert moved to 04:30 UTC, after the 03:30 scoring.
+
 ## Git Workflow
 
 Branch structure:

@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, desc, exists, func, nullslast, or_
+from sqlalchemy import ColumnElement, and_, desc, exists, func, nullslast, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -24,12 +24,20 @@ from app.services.keyword_extractor import KeywordExtractor
 # ------------------------------------------------------------------
 
 def _is_live_deadline_clause() -> ColumnElement[bool]:
-    """Jobs with no known deadline are treated as still live — we only hide a
+    """A posting users should still see: not archived by the retention task
+    (migration 0034) and not past its deadline.
+
+    Jobs with no known deadline are treated as still live — we only hide a
     job when we positively know its deadline has passed. Deadline data only
-    exists for Platsbanken postings today (see migration 0024)."""
-    return or_(
-        RawJobPosting.application_deadline.is_(None),
-        RawJobPosting.application_deadline >= datetime.now(UTC),
+    exists for Platsbanken postings today (see migration 0024). The deadline
+    check stays alongside archived_at because the retention task runs daily,
+    so a deadline can pass hours before the posting is archived."""
+    return and_(
+        RawJobPosting.archived_at.is_(None),
+        or_(
+            RawJobPosting.application_deadline.is_(None),
+            RawJobPosting.application_deadline >= datetime.now(UTC),
+        ),
     )
 
 
@@ -78,7 +86,7 @@ def list_sources(db: Session) -> list[dict[str, Any]]:
     """Return distinct job sources with live posting counts, most populous first."""
     rows = (
         db.query(RawJobPosting.source, func.count(RawJobPosting.id).label("count"))
-        .filter(RawJobPosting.is_duplicate.is_(False))
+        .filter(RawJobPosting.is_duplicate.is_(False), RawJobPosting.archived_at.is_(None))
         .group_by(RawJobPosting.source)
         .order_by(desc("count"))
         .all()
