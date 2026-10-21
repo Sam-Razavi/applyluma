@@ -240,3 +240,26 @@ class TestNoCV:
         )
         assert 0.0 <= result["overall_score"] <= 100.0
         assert isinstance(result["explanation"], str)
+
+
+def test_cv_is_loaded_and_extracted_once_per_user() -> None:
+    """A batch scores hundreds of jobs against the same CV; it must not be
+    re-queried and re-extracted for every job."""
+    svc = _make_service("Python PostgreSQL Docker")
+    user_id = uuid.uuid4()
+    calls: list[str] = []
+    original = svc.extractor.extract_keywords
+
+    def counting_extract(text: str):
+        calls.append(text)
+        return original(text)
+
+    svc.extractor.extract_keywords = counting_extract  # type: ignore[method-assign]
+    for _ in range(3):
+        result = svc.calculate_match_score(
+            user_id, uuid.uuid4(), {"required_skills": ["Python", "Docker"]}
+        )
+        assert result["skills_match"] == 100.0
+
+    assert calls.count("Python PostgreSQL Docker") == 1
+    assert svc.db.query.call_count == 1

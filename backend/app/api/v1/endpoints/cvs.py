@@ -49,17 +49,19 @@ def _resolve_extension(content_type: str, original_filename: str) -> str | None:
 
 
 def _enqueue_match_scoring(user_id: uuid.UUID) -> None:
-    """Best-effort: enqueue background match-score computation for the user.
+    """Best-effort: rescore the user's jobs after their default CV changed.
 
     Match scores power the Discover score breakdown and are otherwise produced
     only by the scheduled Airflow matching DAG. Triggering here lets a freshly
     uploaded or newly defaulted CV get scored without waiting for the next run.
+    ``force`` is required: every existing score was computed against the old
+    default CV, and the task otherwise skips anything scored in the last 24h.
     Any failure (e.g. Celery broker unavailable) must never break the CV request.
     """
     try:
         from app.tasks.matching import compute_job_matching_scores
 
-        compute_job_matching_scores.delay(str(user_id))
+        compute_job_matching_scores.delay(str(user_id), force=True)
     except Exception:  # noqa: BLE001 — scoring is best-effort, never block the request
         pass
 
@@ -367,4 +369,9 @@ def delete_cv(
     if not cv.file_url or generated_pdf != (Path(settings.STORAGE_DIR) / cv.file_url).resolve():
         generated_pdf.unlink(missing_ok=True)
 
+    was_default = cv.is_default
     crud_cv.delete(db, cv)
+    # Deleting the default promotes another CV (or leaves none), so the
+    # existing match scores no longer describe the user's default CV.
+    if was_default:
+        _enqueue_match_scoring(current_user.id)

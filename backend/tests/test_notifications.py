@@ -137,14 +137,17 @@ async def test_mark_all_read_clears_all(monkeypatch: pytest.MonkeyPatch) -> None
     assert response.json() == {"updated": 4}
 
 
-def test_stale_application_task_creates_notification(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("is_verified", [True, False])
+def test_stale_application_task_creates_notification(
+    monkeypatch: pytest.MonkeyPatch, is_verified: bool
+) -> None:
     stale_application = SimpleNamespace(
         id=APPLICATION_ID,
         user_id=USER_ID,
         company_name="Spotify",
         applied_date=datetime.now(UTC) - timedelta(days=8),
         stale_reminder_sent=False,
-        user=SimpleNamespace(email="sam@example.com"),
+        user=SimpleNamespace(email="sam@example.com", is_verified=is_verified),
     )
 
     class FakeQuery:
@@ -186,7 +189,8 @@ def test_stale_application_task_creates_notification(monkeypatch: pytest.MonkeyP
     assert created[0]["type"] == "application_stale"
     assert created[0]["user_id"] == USER_ID
     assert created[0]["related_id"] == APPLICATION_ID
-    assert created[0]["send_email"] is True
+    # The notification is always created; the email only goes to a verified address.
+    assert created[0]["send_email"] is is_verified
     assert stale_application.stale_reminder_sent is True
 
 
@@ -621,3 +625,39 @@ def test_send_weekly_summary_skips_users_with_no_applications(monkeypatch: pytes
 
     assert result == {"created": 0}
     assert created == []
+
+
+def test_high_match_alert_query_excludes_duplicate_and_expired_jobs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from sqlalchemy.dialects import postgresql
+
+    captured: list = []
+
+    class _FakeQuery:
+        def options(self, *args): return self
+        def filter(self, *args):
+            captured.extend(args)
+            return self
+        def order_by(self, *args): return self
+        def limit(self, n): return self
+        def all(self): return []
+
+    class _TaskDb:
+        def query(self, model): return _FakeQuery()
+        def commit(self): pass
+        def close(self): pass
+
+    pref = SimpleNamespace(user_id=USER_ID, score_threshold=80, last_sent_at=None)
+    monkeypatch.setattr(notification_tasks, "SessionLocal", lambda: _TaskDb())
+    monkeypatch.setattr(
+        notification_tasks.crud_alert_preferences, "due_for_alert", lambda db, now: [pref]
+    )
+
+    notification_tasks.notify_high_match_jobs.run()
+
+    sql = " ".join(
+        str(clause.compile(dialect=postgresql.dialect())) for clause in captured
+    )
+    assert "raw_job_postings.is_duplicate IS false" in sql
+    assert "raw_job_postings.application_deadline IS NULL" in sql

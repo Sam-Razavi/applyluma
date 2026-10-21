@@ -213,3 +213,139 @@ def test_updates_existing_score_in_place(monkeypatch: pytest.MonkeyPatch) -> Non
     assert len(db.added) == 0  # Updated in place — no new row
     assert existing.overall_score == 75.0
     assert existing.explanation == "Good match"
+
+
+class _CapturingQuery(_FakeQuery):
+    def __init__(self, log: dict, key: str, all_results=None):
+        super().__init__(all_results=all_results)
+        self._log = log
+        self._key = key
+
+    def filter(self, *args):
+        self._log.setdefault(self._key, []).extend(args)
+        return self
+
+    def order_by(self, *args):
+        self._log["order_by"] = args
+        return self
+
+    def limit(self, n):
+        self._log["limit"] = n
+        return self
+
+
+class _ScoringService:
+    def __init__(self, db):
+        pass
+
+    def calculate_match_score(self, uid, pid, job_data):
+        return _fake_score()
+
+
+def _run_capturing(
+    monkeypatch: pytest.MonkeyPatch, postings=None, service=_ScoringService, **kwargs
+) -> dict:
+    from sqlalchemy.dialects import postgresql
+
+    from app.models.job import JobMatchingScore, RawJobPosting
+
+    log: dict = {"chained": []}
+
+    class _Db(_FakeDb):
+        def query(self, model):
+            if model is RawJobPosting:
+                return _CapturingQuery(log, "posting_filters", all_results=postings or [])
+            if model is JobMatchingScore.raw_job_posting_id:
+                return _CapturingQuery(log, "scored_filters")
+            return super().query(model)
+
+    monkeypatch.setattr(matching_tasks, "SessionLocal", lambda: _Db())
+    monkeypatch.setattr(matching_tasks, "CacheService", _FakeCache)
+    monkeypatch.setattr(matching_tasks, "MatchingService", service)
+    monkeypatch.setattr(
+        matching_tasks.compute_job_matching_scores,
+        "delay",
+        lambda *args, **kw: log["chained"].append((args, kw)),
+    )
+    log["result"] = matching_tasks.compute_job_matching_scores.run(USER_ID, **kwargs)
+    log["sql"] = " ".join(
+        str(f.compile(dialect=postgresql.dialect())) for f in log.get("posting_filters", [])
+    )
+    # The bound value of the "computed_at >= cutoff" condition.
+    log["cutoff"] = next(
+        f.right.value
+        for f in log.get("scored_filters", [])
+        if getattr(f.left, "key", None) == "computed_at"
+    )
+    return log
+
+
+def test_scheduled_run_skips_recent_scores_and_scores_newest_live_jobs_first(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    log = _run_capturing(monkeypatch)
+
+    assert "NOT IN" in log["sql"]  # recently scored postings are skipped
+    assert "application_deadline" in log["sql"]  # expired postings are skipped
+    assert "scraped_at DESC" in str(log["order_by"][0].compile())
+    assert log["limit"] == matching_tasks.BATCH_LIMIT
+    assert abs(log["cutoff"] - (datetime.now(UTC) - timedelta(hours=24))) < timedelta(minutes=1)
+
+
+def test_forced_run_rescores_everything_scored_before_now(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    log = _run_capturing(monkeypatch, force=True)
+
+    # Not a 24h window: anything scored against the old CV is stale.
+    assert abs(log["cutoff"] - datetime.now(UTC)) < timedelta(minutes=1)
+
+
+def test_forced_run_chains_the_next_batch_with_the_same_cutoff(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(matching_tasks, "BATCH_LIMIT", 2)
+    full_batch = [_make_posting(id=uuid.uuid4()), _make_posting(id=uuid.uuid4())]
+
+    log = _run_capturing(monkeypatch, postings=full_batch, force=True)
+
+    assert log["result"]["scored"] == 2
+    [(args, kwargs)] = log["chained"]
+    assert args == (USER_ID,)
+    assert kwargs["rescore_before"] == log["cutoff"].isoformat()
+
+
+def test_forced_run_stops_after_a_partial_batch(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(matching_tasks, "BATCH_LIMIT", 2)
+
+    log = _run_capturing(monkeypatch, postings=[_make_posting()], force=True)
+
+    assert log["chained"] == []
+
+
+def test_forced_run_stops_when_nothing_could_be_scored(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Postings that always fail must not re-enqueue the chain forever."""
+    monkeypatch.setattr(matching_tasks, "BATCH_LIMIT", 2)
+
+    class _FailingService(_ScoringService):
+        def calculate_match_score(self, uid, pid, job_data):
+            raise RuntimeError("bad posting")
+
+    full_batch = [_make_posting(id=uuid.uuid4()), _make_posting(id=uuid.uuid4())]
+    log = _run_capturing(monkeypatch, postings=full_batch, service=_FailingService, force=True)
+
+    assert log["result"]["scored"] == 0
+    assert log["chained"] == []
+
+
+def test_scheduled_run_never_chains(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(matching_tasks, "BATCH_LIMIT", 2)
+    full_batch = [_make_posting(id=uuid.uuid4()), _make_posting(id=uuid.uuid4())]
+
+    log = _run_capturing(monkeypatch, postings=full_batch)
+
+    assert log["chained"] == []

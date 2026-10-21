@@ -37,6 +37,10 @@ class MatchingService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.extractor = KeywordExtractor()
+        # Per-user (cv_content, cv_skills) for this service's lifetime: a batch
+        # scores hundreds of jobs against the same default CV, and extracting
+        # its keywords dominates the cost of each score.
+        self._cv_cache: dict[uuid.UUID, tuple[str, set[str]]] = {}
 
     # ------------------------------------------------------------------
     # Public API
@@ -63,20 +67,7 @@ class MatchingService:
         Dict with overall_score, sub-scores, explanation, matched_skills,
         and missing_skills.
         """
-        cv = (
-            self.db.query(CV)
-            .filter(CV.user_id == user_id, CV.is_default.is_(True))
-            .first()
-        )
-        cv_content = cv.content if cv else ""
-
-        # Extract skills from CV
-        cv_keywords = self.extractor.extract_keywords(cv_content or "")
-        cv_skills_set: set[str] = {
-            item["keyword"].lower()
-            for items in cv_keywords.values()
-            for item in items
-        }
+        cv_content, cv_skills_set = self._default_cv(user_id)
 
         # Determine required skills from job
         required_skills: list[str] = list(job_data.get("required_skills") or [])
@@ -179,6 +170,22 @@ class MatchingService:
                 except Exception:
                     pass
         return results
+
+    def _default_cv(self, user_id: uuid.UUID) -> tuple[str, set[str]]:
+        """Return the user's default CV text and its lower-cased skill set."""
+        if user_id not in self._cv_cache:
+            cv = (
+                self.db.query(CV)
+                .filter(CV.user_id == user_id, CV.is_default.is_(True))
+                .first()
+            )
+            cv_content = (cv.content if cv else "") or ""
+            cv_keywords = self.extractor.extract_keywords(cv_content)
+            cv_skills_set = {
+                item["keyword"].lower() for items in cv_keywords.values() for item in items
+            }
+            self._cv_cache[user_id] = (cv_content, cv_skills_set)
+        return self._cv_cache[user_id]
 
     def get_score_explanation(self, score_data: dict) -> str:
         return score_data.get("explanation", "")

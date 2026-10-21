@@ -13,6 +13,7 @@ import { APPLICATION_STATUSES } from '../../types/application'
 import ConfirmDialog from '../ui/ConfirmDialog'
 import ApplicationTimeline from './ApplicationTimeline'
 import ContactsList from './ContactsList'
+import { todayISO } from './applicationCardHelpers'
 import { STATUS_META } from './statusMeta'
 
 interface DrawerForm {
@@ -193,10 +194,10 @@ export default function ApplicationDrawer() {
                       const next = e.target.value as ApplicationStatus
                       setField('status', next)
                       if (next === 'applied' && !form.applied_date) {
-                        setField('applied_date', new Date().toISOString().slice(0, 10))
+                        setField('applied_date', todayISO())
                       }
                       if (next === 'interview' && !form.interview_date) {
-                        setField('interview_date', new Date().toISOString().slice(0, 10))
+                        setField('interview_date', todayISO())
                       }
                     }}
                     className="input"

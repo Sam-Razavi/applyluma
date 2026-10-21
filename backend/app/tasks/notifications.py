@@ -1,14 +1,15 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import desc, exists, func, not_
+from sqlalchemy import and_, desc, exists, func, not_
 from sqlalchemy.orm import joinedload
 
 from app.crud import alert_preferences as crud_alert_preferences
+from app.crud import job as crud_job
 from app.db.session import SessionLocal
 from app.models.alert_preferences import JobAlertSentLog
 from app.models.application import Application
-from app.models.job import JobMatchingScore
+from app.models.job import JobMatchingScore, RawJobPosting
 from app.models.user import User
 from app.services import notification_service
 from app.tasks.celery_app import celery_app
@@ -128,6 +129,7 @@ def check_stale_applications() -> dict[str, int]:
             .all()
         )
         for application in applications:
+            user = getattr(application, "user", None)
             notification_service.create_notification(
                 db,
                 user_id=application.user_id,
@@ -136,8 +138,10 @@ def check_stale_applications() -> dict[str, int]:
                 body=f"{application.company_name} has been in applied status for more than 7 days.",
                 related_id=application.id,
                 related_type="application",
-                send_email=True,
-                email=getattr(getattr(application, "user", None), "email", None),
+                # Like the other reminders: only email an address the user
+                # has verified; the in-app notification is created either way.
+                send_email=bool(getattr(user, "is_verified", False)),
+                email=getattr(user, "email", None),
             )
             application.stale_reminder_sent = True
             created += 1
@@ -201,6 +205,14 @@ def notify_high_match_jobs() -> dict[str, int]:
                 .filter(
                     JobMatchingScore.user_id == pref.user_id,
                     JobMatchingScore.overall_score >= pref.score_threshold,
+                    # Same visibility rules as the Discover feed: never alert on a
+                    # cross-source duplicate or a job whose deadline has passed.
+                    JobMatchingScore.job.has(
+                        and_(
+                            RawJobPosting.is_duplicate.is_(False),
+                            crud_job._is_live_deadline_clause(),
+                        )
+                    ),
                     not_(
                         exists().where(
                             (JobAlertSentLog.user_id == pref.user_id)
