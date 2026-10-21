@@ -129,6 +129,7 @@ def check_stale_applications() -> dict[str, int]:
             .all()
         )
         for application in applications:
+            user = getattr(application, "user", None)
             notification_service.create_notification(
                 db,
                 user_id=application.user_id,
@@ -137,8 +138,10 @@ def check_stale_applications() -> dict[str, int]:
                 body=f"{application.company_name} has been in applied status for more than 7 days.",
                 related_id=application.id,
                 related_type="application",
-                send_email=True,
-                email=getattr(getattr(application, "user", None), "email", None),
+                # Like the other reminders: only email an address the user
+                # has verified; the in-app notification is created either way.
+                send_email=bool(getattr(user, "is_verified", False)),
+                email=getattr(user, "email", None),
             )
             application.stale_reminder_sent = True
             created += 1

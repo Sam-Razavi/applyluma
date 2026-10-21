@@ -10,6 +10,7 @@ import type { DuplicateCheckResponse } from '../../services/applicationsApi'
 import { useApplicationsStore } from '../../stores/applications'
 import type { ApplicationCreate, ApplicationStatus } from '../../types/application'
 import { APPLICATION_STATUSES } from '../../types/application'
+import { todayISO } from './applicationCardHelpers'
 import { STATUS_META } from './statusMeta'
 
 interface Props {
@@ -24,11 +25,6 @@ const remoteOptions = ['remote', 'hybrid', 'onsite']
 // Stages where an application has actually been sent — picking one of these
 // auto-fills an empty applied date with today.
 const APPLIED_STAGES = new Set<string>(['applied', 'phone_screen', 'interview', 'offer'])
-
-function todayISO(): string {
-  // sv-SE locale formats as YYYY-MM-DD in *local* time (toISOString would be UTC)
-  return new Date().toLocaleDateString('sv-SE')
-}
 
 const initialForm: ApplicationCreate = {
   company_name: '',

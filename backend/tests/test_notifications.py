@@ -137,14 +137,17 @@ async def test_mark_all_read_clears_all(monkeypatch: pytest.MonkeyPatch) -> None
     assert response.json() == {"updated": 4}
 
 
-def test_stale_application_task_creates_notification(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("is_verified", [True, False])
+def test_stale_application_task_creates_notification(
+    monkeypatch: pytest.MonkeyPatch, is_verified: bool
+) -> None:
     stale_application = SimpleNamespace(
         id=APPLICATION_ID,
         user_id=USER_ID,
         company_name="Spotify",
         applied_date=datetime.now(UTC) - timedelta(days=8),
         stale_reminder_sent=False,
-        user=SimpleNamespace(email="sam@example.com"),
+        user=SimpleNamespace(email="sam@example.com", is_verified=is_verified),
     )
 
     class FakeQuery:
@@ -186,7 +189,8 @@ def test_stale_application_task_creates_notification(monkeypatch: pytest.MonkeyP
     assert created[0]["type"] == "application_stale"
     assert created[0]["user_id"] == USER_ID
     assert created[0]["related_id"] == APPLICATION_ID
-    assert created[0]["send_email"] is True
+    # The notification is always created; the email only goes to a verified address.
+    assert created[0]["send_email"] is is_verified
     assert stale_application.stale_reminder_sent is True
 
 
