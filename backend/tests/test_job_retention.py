@@ -19,42 +19,50 @@ def _sql(clause) -> str:
     return " ".join(str(clause.compile(dialect=postgresql.dialect())).split())
 
 
+class _Result:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def all(self):
+        return self._rows
+
+
 class _Query:
-    def __init__(self, log: list, model):
-        self._log = log
+    def __init__(self, db, model):
+        self._db = db
         self._model = model
 
     def filter(self, *args):
-        self._log.append(("filter", self._model, args))
         return self
 
     def update(self, values, synchronize_session=None):
-        self._log.append(("update", self._model, values))
-        return 2
+        self._db.writes.append(("update", self._model))
+        return self._db.last_batch_size
 
     def delete(self, synchronize_session=None):
-        self._log.append(("delete", self._model, None))
-        return 1
+        self._db.writes.append(("delete", self._model))
+        return self._db.last_batch_size
 
 
-class _Db:
-    def __init__(self):
-        self.log: list = []
-        self.committed = False
-        self.rolled_back = False
-        self.closed = False
+class _BatchDb:
+    """Serves queued id batches to db.execute() and records writes/commits."""
+
+    def __init__(self, batches):
+        self._batches = list(batches)
+        self.writes: list = []
+        self.commits = 0
+        self.last_batch_size = 0
+
+    def execute(self, stmt):
+        rows = self._batches.pop(0) if self._batches else []
+        self.last_batch_size = len(rows)
+        return _Result([(r,) for r in rows])
 
     def query(self, model):
-        return _Query(self.log, model)
+        return _Query(self, model)
 
     def commit(self):
-        self.committed = True
-
-    def rollback(self):
-        self.rolled_back = True
-
-    def close(self):
-        self.closed = True
+        self.commits += 1
 
 
 def test_is_referenced_covers_saved_jobs_and_applications() -> None:
@@ -63,38 +71,90 @@ def test_is_referenced_covers_saved_jobs_and_applications() -> None:
     assert "FROM applications" in sql
 
 
-def test_task_archives_slims_and_purges(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_purge_commits_each_batch_until_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(job_retention, "BATCH_SIZE", 2)
+    db = _BatchDb([["a", "b"], ["c", "d"], ["e"], []])
+
+    purged = job_retention._purge(db, datetime.now(UTC))
+
+    assert purged == 5
+    assert db.commits == 3  # one commit per non-empty batch, never one big transaction
+
+
+def test_purge_stops_at_the_per_run_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(job_retention, "BATCH_SIZE", 2)
+    monkeypatch.setattr(job_retention, "MAX_BATCHES_PER_RUN", 3)
+    db = _BatchDb([["a", "b"]] * 10)  # a backlog bigger than one night's cap
+
+    purged = job_retention._purge(db, datetime.now(UTC))
+
+    assert purged == 6
+    assert db.commits == 3
+
+
+def test_archive_slims_unreferenced_in_the_same_write(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting
+
+    monkeypatch.setattr(job_retention, "BATCH_SIZE", 3)
+    # batch of 3 eligible ids; of those, "a" and "b" are unreferenced; then empty.
+    db = _BatchDb([["a", "b", "c"], ["a", "b"], []])
+
+    archived, slimmed = job_retention._archive(db, datetime.now(UTC))
+
+    assert archived == 3
+    assert slimmed == 2
+    assert db.commits == 1
+    assert db.writes == [
+        ("delete", JobMatchingScore),
+        ("delete", ExtractedKeyword),
+        ("update", RawJobPosting),  # archive + slim the unreferenced rows at once
+        ("update", RawJobPosting),  # archive only the referenced row
+    ]
+
+
+def test_task_purges_first_and_reports_counts(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    class _Db:
+        closed = False
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            self.closed = True
 
     db = _Db()
     monkeypatch.setattr(job_retention, "SessionLocal", lambda: db)
+    monkeypatch.setattr(job_retention, "_purge", lambda d, now: calls.append("purge") or 4)
+    monkeypatch.setattr(
+        job_retention, "_archive", lambda d, now: calls.append("archive") or (10, 7)
+    )
+    monkeypatch.setattr(job_retention, "_slim_released", lambda d: calls.append("slim") or 1)
 
     result = job_retention.archive_and_purge_job_postings.run()
 
-    assert result == {"archived": 2, "slimmed": 2, "purged": 1}
-    assert db.committed and db.closed and not db.rolled_back
-
-    filters = [args for kind, model, args in db.log if kind == "filter" and model is RawJobPosting]
-    archive_sql = " ".join(_sql(c) for c in filters[0])
-    assert "archived_at IS NULL" in archive_sql
-    assert "application_deadline <" in archive_sql
-    assert "scraped_at <" in archive_sql
-
-    purge_sql = " ".join(_sql(c) for c in filters[-1])
-    assert "archived_at <" in purge_sql
-    assert "NOT ((EXISTS" in purge_sql  # referenced postings are never purged
-
-    deleted = [model for kind, model, _ in db.log if kind == "delete"]
-    assert deleted == [JobMatchingScore, ExtractedKeyword, RawJobPosting]
+    assert calls == ["purge", "archive", "slim"]  # free space before using any
+    assert result == {"archived": 10, "slimmed": 8, "purged": 4}
+    assert db.closed
 
 
 def test_task_rolls_back_on_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    class _FailingDb(_Db):
-        def commit(self):
-            raise RuntimeError("db down")
+    class _Db:
+        rolled_back = closed = False
 
-    db = _FailingDb()
+        def rollback(self):
+            self.rolled_back = True
+
+        def close(self):
+            self.closed = True
+
+    def boom(d, now):
+        raise RuntimeError("db down")
+
+    db = _Db()
     monkeypatch.setattr(job_retention, "SessionLocal", lambda: db)
+    monkeypatch.setattr(job_retention, "_purge", boom)
 
     with pytest.raises(RuntimeError):
         job_retention.archive_and_purge_job_postings.run()
@@ -120,6 +180,8 @@ def test_retention_against_real_database(monkeypatch: pytest.MonkeyPatch) -> Non
     engine = create_engine(os.environ["TEST_DATABASE_URL"])
     Session = sessionmaker(bind=engine)
     monkeypatch.setattr(job_retention, "SessionLocal", Session)
+    # Tiny batches so archive, slim and purge each span several commits.
+    monkeypatch.setattr(job_retention, "BATCH_SIZE", 2)
 
     now = datetime.now(UTC)
     tag = uuid.uuid4().hex[:8]
