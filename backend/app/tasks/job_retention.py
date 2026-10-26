@@ -16,8 +16,10 @@ Postings a user saved or linked to an application are archived like any
 other, but keep their content and are never purged while still referenced.
 """
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from sqlalchemy import ColumnElement, exists, or_, select
+from sqlalchemy import ColumnElement, Select, exists, or_, select
+from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.models.application import Application
@@ -26,6 +28,21 @@ from app.tasks.celery_app import celery_app
 
 ARCHIVE_AFTER_DAYS = 30
 PURGE_AFTER_ARCHIVED_DAYS = 90
+
+# Work in small committed batches. Postgres writes a new version of every
+# updated row (plus WAL) before the old one can be reclaimed, so a single
+# transaction touching thousands of postings needs a lot of free disk at once;
+# the first production run did exactly that and filled the 1 GB volume.
+# Committing per batch keeps the extra space small and lets WAL be recycled,
+# and the per-run cap spreads a large backlog over several nights.
+BATCH_SIZE = 500
+MAX_BATCHES_PER_RUN = 40
+
+_SLIM_VALUES: dict[Any, Any] = {
+    RawJobPosting.description: "",
+    RawJobPosting.raw_data: {},
+    RawJobPosting.extracted_skills: None,
+}
 
 
 def _is_referenced() -> ColumnElement[bool]:
@@ -36,57 +53,100 @@ def _is_referenced() -> ColumnElement[bool]:
     )
 
 
+def _next_batch(db: Session, query: Select[Any]) -> list[Any]:
+    return [row[0] for row in db.execute(query.limit(BATCH_SIZE)).all()]
+
+
+def _drop_derived_rows(db: Session, ids: list[Any]) -> None:
+    """Keywords and match scores are only needed while a posting is live."""
+    for model in (JobMatchingScore, ExtractedKeyword):
+        db.query(model).filter(model.raw_job_posting_id.in_(ids)).delete(
+            synchronize_session=False
+        )
+
+
+def _purge(db: Session, now: datetime) -> int:
+    """Delete long-archived, unreferenced postings. Runs first: it frees space."""
+    query = select(RawJobPosting.id).where(
+        RawJobPosting.archived_at < now - timedelta(days=PURGE_AFTER_ARCHIVED_DAYS),
+        ~_is_referenced(),
+    )
+    purged = 0
+    for _ in range(MAX_BATCHES_PER_RUN):
+        ids = _next_batch(db, query)
+        if not ids:
+            break
+        purged += db.query(RawJobPosting).filter(RawJobPosting.id.in_(ids)).delete(
+            synchronize_session=False
+        )
+        db.commit()
+    return purged
+
+
+def _archive(db: Session, now: datetime) -> tuple[int, int]:
+    """Archive expired/old postings; slim the unreferenced ones in the same write."""
+    query = select(RawJobPosting.id).where(
+        RawJobPosting.archived_at.is_(None),
+        or_(
+            RawJobPosting.application_deadline < now,
+            RawJobPosting.scraped_at < now - timedelta(days=ARCHIVE_AFTER_DAYS),
+        ),
+    )
+    archived = slimmed = 0
+    for _ in range(MAX_BATCHES_PER_RUN):
+        ids = _next_batch(db, query)
+        if not ids:
+            break
+        unreferenced = [
+            row[0]
+            for row in db.execute(
+                select(RawJobPosting.id).where(RawJobPosting.id.in_(ids), ~_is_referenced())
+            ).all()
+        ]
+        if unreferenced:
+            _drop_derived_rows(db, unreferenced)
+            slimmed += db.query(RawJobPosting).filter(
+                RawJobPosting.id.in_(unreferenced)
+            ).update({RawJobPosting.archived_at: now, **_SLIM_VALUES}, synchronize_session=False)
+        unreferenced_set = set(unreferenced)
+        referenced = [i for i in ids if i not in unreferenced_set]
+        if referenced:
+            db.query(RawJobPosting).filter(RawJobPosting.id.in_(referenced)).update(
+                {RawJobPosting.archived_at: now}, synchronize_session=False
+            )
+        archived += len(ids)
+        db.commit()
+    return archived, slimmed
+
+
+def _slim_released(db: Session) -> int:
+    """Slim archived postings whose last save/application was removed since."""
+    query = select(RawJobPosting.id).where(
+        RawJobPosting.archived_at.isnot(None),
+        RawJobPosting.description != "",
+        ~_is_referenced(),
+    )
+    slimmed = 0
+    for _ in range(MAX_BATCHES_PER_RUN):
+        ids = _next_batch(db, query)
+        if not ids:
+            break
+        _drop_derived_rows(db, ids)
+        slimmed += db.query(RawJobPosting).filter(RawJobPosting.id.in_(ids)).update(
+            _SLIM_VALUES, synchronize_session=False
+        )
+        db.commit()
+    return slimmed
+
+
 @celery_app.task(name="app.tasks.job_retention.archive_and_purge_job_postings")
 def archive_and_purge_job_postings() -> dict[str, int]:
     db = SessionLocal()
     try:
         now = datetime.now(UTC)
-
-        archived = (
-            db.query(RawJobPosting)
-            .filter(
-                RawJobPosting.archived_at.is_(None),
-                or_(
-                    RawJobPosting.application_deadline < now,
-                    RawJobPosting.scraped_at < now - timedelta(days=ARCHIVE_AFTER_DAYS),
-                ),
-            )
-            .update({RawJobPosting.archived_at: now}, synchronize_session=False)
-        )
-
-        unreferenced_archived = select(RawJobPosting.id).where(
-            RawJobPosting.archived_at.isnot(None), ~_is_referenced()
-        )
-        for model in (JobMatchingScore, ExtractedKeyword):
-            db.query(model).filter(
-                model.raw_job_posting_id.in_(unreferenced_archived)
-            ).delete(synchronize_session=False)
-        slimmed = (
-            db.query(RawJobPosting)
-            .filter(
-                RawJobPosting.id.in_(unreferenced_archived),
-                RawJobPosting.description != "",
-            )
-            .update(
-                {
-                    RawJobPosting.description: "",
-                    RawJobPosting.raw_data: {},
-                    RawJobPosting.extracted_skills: None,
-                },
-                synchronize_session=False,
-            )
-        )
-
-        purged = (
-            db.query(RawJobPosting)
-            .filter(
-                RawJobPosting.archived_at < now - timedelta(days=PURGE_AFTER_ARCHIVED_DAYS),
-                ~_is_referenced(),
-            )
-            .delete(synchronize_session=False)
-        )
-
-        db.commit()
+        purged = _purge(db, now)
+        archived, slimmed = _archive(db, now)
+        slimmed += _slim_released(db)
         return {"archived": archived, "slimmed": slimmed, "purged": purged}
     except Exception:
         db.rollback()
