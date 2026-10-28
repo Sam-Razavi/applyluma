@@ -119,12 +119,18 @@ buttons") left it recurring on the Applications page:
     (`elementFromPoint` hit-testing on the Save/Delete/Close buttons — see
     "iframe-at-390px verification trick" for how to get a real mobile
     viewport when `resize_window` fails on a maximized Chrome window).
-  - Other `z-50` dialogs in the app (Settings, CVs, Jobs, AdminUsers,
-    VersionDiffViewer) were left untouched — they either use a different,
-    already-working clearance strategy (`pb-24` wrapper padding, e.g.
-    `JobDetail.tsx`/`SearchJobDetail.tsx`) or haven't been reported broken.
-    Any NEW bottom-anchored dialog should use `z-modal` (or `z-modal-nested`
-    if it can be opened from inside another dialog) rather than bare `z-50`.
+  - October 2026 mobile audit moved the remaining overlays onto the scale too:
+    Jobs add/delete, CVs delete, Settings delete-account, `VersionHistory`
+    (`z-modal`) with `VersionDiffViewer` above it (`z-modal-nested`, it opens
+    from inside the history panel), the admin `UserDrawer` and notify modal,
+    and `CookieBanner` (was `z-50`, so its buttons sat under MobileNav and
+    could not be tapped on app pages). Only `JobDetail.tsx` /
+    `SearchJobDetail.tsx` still use `z-50`, on purpose: they clear the nav
+    with `pb-24` wrapper padding and keep it visible. Any NEW dialog or
+    bottom-fixed bar should use `z-modal` (or `z-modal-nested` if it can be
+    opened from inside another dialog) rather than bare `z-50`.
+  - Text fields are forced to 16px below `md` (`index.css`), because iOS
+    Safari zooms in on focus of any smaller field and never zooms back out.
 
 Jobs Discovery Gap-fill & Search delivered in June 2026:
   - Backend `search` param on `GET /api/v1/jobs` (title/company ILIKE, debounced 350ms).

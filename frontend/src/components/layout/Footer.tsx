@@ -17,21 +17,21 @@ export default function Footer() {
 
           {/* Links */}
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm sm:justify-end">
-            <div className="flex flex-col gap-1.5">
-              <span className="font-semibold text-fg-subtle text-xs uppercase tracking-wide">Product</span>
-              <Link to="/plans" className="text-fg-subtle hover:text-fg transition-colors">Pricing</Link>
-              <Link to="/register" className="text-fg-subtle hover:text-fg transition-colors">Sign up free</Link>
+            <div className="flex flex-col">
+              <span className="mb-0.5 font-semibold text-fg-subtle text-xs uppercase tracking-wide">Product</span>
+              <Link to="/plans" className="py-1.5 text-fg-subtle hover:text-fg transition-colors">Pricing</Link>
+              <Link to="/register" className="py-1.5 text-fg-subtle hover:text-fg transition-colors">Sign up free</Link>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="font-semibold text-fg-subtle text-xs uppercase tracking-wide">Legal</span>
-              <Link to="/terms" className="text-fg-subtle hover:text-fg transition-colors">Terms of Service</Link>
-              <Link to="/privacy" className="text-fg-subtle hover:text-fg transition-colors">Privacy Policy</Link>
+            <div className="flex flex-col">
+              <span className="mb-0.5 font-semibold text-fg-subtle text-xs uppercase tracking-wide">Legal</span>
+              <Link to="/terms" className="py-1.5 text-fg-subtle hover:text-fg transition-colors">Terms of Service</Link>
+              <Link to="/privacy" className="py-1.5 text-fg-subtle hover:text-fg transition-colors">Privacy Policy</Link>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="font-semibold text-fg-subtle text-xs uppercase tracking-wide">Support</span>
+            <div className="flex flex-col">
+              <span className="mb-0.5 font-semibold text-fg-subtle text-xs uppercase tracking-wide">Support</span>
               <Link
                 to="/contact"
-                className="text-fg-subtle hover:text-fg transition-colors"
+                className="py-1.5 text-fg-subtle hover:text-fg transition-colors"
               >
                 Contact us
               </Link>

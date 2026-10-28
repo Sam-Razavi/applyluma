@@ -220,7 +220,7 @@ export default function AdminAiCosts() {
             </div>
           </section>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {/* By purpose */}
             <section className="rounded-2xl border border-line bg-surface p-5">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted">

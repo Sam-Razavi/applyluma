@@ -43,7 +43,7 @@ export default function VersionHistory({ cv, open, onClose, onViewDiff }: Props)
   }, [cv, open])
 
   return (
-    <Dialog open={open} onClose={onClose} className="relative z-40">
+    <Dialog open={open} onClose={onClose} className="relative z-modal">
       <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
       <div className="fixed inset-y-0 right-0 flex w-full justify-end sm:w-auto">
         <DialogPanel className="h-full w-full max-w-xl overflow-y-auto bg-raised shadow-2xl">
@@ -57,10 +57,10 @@ export default function VersionHistory({ cv, open, onClose, onViewDiff }: Props)
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-subtle transition hover:bg-surface-strong hover:text-fg-muted"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface text-fg-muted transition hover:bg-surface-strong hover:text-fg"
               aria-label="Close version history"
             >
-              <XMarkIcon className="h-4 w-4" />
+              <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
 

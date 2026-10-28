@@ -161,12 +161,12 @@ export default function Login() {
                   autoComplete="current-password"
                   placeholder="********"
                   {...register('password')}
-                  className={inputClass}
+                  className={`${inputClass} pr-11`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted"
+                  className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-fg-subtle hover:text-fg-muted"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
@@ -176,7 +176,7 @@ export default function Login() {
                 <p className="mt-1 text-xs text-chip-danger-fg">{errors.password.message}</p>
               )}
               <div className="mt-1 text-right">
-                <Link to="/forgot-password" className="text-xs text-accent-text hover:underline">
+                <Link to="/forgot-password" className="inline-block py-2 text-xs text-accent-text hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -233,7 +233,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setMagicOpen(true)}
-                  className="text-sm font-medium text-accent-text hover:underline"
+                  className="py-2 text-sm font-medium text-accent-text hover:underline"
                 >
                   Email me a sign-in link instead
                 </button>

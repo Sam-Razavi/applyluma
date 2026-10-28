@@ -4,19 +4,19 @@ export default function Header() {
   return (
     <header className="bg-surface border-b border-line">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold text-accent-text tracking-tight">
+        <Link to="/" className="py-2 text-xl font-bold text-accent-text tracking-tight">
           ApplyLuma
         </Link>
         <nav className="flex items-center gap-4">
           <Link
             to="/login"
-            className="text-sm text-fg-muted hover:text-fg transition-colors"
+            className="py-2.5 text-sm text-fg-muted hover:text-fg transition-colors"
           >
             Sign in
           </Link>
           <Link
             to="/register"
-            className="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="text-sm bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors"
           >
             Get started
           </Link>

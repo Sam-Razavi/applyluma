@@ -332,7 +332,7 @@ export default function Jobs() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleStar(job.id, !job.starred) }}
-                      className="rounded-lg p-1 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="-m-1.5 rounded-lg p-2.5 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       aria-label={job.starred ? 'Unstar job' : 'Star job'}
                     >
                       {job.starred ? (
@@ -343,7 +343,8 @@ export default function Jobs() {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(job) }}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-fg-subtle hover:text-chip-danger-fg hover:bg-chip-danger transition-colors"
+                      aria-label="Delete job"
+                      className="h-10 w-10 flex items-center justify-center rounded-lg text-fg-subtle hover:text-chip-danger-fg hover:bg-chip-danger transition-colors"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
@@ -357,7 +358,7 @@ export default function Jobs() {
                   {hasLong && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : job.id) }}
-                      className="mt-1 inline-flex items-center gap-0.5 text-xs text-accent-text hover:text-accent-text"
+                      className="inline-flex items-center gap-0.5 py-2 text-xs text-accent-text hover:text-accent-text"
                     >
                       {isExpanded ? <>Show less <ChevronUpIcon className="h-3 w-3" /></> : <>Read more <ChevronDownIcon className="h-3 w-3" /></>}
                     </button>
@@ -380,7 +381,7 @@ export default function Jobs() {
                 {(job.url || job.notes) && (
                   <div className="mt-2 flex min-w-0 flex-col gap-1">
                     {job.url && (
-                      <a href={job.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-xs text-accent-text hover:underline truncate block">
+                      <a href={job.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="block truncate py-1.5 text-xs text-accent-text hover:underline">
                         {job.url}
                       </a>
                     )}
@@ -398,14 +399,14 @@ export default function Jobs() {
       )}
 
       {/* Add Job Description modal */}
-      <Dialog open={addOpen} onClose={() => !submitting && (setAddOpen(false), reset())} className="relative z-50">
+      <Dialog open={addOpen} onClose={() => !submitting && (setAddOpen(false), reset())} className="relative z-modal">
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <DialogPanel className="bg-raised rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line flex-shrink-0">
               <DialogTitle className="text-base font-semibold text-fg">Add Job</DialogTitle>
-              <button onClick={() => !submitting && (setAddOpen(false), reset())} className="h-8 w-8 flex items-center justify-center rounded-lg text-fg-subtle hover:text-fg-muted hover:bg-surface-strong">
-                <XMarkIcon className="h-4 w-4" />
+              <button onClick={() => !submitting && (setAddOpen(false), reset())} aria-label="Close" className="h-10 w-10 flex items-center justify-center rounded-lg bg-surface text-fg-muted hover:text-fg hover:bg-surface-strong">
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 overflow-y-auto">
@@ -451,7 +452,7 @@ export default function Jobs() {
       />
 
       {/* Delete confirmation */}
-      <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} className="relative z-50">
+      <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} className="relative z-modal">
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <DialogPanel className="bg-raised rounded-2xl shadow-xl max-w-sm w-full p-6">

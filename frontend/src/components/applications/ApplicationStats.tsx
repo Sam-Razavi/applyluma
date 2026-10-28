@@ -50,16 +50,19 @@ export default function ApplicationStats({ stats }: Props) {
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-3 lg:grid-cols-7">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-7">
         {APPLICATION_STATUSES.map((status) => (
-          <div key={status} className="rounded-xl bg-surface px-3 py-2">
-            <div className="flex items-center gap-1.5">
-              <span className={`h-2 w-2 rounded-full ${segmentClasses[status]}`} />
+          <div
+            key={status}
+            className="flex items-center justify-between gap-2 rounded-xl bg-surface px-3 py-2 sm:block"
+          >
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className={`h-2 w-2 shrink-0 rounded-full ${segmentClasses[status]}`} />
               <span className="truncate text-xs font-medium text-fg-muted">
                 {STATUS_META[status].label}
               </span>
             </div>
-            <p className="mt-1 text-lg font-bold text-fg">{stats[status] ?? 0}</p>
+            <p className="text-base font-bold text-fg sm:mt-1 sm:text-lg">{stats[status] ?? 0}</p>
           </div>
         ))}
       </div>

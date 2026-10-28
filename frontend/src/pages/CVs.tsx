@@ -280,7 +280,7 @@ export default function CVs() {
             {cvs.map((cv) => (
               <div key={cv.id}>
               <div
-                className="flex items-start gap-4 px-6 py-4 transition-colors hover:bg-surface-strong sm:items-center"
+                className="flex flex-wrap items-start gap-x-4 gap-y-1 px-4 py-4 transition-colors hover:bg-surface-strong sm:flex-nowrap sm:items-center sm:px-6"
               >
                 {/* Icon */}
                 <div className="h-9 w-9 bg-chip-accent rounded-lg flex items-center justify-center flex-shrink-0">
@@ -320,7 +320,7 @@ export default function CVs() {
                 </span>
 
                 {/* Actions */}
-                <div className="flex flex-shrink-0 flex-col items-center gap-1 sm:flex-row">
+                <div className="-ml-2 flex w-full flex-shrink-0 items-center gap-1 pl-[3.25rem] sm:ml-0 sm:w-auto sm:pl-0">
                   <button
                     onClick={() => cvApi.view(cv.id).catch(() => toast.error('Could not open CV'))}
                     className="flex h-10 w-10 items-center justify-center rounded-lg text-fg-subtle transition-colors hover:bg-surface-strong hover:text-fg-muted"
@@ -385,7 +385,7 @@ export default function CVs() {
       <Dialog
         open={!!deleteTarget}
         onClose={() => !deleting && setDeleteTarget(null)}
-        className="relative z-50"
+        className="relative z-modal"
       >
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">

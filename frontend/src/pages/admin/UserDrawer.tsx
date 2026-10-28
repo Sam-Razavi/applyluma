@@ -172,22 +172,22 @@ export default function UserDrawer({ profile, loading, onClose, onUserChanged }:
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/40"
+      className="fixed inset-0 z-modal flex justify-end bg-black/40"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <aside className="h-full w-full max-w-xl overflow-y-auto bg-raised p-6 shadow-xl">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <h3 className="text-lg font-semibold text-fg">User Profile</h3>
-            <p className="mt-1 text-sm text-fg-subtle">
+            <p className="mt-1 break-all text-sm text-fg-subtle">
               {profile?.email ?? 'Loading user details...'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-surface-strong"
+            className="min-h-10 shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-surface-strong"
           >
             Close
           </button>

@@ -15,7 +15,7 @@ export function CompletenessBar({ score, onClick }: { score: number; onClick?: (
       type="button"
       onClick={onClick}
       title="CV completeness — click for details"
-      className="mt-1 flex items-center gap-2 group"
+      className="group flex items-center gap-2 py-2"
       aria-label={`CV completeness ${score}%`}
     >
       <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-strong">

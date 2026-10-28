@@ -79,7 +79,7 @@ export default function JobCard({ job, onClick, onSave }: Props) {
               e.stopPropagation()
               onSave(job)
             }}
-            className="rounded-lg p-1 text-fg-subtle transition-colors hover:text-accent-text focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="-m-1.5 rounded-lg p-2.5 text-fg-subtle transition-colors hover:text-accent-text focus:outline-none focus:ring-2 focus:ring-primary-500"
             aria-label={job.is_saved ? 'Unsave job' : 'Save job'}
           >
             {job.is_saved ? (
