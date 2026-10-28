@@ -344,7 +344,7 @@ export default function Applications() {
 
       {/* Bulk action bar */}
       {isSelectMode && selectedIds.size > 0 && createPortal(
-        <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-line bg-surface px-4 py-4 shadow-xl md:bottom-0">
+        <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-line bg-raised px-4 py-4 shadow-xl md:bottom-0">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
             <span className="text-sm font-semibold text-fg-muted">
               {selectedIds.size} application{selectedIds.size > 1 ? 's' : ''} selected

@@ -165,7 +165,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
         <button
           type="button"
           onClick={() => setMobileOpen((o) => !o)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-fg lg:cursor-default"
+          className="-my-3 flex flex-1 items-center gap-1.5 py-3 text-left text-sm font-semibold text-fg lg:cursor-default"
           aria-expanded={mobileOpen}
         >
           <FunnelIcon className="h-4 w-4" />
@@ -183,7 +183,7 @@ export default function JobFilters({ filters, onChange, onReset }: Props) {
           <button
             type="button"
             onClick={onReset}
-            className="flex items-center gap-1 text-xs text-fg-subtle hover:text-fg-muted"
+            className="-my-2 flex items-center gap-1 py-2 text-xs text-fg-subtle hover:text-fg-muted"
           >
             <XMarkIcon className="h-3.5 w-3.5" />
             Reset

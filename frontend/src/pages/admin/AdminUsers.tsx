@@ -349,7 +349,7 @@ export default function AdminUsers() {
                       <div className="flex gap-3">
                         <button
                           onClick={() => openProfile(u.id)}
-                          className="text-xs font-medium text-accent-text hover:text-primary-800 transition-colors"
+                          className="-my-2 py-2 text-xs font-medium text-accent-text hover:text-primary-800 transition-colors"
                         >
                           View
                         </button>
@@ -357,7 +357,7 @@ export default function AdminUsers() {
                           onClick={() =>
                             setNotifyModal({ user: u, title: '', body: '', submitting: false })
                           }
-                          className="text-xs font-medium text-accent-text hover:text-primary-800 transition-colors"
+                          className="-my-2 py-2 text-xs font-medium text-accent-text hover:text-primary-800 transition-colors"
                         >
                           Notify
                         </button>
@@ -403,7 +403,7 @@ export default function AdminUsers() {
           position:fixed) */}
       {notifyModal && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setNotifyModal(null)
           }}

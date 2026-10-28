@@ -103,7 +103,7 @@ export default function DashboardActivityChart() {
         </div>
         <Link
           to="/applications?tab=stats"
-          className="flex shrink-0 items-center gap-1 text-xs font-medium text-accent-text"
+          className="-my-2 flex shrink-0 items-center gap-1 py-2 text-xs font-medium text-accent-text"
         >
           Full stats <ArrowRightIcon className="h-3.5 w-3.5" />
         </Link>

@@ -10,7 +10,10 @@ export function CookieBanner({ consent, onAccept, onDecline }: Props) {
   if (consent !== null) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-surface shadow-lg">
+    <div
+      className="fixed bottom-0 left-0 right-0 z-modal border-t border-line bg-raised shadow-lg"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="mx-auto flex max-w-7xl flex-col items-start gap-4 px-4 py-4 sm:flex-row sm:items-center">
         <p className="flex-1 text-sm text-fg-muted">
           We use optional analytics cookies (PostHog, Vercel) to understand how the app is
@@ -23,13 +26,13 @@ export function CookieBanner({ consent, onAccept, onDecline }: Props) {
         <div className="flex shrink-0 gap-3">
           <button
             onClick={onDecline}
-            className="rounded-lg bg-surface px-4 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong"
+            className="min-h-11 rounded-lg bg-surface px-4 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong"
           >
             Decline optional
           </button>
           <button
             onClick={onAccept}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+            className="min-h-11 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
           >
             Accept all
           </button>

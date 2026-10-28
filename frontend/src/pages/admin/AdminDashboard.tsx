@@ -58,7 +58,7 @@ export default function AdminDashboard() {
           <h2 className="mb-3 text-sm font-semibold text-fg-muted uppercase tracking-wide">
             Users
           </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             <StatCard label="Total users" value={stats?.total_users ?? 0} loading={loading} />
             <StatCard
               label="Premium"

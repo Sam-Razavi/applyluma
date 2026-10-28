@@ -205,7 +205,7 @@ export default function Dashboard() {
           <div className="rounded-2xl border border-line bg-surface p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-fg ">Application pipeline</h2>
-              <Link to="/applications" className="flex items-center gap-1 text-xs font-medium text-accent-text hover:opacity-80">
+              <Link to="/applications" className="-my-2 flex items-center gap-1 py-2 text-xs font-medium text-accent-text hover:opacity-80">
                 View all <ArrowRightIcon className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -259,7 +259,7 @@ export default function Dashboard() {
           <div className="rounded-2xl border border-line bg-surface p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-fg ">Recent applications</h2>
-              <Link to="/applications" className="flex items-center gap-1 text-xs font-medium text-accent-text hover:opacity-80">
+              <Link to="/applications" className="-my-2 flex items-center gap-1 py-2 text-xs font-medium text-accent-text hover:opacity-80">
                 View all <ArrowRightIcon className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -305,7 +305,7 @@ export default function Dashboard() {
                 <CalendarDaysIcon className="h-4 w-4 text-purple-500" />
                 <h2 className="text-sm font-semibold text-fg ">Upcoming interviews</h2>
               </div>
-              <Link to="/applications" className="flex items-center gap-1 text-xs font-medium text-accent-text hover:opacity-80">
+              <Link to="/applications" className="-my-2 flex items-center gap-1 py-2 text-xs font-medium text-accent-text hover:opacity-80">
                 View all <ArrowRightIcon className="h-3.5 w-3.5" />
               </Link>
             </div>

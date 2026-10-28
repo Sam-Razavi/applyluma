@@ -29,7 +29,7 @@ export default function VersionTreeNode({ node, depth = 0, onViewDiff }: Props) 
             ? 'border-line bg-surface hover:border-primary-600/40 hover:bg-primary-900/20'
             : 'border-line bg-surface cursor-default'
         }`}
-        style={{ marginLeft: `${depth * 18}px` }}
+        style={{ marginLeft: `${depth * 18}px`, width: `calc(100% - ${depth * 18}px)` }}
       >
         <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-chip-accent">
           <DocumentTextIcon className="h-5 w-5 text-blue-500" />

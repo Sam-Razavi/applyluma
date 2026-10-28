@@ -486,12 +486,13 @@ export default function Settings() {
                   value={value}
                   onChange={(e) => onChange(e.target.value)}
                   required
-                  className="w-full rounded-lg border border-line px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 "
+                  className="w-full rounded-lg border border-line px-3 py-2.5 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 "
                 />
                 <button
                   type="button"
                   onClick={onToggle}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted"
+                  aria-label={show ? 'Hide password' : 'Show password'}
+                  className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-fg-subtle hover:text-fg-muted"
                   tabIndex={-1}
                 >
                   {show ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
@@ -556,7 +557,7 @@ export default function Settings() {
       {/* ── Delete confirmation modal (portaled: page wrapper transform would
           break position:fixed) ──────────────────────────────────────────── */}
       {deleteOpen && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ">
             <h3 className="text-lg font-semibold text-fg ">
               Delete account?

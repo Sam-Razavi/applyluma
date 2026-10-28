@@ -65,7 +65,7 @@ export default function SavedJobCard({
               e.stopPropagation()
               onStar(saved.id, !saved.starred)
             }}
-            className="-m-1 rounded-lg p-2 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="-m-1.5 rounded-lg p-2.5 text-fg-subtle transition-colors hover:text-chip-warn-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
             aria-label={saved.starred ? 'Unstar job' : 'Star job'}
           >
             {saved.starred ? (
@@ -80,7 +80,7 @@ export default function SavedJobCard({
               e.stopPropagation()
               onDelete(saved.id)
             }}
-            className="-m-1 rounded-lg p-2 text-fg-subtle transition-colors hover:text-chip-danger-fg focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="-m-1.5 rounded-lg p-2.5 text-fg-subtle transition-colors hover:text-chip-danger-fg focus:outline-none focus:ring-2 focus:ring-red-500"
             aria-label="Remove saved job"
           >
             <TrashIcon className="h-5 w-5" />

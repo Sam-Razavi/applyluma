@@ -42,7 +42,7 @@ export default function VersionDiffViewer({ cvId, title, open, onClose }: Props)
   }, [cvId, open])
 
   return (
-    <Dialog open={open} onClose={onClose} className="relative z-50">
+    <Dialog open={open} onClose={onClose} className="relative z-modal-nested">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-3 sm:p-4">
         <DialogPanel className="flex max-h-[90vh] w-full max-w-[64rem] flex-col overflow-hidden rounded-2xl bg-raised shadow-2xl">
