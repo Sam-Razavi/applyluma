@@ -276,3 +276,15 @@ h1, h2, h3, .font-display {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* iOS Safari zooms in when a field under 16px gets focus, and does not zoom
+   back out afterwards. Keep every text field at 16px on phone widths; from
+   md: up, the smaller utility sizes (text-sm etc.) apply as written.
+   !important because those utilities are classes and would otherwise win. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

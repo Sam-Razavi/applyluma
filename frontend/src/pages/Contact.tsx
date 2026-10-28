@@ -35,6 +35,13 @@ export default function Contact() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [honeypot, setHoneypot] = useState('')
   const turnstileRef = useRef<TurnstileInstance>(undefined)
+  // The normal widget is a fixed 300px wide, which overflows the card on
+  // phones narrower than ~375px; the compact one is 150px. Decided after
+  // mount because this page is also prerendered, where there is no window.
+  const [compactCaptcha, setCompactCaptcha] = useState(false)
+  useEffect(() => {
+    setCompactCaptcha(window.matchMedia('(max-width: 380px)').matches)
+  }, [])
 
   const {
     register,
@@ -87,7 +94,7 @@ export default function Contact() {
         </p>
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-5">
         {/* ── Left: form ── */}
         <div className="lg:col-span-3">
           {submitted ? (
@@ -107,7 +114,7 @@ export default function Contact() {
           ) : (
             <form
               onSubmit={handleSubmit(onSubmit)}
-              className="rounded-2xl border border-line bg-surface p-8 shadow-sm "
+              className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8"
             >
               <h2 className="mb-6 text-lg font-semibold text-fg ">
                 Get in touch
@@ -193,7 +200,7 @@ export default function Contact() {
                   onSuccess={setTurnstileToken}
                   onError={() => setTurnstileToken(null)}
                   onExpire={() => setTurnstileToken(null)}
-                  options={{ theme: 'light' }}
+                  options={{ theme: 'light', size: compactCaptcha ? 'compact' : 'normal' }}
                 />
               </div>
 
@@ -210,7 +217,7 @@ export default function Contact() {
 
         {/* ── Right: info panel ── */}
         <aside className="lg:col-span-2">
-          <div className="rounded-2xl border border-line bg-surface p-8 shadow-sm ">
+          <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100">
               <EnvelopeIcon className="h-6 w-6 text-accent-text" />
             </div>
