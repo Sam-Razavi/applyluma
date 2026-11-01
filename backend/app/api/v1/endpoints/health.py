@@ -49,10 +49,10 @@ def _check_celery() -> dict[str, Any]:
 
 
 def _check_adzuna() -> dict[str, Any]:
-    configured = bool(settings.ADZUNA_APP_ID)
+    configured = bool(settings.ADZUNA_APP_ID and settings.ADZUNA_API_KEY)
     if configured:
-        return _check_result("ok", "Adzuna app ID is configured", configured=True)
-    return _check_result("degraded", "Adzuna app ID is not configured", configured=False)
+        return _check_result("ok", "Adzuna app ID and key are configured", configured=True)
+    return _check_result("degraded", "Adzuna app ID or key is not configured", configured=False)
 
 
 @router.get("/detailed")

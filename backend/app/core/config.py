@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve .env from the project root regardless of where alembic/uvicorn is invoked from.
@@ -51,7 +52,11 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_SECRET: str = ""
     GITHUB_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/github/callback"
     ADZUNA_APP_ID: str = ""
-    ADZUNA_API_KEY: str = ""
+    # Railway (and .env.production.example) name it ADZUNA_APP_KEY, Adzuna's own
+    # term; accept either so a deploy using one name never silently runs keyless.
+    ADZUNA_API_KEY: str = Field(
+        default="", validation_alias=AliasChoices("ADZUNA_API_KEY", "ADZUNA_APP_KEY")
+    )
     ADZUNA_COUNTRY: str = "gb"
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""

@@ -156,3 +156,23 @@ def test_beat_schedules_the_pipeline_at_two() -> None:
     assert entry["task"] == "app.tasks.job_pipeline.run_job_pipeline"
     assert entry["schedule"].hour == {2} and entry["schedule"].minute == {0}
     assert "app.tasks.job_pipeline.run_job_pipeline" in celery_app.tasks
+
+
+def test_only_active_users_with_a_default_cv_are_scored() -> None:
+    from app.services import job_pipeline as steps
+
+    seen: list[str] = []
+
+    class _Db:
+        def execute(self, stmt):  # noqa: ANN001
+            seen.append(str(stmt))
+
+            class _R:
+                def scalars(self):
+                    return iter(["u1"])
+
+            return _R()
+
+    assert steps.active_user_ids(_Db()) == ["u1"]
+    assert "is_active = true" in seen[0] and "FROM cvs" in seen[0] and "is_default = true" in seen[0]
+
