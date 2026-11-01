@@ -237,7 +237,8 @@ Key backend variables:
 - `SECRET_KEY`
 - `OPENAI_API_KEY`
 - `ADZUNA_APP_ID`
-- `ADZUNA_API_KEY`
+- `ADZUNA_API_KEY` (or `ADZUNA_APP_KEY`; either name is read). Needed on the worker
+  too: the nightly job pipeline scrapes Indeed SE through Adzuna.
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_PREMIUM_PRICE_ID`

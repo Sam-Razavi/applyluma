@@ -57,6 +57,7 @@ def clear_overrides(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     app.dependency_overrides.clear()
     monkeypatch.setattr(health_endpoint, "celery_app", FakeCeleryApp())
     monkeypatch.setattr(health_endpoint.settings, "ADZUNA_APP_ID", "adzuna-id")
+    monkeypatch.setattr(health_endpoint.settings, "ADZUNA_API_KEY", "adzuna-key")
     yield
     app.dependency_overrides.clear()
 
@@ -144,3 +145,22 @@ async def test_detailed_health_is_unhealthy_when_db_fails() -> None:
     body = response.json()
     assert body["status"] == "unhealthy"
     assert body["checks"]["db"]["status"] == "unhealthy"
+
+
+def test_adzuna_needs_both_id_and_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    # An app ID alone used to report "configured" while every call went out keyless.
+    monkeypatch.setattr(health_endpoint.settings, "ADZUNA_API_KEY", "")
+    assert health_endpoint._check_adzuna()["configured"] is False
+
+
+def test_adzuna_key_is_read_from_either_env_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.core.config import Settings
+
+    monkeypatch.delenv("ADZUNA_API_KEY", raising=False)
+    monkeypatch.setenv("ADZUNA_APP_KEY", "from-railway")
+    assert Settings().ADZUNA_API_KEY == "from-railway"
+
+    monkeypatch.delenv("ADZUNA_APP_KEY")
+    monkeypatch.setenv("ADZUNA_API_KEY", "from-docs")
+    assert Settings().ADZUNA_API_KEY == "from-docs"
+

@@ -114,3 +114,31 @@ async def test_pipeline_steps_end_to_end(session: Any) -> None:
     assert stockholm["job_count"] >= 6 and stockholm["p50_salary"] == 55000
     assert any(r["skill"] == "python" for r in by_skill["data"])
     assert senior["data"][0]["job_count"] >= 6
+
+
+def test_active_user_ids_skips_users_without_a_default_cv(session: Any) -> None:
+    from app.models.cv import CV
+    from app.models.user import User
+    from app.services import job_pipeline as steps
+
+    db = session
+    tag = uuid.uuid4().hex[:8]
+    with_cv = User(email=f"with-cv-{tag}@example.com", hashed_password="x", is_active=True)
+    no_cv = User(email=f"no-cv-{tag}@example.com", hashed_password="x", is_active=True)
+    inactive = User(email=f"inactive-{tag}@example.com", hashed_password="x", is_active=False)
+    db.add_all([with_cv, no_cv, inactive])
+    db.flush()
+    db.add(CV(user_id=with_cv.id, title="CV", filename="cv.txt", content="Python", is_default=True))
+    db.add(CV(user_id=inactive.id, title="CV", filename="cv.txt", content="Python", is_default=True))
+    db.add(CV(user_id=no_cv.id, title="Old", filename="old.txt", content="Java", is_default=False))
+    db.commit()
+    try:
+        ids = set(steps.active_user_ids(db))
+        assert str(with_cv.id) in ids
+        assert str(no_cv.id) not in ids
+        assert str(inactive.id) not in ids
+    finally:
+        for user in (with_cv, no_cv, inactive):
+            db.delete(user)
+        db.commit()
+

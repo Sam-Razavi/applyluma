@@ -352,4 +352,14 @@ def refresh_salary_analytics(db: Session) -> int:
 
 
 def active_user_ids(db: Session) -> list[str]:
-    return [str(uid) for uid in db.execute(text("SELECT id FROM users WHERE is_active = true")).scalars()]
+    """Active users with a default CV. Without a CV every score is meaningless,
+    and scoring the whole feed for them was most of the nightly worker time."""
+    return [
+        str(uid)
+        for uid in db.execute(
+            text(
+                "SELECT u.id FROM users u WHERE u.is_active = true AND EXISTS "
+                "(SELECT 1 FROM cvs c WHERE c.user_id = u.id AND c.is_default = true)"
+            )
+        ).scalars()
+    ]

@@ -540,6 +540,13 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     under-counted in the run log.
   - Real-database coverage: `tests/test_job_pipeline_db.py` (opt-in via
     `TEST_DATABASE_URL`, like `test_job_retention.py`).
+  - First production run (2026-11-01, manual): 897 new postings, every step
+    succeeded, watchdog back to `ok`. Follow-ups: match scoring is queued
+    only for active users **with a default CV** (scoring everyone made the
+    first catch-up ~9 h of worker time), and the settings read the Adzuna key
+    as `ADZUNA_API_KEY` **or** `ADZUNA_APP_KEY` — Railway uses the latter, so
+    the app had been calling Adzuna keyless (the health check only looked at
+    the app ID, so it reported "configured"; it now requires both).
 
 ## Git Workflow
 
