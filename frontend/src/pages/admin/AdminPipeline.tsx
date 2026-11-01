@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { AxiosError } from 'axios'
+import toast from 'react-hot-toast'
 import {
   Bar,
   BarChart,
@@ -10,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import ErrorBanner from '../../components/ui/ErrorBanner'
 import { FadeIn } from '../../components/ui/FadeIn'
 import {
@@ -70,6 +73,33 @@ export default function AdminPipeline() {
   const [runs, setRuns] = useState<PipelineRunLogRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [confirmRun, setConfirmRun] = useState(false)
+  const [starting, setStarting] = useState(false)
+  const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => () => clearTimeout(refreshTimer.current), [])
+
+  async function handleRunPipeline() {
+    setStarting(true)
+    try {
+      await adminApi.runPipeline()
+      toast.success('Pipeline started. It takes a few minutes; new runs appear below.')
+      // A run takes a minute or two; reload the run log once it has had time to finish.
+      clearTimeout(refreshTimer.current)
+      refreshTimer.current = setTimeout(() => {
+        adminApi.listPipelineRuns({ size: 10 }).then((data) => setRuns(data.items)).catch(() => {})
+      }, 120_000)
+    } catch (err) {
+      if ((err as AxiosError).response?.status === 409) {
+        toast.error('The pipeline is already running')
+      } else {
+        toast.error('Could not start the pipeline')
+      }
+    } finally {
+      setStarting(false)
+      setConfirmRun(false)
+    }
+  }
 
   useEffect(() => {
     document.title = 'Pipeline Health - ApplyLuma'
@@ -104,12 +134,31 @@ export default function AdminPipeline() {
   return (
     <FadeIn>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-fg ">Pipeline Health</h1>
-          <p className="mt-1 text-sm text-fg-subtle ">
-            Monitor job ingestion freshness, source coverage, and latest market metrics.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-fg ">Pipeline Health</h1>
+            <p className="mt-1 text-sm text-fg-subtle ">
+              Monitor job ingestion freshness, source coverage, and latest market metrics.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmRun(true)}
+            className="min-h-10 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+          >
+            Run pipeline now
+          </button>
         </div>
+
+        <ConfirmDialog
+          open={confirmRun}
+          title="Run the job pipeline now?"
+          message="Scrapes every job source, then refreshes keywords, market statistics, salary analytics and match scores. It normally runs nightly at 02:00 UTC and takes a few minutes."
+          confirmLabel="Run now"
+          loading={starting}
+          onCancel={() => setConfirmRun(false)}
+          onConfirm={handleRunPipeline}
+        />
 
         {error && <ErrorBanner message={error} />}
 

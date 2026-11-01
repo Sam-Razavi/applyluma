@@ -349,3 +349,34 @@ def test_scheduled_run_never_chains(monkeypatch: pytest.MonkeyPatch) -> None:
     log = _run_capturing(monkeypatch, postings=full_batch)
 
     assert log["chained"] == []
+
+
+def test_pipeline_run_chains_while_batches_are_full(monkeypatch: pytest.MonkeyPatch) -> None:
+    """chain=True (the nightly pipeline) keeps going until every new posting is scored."""
+    monkeypatch.setattr(matching_tasks, "BATCH_LIMIT", 2)
+    full_batch = [_make_posting(id=uuid.uuid4()), _make_posting(id=uuid.uuid4())]
+
+    log = _run_capturing(monkeypatch, postings=full_batch, chain=True)
+
+    assert log["chained"] == [((USER_ID,), {"chain": True})]
+
+
+def test_pipeline_run_stops_after_a_partial_batch(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(matching_tasks, "BATCH_LIMIT", 2)
+
+    log = _run_capturing(monkeypatch, postings=[_make_posting()], chain=True)
+
+    assert log["chained"] == []
+
+
+def test_pipeline_run_stops_when_nothing_could_be_scored(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(matching_tasks, "BATCH_LIMIT", 2)
+
+    class _FailingService(_ScoringService):
+        def calculate_match_score(self, uid, pid, job_data):
+            raise RuntimeError("bad posting")
+
+    full_batch = [_make_posting(id=uuid.uuid4()), _make_posting(id=uuid.uuid4())]
+    log = _run_capturing(monkeypatch, postings=full_batch, service=_FailingService, chain=True)
+
+    assert log["chained"] == []

@@ -27,7 +27,11 @@ BATCH_LIMIT = 200
     default_retry_delay=30,
 )
 def compute_job_matching_scores(
-    self, user_id: str, force: bool = False, rescore_before: str | None = None
+    self,
+    user_id: str,
+    force: bool = False,
+    rescore_before: str | None = None,
+    chain: bool = False,
 ) -> dict:
     """Compute or refresh matching scores for live jobs for one user, newest first.
 
@@ -36,6 +40,10 @@ def compute_job_matching_scores(
     was computed against the old CV, so anything scored before now is redone.
     It runs as a chain of BATCH_LIMIT-sized tasks carrying the same
     ``rescore_before`` timestamp until no stale score is left.
+
+    ``chain`` makes a normal (non-forced) run chain the same way, so the
+    nightly pipeline gets every newly scraped posting scored, not just the
+    newest BATCH_LIMIT.
     """
     db = SessionLocal()
     cache = CacheService()
@@ -146,8 +154,11 @@ def compute_job_matching_scores(
         db.commit()
         # A full batch means more stale scores may remain. Stop if nothing could
         # be scored, so postings that always fail cannot loop forever.
-        if rescore_before and len(postings) == BATCH_LIMIT and scored > 0:
-            compute_job_matching_scores.delay(user_id, rescore_before=rescore_before)
+        if len(postings) == BATCH_LIMIT and scored > 0:
+            if rescore_before:
+                compute_job_matching_scores.delay(user_id, rescore_before=rescore_before)
+            elif chain:
+                compute_job_matching_scores.delay(user_id, chain=True)
         return {"status": "ok", "scored": scored}
 
     except Exception as exc:

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import toast from 'react-hot-toast'
 import { BrowserRouter } from 'react-router-dom'
 import AdminPipeline from './AdminPipeline'
 import { adminApi } from '../../services/adminApi'
@@ -11,8 +12,11 @@ vi.mock('../../services/adminApi', () => ({
     getJobsBySource: vi.fn(),
     getPipelineMetrics: vi.fn(),
     listPipelineRuns: vi.fn(),
+    runPipeline: vi.fn(),
   },
 }))
+
+vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }))
 
 function renderAdminPipeline() {
   return render(
@@ -98,5 +102,26 @@ describe('AdminPipeline page', () => {
     await waitFor(() => {
       expect(screen.getByText('Failed to load pipeline health')).toBeInTheDocument()
     })
+  })
+
+  it('starts the pipeline after confirming', async () => {
+    vi.mocked(adminApi.runPipeline).mockResolvedValue({ queued: true })
+    renderAdminPipeline()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Run pipeline now' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }))
+
+    await waitFor(() => expect(adminApi.runPipeline).toHaveBeenCalledTimes(1))
+    expect(toast.success).toHaveBeenCalled()
+  })
+
+  it('says so when a run is already in progress', async () => {
+    vi.mocked(adminApi.runPipeline).mockRejectedValue({ response: { status: 409 } })
+    renderAdminPipeline()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Run pipeline now' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('The pipeline is already running'))
   })
 })

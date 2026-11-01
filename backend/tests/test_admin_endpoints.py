@@ -732,3 +732,46 @@ async def test_contact_submissions_passes_category_filter(
     assert response.status_code == 200
     assert captured["category"] == "bug"
     assert captured["status"] == "new"
+
+
+# ── Run pipeline now ──────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_run_pipeline_requires_admin_role() -> None:
+    response = await request("POST", "/api/v1/admin/pipeline/run", current_user=regular_user())
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_run_pipeline_queues_task_and_audits(monkeypatch: pytest.MonkeyPatch) -> None:
+    queued: list[bool] = []
+    audits: list[dict[str, Any]] = []
+    monkeypatch.setattr(admin_endpoint.job_pipeline_task, "pipeline_is_running", lambda: False)
+    monkeypatch.setattr(
+        admin_endpoint.job_pipeline_task.run_job_pipeline, "delay", lambda: queued.append(True)
+    )
+    monkeypatch.setattr(
+        admin_endpoint.crud_admin, "log_admin_action", lambda db, **kw: audits.append(kw)
+    )
+
+    response = await request("POST", "/api/v1/admin/pipeline/run", current_user=admin_user())
+
+    assert response.status_code == 202
+    assert response.json() == {"queued": True}
+    assert queued == [True]
+    assert audits[0]["action"] == "pipeline.run_requested"
+    assert audits[0]["admin_user_id"] == ADMIN_ID
+
+
+@pytest.mark.asyncio
+async def test_run_pipeline_conflicts_while_running(monkeypatch: pytest.MonkeyPatch) -> None:
+    queued: list[bool] = []
+    monkeypatch.setattr(admin_endpoint.job_pipeline_task, "pipeline_is_running", lambda: True)
+    monkeypatch.setattr(
+        admin_endpoint.job_pipeline_task.run_job_pipeline, "delay", lambda: queued.append(True)
+    )
+
+    response = await request("POST", "/api/v1/admin/pipeline/run", current_user=admin_user())
+
+    assert response.status_code == 409
+    assert queued == []

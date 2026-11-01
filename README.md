@@ -81,7 +81,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 - Market intelligence dashboard for job volume, salary bands, remote share, growth, top companies, skills, location, seniority, and job-type mix.
 - Resume-vs-market comparison for authenticated users with uploaded CVs.
 - Admin panel covering user management (activity timeline, delete/password-reset/verify, per-user AI cost and tailor-limit overrides), AI job monitoring with cost/budget tracking, billing overview, contact/feedback inbox, notification center, raw job postings, database table stats, audit logs, and pipeline health.
-- Daily scraping and transform pipeline backed by Airflow, dbt, PostgreSQL, and Redis caching.
+- Nightly scraping, keyword and analytics pipeline running as Celery tasks on Railway, with PostgreSQL and Redis caching.
 - Three-layer monitoring (external uptime pinger, internal health watchdog, Sentry) — see [docs/MONITORING.md](docs/MONITORING.md).
 
 ### Browser Extension
@@ -99,7 +99,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 | Backend | FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, Celery |
 | CV/Cover Letter Rendering | Jinja2 + WeasyPrint (templated PDF generation), legacy ReportLab fallback |
 | AI | OpenAI API for resume analysis, CV tailoring, cover letters, extraction, and scoring |
-| Data | Apache Airflow on Astro Cloud, dbt, Railway PostgreSQL |
+| Data | Celery beat + worker on Railway (nightly job pipeline), Railway PostgreSQL |
 | Extension | Manifest V3, content scripts, Chrome/Firefox storage APIs |
 | Infrastructure | Railway, Vercel, Docker, Namecheap DNS |
 | Payments and Email | Stripe, Resend |
@@ -112,7 +112,7 @@ applyluma/
 |-- backend/               FastAPI API, SQLAlchemy models, schemas, services, tasks, tests
 |-- frontend/              React + TypeScript app, pages, components, stores, tests
 |-- applyluma-extension/   MV3 browser extension for saving jobs from job boards
-|-- airflow/               DAGs for scraping, keyword extraction, and scoring jobs
+|-- airflow/               Retired Airflow DAGs, kept for reference (see airflow/RETIRED.md)
 |-- dbt/                   Analytics transformations
 |-- deployment/            Railway, Vercel, DNS, Airflow, and test checklists
 |-- docs/                  Product and technical documentation
@@ -125,7 +125,7 @@ applyluma/
 - Backend: Railway, https://applyluma-production.up.railway.app
 - Database: Railway PostgreSQL
 - Cache and queue broker: Railway Redis
-- Data pipeline: Astro Cloud Airflow plus dbt
+- Data pipeline: Celery tasks on Railway (`app/tasks/job_pipeline.py`)
 - Domain: Namecheap DNS pointing to Vercel
 
 `main` is the production branch and auto-deploys to Railway and Vercel. Railway runs `alembic upgrade head` before starting the backend container.
@@ -204,13 +204,20 @@ cd dbt && dbt deps --profiles-dir . && dbt parse --profiles-dir .
 
 ## Data Pipeline
 
-ApplyLuma uses Astro Cloud for managed Airflow scheduling. DAG code remains in `airflow/dags/`, while production runs on Astronomer-managed infrastructure.
+The nightly pipeline runs as Celery tasks on the existing Railway beat and
+worker services (it moved off Astro Cloud Airflow in November 2026). The
+scrapers live in `backend/app/services/job_scrapers/`, the steps in
+`backend/app/services/job_pipeline.py`, and the task in
+`backend/app/tasks/job_pipeline.py`. Admins can trigger a run from
+`/admin/pipeline` ("Run pipeline now").
 
 Schedule:
 
-- Job scraping: daily at 02:00 UTC
-- dbt transforms: daily at 03:00 UTC
-- Keyword extraction and match-score computation: daily at 03:30 UTC
+- 01:00 UTC: job retention (archive / slim / purge old postings)
+- 02:00 UTC: job pipeline (scrape Remotive, The Muse, RemoteOK, Platsbanken and
+  Indeed SE via Adzuna; dedupe; skills; keywords; daily metrics; salary
+  analytics; queue match scoring)
+- 04:30 UTC: high-match job alerts
 
 Production health check:
 
