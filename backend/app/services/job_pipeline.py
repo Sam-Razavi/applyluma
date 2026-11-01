@@ -12,9 +12,9 @@ import json
 import logging
 from collections import Counter
 from datetime import date
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import text
+from sqlalchemy import CursorResult, text
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -71,7 +71,7 @@ def scrape_source(source: str) -> int:
 
 
 def mark_duplicates(db: Session) -> int:
-    marked = db.execute(text(MARK_TODAYS_DUPLICATES_SQL)).rowcount
+    marked = cast(CursorResult[Any], db.execute(text(MARK_TODAYS_DUPLICATES_SQL))).rowcount
     db.commit()
     return int(marked or 0)
 
