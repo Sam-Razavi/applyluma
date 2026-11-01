@@ -286,7 +286,7 @@ branches `claude/admin-panel-review-4f5992` + earlier GDPR-fix work):
     `frontend/src/pages/admin/UserDrawer.tsx` (extracted out of `AdminUsers.tsx`
     for size), with "Load more" pagination.
   - Health watchdog: `app/tasks/watchdog.py` (Celery task
-    `run_health_watchdog`, beat schedule `*/15` minutes) checks db/redis/celery
+    `run_health_watchdog`, beat schedule `*/15` minutes) checks db/redis
     (reusing `endpoints/health.py` probes), pipeline freshness, and an AI
     tailor/cover-letter failure spike (`WATCHDOG_FAILURE_SPIKE_THRESHOLD`,
     default 5/hour). State persisted in `app_settings` key
@@ -497,6 +497,16 @@ Job retention & alert fixes (October 2026, fixes issues #77 and #92):
     (dedupe is `job_alert_sent_log`; that filter could suppress alerts
     forever), `_is_due` has 1h slack so a run firing a moment early is not
     skipped, and the alert moved to 04:30 UTC, after the 03:30 scoring.
+  - Retention runs in committed batches (500 rows, at most 40 per night):
+    the first single-transaction run filled the 1 GB volume and crash-looped
+    Postgres (volume since resized to 5 GB). The 30-day age rule is skipped
+    while scraping is stale (no posting scraped in 2 days), so a stopped
+    pipeline cannot empty Discover; expired deadlines are still archived.
+  - The Airflow pipeline (Astro Cloud) stopped writing around 2026-09-12;
+    by 2026-11-01 retention had archived ~120k of ~126k postings before the
+    age-rule pause shipped. The watchdog's permanent "celery" alarm (a solo
+    worker cannot answer inspect() while running the watchdog) masked the
+    real "pipeline" alert and was removed.
 
 ## Git Workflow
 

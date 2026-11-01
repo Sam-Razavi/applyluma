@@ -6,7 +6,7 @@ failure modes and none of them substitutes for the others.
 | Layer | Catches | Where it runs |
 |---|---|---|
 | External uptime pinger (UptimeRobot) | The whole app being down/unreachable | Outside the app — the only layer that works when the app itself is dead |
-| Internal health watchdog | Degraded dependencies (Redis, Celery, stalled scraping, AI job failure spikes) while the app is still up | Celery beat, every 15 minutes |
+| Internal health watchdog | Degraded dependencies (DB, Redis, stalled scraping, AI job failure spikes) while the app is still up | Celery beat, every 15 minutes |
 | Sentry | Unhandled exceptions in the running backend and frontend | In-process, on both `backend/` and `frontend/` |
 
 A process that has crashed entirely can't email you about itself — that's
@@ -36,7 +36,12 @@ transient DB blip doesn't cause Railway to restart the container. Only
 `app/tasks/celery_app.py` beat entry `health-watchdog-every-15-min`) checks,
 every 15 minutes:
 
-- `db`, `redis`, `celery` — the same probes as `/api/v1/health/detailed`.
+- `db`, `redis` — the same probes as `/api/v1/health/detailed`. Celery is not
+  probed: the watchdog runs on the only worker (`--pool=solo`), which cannot
+  answer an inspect ping while running it, so that probe always failed. A
+  worker that runs the watchdog is alive; if the worker dies, the watchdog
+  stops running and sends nothing, so a dead worker shows up only as a
+  crashed service in Railway (`/api/v1/health/detailed` still probes it).
 - `pipeline` — whether `raw_job_postings` scraping is fresh
   (`crud_admin.get_pipeline_health`).
 - `ai_job_failures` — whether failed tailor/cover-letter jobs in the last

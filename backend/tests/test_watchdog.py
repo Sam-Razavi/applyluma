@@ -39,7 +39,6 @@ def patch_session(monkeypatch: pytest.MonkeyPatch) -> None:
 def _patch_all_healthy(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(watchdog_module, "_check_db", lambda db: {"status": "ok"})
     monkeypatch.setattr(watchdog_module, "_check_redis", lambda client: {"status": "ok"})
-    monkeypatch.setattr(watchdog_module, "_check_celery", lambda: {"status": "ok"})
     monkeypatch.setattr(watchdog_module, "get_redis_client", lambda: object())
     monkeypatch.setattr(
         watchdog_module.crud_admin,
@@ -109,10 +108,14 @@ async def test_new_failing_check_while_degraded_emails_again(monkeypatch: pytest
 
     watchdog_module.run_health_watchdog()
 
-    monkeypatch.setattr(watchdog_module, "_check_celery", lambda: {"status": "degraded"})
+    monkeypatch.setattr(
+        watchdog_module.crud_admin,
+        "get_pipeline_health",
+        lambda db: {"raw_job_postings": {"healthy": False}},
+    )
     result = watchdog_module.run_health_watchdog()
 
-    assert result["state"] == "degraded:celery,redis"
+    assert result["state"] == "degraded:pipeline,redis"
     assert result["emailed"] == "true"
     assert len(sent) == 2
 
@@ -158,3 +161,9 @@ async def test_pipeline_unhealthy_marks_degraded(monkeypatch: pytest.MonkeyPatch
     result = watchdog_module.run_health_watchdog()
 
     assert result["state"] == "degraded:pipeline"
+
+
+def test_watchdog_does_not_probe_celery() -> None:
+    # The watchdog runs on the only (--pool=solo) worker, which cannot answer an
+    # inspect() ping while busy with this task, so a celery probe always failed.
+    assert not hasattr(watchdog_module, "_check_celery")
