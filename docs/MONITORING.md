@@ -45,8 +45,7 @@ every 15 minutes:
 - `pipeline` — whether `raw_job_postings` scraping is fresh
   (`crud_admin.get_pipeline_health`). The nightly job pipeline
   (`app/tasks/job_pipeline.py`, 02:00 UTC) writes one `pipeline_run_log` row
-  per source (`remotive`, `the_muse`, `remoteok`, `platsbanken`,
-  `indeed_se`) plus `extracted_keywords`, `transform_jobs` and
+  per source (`remotive`, `the_muse`, `remoteok`, `platsbanken`) plus `extracted_keywords`, `transform_jobs` and
   `salary_analytics`; a failed source is logged as `failed` with the error,
   visible on `/admin/pipeline`.
 - `ai_job_failures` — whether failed tailor/cover-letter jobs in the last

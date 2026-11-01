@@ -11,8 +11,8 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services import job_pipeline
-from app.services.job_scrapers import indeed_se, platsbanken, the_muse
-from app.services.job_scrapers.indeed_se import IndeedSeClient
+from app.services.job_scrapers import platsbanken, the_muse
+from app.services.job_scrapers.base import redact
 from app.services.job_scrapers.platsbanken import PlatsbankenClient
 from app.services.job_scrapers.remoteok import RemoteOKClient
 from app.services.job_scrapers.remotive import RemotiveClient
@@ -33,7 +33,6 @@ class _Resp:
 @pytest.fixture(autouse=True)
 def no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(platsbanken.time, "sleep", lambda s: None)
-    monkeypatch.setattr(indeed_se.time, "sleep", lambda s: None)
 
 
 def test_remotive_parses_and_strips_html() -> None:
@@ -147,31 +146,29 @@ def test_platsbanken_fails_only_when_every_request_fails(monkeypatch: pytest.Mon
         client.fetch_jobs()
 
 
-def test_indeed_se_skips_without_adzuna_keys(monkeypatch: pytest.MonkeyPatch) -> None:
-    client = IndeedSeClient(DSN, app_id="", api_key="")
-    monkeypatch.setattr(client, "_get", lambda *a, **k: pytest.fail("must not call Adzuna"))
-    assert client.fetch_jobs() == []
+def test_errors_never_carry_credentials_from_the_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = RemotiveClient(DSN)
+
+    class _Resp:
+        status_code = 404
+
+        def raise_for_status(self) -> None:
+            raise requests.HTTPError(
+                "404 Client Error: Not Found for url: "
+                "https://api.example.com/search/1?app_id=abc123&app_key=s3cr3t&what=python"
+            )
+
+    monkeypatch.setattr(client._session, "get", lambda *a, **k: _Resp())
+    with pytest.raises(requests.HTTPError) as caught:
+        client._get("https://api.example.com/search/1")
+    message = str(caught.value)
+    assert "s3cr3t" not in message and "abc123" not in message
+    assert "app_key=***" in message and "what=python" in message
 
 
-def test_indeed_se_parses_salaries_and_fails_when_all_requests_fail(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    client = IndeedSeClient(DSN, app_id="id", api_key="key", queries=["python developer"])
-    [job] = client.parse_response(
-        [{"id": "55", "title": "Dev", "company": {"display_name": "Bolag AB"},
-          "location": {"display_name": "Göteborg"}, "salary_min": 45000.5, "salary_max": None,
-          "description": "Python", "redirect_url": "https://adzuna.se/55"}]
-    )
-    assert (job["company"], job["location"], job["salary_min"], job["salary_max"]) == (
-        "Bolag AB", "Göteborg", 45000, None,
-    )
-
-    def boom(url: str, **kwargs: Any) -> Any:
-        raise requests.HTTPError("401")
-
-    monkeypatch.setattr(client, "_get", boom)
-    with pytest.raises(requests.HTTPError):
-        client.fetch_jobs()
+def test_redact_masks_credential_params_only() -> None:
+    url = "https://x.test/p?api_key=K&token=T&q=python&key=Z"
+    assert redact(url) == "https://x.test/p?api_key=***&token=***&q=python&key=***"
 
 
 def test_tracked_skills_use_word_boundaries() -> None:
@@ -198,6 +195,8 @@ def test_every_listed_source_has_a_scraper() -> None:
         assert job_pipeline.build_scraper(source).SOURCE_NAME == source
     with pytest.raises(ValueError):
         job_pipeline.build_scraper("jobbsafari")
+    with pytest.raises(ValueError):
+        job_pipeline.build_scraper("indeed_se")  # Adzuna has no Sweden endpoint
 
 
 def test_the_muse_module_is_the_ported_copy() -> None:

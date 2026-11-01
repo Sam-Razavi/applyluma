@@ -12,7 +12,7 @@ const FEATURES = [
     icon: '🔍',
     title: 'Swedish Job Discovery',
     description:
-      'Browse thousands of jobs from Platsbanken, Jobbsafari, and Indeed.se with an AI match score calculated against your own CV.',
+      'Browse thousands of jobs from Platsbanken, RemoteOK, Remotive and The Muse with an AI match score calculated against your own CV.',
   },
   {
     icon: '✉️',
