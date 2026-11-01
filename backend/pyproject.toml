@@ -36,6 +36,7 @@ dependencies = [
     "resend>=2.0.0",
     "sentry-sdk[fastapi]>=2.0.0",
     "beautifulsoup4>=4.12.0",
+    "requests>=2.31.0",  # job scrapers (app/services/job_scrapers)
 ]
 
 [project.optional-dependencies]
@@ -114,6 +115,7 @@ module = [
     "app.services.url_scraper",
     "app.tasks.cover_letter",
     "app.tasks.inbound_email",
+    "app.tasks.job_pipeline",
     "app.tasks.job_retention",
     "app.tasks.matching",
     "app.tasks.notifications",

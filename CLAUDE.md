@@ -508,6 +508,39 @@ Job retention & alert fixes (October 2026, fixes issues #77 and #92):
     worker cannot answer inspect() while running the watchdog) masked the
     real "pipeline" alert and was removed.
 
+Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
+  - One Celery task, `app.tasks.job_pipeline.run_job_pipeline` (beat 02:00
+    UTC, on the existing worker), runs the old four DAGs' work in order:
+    scrape (remotive, the_muse, remoteok, platsbanken, indeed_se via Adzuna)
+    → `mark_todays_duplicates` → skill tagging (Platsbanken's own skill
+    lists, else the `TRACKED_SKILLS` regex; Indeed SE now gets skills too) →
+    keywords (`extract_keywords_simple`, batches of 500 until done) →
+    `job_market_metrics` upsert → salary analytics → queue
+    `compute_job_matching_scores(user_id, chain=True)` per active user.
+  - Each step is isolated (a failure is logged and the rest still run), and
+    each source plus `extracted_keywords`, `transform_jobs` and
+    `salary_analytics` writes a `pipeline_run_log` row, which
+    `/admin/pipeline` and the watchdog's `pipeline` check read. A source
+    whose every request fails now raises instead of reporting 0 jobs.
+  - dbt is not run in production: `refresh_salary_analytics` rebuilds the
+    only two marts the app reads, `analytics.fct_job_postings` and
+    `analytics.agg_salary_insights`, with SQL ported from the dbt models
+    (built under `*_build` names and swapped in by rename). Slimmed/archived
+    postings drop out via the staging length filter. `dbt/` stays in the
+    repo and CI still parses it.
+  - `compute_job_matching_scores(chain=True)` keeps chaining 200-posting
+    batches until no unscored live posting is left (it used to score only
+    the newest 200 per user per day).
+  - `POST /admin/pipeline/run` (admin, audit-logged) queues a run; 409 while
+    one holds the Redis lock `job_pipeline:lock` (TTL 1h). "Run pipeline now"
+    button on `/admin/pipeline`.
+  - Jobbsafari was dropped: its RSS feed returns 404 and it has no API.
+  - Fixed while porting: `BaseScraper.save_to_db` reported only the last
+    100-row page's inserts (execute_values paging), so busy sources were
+    under-counted in the run log.
+  - Real-database coverage: `tests/test_job_pipeline_db.py` (opt-in via
+    `TEST_DATABASE_URL`, like `test_job_retention.py`).
+
 ## Git Workflow
 
 Branch structure:
@@ -572,7 +605,9 @@ External APIs:
 - `backend/railway.json`: Forces Railway to use the Dockerfile builder.
 - `backend/app/main.py`: FastAPI application entrypoint and CORS configuration.
 - `frontend/vercel.json`: Vercel configuration with rewrites.
-- `airflow/dags/`: Job scraping and dbt transform DAGs.
+- `backend/app/tasks/job_pipeline.py` + `backend/app/services/job_pipeline.py` +
+  `backend/app/services/job_scrapers/`: the nightly job pipeline (02:00 UTC).
+  `airflow/` is retired and unscheduled (see `airflow/RETIRED.md`).
 - `.github/workflows/data-pipeline-tests.yml`: CI for Airflow + dbt tests.
 - `.github/workflows/ci.yml`: CI for backend (ruff, mypy, pytest) and frontend
   (ESLint, `tsc --noEmit`, Vitest, `npm run build`). mypy runs in `strict`
@@ -848,8 +883,8 @@ When working on this project:
 - Use Railway logs to verify backend deployments.
 - Check both Railway and Vercel for production status.
 - Remember that analytics endpoints require a populated database.
-- Airflow runs daily at 2 AM UTC for scraping.
-- Airflow/dbt transforms run daily at 3 AM UTC.
+- The job pipeline runs daily at 02:00 UTC as a Celery task on Railway (no
+  Airflow or dbt in production any more).
 - Keep credentials in environment variables only.
 - Prefer existing backend, frontend, Airflow, and dbt patterns before adding new
   abstractions.

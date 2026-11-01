@@ -501,6 +501,11 @@ export const adminApi = {
     return client.get('/api/v1/admin/pipeline/runs', { params }).then((r) => r.data)
   },
 
+  /** Queue the nightly job pipeline now. 409 if a run is already in progress. */
+  runPipeline(): Promise<{ queued: boolean }> {
+    return client.post('/api/v1/admin/pipeline/run').then((r) => r.data)
+  },
+
   listRawJobs(params: {
     search?: string
     source?: string

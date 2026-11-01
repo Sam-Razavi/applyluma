@@ -60,6 +60,7 @@ from app.schemas.admin import (
     UserSignupsDailyPoint,
 )
 from app.services import email_service, notification_service
+from app.tasks import job_pipeline as job_pipeline_task
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
@@ -467,6 +468,22 @@ def pipeline_jobs_by_source(admin: AdminUser, db: DbSession) -> list[JobsBySourc
 def pipeline_metrics(admin: AdminUser, db: DbSession) -> PipelineMetricsResponse:
     data = crud_admin.get_latest_market_metrics(db)
     return PipelineMetricsResponse.model_validate(data) if data else PipelineMetricsResponse()
+
+
+@router.post("/pipeline/run", status_code=status.HTTP_202_ACCEPTED)
+def run_pipeline_now(admin: AdminUser, db: DbSession, request: Request) -> dict[str, bool]:
+    """Queue the nightly job pipeline now (scrape, keywords, metrics, scores)."""
+    if job_pipeline_task.pipeline_is_running():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="The pipeline is already running")
+    job_pipeline_task.run_job_pipeline.delay()
+    crud_admin.log_admin_action(
+        db,
+        admin_user_id=admin.id,
+        action="pipeline.run_requested",
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return {"queued": True}
 
 
 @router.get("/pipeline/runs", response_model=PipelineRunLogListResponse)
