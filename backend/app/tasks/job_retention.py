@@ -14,11 +14,17 @@
 
 Postings a user saved or linked to an application are archived like any
 other, but keep their content and are never purged while still referenced.
+
+The age rule only runs while scraping is alive (a posting arrived in the last
+SCRAPE_STALE_AFTER). When the pipeline stops, every posting eventually passes
+ARCHIVE_AFTER_DAYS, and archiving them all would empty Discover with nothing
+to replace them; expired deadlines are still archived either way.
 """
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, exists, or_, select
+from sqlalchemy import ColumnElement, Select, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
@@ -26,8 +32,11 @@ from app.models.application import Application
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
 from app.tasks.celery_app import celery_app
 
+logger = logging.getLogger(__name__)
+
 ARCHIVE_AFTER_DAYS = 30
 PURGE_AFTER_ARCHIVED_DAYS = 90
+SCRAPE_STALE_AFTER = timedelta(days=2)
 
 # Work in small committed batches. Postgres writes a new version of every
 # updated row (plus WAL) before the old one can be reclaimed, so a single
@@ -83,15 +92,17 @@ def _purge(db: Session, now: datetime) -> int:
     return purged
 
 
-def _archive(db: Session, now: datetime) -> tuple[int, int]:
+def _scraping_is_fresh(db: Session, now: datetime) -> bool:
+    newest = db.scalar(select(func.max(RawJobPosting.scraped_at)))
+    return newest is not None and newest >= now - SCRAPE_STALE_AFTER
+
+
+def _archive(db: Session, now: datetime, age_rule: bool = True) -> tuple[int, int]:
     """Archive expired/old postings; slim the unreferenced ones in the same write."""
-    query = select(RawJobPosting.id).where(
-        RawJobPosting.archived_at.is_(None),
-        or_(
-            RawJobPosting.application_deadline < now,
-            RawJobPosting.scraped_at < now - timedelta(days=ARCHIVE_AFTER_DAYS),
-        ),
-    )
+    due: ColumnElement[bool] = RawJobPosting.application_deadline < now
+    if age_rule:
+        due = or_(due, RawJobPosting.scraped_at < now - timedelta(days=ARCHIVE_AFTER_DAYS))
+    query = select(RawJobPosting.id).where(RawJobPosting.archived_at.is_(None), due)
     archived = slimmed = 0
     for _ in range(MAX_BATCHES_PER_RUN):
         ids = _next_batch(db, query)
@@ -145,7 +156,13 @@ def archive_and_purge_job_postings() -> dict[str, int]:
     try:
         now = datetime.now(UTC)
         purged = _purge(db, now)
-        archived, slimmed = _archive(db, now)
+        age_rule = _scraping_is_fresh(db, now)
+        if not age_rule:
+            logger.warning(
+                "No postings scraped in the last %s; skipping the %d-day age rule",
+                SCRAPE_STALE_AFTER, ARCHIVE_AFTER_DAYS,
+            )
+        archived, slimmed = _archive(db, now, age_rule=age_rule)
         slimmed += _slim_released(db)
         return {"archived": archived, "slimmed": slimmed, "purged": purged}
     except Exception:

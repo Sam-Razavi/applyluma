@@ -1,17 +1,23 @@
 """Health watchdog: runs every 15 minutes and emails on state transitions.
 
-Checks db/redis/celery (reusing the same probes as /health/detailed), pipeline
+Checks db/redis (reusing the same probes as /health/detailed), pipeline
 freshness (raw_job_postings scraping), and a spike in failed AI jobs in the
 last hour. State ("ok" or "degraded:<checks>") is persisted in app_settings
 so an email only fires on a transition — a new failing check, or recovery —
 mirroring the AI budget alert throttle in app/services/ai_usage.py.
+
+Celery is deliberately not probed here: this task runs on the only worker,
+which uses --pool=solo and so cannot answer a control.inspect() ping while it
+is busy running this very task — the probe always failed. A worker that runs
+the watchdog is alive by definition; a dead worker means the watchdog never
+runs at all (see docs/MONITORING.md; /health/detailed still probes Celery).
 """
 from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
 
-from app.api.v1.endpoints.health import _check_celery, _check_db, _check_redis
+from app.api.v1.endpoints.health import _check_db, _check_redis
 from app.core.config import settings
 from app.core.dependencies import get_redis_client
 from app.crud import admin as crud_admin
@@ -56,8 +62,6 @@ def _run_checks() -> list[str]:
                 failing.append("redis")
         except Exception:
             failing.append("redis")
-        if _check_celery()["status"] != "ok":
-            failing.append("celery")
 
         pipeline = crud_admin.get_pipeline_health(db)
         if not pipeline["raw_job_postings"]["healthy"]:

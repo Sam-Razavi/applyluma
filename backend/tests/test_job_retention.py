@@ -127,8 +127,9 @@ def test_task_purges_first_and_reports_counts(monkeypatch: pytest.MonkeyPatch) -
     db = _Db()
     monkeypatch.setattr(job_retention, "SessionLocal", lambda: db)
     monkeypatch.setattr(job_retention, "_purge", lambda d, now: calls.append("purge") or 4)
+    monkeypatch.setattr(job_retention, "_scraping_is_fresh", lambda d, now: True)
     monkeypatch.setattr(
-        job_retention, "_archive", lambda d, now: calls.append("archive") or (10, 7)
+        job_retention, "_archive", lambda d, now, age_rule: calls.append("archive") or (10, 7)
     )
     monkeypatch.setattr(job_retention, "_slim_released", lambda d: calls.append("slim") or 1)
 
@@ -137,6 +138,61 @@ def test_task_purges_first_and_reports_counts(monkeypatch: pytest.MonkeyPatch) -
     assert calls == ["purge", "archive", "slim"]  # free space before using any
     assert result == {"archived": 10, "slimmed": 8, "purged": 4}
     assert db.closed
+
+
+def test_archive_without_age_rule_only_uses_deadlines(monkeypatch: pytest.MonkeyPatch) -> None:
+    queries: list[str] = []
+
+    class _Db(_BatchDb):
+        def execute(self, stmt):
+            queries.append(_sql(stmt))
+            return super().execute(stmt)
+
+    job_retention._archive(_Db([[]]), datetime.now(UTC), age_rule=False)
+    assert "application_deadline <" in queries[0]
+    assert "scraped_at" not in queries[0]
+
+    queries.clear()
+    job_retention._archive(_Db([[]]), datetime.now(UTC))
+    assert "scraped_at <" in queries[0]
+
+
+def test_task_skips_age_rule_when_scraping_is_stale(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, bool] = {}
+
+    class _Db:
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(job_retention, "SessionLocal", lambda: _Db())
+    monkeypatch.setattr(job_retention, "_purge", lambda d, now: 0)
+    monkeypatch.setattr(job_retention, "_scraping_is_fresh", lambda d, now: False)
+    monkeypatch.setattr(
+        job_retention, "_archive", lambda d, now, age_rule: seen.update(age_rule=age_rule) or (0, 0)
+    )
+    monkeypatch.setattr(job_retention, "_slim_released", lambda d: 0)
+
+    job_retention.archive_and_purge_job_postings.run()
+
+    assert seen == {"age_rule": False}
+
+
+def test_scraping_is_fresh_uses_newest_scrape() -> None:
+    now = datetime.now(UTC)
+
+    class _Db:
+        def __init__(self, newest):
+            self.newest = newest
+
+        def scalar(self, stmt):
+            return self.newest
+
+    assert job_retention._scraping_is_fresh(_Db(now - timedelta(hours=20)), now)
+    assert not job_retention._scraping_is_fresh(_Db(now - timedelta(days=3)), now)
+    assert not job_retention._scraping_is_fresh(_Db(None), now)
 
 
 def test_task_rolls_back_on_error(monkeypatch: pytest.MonkeyPatch) -> None:
