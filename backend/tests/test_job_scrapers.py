@@ -224,6 +224,20 @@ def test_redact_masks_credential_params_only() -> None:
     assert redact(url) == "https://x.test/p?api_key=***&token=***&q=python&key=***"
 
 
+def test_everyday_words_are_not_tagged_as_skills() -> None:
+    from app.services.job_scrapers.keyword_extraction import extract_keywords_simple, scored_skills
+
+    def found(text: str) -> set[str]:
+        return {kw for kw, *_ in extract_keywords_simple(text)}
+
+    assert "Go" not in found("be ready to go the extra mile, on the go, go-to-market")
+    assert "Go" in found("Backend services in Go and Python")
+    assert "Spring" not in found("Master thesis, spring 2027")
+    assert "Spring" in found("Java with Spring and SpringBoot")
+    assert "Rust" not in found("rust prevention coatings")
+    assert scored_skills("Python, Agile, Svenska, English, communication") == ["Python"]
+
+
 def test_tracked_skills_use_word_boundaries() -> None:
     assert extract_tracked_skills("We use JavaScript and React") == ["react", "javascript"]
     assert "java" in extract_tracked_skills("Java and Kotlin")

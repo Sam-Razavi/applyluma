@@ -7,7 +7,7 @@ from typing import Any
 
 from sqlalchemy import ColumnElement, and_, desc, exists, func, nullslast, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, aliased, joinedload, selectinload
 
 from app.core.cache_service import CacheService
 from app.models.application import Application
@@ -56,9 +56,13 @@ def _applied_by_url_clause(user_id: uuid.UUID) -> ColumnElement[bool]:
     Applications added by hand or by URL import carry no raw_job_posting_id,
     so the id join alone misses jobs the user applied to from outside Discover.
     """
+    # An alias, because list_jobs already joins Application: with the same
+    # entity SQLAlchemy correlates it to the outer query too, leaving the
+    # subquery with no FROM and Postgres raising on every hide_applied request.
+    other_app = aliased(Application)
     return exists().where(
-        Application.user_id == user_id,
-        _url_key_sql(Application.job_url) == _url_key_sql(RawJobPosting.url),
+        other_app.user_id == user_id,
+        _url_key_sql(other_app.job_url) == _url_key_sql(RawJobPosting.url),
     )
 
 

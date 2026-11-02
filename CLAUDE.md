@@ -541,6 +541,20 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     tech roles filed under other fields, limited to ads published in the last
     30 days. Was 17 keywords x 5 municipalities x first 100 hits (~750 ads);
     now ~2,100 ads across ~200 locations, ~2 min per run, ~10 KB per ad.
+  - Match scoring fixes (November 2026, found by a full end-to-end run on a
+    real database): job skills now come from the same extractor the pipeline
+    stores and the job page shows (`keyword_extraction.scored_skills`), counting
+    only technical skills/frameworks/tools/certifications, not soft skills or
+    spoken languages. `Go`/`Rust`/`Spring` match only in exact case ("go the
+    extra mile" was tagged Go on 79 ads). Skill score = coverage x evidence
+    (full credit from 5 matched skills; 1/1 no longer scores 100), and a job
+    with no recognisable skills scores 30, not 70 (vague ads used to outrank
+    real matches). The nightly chained run rescores anything older than 24 h,
+    so production picks this up within a night or two with no backfill.
+  - `hide_applied=true` on `GET /jobs` 500'd on Postgres from 2026-10-20: the
+    URL-match NOT EXISTS reused the joined `Application` entity and SQLAlchemy
+    correlated every table away. It now uses an alias; a regression test
+    compiles the real query for Postgres (FakeDb tests never compile SQL).
   - Indeed SE (via Adzuna, `country=se`) was dropped too: Adzuna has no Sweden
     endpoint, so every call 404s. It never worked under Airflow either — the
     old code swallowed per-query errors and logged "success, 0 jobs"; the

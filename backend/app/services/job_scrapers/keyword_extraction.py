@@ -72,6 +72,24 @@ _EXACT_CASE_PATTERNS: dict[str, re.Pattern[str]] = {
 }
 
 
+# Skill names that are also everyday words ("go the extra mile", "on the go",
+# Swedish "spring" = run, "spring 2027"): only the exact capitalised form counts.
+EXACT_CASE_ONLY: frozenset[str] = frozenset({"Go", "Rust", "Spring"})
+
+# Keyword types that describe what a job technically requires. Soft skills and
+# spoken languages are extracted too, but CVs rarely state them in the same
+# words (an English CV never says "Svenska"), so they are left out of scoring.
+SCORED_SKILL_TYPES: frozenset[str] = frozenset(
+    {"technical_skills", "frameworks", "tools", "certifications"}
+)
+
+
+def scored_skills(text: str) -> list[str]:
+    """The skills a job is scored on: the same keywords the pipeline stores for
+    the job and the job page shows, minus soft skills and languages."""
+    return [kw for kw, kw_type, _, _ in extract_keywords_simple(text) if kw_type in SCORED_SKILL_TYPES]
+
+
 def extract_keywords_simple(text: str) -> list[tuple[str, str, float, int]]:
     """Return list of (keyword, type, confidence, frequency) for *text*.
 
@@ -85,6 +103,12 @@ def extract_keywords_simple(text: str) -> list[tuple[str, str, float, int]]:
     text_lower = text.lower()
     results = []
     for keyword, kw_type in SIMPLE_SKILLS:
+        if keyword in EXACT_CASE_ONLY:
+            matches = _EXACT_CASE_PATTERNS[keyword].findall(text)
+            if not matches:
+                continue
+            results.append((keyword, kw_type, 1.0, len(matches)))
+            continue
         matches = _LOWER_PATTERNS[keyword].findall(text_lower)
         if not matches:
             continue

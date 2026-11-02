@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models.cv import CV
 from app.models.job import RawJobPosting
+from app.services.job_scrapers.keyword_extraction import scored_skills
 from app.services.keyword_extractor import KeywordExtractor
 
 if TYPE_CHECKING:
@@ -69,11 +70,12 @@ class MatchingService:
         """
         cv_content, cv_skills_set = self._default_cv(user_id)
 
-        # Determine required skills from job
-        required_skills: list[str] = list(job_data.get("required_skills") or [])
-        if not required_skills and job_data.get("description"):
-            job_kw = self.extractor.extract_keywords(job_data["description"])
-            required_skills = self.extractor.keywords_as_flat_list(job_kw)
+        # Determine required skills from job: the same keywords the pipeline
+        # stores for the posting and the job page lists as matched/missing.
+        if "required_skills" in job_data:
+            required_skills: list[str] = list(job_data.get("required_skills") or [])
+        else:
+            required_skills = scored_skills(job_data.get("description") or "")
 
         matched = [s for s in required_skills if s.lower() in cv_skills_set]
         missing = [s for s in required_skills if s.lower() not in cv_skills_set]
@@ -194,11 +196,25 @@ class MatchingService:
     # Sub-score helpers
     # ------------------------------------------------------------------
 
+    # A job that names none of the technical skills we recognise is weak
+    # evidence of a fit, not a neutral one. It used to be 70, which ranked
+    # vague or unrelated ads (marketing, optometrist) above real backend jobs;
+    # 30 keeps them below jobs that share several of the CV's skills.
+    NO_SKILLS_SCORE = 30.0
+
+    # How many matched skills count as full evidence. A job that names one of
+    # your skills ("Risk Analyst ... Python") is weaker evidence than one that
+    # names five, so coverage is scaled down until this many skills match;
+    # otherwise 1/1 scored a perfect 100 and outranked real 7/11 matches.
+    STRONG_EVIDENCE_SKILLS = 5
+
     def _score_skills(self, required: list[str], cv_skills_set: set[str]) -> float:
         if not required:
-            return 70.0
+            return self.NO_SKILLS_SCORE
         matched_count = sum(1 for s in required if s.lower() in cv_skills_set)
-        return (matched_count / len(required)) * 100
+        coverage = matched_count / len(required)
+        evidence = min(matched_count / self.STRONG_EVIDENCE_SKILLS, 1.0)
+        return round(coverage * (0.5 + 0.5 * evidence) * 100, 1)
 
     def _score_experience(self, user_yoe: int, required_yoe: int) -> float:
         if required_yoe <= 0:
