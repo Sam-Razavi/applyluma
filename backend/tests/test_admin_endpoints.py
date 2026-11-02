@@ -673,25 +673,27 @@ class _PipelineHealthDb:
         if "FROM pipeline_run_log" in sql:
             return _Result(
                 all=[
-                    _make_log_row(
-                        pipeline_name="JobSearch API",
-                        ran_at=self.now - timedelta(hours=1),
-                        rows_affected=3,
-                    )
+                    _make_log_row(pipeline_name="platsbanken", ran_at=self.now - timedelta(hours=1), rows_affected=1666),
+                    _make_log_row(pipeline_name="remotive", ran_at=self.now - timedelta(days=3), rows_affected=0),
+                    _make_log_row(pipeline_name="JobSearch API", ran_at=self.now - timedelta(days=5), rows_affected=3),
                 ]
             )
         if "FROM raw_job_postings GROUP BY source" in sql:
+            def row(source: str, c: int, live: int) -> SimpleNamespace:
+                return SimpleNamespace(source=source, c=c, live=live, m=self.now - timedelta(days=2))
+
             return _Result(
                 all=[
-                    SimpleNamespace(
-                        source="JobSearch API",
-                        c=422,
-                        m=self.now - timedelta(days=2),
-                    )
+                    row("platsbanken", 3000, 2500),
+                    row("remotive", 40, 12),
+                    row("jobbsafari", 900, 0),  # retired, all archived: hidden
+                    row("indeed_se", 50, 3),  # retired, still has live postings
+                    row("linkedin", 7, 7),  # saved from the browser extension
+                    row("JobSearch API", 422, 10),  # saved from the Job Search tab
                 ]
             )
         if "FROM raw_job_postings" in sql:
-            return _Result(one=SimpleNamespace(c=422, m=self.now - timedelta(days=2)))
+            return _Result(one=SimpleNamespace(c=4419, m=self.now - timedelta(hours=1)))
         if "FROM extracted_keywords" in sql:
             return _Result(one=SimpleNamespace(c=0, m=None))
         if "FROM job_market_metrics" in sql:
@@ -699,14 +701,29 @@ class _PipelineHealthDb:
         raise AssertionError(f"Unexpected query: {sql}")
 
 
-def test_pipeline_health_uses_jobsearch_api_log_row() -> None:
-    health = get_pipeline_health(_PipelineHealthDb())
-    jobsearch = health["sources"][0]
+def test_pipeline_health_classifies_sources() -> None:
+    """Only the nightly pipeline's sources are judged on freshness. Jobs users
+    saved themselves are "on_demand" and retired scrapers "retired", instead of
+    every one of them showing as Stale forever."""
+    from app.services.job_pipeline import SOURCES
 
-    assert jobsearch["source"] == "JobSearch API"
-    assert jobsearch["healthy"] is True
-    assert jobsearch["status"] == "healthy"
-    assert jobsearch["last_run"] is not None
+    health = get_pipeline_health(_PipelineHealthDb())
+    by_source = {s["source"]: s for s in health["sources"]}
+
+    # Every scheduled source is listed first, even one with no rows yet.
+    assert [s["source"] for s in health["sources"][: len(SOURCES)]] == SOURCES
+    assert by_source["platsbanken"]["status"] == "healthy"
+    assert by_source["remotive"]["status"] == "stale"  # a real pipeline source gone quiet
+    assert by_source["remoteok"]["status"] == "unknown" and by_source["remoteok"]["count"] == 0
+
+    assert by_source["linkedin"]["status"] == "on_demand"
+    assert by_source["JobSearch API"]["status"] == "on_demand"
+    assert by_source["indeed_se"]["status"] == "retired"
+    assert "jobbsafari" not in by_source
+    assert not any(s["healthy"] for s in health["sources"] if s["status"] in {"on_demand", "retired"})
+
+    # The stage the watchdog reads only looks at scheduled sources.
+    assert health["raw_job_postings"]["status"] == "healthy"
 
 
 # ── Contact submissions: category filter (in-app feedback) ──────────────────

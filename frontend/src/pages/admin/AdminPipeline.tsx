@@ -33,16 +33,26 @@ function formatLastRun(lastRun: string | null) {
   return new Date(lastRun).toLocaleString()
 }
 
+// Sources the nightly pipeline does not run: their age is not a health signal.
+const NEUTRAL_STATUS: Record<string, string> = {
+  on_demand: 'Saved by users',
+  retired: 'Retired',
+}
+
 function statusLabel(row: PipelineStage | SourceHealth) {
   if (row.healthy) return 'Healthy'
+  if (row.status && NEUTRAL_STATUS[row.status]) return NEUTRAL_STATUS[row.status]
+  if (row.status === 'failed') return 'Failed'
   return row.last_run ? 'Stale' : 'Missing'
 }
 
 function HealthStatus({ row }: { row: PipelineStage | SourceHealth }) {
-  const healthy = row.healthy
+  const neutral = !row.healthy && !!row.status && row.status in NEUTRAL_STATUS
+  const tone = row.healthy ? 'text-chip-success-fg' : neutral ? 'text-fg-subtle' : 'text-chip-danger-fg'
+  const dot = row.healthy ? 'bg-green-500' : neutral ? 'bg-gray-400' : 'bg-red-500'
   return (
-    <div className={`flex items-center gap-2 text-sm font-semibold ${healthy ? 'text-chip-success-fg' : 'text-chip-danger-fg'}`}>
-      <span className={`h-2.5 w-2.5 rounded-full ${healthy ? 'bg-green-500' : 'bg-red-500'}`} />
+    <div className={`flex items-center gap-2 text-sm font-semibold ${tone}`}>
+      <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
       {statusLabel(row)}
     </div>
   )
