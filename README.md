@@ -69,7 +69,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 
 ### Job Discovery
 
-- Swedish job discovery from Platsbanken, Jobbsafari, and Indeed.se integrations.
+- Swedish job discovery from Platsbanken, plus remote roles from RemoteOK, Remotive and The Muse.
 - International job search through Adzuna.
 - AI match scoring against the user's CV with matched and missing skill breakdowns.
 - Saved jobs with collections, starring, notes, and detail views.
@@ -214,9 +214,9 @@ scrapers live in `backend/app/services/job_scrapers/`, the steps in
 Schedule:
 
 - 01:00 UTC: job retention (archive / slim / purge old postings)
-- 02:00 UTC: job pipeline (scrape Remotive, The Muse, RemoteOK, Platsbanken and
-  Indeed SE via Adzuna; dedupe; skills; keywords; daily metrics; salary
-  analytics; queue match scoring)
+- 02:00 UTC: job pipeline (scrape Remotive, The Muse, RemoteOK and Platsbanken;
+  dedupe; skills; keywords; daily metrics; salary analytics; queue match
+  scoring for users with a CV)
 - 04:30 UTC: high-match job alerts
 
 Production health check:
@@ -237,8 +237,8 @@ Key backend variables:
 - `SECRET_KEY`
 - `OPENAI_API_KEY`
 - `ADZUNA_APP_ID`
-- `ADZUNA_API_KEY` (or `ADZUNA_APP_KEY`; either name is read). Needed on the worker
-  too: the nightly job pipeline scrapes Indeed SE through Adzuna.
+- `ADZUNA_API_KEY` (or `ADZUNA_APP_KEY`; either name is read). Used by the web
+  Job Search tab; Adzuna has no Sweden endpoint, so the pipeline does not use it.
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_PREMIUM_PRICE_ID`

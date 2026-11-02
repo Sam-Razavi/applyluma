@@ -713,7 +713,7 @@ _STAGE_PIPELINES: dict[str, list[str]] = {
     "raw_job_postings": [
         "remotive", "the_muse", "remoteok",
         "adzuna_remote", "adzuna_nl", "adzuna_fr", "adzuna_de",
-        "platsbanken", "indeed_se",
+        "platsbanken",
     ],
     "extracted_keywords": ["extracted_keywords"],
     "job_market_metrics": ["transform_jobs"],

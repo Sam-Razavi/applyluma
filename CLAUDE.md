@@ -511,9 +511,9 @@ Job retention & alert fixes (October 2026, fixes issues #77 and #92):
 Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
   - One Celery task, `app.tasks.job_pipeline.run_job_pipeline` (beat 02:00
     UTC, on the existing worker), runs the old four DAGs' work in order:
-    scrape (remotive, the_muse, remoteok, platsbanken, indeed_se via Adzuna)
+    scrape (remotive, the_muse, remoteok, platsbanken)
     → `mark_todays_duplicates` → skill tagging (Platsbanken's own skill
-    lists, else the `TRACKED_SKILLS` regex; Indeed SE now gets skills too) →
+    lists, else the `TRACKED_SKILLS` regex) →
     keywords (`extract_keywords_simple`, batches of 500 until done) →
     `job_market_metrics` upsert → salary analytics → queue
     `compute_job_matching_scores(user_id, chain=True)` per active user.
@@ -535,6 +535,17 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     one holds the Redis lock `job_pipeline:lock` (TTL 1h). "Run pipeline now"
     button on `/admin/pipeline`.
   - Jobbsafari was dropped: its RSS feed returns 404 and it has no API.
+  - Indeed SE (via Adzuna, `country=se`) was dropped too: Adzuna has no Sweden
+    endpoint, so every call 404s. It never worked under Airflow either — the
+    old code swallowed per-query errors and logged "success, 0 jobs"; the
+    Railway version raises when every request fails, which surfaced it. As
+    the last source to run, its failure also marked the whole scraping stage
+    `failed` for the watchdog. The Adzuna key is still used by the web Job
+    Search tab (other countries).
+  - Scraper errors are redacted (`job_scrapers.base.redact`): requests puts
+    the full URL with query string into error messages, so the Adzuna
+    `app_key` was being written to Railway logs and `pipeline_run_log` before
+    this fix.
   - Fixed while porting: `BaseScraper.save_to_db` reported only the last
     100-row page's inserts (execute_values paging), so busy sources were
     under-counted in the run log.

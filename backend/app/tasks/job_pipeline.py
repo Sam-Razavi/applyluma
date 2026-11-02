@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_redis_client
 from app.db.session import SessionLocal
 from app.services import job_pipeline as steps
+from app.services.job_scrapers.base import redact
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ def _log_run(db: Session, name: str, rows: int, status: str, error: str | None =
                 "INSERT INTO pipeline_run_log (pipeline_name, rows_affected, status, error_message) "
                 "VALUES (:name, :rows, :status, :error)"
             ),
-            {"name": name, "rows": rows, "status": status, "error": (error or "")[:2000] or None},
+            {"name": name, "rows": rows, "status": status, "error": redact(error or "")[:2000] or None},
         )
         db.commit()
     except Exception:

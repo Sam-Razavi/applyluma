@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -9,6 +10,14 @@ import psycopg2.extras
 import requests
 
 logger = logging.getLogger(__name__)
+
+# requests puts the full URL, query string included, into its error messages,
+# which end up in logs and pipeline_run_log. Mask credential parameters.
+_SECRET_PARAM = re.compile(r"([?&](?:app_key|app_id|api_key|api-key|apikey|key|token)=)[^&\s'\"]+", re.I)
+
+
+def redact(text: str) -> str:
+    return _SECRET_PARAM.sub(r"\1***", text)
 
 
 class BaseScraper(ABC):
@@ -161,6 +170,10 @@ class BaseScraper(ABC):
         return "\n".join(result_lines).strip()
 
     def _get(self, url: str, **kwargs: Any) -> requests.Response:
-        resp = self._session.get(url, timeout=self.REQUEST_TIMEOUT, **kwargs)
-        resp.raise_for_status()
+        try:
+            resp = self._session.get(url, timeout=self.REQUEST_TIMEOUT, **kwargs)
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            # Same exception type, message without credentials in the URL.
+            raise type(exc)(redact(str(exc))) from None
         return resp
