@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -126,7 +127,7 @@ def test_platsbanken_parses_location_deadline_and_skills() -> None:
 
 
 def test_platsbanken_fails_only_when_every_request_fails(monkeypatch: pytest.MonkeyPatch) -> None:
-    client = PlatsbankenClient(DSN, keywords=["python", "java"])
+    client = PlatsbankenClient(DSN, keywords=["python", "java"], occupation_fields=[])
     calls = {"n": 0}
 
     def flaky(url: str, **kwargs: Any) -> _Resp:
@@ -144,6 +145,58 @@ def test_platsbanken_fails_only_when_every_request_fails(monkeypatch: pytest.Mon
     monkeypatch.setattr(client, "_get", boom)
     with pytest.raises(requests.Timeout):
         client.fetch_jobs()
+
+
+def test_publication_windows_cover_the_lookback_without_gaps() -> None:
+    now = datetime(2026, 11, 2, 12, 0, 0)
+    windows = platsbanken.publication_windows(now, lookback_days=30, window_days=7)
+    assert windows[0][0] == "2026-10-03T12:00:00"
+    assert windows[-1][1] is None  # newest window is open-ended
+    for (_, before), (after, _) in zip(windows, windows[1:], strict=False):
+        assert before == after
+    assert len(windows) == 5
+
+
+def test_platsbanken_searches_nationwide_by_field_and_keyword(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = PlatsbankenClient(DSN, keywords=["python"])
+    seen: list[dict[str, Any]] = []
+
+    def fake_get(url: str, params: dict[str, Any], **kwargs: Any) -> _Resp:
+        seen.append(params)
+        if "occupation-field" in params and params["offset"] == 0 and "published-before" not in params:
+            # Newest window: one full page, then a short one.
+            return _Resp({"hits": [_platsbanken_hit(f"f{i}") for i in range(platsbanken.PAGE_SIZE)]})
+        if "occupation-field" in params and params["offset"] == platsbanken.PAGE_SIZE:
+            return _Resp({"hits": [_platsbanken_hit("f0"), _platsbanken_hit("last")]})
+        if params.get("q") == "python":
+            return _Resp({"hits": [_platsbanken_hit("f1"), _platsbanken_hit("kw")]})
+        return _Resp({"hits": []})
+
+    monkeypatch.setattr(client, "_get", fake_get)
+    jobs = client.fetch_jobs()
+
+    ids = {j["job_id_external"] for j in jobs}
+    assert len(ids) == platsbanken.PAGE_SIZE + 2  # duplicates across queries dropped
+    assert {"last", "kw"} <= ids
+    assert all("municipality" not in p for p in seen)  # all of Sweden
+    assert all(p["limit"] == platsbanken.PAGE_SIZE and p["sort"] == "pubdate-desc" for p in seen)
+    assert {p["occupation-field"] for p in seen if "occupation-field" in p} == {platsbanken.DATA_IT_FIELD}
+    assert all("published-after" in p for p in seen)
+    # The keyword query stops after its first short page.
+    assert sum(1 for p in seen if p.get("q") == "python") == 1
+
+
+def test_platsbanken_pages_stop_at_the_offset_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = PlatsbankenClient(DSN, keywords=[], lookback_days=1)
+    offsets: list[int] = []
+
+    def always_full(url: str, params: dict[str, Any], **kwargs: Any) -> _Resp:
+        offsets.append(params["offset"])
+        return _Resp({"hits": [_platsbanken_hit(f"{params['offset']}-{i}") for i in range(platsbanken.PAGE_SIZE)]})
+
+    monkeypatch.setattr(client, "_get", always_full)
+    client.fetch_jobs()
+    assert max(offsets) == platsbanken.MAX_OFFSET
 
 
 def test_errors_never_carry_credentials_from_the_url(monkeypatch: pytest.MonkeyPatch) -> None:
