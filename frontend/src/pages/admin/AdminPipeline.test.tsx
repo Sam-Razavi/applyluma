@@ -55,6 +55,20 @@ describe('AdminPipeline page', () => {
           last_run: '2026-06-16T09:00:00Z',
           healthy: true,
         },
+        {
+          source: 'linkedin',
+          count: 7,
+          last_run: '2026-05-01T09:00:00Z',
+          healthy: false,
+          status: 'on_demand',
+        },
+        {
+          source: 'indeed_se',
+          count: 3,
+          last_run: '2026-04-01T09:00:00Z',
+          healthy: false,
+          status: 'retired',
+        },
       ],
     })
     vi.mocked(adminApi.getJobsOverTime).mockResolvedValue([{ date: '2026-06-16', count: 5 }])
@@ -92,6 +106,16 @@ describe('AdminPipeline page', () => {
     })
     expect(screen.getByText('Raw job postings')).toBeInTheDocument()
     expect(screen.getByText('Python')).toBeInTheDocument()
+  })
+
+  it('labels user-saved and retired sources instead of calling them stale', async () => {
+    renderAdminPipeline()
+
+    await waitFor(() => expect(screen.getByText('Saved by users')).toBeInTheDocument())
+    expect(screen.getByText('Retired')).toBeInTheDocument()
+    // Only job_market_metrics (never ran) is a real problem in this fixture.
+    expect(screen.queryByText('Stale')).not.toBeInTheDocument()
+    expect(screen.getByText('Missing')).toBeInTheDocument()
   })
 
   it('shows an error banner when loading fails', async () => {

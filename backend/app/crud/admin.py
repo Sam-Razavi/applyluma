@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 
 from sqlalchemy import case, delete, func, or_, select, text
@@ -19,6 +21,7 @@ from app.models.notification import Notification
 from app.models.tailor_job import TailorJob, TailorStatus
 from app.models.user import User, UserRole
 from app.services.inbound_email.address import build_inbox_address as inbound_address_for
+from app.services.job_pipeline import SOURCES as PIPELINE_SOURCES
 
 
 def get_overview_stats(db: Session) -> dict:
@@ -709,12 +712,14 @@ def set_contact_submission_status(
 
 _HEALTH_WINDOW = timedelta(hours=25)
 
+# Sources the old Airflow DAGs scraped. Their archived rows stay in
+# raw_job_postings for 90 days, so without this they showed as "Stale".
+RETIRED_SOURCES: frozenset[str] = frozenset(
+    {"jobbsafari", "indeed_se", "adzuna_remote", "adzuna_nl", "adzuna_fr", "adzuna_de"}
+)
+
 _STAGE_PIPELINES: dict[str, list[str]] = {
-    "raw_job_postings": [
-        "remotive", "the_muse", "remoteok",
-        "adzuna_remote", "adzuna_nl", "adzuna_fr", "adzuna_de",
-        "platsbanken",
-    ],
+    "raw_job_postings": list(PIPELINE_SOURCES),
     "extracted_keywords": ["extracted_keywords"],
     "job_market_metrics": ["transform_jobs"],
 }
@@ -776,7 +781,8 @@ def get_pipeline_health(db: Session) -> dict[str, Any]:
     jmm = db.execute(text("SELECT COUNT(*) AS c, MAX(created_at) AS m FROM job_market_metrics")).one()
     src = db.execute(
         text(
-            "SELECT source, COUNT(*) AS c, MAX(scraped_at) AS m "
+            "SELECT source, COUNT(*) AS c, COUNT(*) FILTER (WHERE archived_at IS NULL) AS live, "
+            "MAX(scraped_at) AS m "
             "FROM raw_job_postings GROUP BY source ORDER BY c DESC"
         )
     ).all()
@@ -789,6 +795,16 @@ def get_pipeline_health(db: Session) -> dict[str, Any]:
             "count": int(row.c or 0),
             "last_run": last_run,
             "healthy": status == "healthy",
+            "status": status,
+        }
+
+    def unscheduled(row: Any, status: str) -> dict[str, Any]:
+        # Not run by the nightly pipeline, so freshness says nothing about health.
+        return {
+            "source": row.source,
+            "count": int(row.c or 0),
+            "last_run": row.m,
+            "healthy": False,
             "status": status,
         }
 
@@ -816,8 +832,33 @@ def get_pipeline_health(db: Session) -> dict[str, Any]:
         "raw_job_postings": stage("raw_job_postings", rjp),
         "extracted_keywords": stage("extracted_keywords", ek),
         "job_market_metrics": stage("job_market_metrics", jmm),
-        "sources": [source_health(r) for r in src],
+        "sources": _source_rows(src, source_health, unscheduled),
     }
+
+
+def _source_rows(
+    src: list[Any],
+    scheduled: Callable[[Any], dict[str, Any]],
+    unscheduled: Callable[[Any, str], dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Scheduled sources first (always listed, health from the run log), then
+    sources users saved jobs from (extension, Job Search tab) as "on_demand",
+    then retired scrapers that still have live postings as "retired". Retired
+    scrapers whose postings are all archived are left out."""
+    by_source = {r.source: r for r in src}
+    rows = [
+        scheduled(by_source.get(name) or SimpleNamespace(source=name, c=0, live=0, m=None))
+        for name in PIPELINE_SOURCES
+    ]
+    for r in src:
+        if r.source in PIPELINE_SOURCES:
+            continue
+        if r.source in RETIRED_SOURCES:
+            if (getattr(r, "live", 0) or 0) > 0:
+                rows.append(unscheduled(r, "retired"))
+        else:
+            rows.append(unscheduled(r, "on_demand"))
+    return rows
 
 
 def get_jobs_over_time(db: Session, days: int = 14) -> list[dict[str, Any]]:

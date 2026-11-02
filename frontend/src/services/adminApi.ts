@@ -105,13 +105,25 @@ export interface PipelineStage {
   count: number
   last_run: string | null
   healthy: boolean
+  status?: PipelineHealthStatus
 }
+
+export type PipelineHealthStatus =
+  | 'healthy'
+  | 'stale'
+  | 'failed'
+  | 'unknown'
+  // Jobs users saved themselves (browser extension, Job Search tab): no pipeline runs for these.
+  | 'on_demand'
+  // A scraper that was switched off but still has live postings.
+  | 'retired'
 
 export interface SourceHealth {
   source: string
   count: number
   last_run: string | null
   healthy: boolean
+  status?: PipelineHealthStatus
 }
 
 export interface PipelineHealth {
