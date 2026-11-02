@@ -535,6 +535,12 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     one holds the Redis lock `job_pipeline:lock` (TTL 1h). "Run pipeline now"
     button on `/admin/pipeline`.
   - Jobbsafari was dropped: its RSS feed returns 404 and it has no API.
+  - Platsbanken searches all of Sweden (November 2026): the whole Data/IT
+    occupation field (concept `apaJ_2ja_LuF`, paged in 7-day publication
+    windows to stay under JobTech's 2000 offset cap) plus a keyword list for
+    tech roles filed under other fields, limited to ads published in the last
+    30 days. Was 17 keywords x 5 municipalities x first 100 hits (~750 ads);
+    now ~2,100 ads across ~200 locations, ~2 min per run, ~10 KB per ad.
   - Indeed SE (via Adzuna, `country=se`) was dropped too: Adzuna has no Sweden
     endpoint, so every call 404s. It never worked under Airflow either — the
     old code swallowed per-query errors and logged "success, 0 jobs"; the
