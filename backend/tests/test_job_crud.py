@@ -234,6 +234,28 @@ def test_applied_by_url_clause_compares_normalized_urls() -> None:
     sql = " ".join(str(query.compile(dialect=postgresql.dialect())).split())
 
     # Correlated to the outer posting, not a cross join with raw_job_postings.
-    assert "NOT (EXISTS (SELECT * FROM applications WHERE" in sql
-    assert "rtrim(lower(applications.job_url)" in sql
+    assert "NOT (EXISTS (SELECT * FROM applications AS applications_1 WHERE" in sql
+    assert "rtrim(lower(applications_1.job_url)" in sql
     assert "rtrim(lower(raw_job_postings.url)" in sql
+
+
+def test_hide_applied_query_compiles_for_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression: the NOT EXISTS for URL-matched applications reused the joined
+    Application entity, so SQLAlchemy correlated every table away and Postgres
+    queries with hide_applied=true raised (a 500 on Discover's checkbox).
+    FakeDb tests never compile SQL, so compile the real statement here."""
+    from sqlalchemy.dialects import postgresql
+    from sqlalchemy.orm import Query, Session
+
+    compiled: list[str] = []
+
+    def compile_instead_of_run(self: Query) -> list:  # type: ignore[type-arg]
+        compiled.append(str(self.statement.compile(dialect=postgresql.dialect())))
+        return []
+
+    monkeypatch.setattr(Query, "all", compile_instead_of_run)
+    crud_job.list_jobs(Session(), user_id=uuid.uuid4(), hide_applied=True)
+
+    sql = compiled[0]
+    assert "NOT (EXISTS (SELECT" in sql
+    assert "FROM applications AS" in sql  # the subquery has its own FROM

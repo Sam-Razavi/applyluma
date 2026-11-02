@@ -34,7 +34,8 @@ class TestSkillScoring:
             uuid.uuid4(),
             {"required_skills": ["Python", "PostgreSQL", "Docker"]},
         )
-        assert result["skills_match"] == 100.0
+        # full coverage, but 3 of the 5 skills needed for full evidence
+        assert result["skills_match"] == 80.0
         assert set(result["matched_skills"]) == {"Python", "PostgreSQL", "Docker"}
         assert result["missing_skills"] == []
 
@@ -55,8 +56,8 @@ class TestSkillScoring:
             uuid.uuid4(),
             {"required_skills": ["Python", "PostgreSQL", "Docker", "Kubernetes"]},
         )
-        # 2/4 = 50%
-        assert result["skills_match"] == 50.0
+        # coverage 2/4, evidence 2/5: 0.5 * (0.5 + 0.2) = 35
+        assert result["skills_match"] == 35.0
         assert len(result["matched_skills"]) == 2
         assert len(result["missing_skills"]) == 2
 
@@ -67,7 +68,34 @@ class TestSkillScoring:
             uuid.uuid4(),
             {"required_skills": []},
         )
-        assert result["skills_match"] == 70.0
+        assert result["skills_match"] == MatchingService.NO_SKILLS_SCORE == 30.0
+
+    def test_job_skills_come_from_the_scored_vocabulary(self) -> None:
+        # Soft skills and spoken languages are not scored; ordinary words that
+        # happen to be tech names ("the rest of", "go the extra mile") are not skills.
+        svc = _make_service("Python Django Docker")
+        description = (
+            "You will join the rest of the team and go the extra mile. We use Python, "
+            "Django and Kubernetes. Strong communication and leadership. Svenska och engelska."
+        )
+        result = svc.calculate_match_score(uuid.uuid4(), uuid.uuid4(), {"description": description})
+        assert set(result["matched_skills"]) == {"Python", "Django"}
+        assert result["missing_skills"] == ["Kubernetes"]
+        assert result["skills_match"] == pytest.approx(46.7)  # 2/3 coverage, 2/5 evidence
+
+    def test_a_real_partial_match_outranks_a_job_with_no_skills(self) -> None:
+        svc = _make_service("Python Django PostgreSQL Docker AWS")
+        backend = svc.calculate_match_score(
+            uuid.uuid4(), uuid.uuid4(),
+            {"description": "Python, Django, PostgreSQL, Kubernetes and Terraform."},
+        )
+        vague = svc.calculate_match_score(
+            uuid.uuid4(), uuid.uuid4(),
+            {"description": "Partner with marketing and the rest of the revenue team."},
+        )
+        assert backend["skills_match"] == 48.0  # 3/5 coverage, 3/5 evidence
+        assert vague["skills_match"] == MatchingService.NO_SKILLS_SCORE
+        assert backend["overall_score"] > vague["overall_score"]
 
     def test_skills_case_insensitive(self) -> None:
         svc = _make_service("python POSTGRESQL docker")
@@ -76,7 +104,7 @@ class TestSkillScoring:
             uuid.uuid4(),
             {"required_skills": ["Python", "PostgreSQL", "Docker"]},
         )
-        assert result["skills_match"] == 100.0
+        assert result["skills_match"] == 80.0
 
 
 class TestExperienceScoring:
@@ -135,9 +163,9 @@ class TestWeightedScore:
             "required_experience_years": 5,
         }
         result = svc.calculate_match_score(uuid.uuid4(), uuid.uuid4(), job_data)
-        # skills=100*0.40 + experience=100*0.30 + salary=70*0.15
-        # + education=100*0.10 (no education req → 100) + location=70*0.05 = 94.0
-        assert result["overall_score"] == pytest.approx(94.0)
+        # skills=60*0.40 (1/1 matched, 1/5 evidence) + experience=100*0.30
+        # + salary=70*0.15 + education=100*0.10 (no requirement) + location=70*0.05 = 78.0
+        assert result["overall_score"] == pytest.approx(78.0)
 
     def test_score_is_0_to_100(self) -> None:
         svc = _make_service("")
@@ -259,7 +287,7 @@ def test_cv_is_loaded_and_extracted_once_per_user() -> None:
         result = svc.calculate_match_score(
             user_id, uuid.uuid4(), {"required_skills": ["Python", "Docker"]}
         )
-        assert result["skills_match"] == 100.0
+        assert result["matched_skills"] == ["Python", "Docker"]
 
     assert calls.count("Python PostgreSQL Docker") == 1
     assert svc.db.query.call_count == 1
