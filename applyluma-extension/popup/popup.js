@@ -360,9 +360,16 @@ async function loadTailorSection(rawJobPostingId) {
     if (baseCvs.length === 0) return;
 
     baseCvs.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
-    tailorCvSelect.innerHTML = baseCvs
-      .map((c) => `<option value="${c.id}">${c.title || c.filename}${c.is_default ? ' (default)' : ''}</option>`)
-      .join('');
+    // Built with DOM nodes, not innerHTML: CV titles and file names are
+    // user-provided text and must never be parsed as markup.
+    tailorCvSelect.replaceChildren(
+      ...baseCvs.map((c) => {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.textContent = `${c.title || c.filename}${c.is_default ? ' (default)' : ''}`;
+        return option;
+      }),
+    );
 
     // Usage display.
     const { used_today: used, daily_limit: limit } = usage;
@@ -428,7 +435,11 @@ btnTailor.addEventListener('click', async () => {
         if (status === 'complete') {
           clearInterval(tailorPollTimer);
           tailorPollTimer = null;
-          tailorStatus.innerHTML = 'Done! <a href="https://applyluma.com/ai-tailor" target="_blank">View result in ApplyLuma →</a>';
+          const resultLink = document.createElement('a');
+          resultLink.href = 'https://applyluma.com/ai-tailor';
+          resultLink.target = '_blank';
+          resultLink.textContent = 'View result in ApplyLuma →';
+          tailorStatus.replaceChildren('Done! ', resultLink);
           tailorStatus.className = 'tailor-status';
           tailorStatus.classList.remove('hidden');
         } else if (status === 'failed') {
