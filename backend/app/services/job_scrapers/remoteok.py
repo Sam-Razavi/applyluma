@@ -19,7 +19,7 @@ class RemoteOKClient(BaseScraper):
         super().__init__(db_conn_str)
         self._tags = tags
 
-    # ── BaseScraper implementation ────────────────────────────────────────────
+    # BaseScraper implementation
 
     def _fetch_raw(self) -> list[dict[str, Any]]:
         params: dict[str, Any] = {}
@@ -56,7 +56,7 @@ class RemoteOKClient(BaseScraper):
             )
         return jobs
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
+    # Helpers
 
     @staticmethod
     def _salary(value: Any) -> int | None:

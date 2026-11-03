@@ -95,7 +95,7 @@ export default function Contact() {
       </div>
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-5">
-        {/* ── Left: form ── */}
+        {/* Left: form */}
         <div className="lg:col-span-3">
           {submitted ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-chip-success bg-chip-success px-8 py-16 text-center">
@@ -215,7 +215,7 @@ export default function Contact() {
           )}
         </div>
 
-        {/* ── Right: info panel ── */}
+        {/* Right: info panel */}
         <aside className="lg:col-span-2">
           <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100">

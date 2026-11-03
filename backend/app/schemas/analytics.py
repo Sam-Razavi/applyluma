@@ -14,7 +14,7 @@ from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# ── 1. Legacy models (Phase 1-5, backward-compatible) ────────────────────────
+# 1. Legacy models (Phase 1-5, backward-compatible)
 
 
 class AnalyticsOverview(BaseModel):
@@ -61,7 +61,7 @@ class RecentJob(BaseModel):
     scraped_at: datetime
 
 
-# ── 2. Phase 6: Shared wrapper, metadata, errors ─────────────────────────────
+# 2. Phase 6: Shared wrapper, metadata, errors
 
 T = TypeVar("T")
 
@@ -93,7 +93,7 @@ class AnalyticsResponse(BaseModel, Generic[T]):
     error: ErrorDetail | None = None
 
 
-# ── 3. Phase 6: Enums ─────────────────────────────────────────────────────────
+# 3. Phase 6: Enums
 
 
 class TrendDirection(StrEnum):
@@ -115,7 +115,7 @@ class ExperienceLevel(StrEnum):
     management = "management"
 
 
-# ── 4. Endpoint 1: GET /trending-skills ──────────────────────────────────────
+# 4. Endpoint 1: GET /trending-skills
 
 
 class SkillTrend(BaseModel):
@@ -132,7 +132,7 @@ class SkillTrend(BaseModel):
     trend: TrendDirection
 
 
-# ── 5. Endpoint 2: GET /salary-insights ──────────────────────────────────────
+# 5. Endpoint 2: GET /salary-insights
 
 
 class SalaryInsightItem(BaseModel):
@@ -152,7 +152,7 @@ class SalaryInsightItem(BaseModel):
     job_count: int
 
 
-# ── 6. Endpoint 3: GET /hiring-patterns ──────────────────────────────────────
+# 6. Endpoint 3: GET /hiring-patterns
 
 
 class HiringPatternPoint(BaseModel):
@@ -167,7 +167,7 @@ class HiringPatternPoint(BaseModel):
     avg_salary: int | None = None
 
 
-# ── 7. Endpoint 4: GET /company-insights ─────────────────────────────────────
+# 7. Endpoint 4: GET /company-insights
 
 
 class CompanyInsight(BaseModel):
@@ -185,7 +185,7 @@ class CompanyInsight(BaseModel):
     )
 
 
-# ── 8. Endpoint 5: GET /job-market-health ────────────────────────────────────
+# 8. Endpoint 5: GET /job-market-health
 
 
 class JobMarketHealth(BaseModel):
@@ -204,7 +204,7 @@ class JobMarketHealth(BaseModel):
     last_updated: datetime | None = None
 
 
-# ── 9. Endpoint 6: GET /skill-demand ─────────────────────────────────────────
+# 9. Endpoint 6: GET /skill-demand
 
 
 class SkillDemand(BaseModel):
@@ -220,7 +220,7 @@ class SkillDemand(BaseModel):
     trend: TrendDirection
 
 
-# ── 10. Endpoint 7: GET /location-trends ─────────────────────────────────────
+# 10. Endpoint 7: GET /location-trends
 
 
 class LocationTrend(BaseModel):
@@ -231,7 +231,7 @@ class LocationTrend(BaseModel):
     remote_percentage: float | None = None
 
 
-# ── 11. Endpoint 8: GET /industry-breakdown ──────────────────────────────────
+# 11. Endpoint 8: GET /industry-breakdown
 
 
 class IndustryBreakdown(BaseModel):
@@ -248,7 +248,7 @@ class IndustryBreakdown(BaseModel):
     remote_percentage: float
 
 
-# ── 12. Endpoint 9: GET /experience-levels ───────────────────────────────────
+# 12. Endpoint 9: GET /experience-levels
 
 
 class ExperienceLevelBreakdown(BaseModel):
@@ -260,7 +260,7 @@ class ExperienceLevelBreakdown(BaseModel):
     remote_percentage: float
 
 
-# ── 13. Endpoint 10: GET /job-type-mix ───────────────────────────────────────
+# 13. Endpoint 10: GET /job-type-mix
 
 
 class JobTypeMixItem(BaseModel):
@@ -272,7 +272,7 @@ class JobTypeMixItem(BaseModel):
     avg_salary_max: int | None = None
 
 
-# ── 14. Endpoint 11: GET /salary-by-skill ────────────────────────────────────
+# 14. Endpoint 11: GET /salary-by-skill
 
 
 class SalaryBySkill(BaseModel):
@@ -287,7 +287,7 @@ class SalaryBySkill(BaseModel):
     job_count: int
 
 
-# ── 15. Endpoint 12: GET /comparison ─────────────────────────────────────────
+# 15. Endpoint 12: GET /comparison
 
 
 class SkillGap(BaseModel):

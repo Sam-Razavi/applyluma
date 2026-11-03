@@ -29,7 +29,7 @@ class RemotiveClient(BaseScraper):
         self._category = category
         self._limit = limit
 
-    # ── BaseScraper implementation ────────────────────────────────────────────
+    # BaseScraper implementation
 
     def _fetch_raw(self) -> dict[str, Any]:
         params: dict[str, Any] = {"limit": self._limit}

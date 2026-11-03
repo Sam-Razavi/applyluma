@@ -122,8 +122,8 @@ def get_raw_job_detail_admin(db: Session, job_id: uuid.UUID) -> dict[str, Any] |
 _HEALTH_WINDOW = timedelta(hours=25)
 
 
-# Sources the old Airflow DAGs scraped. Their archived rows stay in
-# raw_job_postings for 90 days, so without this they showed as "Stale".
+# Sources that are no longer scraped. Their archived rows stay in
+# raw_job_postings for 90 days; they are listed as retired, not stale.
 RETIRED_SOURCES: frozenset[str] = frozenset(
     {"jobbsafari", "indeed_se", "adzuna_remote", "adzuna_nl", "adzuna_fr", "adzuna_de"}
 )

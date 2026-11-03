@@ -197,15 +197,13 @@ class MatchingService:
     # ------------------------------------------------------------------
 
     # A job that names none of the technical skills we recognise is weak
-    # evidence of a fit, not a neutral one. It used to be 70, which ranked
-    # vague or unrelated ads (marketing, optometrist) above real backend jobs;
-    # 30 keeps them below jobs that share several of the CV's skills.
+    # evidence of a fit, not a neutral one: 30 keeps vague or unrelated ads
+    # below jobs that share several of the CV's skills.
     NO_SKILLS_SCORE = 30.0
 
     # How many matched skills count as full evidence. A job that names one of
-    # your skills ("Risk Analyst ... Python") is weaker evidence than one that
-    # names five, so coverage is scaled down until this many skills match;
-    # otherwise 1/1 scored a perfect 100 and outranked real 7/11 matches.
+    # your skills is weaker evidence than one that names five, so coverage is
+    # scaled down until this many match (1 of 1 scores 60, 5 of 5 scores 100).
     STRONG_EVIDENCE_SKILLS = 5
 
     def _score_skills(self, required: list[str], cv_skills_set: set[str]) -> float:
