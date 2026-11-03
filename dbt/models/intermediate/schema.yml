@@ -3,7 +3,7 @@ version: 2
 models:
   - name: int_jobs_deduplicated
     description: >
-      Staging jobs with Airflow-flagged duplicates removed plus a second-pass
+      Staging jobs with pipeline-flagged duplicates removed plus a second-pass
       dedup: same company + normalised title keeps only the most-recent record.
     columns:
       - name: job_id

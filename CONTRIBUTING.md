@@ -82,11 +82,8 @@ npm install
 npm run dev
 ```
 
-**Airflow:**
-
-```bash
-docker-compose up airflow-webserver airflow-scheduler
-```
+**Job pipeline:** runs as a Celery task (`app/tasks/job_pipeline.py`); start a
+worker and trigger it from `/admin/pipeline` ("Run pipeline now").
 
 ### Before Merging to Main
 - [ ] All tests pass locally

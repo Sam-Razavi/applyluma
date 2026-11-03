@@ -1,7 +1,7 @@
 """One-off backfill: mark historical cross-source duplicates in raw_job_postings.
 
 Applies the same rolling-window rule the daily DAGs now use (see
-airflow/plugins/job_scrapers/dedupe.py) to rows scraped before the rule
+backend/app/services/job_scrapers/dedupe.py) to rows scraped before the rule
 existed: a posting is marked as a duplicate when an older live posting with
 the same normalised title, company, and location was scraped within the
 preceding window. The oldest posting always survives.

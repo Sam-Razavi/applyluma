@@ -1,7 +1,7 @@
 """One-off backfill: fix substring-matching false positives in extracted_keywords.
 
 The extract_keywords DAG used to tag job postings using naive substring
-matching (see airflow/dags/extract_keywords_dag.py before the boundary-safe
+matching (the old Airflow keyword DAG, before the boundary-safe
 fix), so keywords like "Go" matched inside "Google", "Java" matched inside
 "JavaScript", and "SQL" matched inside "PostgreSQL"/"MySQL"/"NoSQL" — all
 stored at confidence 1.0. It also could never match symbol-suffixed keywords
@@ -37,9 +37,12 @@ from collections import Counter
 import psycopg2
 import psycopg2.extras
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "airflow", "plugins"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-from job_scrapers.keyword_extraction import SIMPLE_SKILLS, extract_keywords_simple  # noqa: E402
+from app.services.job_scrapers.keyword_extraction import (  # noqa: E402
+    SIMPLE_SKILLS,
+    extract_keywords_simple,
+)
 
 BATCH_SIZE = 500
 

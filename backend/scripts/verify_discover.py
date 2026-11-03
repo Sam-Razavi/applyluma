@@ -96,7 +96,7 @@ def main() -> None:
         ).first()
         if not sample:
             print("  No extracted_keywords at all — skills breakdown will be EMPTY until the")
-            print("  Airflow extract_keywords DAG has run over the postings.")
+            print("  nightly job pipeline has extracted keywords for the postings.")
         else:
             print(f"  job {sample.raw_job_posting_id} keywords: {sample.kws[:15]}")
 

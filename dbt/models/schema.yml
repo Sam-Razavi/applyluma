@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: applyluma_raw
-    description: "Raw job data landed by the Airflow scraping DAG"
+    description: "Raw job data landed by the nightly job pipeline"
     schema: public
     loaded_at_field: scraped_at
     freshness:
