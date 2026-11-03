@@ -283,7 +283,7 @@ branches `claude/admin-panel-review-4f5992` + earlier GDPR-fix work):
     chronological feed via a SQL `UNION ALL` across CVs, applications,
     application events, tailor jobs, cover letters, saved jobs, job
     descriptions, and contact submissions (`crud_admin.get_user_activity`,
-    `crud/admin.py`). Rendered in the "Timeline" section of
+    `crud/admin/users.py`). Rendered in the "Timeline" section of
     `frontend/src/pages/admin/UserDrawer.tsx` (extracted out of `AdminUsers.tsx`
     for size), with "Load more" pagination.
   - Health watchdog: `app/tasks/watchdog.py` (Celery task
@@ -663,6 +663,12 @@ External APIs:
   mode; new modules with untyped decorators (e.g. `@celery_app.task`) must be
   added to `backend/pyproject.toml`'s `[[tool.mypy.overrides]]` list like
   their sibling modules, or CI fails.
+- `backend/app/crud/admin/`: admin CRUD split by area (`users`, `pipeline`,
+  `ai_costs`, `database`, `operations`); `__init__.py` re-exports everything,
+  so `from app.crud import admin as crud_admin` works as before.
+- `frontend/src/pages/AITailor.tsx` holds the page state and flow; its steps
+  live in `frontend/src/components/tailor/steps/` (Select, Processing, Review,
+  Done, History).
 - `docs/MONITORING.md`: three-layer monitoring setup (UptimeRobot external
   pinger, internal health watchdog, Sentry) — read before touching
   `app/tasks/watchdog.py` or `/health`.
