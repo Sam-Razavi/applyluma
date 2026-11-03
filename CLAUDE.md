@@ -552,6 +552,14 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     with no recognisable skills scores 30, not 70 (vague ads used to outrank
     real matches). The nightly chained run rescores anything older than 24 h,
     so production picks this up within a night or two with no backfill.
+  - One skill vocabulary and one matching rule (November 2026):
+    `services/keyword_extractor.py` holds every term, its category,
+    `EXACT_CASE_ONLY` (Go, Rust, Spring, REST, Teams, Express, Linear, ...
+    count only when capitalised; "engineering teams" was tagged Microsoft
+    Teams on 1 in 7 ads) and `match_skill`. The pipeline's job keywords
+    (`job_scrapers/keyword_extraction.py`) are a curated 46-term subset of it,
+    so job pages stay low-noise. `job_scrapers/skills.py` `TRACKED_SKILLS` is
+    deliberately separate: it feeds the salary-by-skill analytics.
   - `hide_applied=true` on `GET /jobs` 500'd on Postgres from 2026-10-20: the
     URL-match NOT EXISTS reused the joined `Application` entity and SQLAlchemy
     correlated every table away. It now uses an alias; a regression test
