@@ -1,10 +1,8 @@
 """Steps of the nightly job pipeline (scrape → dedupe → skills → keywords →
 metrics → salary analytics), run in order by app.tasks.job_pipeline.
 
-This replaced the four Airflow DAGs (scrape_jobs, scrape_swedish_jobs,
-transform_jobs, extract_keywords) when the pipeline left Astro for Celery on
-Railway. Each step is a plain function over a Session so it can be tested
-against a real database without Celery.
+Each step is a plain function over a Session, so it can be tested against a
+real database without Celery.
 """
 from __future__ import annotations
 

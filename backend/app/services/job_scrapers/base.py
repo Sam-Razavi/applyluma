@@ -33,7 +33,7 @@ class BaseScraper(ABC):
         self._session = requests.Session()
         self._session.headers.update({"User-Agent": "ApplyLuma Job Scraper/1.0"})
 
-    # ── Public entry point ────────────────────────────────────────────────────
+    # Public entry point
 
     def fetch_jobs(self) -> list[dict[str, Any]]:
         """Fetch, parse, and return a list of normalised job dicts."""
@@ -95,7 +95,7 @@ class BaseScraper(ABC):
         finally:
             conn.close()
 
-    # ── Abstract / overridable ────────────────────────────────────────────────
+    # Abstract / overridable
 
     @abstractmethod
     def _fetch_raw(self) -> Any:
@@ -109,7 +109,7 @@ class BaseScraper(ABC):
             job_id_external, title, company, description, url
         """
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
+    # Helpers
 
     @staticmethod
     def _html_to_text(html: str) -> str:

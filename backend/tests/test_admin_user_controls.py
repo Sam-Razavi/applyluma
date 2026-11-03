@@ -132,7 +132,7 @@ async def request(
         return await client.request(method, path, json=json_body)
 
 
-# ── Activity timeline ─────────────────────────────────────────────────────────
+# Activity timeline
 
 @pytest.mark.asyncio
 async def test_activity_requires_auth() -> None:
@@ -201,7 +201,7 @@ async def test_activity_returns_paginated_events(monkeypatch: pytest.MonkeyPatch
     assert captured == {"user_id": USER_ID, "page": 2, "size": 10}
 
 
-# ── Send single-user notification ────────────────────────────────────────────
+# Send single-user notification
 
 @pytest.mark.asyncio
 async def test_send_notification_writes_audit_log(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -231,7 +231,7 @@ async def test_send_notification_writes_audit_log(monkeypatch: pytest.MonkeyPatc
     assert audits[0]["target_user_id"] == USER_ID
 
 
-# ── Delete user ───────────────────────────────────────────────────────────────
+# Delete user
 
 @pytest.mark.asyncio
 async def test_delete_user_requires_admin_role() -> None:
@@ -300,7 +300,7 @@ async def test_delete_user_deletes_and_audits(monkeypatch: pytest.MonkeyPatch) -
     assert audits[0]["details"]["deleted_user_id"] == str(USER_ID)
 
 
-# ── Password reset ────────────────────────────────────────────────────────────
+# Password reset
 
 @pytest.mark.asyncio
 async def test_password_reset_sends_email_and_audits(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -365,7 +365,7 @@ async def test_password_reset_502_when_email_fails(monkeypatch: pytest.MonkeyPat
     assert response.status_code == 502
 
 
-# ── Verify user ───────────────────────────────────────────────────────────────
+# Verify user
 
 @pytest.mark.asyncio
 async def test_verify_user_sets_flag_and_audits(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -418,7 +418,7 @@ async def test_verify_user_idempotent_when_already_verified(
     assert audits == []
 
 
-# ── Tailor-limit override ─────────────────────────────────────────────────────
+# Tailor-limit override
 
 @pytest.mark.asyncio
 async def test_update_limits_sets_override(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -498,7 +498,7 @@ async def test_update_limits_rejects_negative() -> None:
     assert response.status_code == 422
 
 
-# ── Profile includes new fields ───────────────────────────────────────────────
+# Profile includes new fields
 
 @pytest.mark.asyncio
 async def test_profile_includes_ai_costs_and_login_fields(
@@ -526,7 +526,7 @@ async def test_profile_includes_ai_costs_and_login_fields(
     assert data["daily_tailor_limit_override"] is None
 
 
-# ── Database stats ────────────────────────────────────────────────────────────
+# Database stats
 
 @pytest.mark.asyncio
 async def test_database_stats_requires_admin_role() -> None:
@@ -573,7 +573,7 @@ async def test_database_stats_returns_shape(monkeypatch: pytest.MonkeyPatch) -> 
     assert data["tables"][1]["rows_7d"] is None
 
 
-# ── crud_admin.delete_user_admin: real CRUD, not the endpoint mock ────────────
+# crud_admin.delete_user_admin: real CRUD, not the endpoint mock
 
 class _FakeExecuteResult:
     def __init__(self, rowcount: int) -> None:

@@ -59,7 +59,7 @@ async def request(
         return await client.request(method, path, json=json_body)
 
 
-# ── Cost computation ─────────────────────────────────────────────────────────
+# Cost computation
 
 def test_compute_cost_gpt4o() -> None:
     # 1M input + 1M output = $2.50 + $10.00
@@ -82,7 +82,7 @@ def test_unknown_model_uses_fallback_pricing() -> None:
     )
 
 
-# ── record_ai_usage must never raise ─────────────────────────────────────────
+# record_ai_usage must never raise
 
 def test_record_ai_usage_swallows_db_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     def broken_session() -> None:
@@ -99,7 +99,7 @@ def test_record_ai_usage_handles_missing_usage(monkeypatch: pytest.MonkeyPatch) 
     ai_usage.record_ai_usage(purpose="tailor", model="gpt-4o", usage=None)
 
 
-# ── Admin endpoints ──────────────────────────────────────────────────────────
+# Admin endpoints
 
 SAMPLE_SUMMARY = {
     "today": {"cost_usd": 0.5, "calls": 3, "tokens": 12000},

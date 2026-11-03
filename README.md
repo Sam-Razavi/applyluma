@@ -112,9 +112,8 @@ applyluma/
 |-- backend/               FastAPI API, SQLAlchemy models, schemas, services, tasks, tests
 |-- frontend/              React + TypeScript app, pages, components, stores, tests
 |-- applyluma-extension/   MV3 browser extension for saving jobs from job boards
-|-- airflow/               Retired Airflow DAGs, kept for reference (see airflow/RETIRED.md)
 |-- dbt/                   Analytics transformations
-|-- deployment/            Railway, Vercel, DNS, Airflow, and test checklists
+|-- deployment/            Railway, Vercel, DNS, and test checklists
 |-- docs/                  Product and technical documentation
 `-- graphify-out/          Local knowledge graph for codebase navigation
 ```
@@ -135,7 +134,6 @@ Deployment guides:
 - [Railway Backend Setup](deployment/RAILWAY_SETUP.md)
 - [Vercel Frontend Setup](deployment/VERCEL_SETUP.md)
 - [DNS Configuration](deployment/DNS_SETUP.md)
-- [Airflow Remote Connection](deployment/AIRFLOW_REMOTE.md)
 - [Testing Checklist](deployment/TESTING_CHECKLIST.md)
 
 ## Local Development
@@ -179,13 +177,12 @@ npm run dev
 
 ## Testing
 
-ApplyLuma ships with **832 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
+ApplyLuma ships with **1,186 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
 
 | Suite | Tests | Coverage |
 | --- | --- | --- |
-| Backend — Pytest (async, ASGI transport) | 570 across 45 files | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, billing), Celery tasks (incl. the health watchdog), admin controls, auth and security |
-| Frontend — Vitest + React Testing Library | 245 across 29 files | Pages, Zustand stores, components, and formatters |
-| Airflow — Pytest | 10 across 2 files | DAG integrity (load, cycles, required params) and DAG logic |
+| Backend — Pytest (async, ASGI transport) | 840 across 63 files, incl. real-Postgres tests in CI | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, billing), Celery tasks (incl. the health watchdog), admin controls, auth and security |
+| Frontend — Vitest + React Testing Library | 339 across 50 files | Pages, Zustand stores, components, and formatters |
 | dbt | 7 SQL assertions + `dbt parse` | Data-quality assertions and project validation |
 
 ```bash
@@ -194,9 +191,6 @@ cd backend && ruff check app/ && mypy app/ && python -m pytest
 
 # Frontend — lint, type-check, test, build
 cd frontend && npm run lint && npm run type-check && npm test && npm run build
-
-# Airflow DAG integrity
-PYTHONPATH=$(pwd)/airflow/dags:$(pwd)/airflow/plugins pytest airflow/tests/
 
 # dbt project validation
 cd dbt && dbt deps --profiles-dir . && dbt parse --profiles-dir .

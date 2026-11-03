@@ -19,7 +19,7 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 _auth = Depends(get_current_user_id)
 
 
-# ── Overview ──────────────────────────────────────────────────────────────────
+# Overview
 
 @router.get("/overview", response_model=AnalyticsOverview)
 def get_overview(
@@ -70,7 +70,7 @@ def get_overview(
     )
 
 
-# ── Top companies ─────────────────────────────────────────────────────────────
+# Top companies
 
 @router.get("/top-companies", response_model=list[CompanyStat])
 def get_top_companies(
@@ -93,7 +93,7 @@ def get_top_companies(
     return [CompanyStat(company=r.company, job_count=int(r.job_count)) for r in rows]
 
 
-# ── Top skills ────────────────────────────────────────────────────────────────
+# Top skills
 
 @router.get("/top-skills", response_model=list[SkillStat])
 def get_top_skills(
@@ -143,7 +143,7 @@ def get_top_skills(
     ]
 
 
-# ── Jobs over time ────────────────────────────────────────────────────────────
+# Jobs over time
 
 @router.get("/jobs-over-time", response_model=list[DailyJobCount])
 def get_jobs_over_time(
@@ -168,7 +168,7 @@ def get_jobs_over_time(
     return [DailyJobCount(date=r.date, job_count=int(r.job_count)) for r in rows]
 
 
-# ── Recent jobs ───────────────────────────────────────────────────────────────
+# Recent jobs
 
 @router.get("/recent-jobs", response_model=list[RecentJob])
 def get_recent_jobs(

@@ -52,7 +52,7 @@ def _enqueue_match_scoring(user_id: uuid.UUID) -> None:
     """Best-effort: rescore the user's jobs after their default CV changed.
 
     Match scores power the Discover score breakdown and are otherwise produced
-    only by the scheduled Airflow matching DAG. Triggering here lets a freshly
+    only by the nightly job pipeline. Triggering here lets a freshly
     uploaded or newly defaulted CV get scored without waiting for the next run.
     ``force`` is required: every existing score was computed against the old
     default CV, and the task otherwise skips anything scored in the last 24h.

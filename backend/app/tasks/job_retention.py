@@ -40,9 +40,8 @@ SCRAPE_STALE_AFTER = timedelta(days=2)
 
 # Work in small committed batches. Postgres writes a new version of every
 # updated row (plus WAL) before the old one can be reclaimed, so a single
-# transaction touching thousands of postings needs a lot of free disk at once;
-# the first production run did exactly that and filled the 1 GB volume.
-# Committing per batch keeps the extra space small and lets WAL be recycled,
+# transaction touching thousands of postings needs a lot of free disk at once
+# and can fill the volume. Committing per batch keeps the extra space small and lets WAL be recycled,
 # and the per-run cap spreads a large backlog over several nights.
 BATCH_SIZE = 500
 MAX_BATCHES_PER_RUN = 40

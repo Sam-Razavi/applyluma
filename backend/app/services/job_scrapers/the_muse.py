@@ -20,7 +20,7 @@ class TheMuseClient(BaseScraper):
         super().__init__(db_conn_str)
         self._pages = pages
 
-    # ── BaseScraper implementation ────────────────────────────────────────────
+    # BaseScraper implementation
 
     def _fetch_raw(self) -> list[dict[str, Any]]:
         all_results: list[dict[str, Any]] = []

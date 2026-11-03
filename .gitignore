@@ -40,8 +40,6 @@ out/
 
 # Railway credentials (Phase 8)
 .env.railway
-airflow/.env.airflow
-airflow/logs/
 
 # IDE
 .vscode/*
@@ -84,10 +82,6 @@ coverage/
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
-
-# Phase 7 generated artifacts
-PHASE7_ANALYTICS_TEST_RESULTS.md
-phase7-test-screenshots/
 
 # Local AI assistant/tooling config
 # settings.json is project-level (hooks, permissions) — committed intentionally

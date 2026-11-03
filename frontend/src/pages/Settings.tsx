@@ -32,7 +32,7 @@ export default function Settings() {
   const { user, setUser, logout } = useAuthStore()
   const { dark, toggle: toggleDark } = useThemeStore()
 
-  // ── Profile ───────────────────────────────────────────────────────────────
+  // Profile
   const [fullName, setFullName] = useState(user?.full_name ?? '')
   const [preferredTemplate, setPreferredTemplate] = useState(user?.preferred_template ?? 'nordic')
   const [savingProfile, setSavingProfile] = useState(false)
@@ -58,10 +58,10 @@ export default function Settings() {
     }
   }
 
-  // ── Account / usage ──────────────────────────────────────────────────────
+  // Account / usage
   const [usage, setUsage] = useState<TailorUsage | null>(null)
 
-  // ── Alert preferences ────────────────────────────────────────────────────
+  // Alert preferences
   const [preferences, setPreferences] = useState<AlertPreferences | null>(null)
   const [hasDefaultCv, setHasDefaultCv] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -97,7 +97,7 @@ export default function Settings() {
     }
   }
 
-  // ── Change password ───────────────────────────────────────────────────────
+  // Change password
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -134,7 +134,7 @@ export default function Settings() {
     }
   }
 
-  // ── Delete account ────────────────────────────────────────────────────────
+  // Delete account
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -177,7 +177,7 @@ export default function Settings() {
         </Link>
       </div>
 
-      {/* ── Profile ──────────────────────────────────────────────────────── */}
+      {/* Profile */}
       <section className="rounded-2xl border border-line bg-surface p-6 ">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-fg ">
           <UserCircleIcon className="h-4 w-4 text-fg-subtle" />
@@ -244,7 +244,7 @@ export default function Settings() {
         </div>
       )}
 
-      {/* ── Account ──────────────────────────────────────────────────────── */}
+      {/* Account */}
       <section className="rounded-2xl border border-line bg-surface p-6 ">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-fg ">
           <CreditCardIcon className="h-4 w-4 text-fg-subtle" />
@@ -324,7 +324,7 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* ── Appearance ─────────────────────────────────────────────────── */}
+      {/* Appearance */}
       <section className="rounded-2xl border border-line bg-surface p-6 ">
         <div className="mb-4 flex items-center gap-2">
           {dark ? (
@@ -362,7 +362,7 @@ export default function Settings() {
         </label>
       </section>
 
-      {/* ── Job match alerts ───────────────────────────────────────────── */}
+      {/* Job match alerts */}
       <section className="rounded-2xl border border-line bg-surface p-6 ">
         <div className="mb-4 flex items-center gap-2">
           <BellAlertIcon className="h-5 w-5 text-accent-text" />
@@ -444,7 +444,7 @@ export default function Settings() {
         )}
       </section>
 
-      {/* ── Change password ────────────────────────────────────────────── */}
+      {/* Change password */}
       <section className="rounded-2xl border border-line bg-surface p-6 ">
         <div className="mb-4 flex items-center gap-2">
           <KeyIcon className="h-5 w-5 text-accent-text" />
@@ -513,7 +513,7 @@ export default function Settings() {
         </form>
       </section>
 
-      {/* ── Sign out ───────────────────────────────────────────────────── */}
+      {/* Sign out */}
       <section className="rounded-2xl border border-line bg-surface p-6 ">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -536,7 +536,7 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* ── Delete account ─────────────────────────────────────────────── */}
+      {/* Delete account */}
       <section className="rounded-2xl border border-chip-danger bg-surface p-6 ">
         <div className="mb-4 flex items-center gap-2">
           <TrashIcon className="h-5 w-5 text-chip-danger-fg" />
@@ -554,8 +554,8 @@ export default function Settings() {
         </button>
       </section>
 
-      {/* ── Delete confirmation modal (portaled: page wrapper transform would
-          break position:fixed) ──────────────────────────────────────────── */}
+      {/* Delete confirmation modal. Portaled, because the page wrapper's
+          transform would break position:fixed. */}
       {deleteOpen && createPortal(
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ">

@@ -102,7 +102,7 @@ async def request(
         return await client.request(method, path, json=json_body)
 
 
-# ── Auth/role guard tests ────────────────────────────────────────────────────
+# Auth/role guard tests
 
 @pytest.mark.asyncio
 async def test_stats_requires_auth() -> None:
@@ -122,7 +122,7 @@ async def test_users_requires_admin_role() -> None:
     assert response.status_code == 403
 
 
-# ── Stats endpoint ────────────────────────────────────────────────────────────
+# Stats endpoint
 
 @pytest.mark.asyncio
 async def test_stats_returns_expected_fields(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -143,7 +143,7 @@ async def test_stats_returns_expected_fields(monkeypatch: pytest.MonkeyPatch) ->
     assert data["total_cover_letters"] == 8
 
 
-# ── User signups-daily / funnel endpoints ─────────────────────────────────────
+# User signups-daily / funnel endpoints
 
 @pytest.mark.asyncio
 async def test_signups_daily_requires_admin_role() -> None:
@@ -211,7 +211,7 @@ async def test_signups_daily_route_not_swallowed_by_user_id_route(
     assert response.status_code == 200
 
 
-# ── User list endpoint ────────────────────────────────────────────────────────
+# User list endpoint
 
 @pytest.mark.asyncio
 async def test_list_users_returns_paginated_shape(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -245,7 +245,7 @@ async def test_list_users_passes_search_to_crud(monkeypatch: pytest.MonkeyPatch)
     assert captured.get("role") == UserRole.premium
 
 
-# ── Get single user ───────────────────────────────────────────────────────────
+# Get single user
 
 @pytest.mark.asyncio
 async def test_get_user_returns_404_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -270,7 +270,7 @@ async def test_get_user_returns_user(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.json()["email"] == "user@test.com"
 
 
-# ── Role update ───────────────────────────────────────────────────────────────
+# Role update
 
 @pytest.mark.asyncio
 async def test_update_role_rejects_self_change(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -317,7 +317,7 @@ async def test_update_role_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.json()["role"] == "premium"
 
 
-# ── Active update ─────────────────────────────────────────────────────────────
+# Active update
 
 @pytest.mark.asyncio
 async def test_update_active_rejects_self_disable() -> None:
@@ -351,7 +351,7 @@ async def test_update_active_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.json()["is_active"] is False
 
 
-# ── Notify user ───────────────────────────────────────────────────────────────
+# Notify user
 
 @pytest.mark.asyncio
 async def test_notify_returns_404_for_missing_user(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -573,7 +573,7 @@ async def test_pipeline_metrics_returns_empty_response_when_missing(monkeypatch:
     }
 
 
-# ── Pipeline health CRUD unit tests ─────────────────────────────────────────
+# Pipeline health CRUD unit tests
 
 
 def _make_log_row(
@@ -726,7 +726,7 @@ def test_pipeline_health_classifies_sources() -> None:
     assert health["raw_job_postings"]["status"] == "healthy"
 
 
-# ── Contact submissions: category filter (in-app feedback) ──────────────────
+# Contact submissions: category filter (in-app feedback)
 
 @pytest.mark.asyncio
 async def test_contact_submissions_passes_category_filter(
@@ -751,7 +751,7 @@ async def test_contact_submissions_passes_category_filter(
     assert captured["status"] == "new"
 
 
-# ── Run pipeline now ──────────────────────────────────────────────────────────
+# Run pipeline now
 
 @pytest.mark.asyncio
 async def test_run_pipeline_requires_admin_role() -> None:

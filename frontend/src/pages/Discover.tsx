@@ -69,7 +69,7 @@ export default function Discover() {
     setSearchParams(t === 'for-you' ? {} : { tab: t }, { replace: true })
   }
 
-  // ── For You state ─────────────────────────────────────────────────────
+  // For You state
   const [jobs, setJobs] = useState<DiscoveredJob[]>([])
   const [filters, setFilters] = useState<Filters>(() => ({
     ...DEFAULT_FILTERS,
@@ -90,7 +90,7 @@ export default function Discover() {
 
   filtersRef.current = filters
 
-  // ── Search tab state ──────────────────────────────────────────────────
+  // Search tab state
   const [searchQuery, setSearchQuery] = useState('')
   const [searchLocation, setSearchLocation] = useState(() => localStorage.getItem(LOCATION_KEY) ?? '')
   const [searchSource, setSearchSource] = useState<SearchSource>('all')
@@ -113,7 +113,7 @@ export default function Discover() {
     }
   }, [])
 
-  // ── For You: load jobs ────────────────────────────────────────────────
+  // For You: load jobs
   const loadJobs = useCallback(
     async (nextFilters: Filters, nextPage: number, replace: boolean) => {
       abortRef.current?.abort()
@@ -230,7 +230,7 @@ export default function Discover() {
 
   const selectedJobSaved = selectedJobId ? savedIds.has(selectedJobId) : false
 
-  // ── Search tab: run search ────────────────────────────────────────────
+  // Search tab: run search
   async function runSearch(nextQuery: string, nextLocation: string, nextPage = 1) {
     if (!nextQuery.trim()) {
       toast.error('Enter a role, skill, or keyword')
@@ -310,7 +310,7 @@ export default function Discover() {
         ))}
       </div>
 
-      {/* ── For You tab ──────────────────────────────────────────────────── */}
+      {/* For You tab */}
       {tab === 'for-you' && (
         <>
           {/* Search bar */}
@@ -409,7 +409,7 @@ export default function Discover() {
         </>
       )}
 
-      {/* ── Search tab ───────────────────────────────────────────────────── */}
+      {/* Search tab */}
       {tab === 'search' && (
         <div className="space-y-6">
           <JobSearchBar

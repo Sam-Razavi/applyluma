@@ -37,7 +37,7 @@ models:
         description: "True when the role allows remote work"
         tests: [not_null]
       - name: is_duplicate
-        description: "Duplicate flag set by the Airflow dedup step"
+        description: "Duplicate flag set by the pipeline dedup step"
         tests: [not_null]
       - name: scraped_at
         description: "Timestamp when the record was scraped"

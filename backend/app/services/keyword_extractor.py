@@ -6,6 +6,7 @@ Provides two interfaces:
 """
 import re
 from collections import Counter
+from functools import cache
 
 # ---------------------------------------------------------------------------
 # Legacy simple extractor (used by job_descriptions endpoint)
@@ -55,7 +56,7 @@ _TECHNICAL_SKILLS: list[str] = [
     "Data Science", "Data Engineering", "ETL", "Apache Spark", "Apache Kafka",
     "Hadoop", "TensorFlow", "PyTorch", "OpenAI", "LLM", "RAG",
     "Computer Vision", "Reinforcement Learning", "Statistics", "Mathematics",
-    "MLOps", "DevOps", "Infrastructure as Code", "Terraform", "Ansible",
+    "MLOps", "DevOps", "Infrastructure as Code",
     "Security", "Cybersecurity", "Blockchain", "IoT", "Embedded Systems",
     "FPGA", "HTML", "CSS", "SASS", "LESS", "WebAssembly",
     "Pandas", "NumPy", "SciPy",
@@ -73,7 +74,7 @@ _FRAMEWORKS: list[str] = [
     "Scikit-learn", "Keras", "Hugging Face", "LangChain", "LlamaIndex",
     "Redux", "Zustand", "MobX", "Pinia",
     "Prisma", "SQLAlchemy", "Hibernate", "TypeORM",
-    "gRPC", "Protobuf",
+    "Protobuf",
 ]
 
 _TOOLS: list[str] = [
@@ -83,7 +84,7 @@ _TOOLS: list[str] = [
     "VS Code", "IntelliJ", "PyCharm", "WebStorm", "Eclipse",
     "Postman", "Insomnia", "Swagger",
     "Jenkins", "GitHub Actions", "GitLab CI", "CircleCI", "Travis CI",
-    "ArgoCD", "Flux", "Helm",
+    "ArgoCD", "Flux", "Helm", "Terraform", "Ansible",
     "Grafana", "Prometheus", "Datadog", "New Relic", "Sentry",
     "ELK Stack", "Kibana", "Logstash",
     "Nginx", "Apache", "HAProxy",
@@ -138,6 +139,62 @@ _CATEGORY_MAP: dict[str, list[str]] = {
     "certifications": _CERTIFICATIONS,
 }
 
+# Skill names that are also everyday words: only the exact capitalisation
+# counts ("work in teams", "express interest", "the rest of the team",
+# "go the extra mile" and Swedish "spring" are not skills).
+EXACT_CASE_ONLY: frozenset[str] = frozenset({
+    "Go", "Rust", "Spring", "REST", "Swift", "Express", "Teams", "Notion",
+    "Sketch", "Zoom", "Slack", "Linear", "Flux", "Remix",
+})
+
+
+def category_of(keyword: str) -> str:
+    """The category a vocabulary term belongs to (first match in _CATEGORY_MAP)."""
+    for category, terms in _CATEGORY_MAP.items():
+        if keyword in terms:
+            return category
+    raise KeyError(f"{keyword!r} is not in the skill vocabulary")
+
+
+def _pattern_body(keyword: str, charclass: str) -> str:
+    """Boundary-safe regex for *keyword*.
+
+    Lookarounds instead of \\b, because a trailing \\b never matches after
+    "+" or "#" (C++, C#). Multi-word terms must appear as a phrase, with
+    spaces, hyphens or slashes between the words.
+    """
+    words = keyword.split()
+    body = r"[\s\-/]+".join(re.escape(w) for w in words) if len(words) > 1 else re.escape(keyword)
+    return rf"(?<![{charclass}])" + body + rf"(?![{charclass}])"
+
+
+@cache
+def _patterns(keyword: str) -> tuple[re.Pattern[str], re.Pattern[str] | None]:
+    """(exact-case pattern, lower-case pattern or None for EXACT_CASE_ONLY)."""
+    exact = re.compile(_pattern_body(keyword, "A-Za-z0-9"))
+    if keyword in EXACT_CASE_ONLY:
+        return exact, None
+    return exact, re.compile(_pattern_body(keyword.lower(), "a-z0-9"))
+
+
+def match_skill(keyword: str, text: str, text_lower: str | None = None) -> tuple[float, int]:
+    """(confidence, frequency) of *keyword* in *text*; (0.0, 0) when absent.
+
+    Confidence is 1.0 for the exact capitalisation, 0.8 for a multi-word term
+    in other case, 0.6 for a single word in other case. Frequency counts
+    boundary-safe matches, so "Go" is never counted inside "Google".
+    """
+    exact, loose = _patterns(keyword)
+    exact_hits = len(exact.findall(text))
+    if loose is None:
+        return (1.0, exact_hits) if exact_hits else (0.0, 0)
+    hits = len(loose.findall(text.lower() if text_lower is None else text_lower))
+    if not hits:
+        return 0.0, 0
+    if exact_hits:
+        return 1.0, hits
+    return (0.8 if len(keyword.split()) > 1 else 0.6), hits
+
 
 class KeywordExtractor:
     """Context-aware keyword extractor for job descriptions.
@@ -177,12 +234,12 @@ class KeywordExtractor:
             return {cat: [] for cat in _CATEGORY_MAP}
 
         result: dict[str, list[dict]] = {cat: [] for cat in _CATEGORY_MAP}
+        text_lower = text.lower()
 
         for category, skill_list in _CATEGORY_MAP.items():
             for skill in skill_list:
-                confidence = self._confidence_score(skill, text)
+                confidence, freq = match_skill(skill, text, text_lower)
                 if confidence > 0:
-                    freq = self._count_occurrences(skill, text)
                     result[category].append(
                         {"keyword": skill, "confidence": confidence, "frequency": freq}
                     )
@@ -227,46 +284,12 @@ class KeywordExtractor:
     # ------------------------------------------------------------------
 
     def _confidence_score(self, keyword: str, text: str) -> float:
-        """Return 0-1 confidence that keyword appears in text.
-
-        1.0 — exact case-sensitive word-boundary match
-        0.8 — multi-word phrase appears as a phrase (flexible spacing)
-        0.6 — case-insensitive word-boundary match
-        0.0 — not found
-
-        Lookaround guards are used instead of \\b so symbol-suffixed
-        keywords like "C++" and "C#" still match — a trailing \\b never
-        matches immediately after a non-word character such as '+' or '#'.
-        These guards prevent "React" matching "Reactive", and the phrase
-        check prevents "Apache Kafka" matching when both words appear in
-        unrelated parts of the text.
-        """
-        text_lower = text.lower()
-        kw_lower = keyword.lower()
-        kw_words = kw_lower.split()
-
-        # Exact case-sensitive match
-        exact_pattern = r"(?<![A-Za-z0-9])" + re.escape(keyword) + r"(?![A-Za-z0-9])"
-        if re.search(exact_pattern, text):
-            return 1.0
-
-        if len(kw_words) > 1:
-            # Require multi-word term to appear as an actual phrase
-            phrase_body = r"[\s\-/]+".join(re.escape(w) for w in kw_words)
-            phrase_pattern = r"(?<![a-z0-9])" + phrase_body + r"(?![a-z0-9])"
-            if re.search(phrase_pattern, text_lower):
-                return 0.8
-        else:
-            # Single-word case-insensitive match
-            single_pattern = r"(?<![a-z0-9])" + re.escape(kw_lower) + r"(?![a-z0-9])"
-            if re.search(single_pattern, text_lower):
-                return 0.6
-
-        return 0.0
+        """0-1 confidence that *keyword* appears in *text* (see match_skill)."""
+        return match_skill(keyword, text)[0]
 
     def _count_occurrences(self, keyword: str, text: str) -> int:
-        """Count case-insensitive occurrences of keyword in text."""
-        return text.lower().count(keyword.lower())
+        """Boundary-safe count of *keyword* in *text* (see match_skill)."""
+        return match_skill(keyword, text)[1]
 
     def keywords_as_flat_list(
         self, extracted: dict[str, list[dict]], min_confidence: float = 0.0

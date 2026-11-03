@@ -1,8 +1,7 @@
 """Skill tagging for raw_job_postings.extracted_skills.
 
-Ported from the scrape_jobs / scrape_swedish_jobs Airflow DAGs. Platsbanken
-ads carry their own must-have / nice-to-have skill lists; every other source
-is matched against TRACKED_SKILLS with word boundaries.
+Platsbanken ads carry their own must-have / nice-to-have skill lists; every
+other source is matched against TRACKED_SKILLS with word boundaries.
 """
 from __future__ import annotations
 

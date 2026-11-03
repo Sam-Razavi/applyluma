@@ -17,6 +17,22 @@ jobs:
       run:
         working-directory: backend
 
+    # A real Postgres for the tests that set TEST_DATABASE_URL. The rest of the
+    # suite uses fakes, which never compile SQL, so query bugs only show up here.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: applyluma_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,10 +55,17 @@ jobs:
       - name: mypy type-check
         run: mypy app/
 
+      - name: Migrate the test database
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/applyluma_test
+          SECRET_KEY: ci-test-secret-key-not-used-in-production
+
       - name: pytest
         run: pytest
         env:
           SECRET_KEY: ci-test-secret-key-not-used-in-production
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/applyluma_test
 
   frontend:
     name: Frontend — lint, type-check, test

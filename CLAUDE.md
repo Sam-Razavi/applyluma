@@ -175,14 +175,15 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
     a reviewer test account).
 
 Job Sources & Dedupe delivered in July 2026:
-  - New RemoteOK scraper (`airflow/plugins/job_scrapers/remoteok_client.py`) in the
+  - New RemoteOK scraper (then `airflow/plugins/job_scrapers/remoteok_client.py`, now
+    `backend/app/services/job_scrapers/remoteok.py`) in the
     `scrape_jobs` DAG. Scrapers in the repo: `remotive`, `the_muse`, `remoteok`
     (scrape_jobs, 02:00 UTC) and `platsbanken`, `jobbsafari`, `indeed_se`
     (scrape_swedish_jobs, 02:30 UTC). Source strings are lowercase in the DB.
   - `GET /api/v1/jobs/sources` returns distinct sources with live posting counts;
     the Discover source filter populates from it (static `JOB_SOURCES` is only a
     fallback). New sources need no frontend changes.
-  - Cross-source rolling-window dedupe (`airflow/plugins/job_scrapers/dedupe.py`,
+  - Cross-source rolling-window dedupe (now `backend/app/services/job_scrapers/dedupe.py`,
     used by both scrape DAGs): a posting scraped today is marked `is_duplicate`
     when a live posting with the same normalised title+company+location exists
     within the last 14 days, regardless of source. Oldest posting wins; only
@@ -282,7 +283,7 @@ branches `claude/admin-panel-review-4f5992` + earlier GDPR-fix work):
     chronological feed via a SQL `UNION ALL` across CVs, applications,
     application events, tailor jobs, cover letters, saved jobs, job
     descriptions, and contact submissions (`crud_admin.get_user_activity`,
-    `crud/admin.py`). Rendered in the "Timeline" section of
+    `crud/admin/users.py`). Rendered in the "Timeline" section of
     `frontend/src/pages/admin/UserDrawer.tsx` (extracted out of `AdminUsers.tsx`
     for size), with "Load more" pagination.
   - Health watchdog: `app/tasks/watchdog.py` (Celery task
@@ -551,6 +552,14 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     with no recognisable skills scores 30, not 70 (vague ads used to outrank
     real matches). The nightly chained run rescores anything older than 24 h,
     so production picks this up within a night or two with no backfill.
+  - One skill vocabulary and one matching rule (November 2026):
+    `services/keyword_extractor.py` holds every term, its category,
+    `EXACT_CASE_ONLY` (Go, Rust, Spring, REST, Teams, Express, Linear, ...
+    count only when capitalised; "engineering teams" was tagged Microsoft
+    Teams on 1 in 7 ads) and `match_skill`. The pipeline's job keywords
+    (`job_scrapers/keyword_extraction.py`) are a curated 46-term subset of it,
+    so job pages stay low-noise. `job_scrapers/skills.py` `TRACKED_SKILLS` is
+    deliberately separate: it feeds the salary-by-skill analytics.
   - `hide_applied=true` on `GET /jobs` 500'd on Postgres from 2026-10-20: the
     URL-match NOT EXISTS reused the joined `Application` entity and SQLAlchemy
     correlated every table away. It now uses an alias; a regression test
@@ -618,9 +627,10 @@ Frontend:
 - @use-gesture/react is installed for future gesture enhancements
 
 Data:
-- Apache Airflow
-- dbt
-- Daily ETL pipeline
+- Nightly job pipeline as a Celery task on Railway (Airflow retired and
+  deleted, November 2026)
+- dbt models kept for reference and parsed in CI; production rebuilds the two
+  marts it reads with plain SQL
 
 AI:
 - OpenAI API for resume analysis
@@ -645,13 +655,20 @@ External APIs:
 - `frontend/vercel.json`: Vercel configuration with rewrites.
 - `backend/app/tasks/job_pipeline.py` + `backend/app/services/job_pipeline.py` +
   `backend/app/services/job_scrapers/`: the nightly job pipeline (02:00 UTC).
-  `airflow/` is retired and unscheduled (see `airflow/RETIRED.md`).
-- `.github/workflows/data-pipeline-tests.yml`: CI for Airflow + dbt tests.
+  The retired `airflow/` folder was deleted in November 2026 (it is in git
+  history if ever needed).
+- `.github/workflows/data-pipeline-tests.yml`: CI for dbt (`dbt parse`).
 - `.github/workflows/ci.yml`: CI for backend (ruff, mypy, pytest) and frontend
   (ESLint, `tsc --noEmit`, Vitest, `npm run build`). mypy runs in `strict`
   mode; new modules with untyped decorators (e.g. `@celery_app.task`) must be
   added to `backend/pyproject.toml`'s `[[tool.mypy.overrides]]` list like
   their sibling modules, or CI fails.
+- `backend/app/crud/admin/`: admin CRUD split by area (`users`, `pipeline`,
+  `ai_costs`, `database`, `operations`); `__init__.py` re-exports everything,
+  so `from app.crud import admin as crud_admin` works as before.
+- `frontend/src/pages/AITailor.tsx` holds the page state and flow; its steps
+  live in `frontend/src/components/tailor/steps/` (Select, Processing, Review,
+  Done, History).
 - `docs/MONITORING.md`: three-layer monitoring setup (UptimeRobot external
   pinger, internal health watchdog, Sentry) — read before touching
   `app/tasks/watchdog.py` or `/health`.
@@ -780,30 +797,10 @@ Rules for adding backend tests:
   source module, so the monkeypatch takes effect where it is used.
 - Use `@pytest.mark.asyncio` on every async test function.
 
-### Data Pipeline — pytest + dbt parse
+### Data Pipeline — dbt parse
 
-#### Airflow tests
-
-Location: `airflow/tests/`
-Run: `PYTHONPATH=$(pwd)/airflow/dags:$(pwd)/airflow/plugins pytest airflow/tests/`
-
-Files:
-- `tests/test_dag_integrity.py` — DagBag loads cleanly, expected DAGs present,
-  no cycles (`dag.validate()`), required parameters set
-- `tests/test_dag_logic.py` — skill extraction regex, DB connection string,
-  daily metrics calculation
-
-Rules for adding Airflow tests:
-- Always export `PYTHONPATH` to include both `airflow/dags` and `airflow/plugins`
-  so plugin imports resolve without the Docker-only `/opt/airflow/plugins` path.
-- In CI, install airflow packages individually — do NOT use `airflow/requirements.txt`
-  directly because it contains `sqlalchemy>=2.0.0` which conflicts with
-  `apache-airflow==2.7.0` (requires SQLAlchemy <2.0).
-- Pin `pendulum<3.0` alongside airflow — pendulum 3.x changed `tz.timezone()` to
-  a module, breaking `airflow/settings.py` on import.
-- Use `dag.validate()` for cycle checks — `dag.test_cycle()` was removed in Airflow 2.x.
-- Use `dag.default_args.get("retries", 0)` for retry checks — `dag.retries` does
-  not exist on the DAG object; retries are a task-level attribute set via `default_args`.
+The pipeline's own tests are backend tests: `tests/test_job_scrapers.py`,
+`tests/test_job_pipeline.py` and the real-database `tests/test_job_pipeline_db.py`.
 
 #### dbt tests
 
@@ -833,12 +830,15 @@ Rules for adding dbt tests:
 Two workflows run on push/PR to `main` and `dev`:
 
 - `.github/workflows/data-pipeline-tests.yml`:
-  - `airflow-tests` job: installs pinned packages, runs both airflow test files.
   - `dbt-tests` job: installs pinned dbt, runs `dbt deps` then `dbt parse`.
 - `.github/workflows/ci.yml`:
   - `backend` job (`Backend — lint, type-check, test`): `ruff check app/`,
     `mypy app/` (strict mode — see Key Files note on `[[tool.mypy.overrides]]`),
-    then `pytest`.
+    `alembic upgrade head` on a Postgres 16 service container, then `pytest`
+    with `TEST_DATABASE_URL` set, so the real-database tests
+    (`test_job_pipeline_db.py`, `test_job_retention.py`) run instead of
+    skipping. Add a real-database test whenever a change is about SQL itself:
+    the FakeDb tests never compile it (see the `hide_applied` 500).
   - `frontend` job (`Frontend — lint, type-check, test`): `npm run lint`
     (ESLint), `npm run type-check` (`tsc --noEmit`), `npm test` (Vitest),
     `npm run build`.
@@ -874,10 +874,8 @@ TS errors block merge.
   dependency upgrades.
 - GitHub CLI (`gh`) is not installed in the local Codex environment; use the
   GitHub connector or install `gh` for CLI-based PR workflows.
-- `job_market_metrics` freshness depends on the `transform_jobs` DAG running in
-  Airflow. The aggregation code has no per-source coupling (verified 2026-07-08),
-  so any staleness is operational, not a code defect — check `/admin/pipeline`
-  for current status.
+- `job_market_metrics` freshness depends on the nightly job pipeline's metrics
+  step (logged as `transform_jobs`); check `/admin/pipeline` for current status.
 - The health watchdog (`app/tasks/watchdog.py`) only fires if a Celery **beat**
   service is deployed separately from the web/worker services (see
   `backend/railway.beat.json` / `scripts/start-beat.sh`) — verify that service
@@ -924,7 +922,7 @@ When working on this project:
 - The job pipeline runs daily at 02:00 UTC as a Celery task on Railway (no
   Airflow or dbt in production any more).
 - Keep credentials in environment variables only.
-- Prefer existing backend, frontend, Airflow, and dbt patterns before adding new
+- Prefer existing backend, frontend, and dbt patterns before adding new
   abstractions.
 - When adding new API endpoints, add a corresponding test in `backend/tests/`.
 - When adding new frontend pages or stores, add a corresponding test in

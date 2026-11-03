@@ -1,6 +1,6 @@
 # ApplyLuma dbt Project (`applyluma_dw`)
 
-Transforms raw job-market data scraped by Airflow into clean, analytics-ready
+Transforms raw job-market data scraped by the nightly job pipeline into clean, analytics-ready
 tables in the `analytics` PostgreSQL schema.
 
 ## Model lineage
