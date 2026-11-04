@@ -30,14 +30,21 @@ import sys
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection
+from sqlalchemy.exc import OperationalError
 
 # Tables retention churns through. Fixed list: the script never takes table
 # names from the command line.
 VACUUM_TABLES = ("raw_job_postings", "extracted_keywords", "job_matching_scores")
 
-# Generous for this app: web + worker (+ beat) with SQLAlchemy's default pool
-# (5 + 10 overflow each) top out at about 45 connections.
-TUNED_SETTINGS = {"shared_buffers": "128MB", "max_connections": "50"}
+# Web, worker and beat each get SQLAlchemy's default pool (5 + 10 overflow),
+# about 45 at the theoretical peak, plus the scrapers' own psycopg2
+# connections and a console or two. 60 leaves headroom; idle slots are cheap.
+TUNED_SETTINGS = {"shared_buffers": "128MB", "max_connections": "60"}
+
+# VACUUM FULL needs an exclusive lock. If a long task already holds the table,
+# waiting for it would queue every later query (Discover) behind the vacuum,
+# so give up on that table instead and report it.
+LOCK_TIMEOUT = "10s"
 
 REPORT_SQL = text(
     """
@@ -88,7 +95,12 @@ def vacuum(conn: Connection) -> None:
             print(f"skip {table}: not found")
             continue
         print(f"VACUUM (FULL, ANALYZE) {table} ...", flush=True)
-        conn.execute(text(f"VACUUM (FULL, ANALYZE) {quote(table)}"))
+        try:
+            conn.execute(text(f"VACUUM (FULL, ANALYZE) {quote(table)}"))
+        except OperationalError as exc:
+            if "lock timeout" not in str(exc):
+                raise
+            print(f"  skipped {table}: busy (lock not free within {LOCK_TIMEOUT}), try again later")
 
 
 def tune(conn: Connection) -> None:
@@ -114,6 +126,7 @@ def main() -> None:
     engine = create_engine(_database_url())
     # VACUUM and ALTER SYSTEM refuse to run inside a transaction block.
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        conn.execute(text(f"SET lock_timeout = '{LOCK_TIMEOUT}'"))
         before = report(conn)
         if args.vacuum:
             print()

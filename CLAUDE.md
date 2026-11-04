@@ -905,7 +905,8 @@ TS errors block merge.
   bloat and, with `--vacuum`, runs `VACUUM (FULL, ANALYZE)` on the job tables
   retention churns (never deletes rows; locks each table while rewriting, so
   not 01:00-05:00 UTC); `--tune` sets `shared_buffers=128MB` /
-  `max_connections=50` (needs a Postgres restart). Run it via
+  `max_connections=60` (needs a Postgres restart); a busy table is skipped
+  after a 10s lock timeout rather than blocking queries. Run it via
   `railway ssh --service applyluma-celery-worker`.
 - Run `scripts/backfill_duplicates.py` once against Railway to mark historical
   cross-source duplicates (see Job Sources & Dedupe section).
