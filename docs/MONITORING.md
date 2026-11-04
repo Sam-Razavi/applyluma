@@ -63,8 +63,10 @@ same throttling pattern used by the AI budget alert. An email to
 - degraded → healthy: one recovery email.
 - otherwise: silent, so a persistent known issue doesn't spam your inbox.
 
-This layer requires Celery beat to be running (`backend/scripts/start-beat.sh`
-/ `backend/railway.beat.json`) — if beat itself is down, this layer goes
+This layer requires Celery beat to be running: either the separate beat
+service (`backend/scripts/start-beat.sh` / `backend/railway.beat.json`) or,
+with `CELERY_EMBED_BEAT=1` on the worker, beat embedded in the worker
+(`start-worker.sh` runs `celery worker -B`). If beat is down, this layer goes
 silent too, which is exactly the gap the external pinger fills.
 
 ## 3. Sentry

@@ -876,11 +876,13 @@ TS errors block merge.
   GitHub connector or install `gh` for CLI-based PR workflows.
 - `job_market_metrics` freshness depends on the nightly job pipeline's metrics
   step (logged as `transform_jobs`); check `/admin/pipeline` for current status.
-- The health watchdog (`app/tasks/watchdog.py`) only fires if a Celery **beat**
-  service is deployed separately from the web/worker services (see
-  `backend/railway.beat.json` / `scripts/start-beat.sh`) — verify that service
-  exists in Railway, since none of the other scheduled tasks (deadline
-  reminders, weekly summary, high-match alerts) fire without it either.
+- The health watchdog (`app/tasks/watchdog.py`) only fires if Celery **beat**
+  runs: either the separate beat service (`backend/railway.beat.json` /
+  `scripts/start-beat.sh`) or embedded in the worker via `CELERY_EMBED_BEAT=1`
+  (`start-worker.sh` then runs `celery worker -B`; one worker replica only,
+  and never alongside the separate beat service or tasks fire twice). None of
+  the other scheduled tasks (deadline reminders, weekly summary, high-match
+  alerts) fire without beat either.
 - Verify an external uptime pinger (e.g. UptimeRobot) is configured against
   `/health?deep=1` — it's the only monitoring layer that catches a total
   process crash; see `docs/MONITORING.md` for setup steps.
@@ -898,6 +900,13 @@ TS errors block merge.
   Celery beat service is running so the watchdog and other scheduled tasks
   actually fire; set up an external uptime pinger per `docs/MONITORING.md`;
   verify `SENTRY_DSN` (backend) and `VITE_SENTRY_DSN` (frontend) are set.
+- Railway cost reduction (November 2026): DeskFlow api/worker, Ziafat and
+  LoopDog set to sleep. `backend/scripts/compact_database.py` reports table
+  bloat and, with `--vacuum`, runs `VACUUM (FULL, ANALYZE)` on the job tables
+  retention churns (never deletes rows; locks each table while rewriting, so
+  not 01:00-05:00 UTC); `--tune` sets `shared_buffers=128MB` /
+  `max_connections=50` (needs a Postgres restart). Run it via
+  `railway ssh --service applyluma-celery-worker`.
 - Run `scripts/backfill_duplicates.py` once against Railway to mark historical
   cross-source duplicates (see Job Sources & Dedupe section).
 - Backlog (verified open as of 2026-07-11): keyword tag filtering on Discover,
