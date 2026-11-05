@@ -908,6 +908,14 @@ TS errors block merge.
   `max_connections=60` (needs a Postgres restart); a busy table is skipped
   after a 10s lock timeout rather than blocking queries. Run it via
   `railway ssh --service applyluma-celery-worker`.
+  First run 2026-11-05 (via a temporary `postgres:18-alpine` service with
+  `DATABASE_URL=${{Postgres.DATABASE_URL}}`, since the session could not read
+  credentials): database 625 MB -> 174 MB in ~8 s, row counts identical
+  (`raw_job_postings` 328 -> 129 MB, `job_matching_scores` 280 -> 30 MB).
+  Prod already has `shared_buffers=128MB`; `max_connections` is 500 (set by
+  the Railway Postgres image, so `ALTER SYSTEM` may not override it), with
+  ~7 connections in use. `job_matching_scores` is rewritten by the nightly
+  rescoring, so expect it to settle around twice its compacted size.
 - Run `scripts/backfill_duplicates.py` once against Railway to mark historical
   cross-source duplicates (see Job Sources & Dedupe section).
 - Backlog (verified open as of 2026-07-11): keyword tag filtering on Discover,
