@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
 
@@ -21,7 +22,10 @@ logger = logging.getLogger(__name__)
 # crashes the whole consumer loop. We wrap it so a single bad message is logged
 # and discarded instead of bringing the worker down.
 # ---------------------------------------------------------------------------
-_original_virtual_message_init = virtual.Message.__init__
+# kombu ships type hints from 5.7 but leaves Message.__init__ unannotated, so
+# the original is held as a typed Callable and the class is patched through an
+# Any alias (mypy refuses assignment to a method). Both work with older kombu.
+_original_virtual_message_init: Callable[..., None] = virtual.Message.__init__
 
 
 def _resilient_virtual_message_init(self: Any, payload: Any, *args: Any, **kwargs: Any) -> None:
@@ -52,7 +56,8 @@ def _resilient_virtual_message_init(self: Any, payload: Any, *args: Any, **kwarg
         _original_virtual_message_init(self, payload, *args, **kwargs)
 
 
-virtual.Message.__init__ = _resilient_virtual_message_init
+_virtual_message_cls: Any = virtual.Message
+_virtual_message_cls.__init__ = _resilient_virtual_message_init
 
 
 celery_app = Celery(
