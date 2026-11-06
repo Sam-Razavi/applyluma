@@ -64,6 +64,7 @@ function JdSkeleton() {
   )
 }
 
+// Rendered as the Saved tab of Discover, which supplies the page heading.
 export default function Jobs() {
   const [jobs, setJobs] = useState<JobDescription[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,7 +86,6 @@ export default function Jobs() {
   })
 
   useEffect(() => {
-    document.title = 'My Jobs | ApplyLuma'
     jobApi
       .list()
       .then(setJobs)
@@ -195,14 +195,8 @@ export default function Jobs() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-fg">My Jobs</h1>
-          <p className="mt-1 text-sm text-fg-subtle">
-            Your saved jobs and job descriptions — all ready for AI tailoring.
-          </p>
-        </div>
+      {/* Add actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
         <div className="flex flex-col gap-2 self-start sm:self-auto">
           <div className="flex flex-wrap gap-2">
             <button

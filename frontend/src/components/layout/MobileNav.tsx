@@ -20,7 +20,7 @@ type Tab = {
 const BASE_TABS: Tab[] = [
   { to: '/dashboard', label: 'Home', icon: HomeIcon },
   { to: '/discover', label: 'Discover', icon: Squares2X2Icon, pip: true },
-  { to: '/jobs', label: 'Saved', icon: BriefcaseIcon },
+  { to: '/applications', label: 'Applications', icon: BriefcaseIcon, pip: true },
   { to: '/ai-tailor', label: 'AI Tailor', icon: SparklesIcon },
 ]
 

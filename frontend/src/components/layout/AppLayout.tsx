@@ -15,10 +15,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/applications': 'Applications',
   '/discover': 'Discover',
-  '/saved-jobs': 'My Jobs',
   '/settings': 'Settings',
   '/cv': 'My CVs',
-  '/jobs': 'My Jobs',
 }
 
 export default function AppLayout() {

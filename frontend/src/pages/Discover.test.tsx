@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter } from 'react-router-dom'
 import Discover from './Discover'
 import * as jobDiscoveryApi from '../services/jobDiscoveryApi'
 import toast from 'react-hot-toast'
@@ -12,6 +12,9 @@ vi.mock('../services/jobDiscoveryApi', () => ({
   saveJob: vi.fn(),
   deleteSavedJob: vi.fn(),
 }))
+
+// The Saved tab renders the Jobs page, which has its own tests.
+vi.mock('./Jobs', () => ({ default: () => <div>Saved jobs list</div> }))
 
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn() },
@@ -169,5 +172,24 @@ describe('Discover page', () => {
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to load jobs')
     })
+  })
+
+  it('opens the Saved tab from the URL', () => {
+    vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockResolvedValue([])
+    render(
+      <MemoryRouter initialEntries={['/discover?tab=saved']}>
+        <Discover />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Saved jobs list')).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Search jobs by title or company')).not.toBeInTheDocument()
+  })
+
+  it('switches to the Saved tab when clicked', async () => {
+    vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockResolvedValue([])
+    renderDiscover()
+    expect(screen.queryByText('Saved jobs list')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Saved' }))
+    expect(await screen.findByText('Saved jobs list')).toBeInTheDocument()
   })
 })

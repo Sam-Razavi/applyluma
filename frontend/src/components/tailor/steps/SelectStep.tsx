@@ -110,7 +110,7 @@ export function SelectStep({
             onChange={onJobChange}
             loading={loading}
             emptyMessage="No job descriptions found"
-            emptyHref="/jobs"
+            emptyHref="/discover?tab=saved"
             emptyLinkLabel="Add one"
             options={jobs.map((job) => ({
               value: job.id,

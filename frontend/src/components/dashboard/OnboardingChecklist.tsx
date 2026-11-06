@@ -25,7 +25,7 @@ const STEPS = [
     title: 'Add a job description',
     description: 'Paste a job URL or add it manually — we extract the keywords automatically.',
     cta: 'Add job',
-    href: '/jobs?tab=descriptions',
+    href: '/discover?tab=saved',
   },
   {
     key: 'tailor' as const,

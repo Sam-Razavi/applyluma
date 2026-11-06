@@ -30,7 +30,6 @@ const AuthCallback = lazy(() => import('./pages/AuthCallback'))
 const MagicLogin = lazy(() => import('./pages/MagicLogin'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const CVs = lazy(() => import('./pages/CVs'))
-const Jobs = lazy(() => import('./pages/Jobs'))
 const Applications = lazy(() => import('./pages/Applications'))
 const AITailor = lazy(() => import('./pages/AITailor'))
 const Analytics = lazy(() => import('./pages/Analytics'))
@@ -101,9 +100,9 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="cvs" element={<CVs />} />
-            <Route path="jobs" element={<Jobs />} />
+            <Route path="jobs" element={<Navigate to="/discover?tab=saved" replace />} />
             <Route path="discover" element={<Discover />} />
-            <Route path="saved-jobs" element={<Navigate to="/jobs" replace />} />
+            <Route path="saved-jobs" element={<Navigate to="/discover?tab=saved" replace />} />
             <Route path="job-search" element={<Navigate to="/discover?tab=search" replace />} />
             <Route path="applications" element={<Applications />} />
             <Route path="ai-tailor" element={<AITailor />} />

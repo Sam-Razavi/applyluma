@@ -12,6 +12,7 @@ import JobSearchBar, { type SearchSource } from '../components/jobs/JobSearchBar
 import JobResultList from '../components/jobs/JobResultList'
 import SearchJobDetail from '../components/jobs/SearchJobDetail'
 import ErrorBanner from '../components/ui/ErrorBanner'
+import Jobs from './Jobs'
 import ErrorState from '../components/ui/ErrorState'
 import { FadeIn } from '../components/ui/FadeIn'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
@@ -24,7 +25,17 @@ import type { DiscoveredJob, JobFilters as Filters } from '../types/jobDiscovery
 
 const PAGE_SIZE = 20
 
-type Tab = 'for-you' | 'search'
+type Tab = 'for-you' | 'saved' | 'search'
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'for-you', label: 'For You' },
+  { key: 'saved', label: 'Saved' },
+  { key: 'search', label: 'Search' },
+]
+
+function parseTab(value: string | null): Tab {
+  return value === 'saved' || value === 'search' ? value : 'for-you'
+}
 
 const RECENT_KEY = 'recent_job_searches'
 const LOCATION_KEY = 'preferred_job_location'
@@ -61,11 +72,11 @@ const emptyResults: JobSearchResponse = {
 
 export default function Discover() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialTab = (searchParams.get('tab') as Tab) === 'search' ? 'search' : 'for-you'
-  const [tab, setTab] = useState<Tab>(initialTab)
+  // The tab lives in the URL so nav links such as /discover?tab=saved work
+  // even when Discover is already open.
+  const tab = parseTab(searchParams.get('tab'))
 
   function switchTab(t: Tab) {
-    setTab(t)
     setSearchParams(t === 'for-you' ? {} : { tab: t }, { replace: true })
   }
 
@@ -104,7 +115,10 @@ export default function Discover() {
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(loadRecentSearches)
 
   useEffect(() => {
-    document.title = tab === 'search' ? 'Search Jobs | ApplyLuma' : 'Discover Jobs | ApplyLuma'
+    document.title =
+      tab === 'search' ? 'Search Jobs | ApplyLuma'
+        : tab === 'saved' ? 'Saved Jobs | ApplyLuma'
+          : 'Discover Jobs | ApplyLuma'
   }, [tab])
 
   useEffect(() => {
@@ -285,16 +299,15 @@ export default function Discover() {
         <p className="mt-1 text-sm text-fg-subtle">
           {tab === 'search'
             ? 'Search live job listings from Adzuna and Platsbanken.'
-            : 'Explore job listings matched to your CV.'}
+            : tab === 'saved'
+              ? 'Your saved jobs and job descriptions, ready for AI tailoring.'
+              : 'Explore job listings matched to your CV.'}
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl bg-surface p-1 w-fit">
-        {([
-          { key: 'for-you' as Tab, label: 'For You' },
-          { key: 'search' as Tab, label: 'Search' },
-        ]).map(({ key, label }) => (
+        {TABS.map(({ key, label }) => (
           <button
             key={key}
             type="button"
@@ -408,6 +421,9 @@ export default function Discover() {
           />
         </>
       )}
+
+      {/* Saved tab */}
+      {tab === 'saved' && <Jobs />}
 
       {/* Search tab */}
       {tab === 'search' && (
