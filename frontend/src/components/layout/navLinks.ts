@@ -14,7 +14,6 @@ export const ADMIN_NAV_LINKS = [
 export const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/cvs', label: 'My CVs' },
-  { to: '/jobs', label: 'My Jobs' },
   { to: '/discover', label: 'Discover' },
   { to: '/discover?tab=search', label: 'Job Search' },
   { to: '/applications', label: 'Applications' },

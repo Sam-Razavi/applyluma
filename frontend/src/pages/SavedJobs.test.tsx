@@ -50,10 +50,11 @@ describe('Jobs page (unified My Jobs)', () => {
     vi.clearAllMocks()
   })
 
-  it('renders page heading', async () => {
+  it('renders the add actions', async () => {
     vi.mocked(api.jobApi.list).mockResolvedValue([])
     renderPage()
-    expect(screen.getByText('My Jobs')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Import from URL/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Add Manually/ })).toBeInTheDocument()
   })
 
   it('shows empty state when no jobs', async () => {

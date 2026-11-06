@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   ArrowRightStartOnRectangleIcon,
-  BookmarkIcon,
   BriefcaseIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
@@ -39,7 +38,6 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
       { to: '/discover', label: 'Discover', icon: Squares2X2Icon, pip: true },
       { to: '/applications', label: 'Applications', icon: BriefcaseIcon, pip: true },
-      { to: '/jobs', label: 'Saved Jobs', icon: BookmarkIcon },
       { to: '/cvs', label: 'CVs', icon: DocumentTextIcon },
     ],
   },

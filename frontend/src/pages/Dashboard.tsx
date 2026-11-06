@@ -108,7 +108,7 @@ export default function Dashboard() {
       label: 'Job Descriptions',
       value: loading ? '—' : cvJdError ? '—' : String(jds.length),
       sub: cvJdError ? 'Could not load' : jds.length === 0 ? 'Add a job to get started' : `${jds.length} saved`,
-      href: '/jobs',
+      href: '/discover?tab=saved',
       icon: <MagnifyingGlassIcon className="h-5 w-5 text-accent-text" />,
       bg: 'bg-chip-accent',
     },
