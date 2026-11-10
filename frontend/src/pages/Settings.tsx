@@ -18,6 +18,7 @@ import {
 import { type AxiosError } from 'axios'
 import toast from 'react-hot-toast'
 import { PasswordStrengthMeter } from '../components/auth/PasswordStrengthMeter'
+import EmailForwardingCard from '../components/settings/EmailForwardingCard'
 import { TEMPLATE_OPTIONS } from '../components/tailor/templateOptions'
 import { cvApi } from '../services/api'
 import { getPreferences, updatePreferences, type AlertPreferences } from '../services/alertsApi'
@@ -443,6 +444,8 @@ export default function Settings() {
           </div>
         )}
       </section>
+
+      <EmailForwardingCard />
 
       {/* Change password */}
       <section className="rounded-2xl border border-line bg-surface p-6 ">

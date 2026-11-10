@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -18,6 +19,9 @@ from app.schemas.application import (
     DuplicateCheckResponse,
     EmailSuggestion,
     EmailSuggestionList,
+    UnmatchedEmail,
+    UnmatchedEmailAssign,
+    UnmatchedEmailList,
 )
 from app.schemas.application_analytics import ApplicationAnalytics
 from app.services import notification_service
@@ -215,6 +219,65 @@ def dismiss_email_suggestion(
     row = crud_inbound_email.get_pending_suggestion(db, suggestion_id, current_user.id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Suggestion not found")
+    crud_inbound_email.set_suggestion_state(db, row, "dismissed")
+
+
+# How far back unmatched emails are offered for a decision; older mail is
+# almost certainly settled by now.
+_UNMATCHED_WINDOW = timedelta(days=60)
+
+
+@router.get("/email-unmatched", response_model=UnmatchedEmailList)
+def list_unmatched_emails(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UnmatchedEmailList:
+    """Emails that read as a rejection, interview or offer but matched no
+    application, so the user can say which one they are about."""
+    rows = crud_inbound_email.list_unmatched(
+        db, current_user.id, since=datetime.now(UTC) - _UNMATCHED_WINDOW
+    )
+    return UnmatchedEmailList(items=[UnmatchedEmail.model_validate(row) for row in rows])
+
+
+@router.post("/email-unmatched/{email_id}/assign", response_model=ApplicationSummary)
+def assign_unmatched_email(
+    email_id: uuid.UUID,
+    body: UnmatchedEmailAssign,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApplicationSummary:
+    """Attach an unmatched email to an application and apply its status.
+
+    The user picked the application with the email's evidence in front of
+    them, so this is the same decision as accepting a suggestion and goes
+    through the same update path (the timeline records it).
+    """
+    row = crud_inbound_email.get_unmatched(db, email_id, current_user.id)
+    if row is None or not row.suggested_status:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found")
+    if crud_application.get_application(db, body.application_id, current_user.id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    crud_inbound_email.assign_to_application(db, row, body.application_id)
+    application = crud_application.update_application(
+        db, body.application_id, current_user.id, ApplicationUpdate(status=row.suggested_status)
+    )
+    if application is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    crud_inbound_email.set_suggestion_state(db, row, "accepted")
+    return ApplicationSummary.model_validate(application)
+
+
+@router.post("/email-unmatched/{email_id}/dismiss", status_code=status.HTTP_204_NO_CONTENT)
+def dismiss_unmatched_email(
+    email_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    row = crud_inbound_email.get_unmatched(db, email_id, current_user.id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found")
     crud_inbound_email.set_suggestion_state(db, row, "dismissed")
 
 

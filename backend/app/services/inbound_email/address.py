@@ -6,8 +6,8 @@ and the admin view shows the same address with ``build_inbox_address``, and the
 two must never drift apart.
 
 The token half is a bearer credential: anyone who knows the address can post
-mail into that account. Do not surface it outside admin-only responses until
-there is a user-facing flow (and a privacy policy) to go with it.
+mail into that account. It is shown only to its owner (Settings, via
+``/email-forwarding``) and to admins, and the owner can replace it.
 """
 
 from __future__ import annotations

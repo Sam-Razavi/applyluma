@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold text-fg mb-2">Privacy Policy</h1>
-      <p className="text-sm text-fg-subtle mb-10">Last updated: October 2026</p>
+      <p className="text-sm text-fg-subtle mb-10">Last updated: November 2026</p>
 
       <div className="prose prose-gray max-w-none space-y-8 text-fg-muted">
 
@@ -53,6 +53,7 @@ export default function PrivacyPolicy() {
             <li><strong>OpenAI</strong> — CV tailoring, cover letter generation, job match scoring</li>
             <li><strong>Stripe</strong> — subscription billing and payment processing</li>
             <li><strong>Resend</strong> — transactional email delivery</li>
+            <li><strong>Mailgun</strong> — receives emails you forward to your ApplyLuma address (see section 6)</li>
             <li><strong>Railway</strong> — backend hosting and database</li>
             <li><strong>Vercel</strong> — frontend hosting and (with consent) anonymous usage analytics</li>
             <li><strong>PostHog</strong> — (with consent) product analytics for understanding feature usage</li>
@@ -95,7 +96,41 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">6. Data Retention</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">6. Email Forwarding</h2>
+          <p>
+            You can choose to forward job-related emails to a personal ApplyLuma address
+            (shown in Settings), either by hand or with a forwarding rule you create in
+            your own mail account. We only ever receive emails you forward; we have no
+            access to your mailbox.
+          </p>
+          <ul className="list-disc list-inside mt-2 space-y-2">
+            <li>
+              <strong>What we keep:</strong> the sender, subject, date and the first 2,000
+              characters of the message text. Full messages and attachments are never
+              stored.
+            </li>
+            <li>
+              <strong>What we do with it:</strong> match the email to one of your tracked
+              applications and recognise rejections, interview invitations and offers, so
+              we can suggest a status change. Nothing changes until you confirm it.
+              This uses keyword rules on our own servers; forwarded emails are not sent to
+              OpenAI.
+            </li>
+            <li>
+              <strong>Gmail confirmation:</strong> when you set up forwarding in Gmail, Gmail
+              sends its confirmation code to your ApplyLuma address; we show it to you in
+              Settings so you can finish the setup.
+            </li>
+          </ul>
+          <p className="mt-3">
+            Remove the forwarding rule in your mail account to stop at any time, and use
+            "Get a new address" in Settings to make the old address stop working. Forwarded
+            emails are deleted together with your account.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-fg mb-3">7. Data Retention</h2>
           <p>
             We retain your data for as long as your account is active. If you delete your
             account, your personal data is deleted within 30 days, except where we are
@@ -104,7 +139,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">7. Your Rights (GDPR)</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">8. Your Rights (GDPR)</h2>
           <p>If you are in the EU/EEA, you have the right to:</p>
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li><strong>Access</strong> — request a copy of the data we hold about you</li>
@@ -124,7 +159,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">8. Cookies</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">9. Cookies</h2>
           <p className="mb-3">We use two categories of cookies:</p>
           <ul className="list-disc list-inside space-y-2">
             <li>
@@ -152,7 +187,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">9. Security</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">10. Security</h2>
           <p>
             We use industry-standard security measures including HTTPS, hashed passwords,
             JWT authentication, and role-based access control. No method of transmission over
@@ -161,7 +196,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">10. Changes to This Policy</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">11. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. Material changes will be
             communicated by email or via an in-app notice.
@@ -169,7 +204,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-fg mb-3">11. Contact</h2>
+          <h2 className="text-xl font-semibold text-fg mb-3">12. Contact</h2>
           <p>
             For privacy questions or to exercise your rights, contact us at{' '}
             <a href="mailto:support@applyluma.com" className="text-accent-text hover:underline">

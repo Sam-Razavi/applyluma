@@ -29,8 +29,18 @@ class _FakeDb:
     pass
 
 
-def _fake_user(active: bool = True) -> SimpleNamespace:
-    return SimpleNamespace(id=USER_ID, email="user@example.com", is_active=active)
+def _fake_user(active: bool = True, **overrides: object) -> SimpleNamespace:
+    data: dict[str, object] = {
+        "id": USER_ID,
+        "email": "user@example.com",
+        "is_active": active,
+        "hashed_password": "hashed",
+        "google_id": None,
+        "linkedin_id": None,
+        "github_id": None,
+    }
+    data.update(overrides)
+    return SimpleNamespace(**data)
 
 
 class _FakeRedis:
@@ -225,13 +235,49 @@ async def test_login_records_login_on_success(monkeypatch: pytest.MonkeyPatch) -
 async def test_login_does_not_record_login_on_bad_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
     app.dependency_overrides[get_db] = lambda: _FakeDb()
     monkeypatch.setattr(auth_endpoint.crud_user, "authenticate", lambda db, email, pw: None)
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_email", lambda db, email: None)
     recorded: list[SimpleNamespace] = []
     monkeypatch.setattr(auth_endpoint.crud_user, "record_login", lambda db, u: recorded.append(u))
 
     response = await _post("/api/v1/auth/login", {"email": "nobody@example.com", "password": "pw"})
 
     assert response.status_code == 401
+    assert response.json()["detail"] == "Incorrect email or password"
     assert recorded == []
+
+
+@pytest.mark.asyncio
+async def test_login_explains_an_account_created_with_google(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A Google-registered account has no password; say so instead of
+    "Incorrect email or password", which sends people round in circles."""
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    google_user = _fake_user(hashed_password=None, google_id="g-123")
+    monkeypatch.setattr(auth_endpoint.crud_user, "authenticate", lambda db, email, pw: None)
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_email", lambda db, email: google_user)
+
+    response = await _post("/api/v1/auth/login", {"email": "user@example.com", "password": "pw"})
+
+    assert response.status_code == 401
+    detail = response.json()["detail"]
+    assert "created with Google" in detail
+    assert "Forgot password?" in detail
+
+
+@pytest.mark.asyncio
+async def test_login_wrong_password_on_password_account_stays_generic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An account that has a password (even one also linked to Google) gets
+    the usual message: the password really is wrong."""
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    linked = _fake_user(google_id="g-123")
+    monkeypatch.setattr(auth_endpoint.crud_user, "authenticate", lambda db, email, pw: None)
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_email", lambda db, email: linked)
+
+    response = await _post("/api/v1/auth/login", {"email": "user@example.com", "password": "pw"})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Incorrect email or password"
 
 
 @pytest.mark.asyncio
@@ -430,6 +476,53 @@ async def test_register_duplicate_email_returns_409(monkeypatch: pytest.MonkeyPa
     )
 
     assert response.status_code == 409
+    assert response.json()["detail"] == "Email already registered"
+
+
+@pytest.mark.asyncio
+async def test_register_with_google_account_email_points_to_google(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app.dependency_overrides[get_db] = lambda: _FakeDb()
+    google_user = _fake_user(hashed_password=None, google_id="g-123")
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_email", lambda db, email: google_user)
+
+    response = await _post(
+        "/api/v1/auth/register",
+        {"email": "user@example.com", "password": "SecurePass1!", "full_name": "Test User"},
+    )
+
+    assert response.status_code == 409
+    assert "signs in with Google" in response.json()["detail"]
+
+
+def test_get_by_email_ignores_case() -> None:
+    """Phone keyboards capitalise the first letter of an email field."""
+    from sqlalchemy.dialects import postgresql
+
+    from app.crud import user as crud_user_module
+
+    captured: dict[str, object] = {}
+
+    class _Query:
+        def filter(self, clause: object) -> _Query:
+            captured["sql"] = str(
+                clause.compile(  # type: ignore[attr-defined]
+                    dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+                )
+            )
+            return self
+
+        def first(self) -> None:
+            return None
+
+    class _Db:
+        def query(self, _model: object) -> _Query:
+            return _Query()
+
+    crud_user_module.get_by_email(_Db(), "  Sam@Example.com ")  # type: ignore[arg-type]
+
+    assert captured["sql"] == "lower(users.email) = 'sam@example.com'"
 
 
 # ---------------------------------------------------------------------------

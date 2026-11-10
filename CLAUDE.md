@@ -473,12 +473,25 @@ Inbound Email Ingestion (August 2026, first slice):
   - `/applications/email-suggestions` routes are declared **before**
     `/{application_id}` — FastAPI matches in declaration order, and the literal
     path was otherwise parsed as a UUID and 422'd (there is a regression test).
-  - Known gaps, deliberate: a *manually* forwarded message carries the user's
-    own address in `From:` (only auto-forward preserves the original), so those
-    land unmatched; `message/rfc822` "forward as attachment" is not unwrapped;
+  - User-facing slice (November 2026): `GET /email-forwarding` (+ `/rotate`)
+    gives the owner their address, received count, and Gmail's forwarding
+    confirmation code/link (Gmail emails it *to* the forwarding address, so the
+    user could never read it otherwise); `EmailForwardingCard.tsx` in Settings
+    renders it with Gmail/Outlook setup steps. Visible to admins once
+    configured, to everyone when `INBOUND_EMAIL_USER_ENABLED=true`.
+    Manual forwards are unwrapped (`forwarded.py`: Gmail/Outlook/Apple, English
+    and Swedish header blocks) in the webhook before truncation, and the
+    Mailgun adapter keeps `body-plain` for forwards, because `stripped-text`
+    removes the forwarded part. Confidently classified but unmatched mail is
+    offered on the Applications page (`UnmatchedEmails.tsx`,
+    `/applications/email-unmatched` list/assign/dismiss); assigning applies the
+    status through `update_application`. Privacy policy section 6 covers it.
+  - Login: `get_by_email` is case-insensitive, and a failed password login on
+    an OAuth-only account (no password) says which provider to use instead of
+    "Incorrect email or password"; register's 409 says the same.
+  - Known gaps, deliberate: `message/rfc822` "forward as attachment" is not unwrapped;
     registrable-domain uses last-two-labels so multi-part suffixes like
-    `.co.uk` degrade to a missed match; `PrivacyPolicy.tsx` must be updated
-    before any non-admin user is exposed to this.
+    `.co.uk` degrade to a missed match.
 
 
 Job retention & alert fixes (October 2026, fixes issues #77 and #92):

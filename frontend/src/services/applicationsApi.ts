@@ -138,3 +138,35 @@ export function dismissEmailSuggestion(suggestionId: string): Promise<void> {
     .post(`/api/v1/applications/email-suggestions/${suggestionId}/dismiss`)
     .then(() => undefined)
 }
+
+/** A forwarded email that clearly says something but matched no application. */
+export interface UnmatchedEmail {
+  id: string
+  from_address: string
+  subject: string | null
+  classification: string
+  suggested_status: ApplicationStatus
+  evidence: string | null
+  received_at: string | null
+  created_at: string
+}
+
+export function listUnmatchedEmails(): Promise<{ items: UnmatchedEmail[] }> {
+  return client
+    .get<{ items: UnmatchedEmail[] }>('/api/v1/applications/email-unmatched')
+    .then((r) => r.data)
+}
+
+export function assignUnmatchedEmail(emailId: string, applicationId: string): Promise<Application> {
+  return client
+    .post<Application>(`/api/v1/applications/email-unmatched/${emailId}/assign`, {
+      application_id: applicationId,
+    })
+    .then((r) => r.data)
+}
+
+export function dismissUnmatchedEmail(emailId: string): Promise<void> {
+  return client
+    .post(`/api/v1/applications/email-unmatched/${emailId}/dismiss`)
+    .then(() => undefined)
+}
