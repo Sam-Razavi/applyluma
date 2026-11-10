@@ -756,7 +756,13 @@ Railway:
 - API keys and service secrets
 
 Vercel:
-- `VITE_API_URL`
+- `VITE_API_URL`: should be `https://api.applyluma.com` (the Railway custom
+  domain), not the raw `*.up.railway.app` host. On the raw host the auth
+  cookies are third-party to applyluma.com, so iOS/Safari block them and the
+  OAuth callback (which runs on api.applyluma.com) sets them on a different
+  host from the one the app calls. `vercel.json`'s CSP `connect-src` allows
+  both hosts. `VITE_*` values are baked in at build time: redeploy after a
+  change.
 
 Credentials:
 - All production credentials are configured in Railway and Vercel dashboards.
