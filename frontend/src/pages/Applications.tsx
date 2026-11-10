@@ -15,6 +15,7 @@ import AddApplicationModal from '../components/applications/AddApplicationModal'
 import ApplicationDrawer from '../components/applications/ApplicationDrawer'
 import ApplicationStats from '../components/applications/ApplicationStats'
 import EmailSuggestions from '../components/applications/EmailSuggestions'
+import UnmatchedEmails from '../components/applications/UnmatchedEmails'
 import KanbanBoard from '../components/applications/KanbanBoard'
 import PersonalAnalytics from '../components/applications/PersonalAnalytics'
 import { STATUS_META } from '../components/applications/statusMeta'
@@ -225,6 +226,7 @@ export default function Applications() {
           <ApplicationStats stats={stats} />
 
           <EmailSuggestions onApplied={() => void fetchApplications()} />
+          <UnmatchedEmails applications={applications} onApplied={() => void fetchApplications()} />
 
           <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">

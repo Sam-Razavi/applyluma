@@ -77,8 +77,16 @@ def _clear_auth_cookies(response: Response) -> None:
 
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)) -> UserPublic:
-    if crud_user.get_by_email(db, user_in.email):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    existing = crud_user.get_by_email(db, user_in.email)
+    if existing:
+        providers = crud_user.oauth_provider_names(existing) if not existing.hashed_password else []
+        detail = (
+            f"An account with this email already exists. It signs in with {providers[0]}: "
+            "use that button on the login page."
+            if providers
+            else "Email already registered"
+        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
     user = crud_user.create(db, user_in)
     if user.verification_token:
         try:
@@ -129,9 +137,10 @@ def login(
             "auth_login_failed",
             extra={"ip": request.client.host if request.client else "unknown"},
         )
+        hint = crud_user.oauth_only_hint(crud_user.get_by_email(db, login_in.email))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail=hint or "Incorrect email or password",
         )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")

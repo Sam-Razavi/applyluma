@@ -20,6 +20,7 @@ from app.api.v1.endpoints.applications import router as applications_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.billing import router as billing_router
 from app.api.v1.endpoints.cvs import router as cvs_router
+from app.api.v1.endpoints.email_forwarding import router as email_forwarding_router
 from app.api.v1.endpoints.health import _check_db
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.inbound_email import router as inbound_email_router
@@ -321,6 +322,7 @@ app.include_router(jobs_discovery_router, prefix=settings.API_V1_STR, tags=["job
 app.include_router(saved_jobs_router, prefix=settings.API_V1_STR, tags=["saved-jobs"])
 app.include_router(billing_router, prefix=settings.API_V1_STR, tags=["billing"])
 app.include_router(inbound_email_router, prefix=settings.API_V1_STR, tags=["inbound-email"])
+app.include_router(email_forwarding_router, prefix=settings.API_V1_STR)
 app.include_router(notifications_router, prefix=settings.API_V1_STR, tags=["notifications"])
 app.include_router(job_bookmark_router, prefix=settings.API_V1_STR, tags=["job-bookmark"])
 

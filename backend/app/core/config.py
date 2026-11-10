@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     INBOUND_EMAIL_VENDOR: str = "generic"
     INBOUND_EMAIL_WEBHOOK_SECRET: str = ""
     INBOUND_EMAIL_DOMAIN: str = ""
+    # Shows the forwarding address and setup steps in Settings to every user.
+    # Admins always see them once the three settings above are set, so the
+    # flow can be tried end to end before it is opened up.
+    INBOUND_EMAIL_USER_ENABLED: bool = False
 
 
 settings = Settings()

@@ -67,6 +67,8 @@ def _stub_auth_db(monkeypatch: pytest.MonkeyPatch) -> None:
     """Override get_db and stub authenticate to return None (→ 401)."""
     app.dependency_overrides[get_db] = lambda: _FakeDb()
     monkeypatch.setattr(auth_endpoint.crud_user, "authenticate", lambda db, email, pw: None)
+    # A failed login looks the account up to explain OAuth-only accounts.
+    monkeypatch.setattr(auth_endpoint.crud_user, "get_by_email", lambda db, email: None)
 
 
 # ---------------------------------------------------------------------------

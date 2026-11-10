@@ -5,12 +5,12 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.orm import Query, Session
 
 from app.models.application import Application
 from app.models.inbound_email import SNIPPET_MAX_CHARS, InboundEmail
-from app.services.inbound_email.classifier import Classification
+from app.services.inbound_email.classifier import SUGGEST_THRESHOLD, Classification
 from app.services.inbound_email.matcher import MatchCandidate, MatchResult
 
 # Ceiling on how many applications are scored for one message. A user with
@@ -176,6 +176,73 @@ def get_pending_suggestion(
         )
         .first()
     )
+
+
+def forwarding_stats(db: Session, user_id: uuid.UUID) -> tuple[int, datetime | None]:
+    """How many emails the user has forwarded, and when the latest arrived."""
+    count, latest = (
+        db.query(func.count(InboundEmail.id), func.max(InboundEmail.created_at))
+        .filter(InboundEmail.user_id == user_id)
+        .one()
+    )
+    return int(count or 0), latest
+
+
+def latest_from_sender(
+    db: Session, user_id: uuid.UUID, from_address: str, since: datetime
+) -> InboundEmail | None:
+    return (
+        db.query(InboundEmail)
+        .filter(
+            InboundEmail.user_id == user_id,
+            InboundEmail.from_address == from_address,
+            InboundEmail.created_at >= since,
+        )
+        .order_by(InboundEmail.created_at.desc())
+        .first()
+    )
+
+
+def _unmatched_query(db: Session, user_id: uuid.UUID) -> Query[InboundEmail]:
+    # Only mail that clearly says something (a rejection, an interview) is
+    # worth asking about; unmatched newsletters and job alerts are not.
+    return db.query(InboundEmail).filter(
+        InboundEmail.user_id == user_id,
+        InboundEmail.matched_application_id.is_(None),
+        InboundEmail.suggestion_state == "none",
+        InboundEmail.suggested_status.isnot(None),
+        InboundEmail.classification_confidence >= SUGGEST_THRESHOLD,
+    )
+
+
+def list_unmatched(
+    db: Session, user_id: uuid.UUID, since: datetime, limit: int = 10
+) -> list[InboundEmail]:
+    """Confidently classified emails that matched no application."""
+    return list(
+        _unmatched_query(db, user_id)
+        .filter(InboundEmail.created_at >= since)
+        .order_by(InboundEmail.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def get_unmatched(db: Session, email_id: uuid.UUID, user_id: uuid.UUID) -> InboundEmail | None:
+    return _unmatched_query(db, user_id).filter(InboundEmail.id == email_id).first()
+
+
+def assign_to_application(
+    db: Session, row: InboundEmail, application_id: uuid.UUID
+) -> InboundEmail:
+    """Record the user's own answer to "which application is this about?"."""
+    row.matched_application_id = application_id
+    row.match_confidence = 100
+    row.match_method = "user"
+    row.match_reason = "Chosen by the user."
+    db.commit()
+    db.refresh(row)
+    return row
 
 
 def set_suggestion_state(db: Session, row: InboundEmail, state: str) -> InboundEmail:

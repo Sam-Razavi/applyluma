@@ -4,6 +4,7 @@ import shutil
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -17,7 +18,37 @@ logger = logging.getLogger(__name__)
 
 
 def get_by_email(db: Session, email: str) -> User | None:
-    return db.query(User).filter(User.email == email).first()
+    # Case-insensitive: phone keyboards capitalise the first letter of an
+    # email field, and "Sam@gmail.com" is the same mailbox as "sam@gmail.com".
+    return db.query(User).filter(func.lower(User.email) == email.strip().lower()).first()
+
+
+_OAUTH_PROVIDERS = (("google_id", "Google"), ("linkedin_id", "LinkedIn"), ("github_id", "GitHub"))
+
+
+def oauth_provider_names(user: User) -> list[str]:
+    """The sign-in providers linked to *user*, e.g. ["Google"]."""
+    return [name for attr, name in _OAUTH_PROVIDERS if getattr(user, attr, None)]
+
+
+def oauth_only_hint(user: User | None) -> str | None:
+    """Why a password login cannot work for an account created through OAuth.
+
+    Such accounts have no password, so the plain "Incorrect email or password"
+    sends people round in circles. Registration already answers 409 for a
+    known email, so naming the provider reveals nothing new.
+    """
+    if user is None or user.hashed_password:
+        return None
+    providers = oauth_provider_names(user)
+    if not providers:
+        return None
+    via = " or ".join(providers)
+    return (
+        f"This account was created with {via} and has no password. "
+        f"Use the {providers[0]} button below to sign in, or choose "
+        "\"Forgot password?\" to add a password."
+    )
 
 
 def get_by_verification_token(db: Session, token: str) -> User | None:
@@ -146,6 +177,14 @@ def get_by_inbox_token(db: Session, token: str) -> User | None:
     if not cleaned:
         return None
     return db.query(User).filter(User.inbox_token == cleaned).first()
+
+
+def rotate_inbox_token(db: Session, user: User) -> str:
+    """Give *user* a new forwarding address; the old one stops working."""
+    user.inbox_token = new_inbox_token()
+    db.commit()
+    db.refresh(user)
+    return user.inbox_token
 
 
 def ensure_inbox_token(db: Session, user: User) -> str:

@@ -170,3 +170,26 @@ class EmailSuggestion(BaseModel):
 
 class EmailSuggestionList(BaseModel):
     items: list[EmailSuggestion]
+
+
+class UnmatchedEmail(BaseModel):
+    """A forwarded email that clearly says something but matched no application."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    from_address: str
+    subject: str | None = None
+    classification: str
+    suggested_status: ApplicationStatus
+    evidence: str | None = None
+    received_at: datetime | None = None
+    created_at: datetime
+
+
+class UnmatchedEmailList(BaseModel):
+    items: list[UnmatchedEmail]
+
+
+class UnmatchedEmailAssign(BaseModel):
+    application_id: uuid.UUID

@@ -40,6 +40,7 @@ from typing import Any
 from urllib.parse import parse_qs
 
 from app.services.inbound_email.base import InboundParseError, NormalizedEmail
+from app.services.inbound_email.forwarded import is_gmail_confirmation, looks_forwarded
 
 
 def _header(headers: Mapping[str, str], name: str) -> str:
@@ -173,10 +174,18 @@ class MailgunAdapter:
             or _header(message_headers, "message-id")
         )
         received_at = _parse_date(_header(message_headers, "date"))
-        # stripped-text drops the quoted history, so it matches better; the
-        # full body is the fallback when Mailgun could not strip it.
-        text_body = fields.get("stripped-text", "").strip() or fields.get("body-plain", "")
         subject = fields.get("subject", "").strip() or _header(message_headers, "subject")
+        # stripped-text drops the quoted history, so it matches better; the
+        # full body is the fallback when Mailgun could not strip it. A manual
+        # forward is the exception: stripping removes the forwarded message,
+        # which is the part that says who really wrote it. Gmail's forwarding
+        # confirmation is kept whole too, so its link is not cut off.
+        body_plain = fields.get("body-plain", "")
+        stripped = fields.get("stripped-text", "").strip()
+        if looks_forwarded(subject, body_plain) or is_gmail_confirmation(address):
+            text_body = body_plain or stripped
+        else:
+            text_body = stripped or body_plain
 
         return NormalizedEmail(
             recipient=recipient,

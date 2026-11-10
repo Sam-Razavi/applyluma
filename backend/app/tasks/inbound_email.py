@@ -20,8 +20,9 @@ from app.db.session import SessionLocal
 from app.models.application import Application
 from app.models.inbound_email import InboundEmail
 from app.services import notification_service
-from app.services.inbound_email.classifier import classify
-from app.services.inbound_email.matcher import score_email
+from app.services.inbound_email.classifier import Classification, classify
+from app.services.inbound_email.forwarded import is_gmail_confirmation
+from app.services.inbound_email.matcher import MatchResult, score_email
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -92,14 +93,21 @@ def process_inbound_email(payload: dict[str, Any]) -> dict[str, str]:
         snippet = str(payload.get("snippet") or "")
         from_domain = str(payload.get("from_domain") or "")
 
-        candidates = crud_inbound_email.list_match_candidates(db, user_id)
-        match = score_email(
-            from_domain=from_domain,
-            subject=subject,
-            snippet=snippet,
-            candidates=candidates,
-        )
-        classification = classify(subject, snippet)
+        classification: Classification | None
+        if is_gmail_confirmation(str(payload.get("from_address") or "")):
+            # Gmail's "confirm forwarding" mail. Stored so Settings can show
+            # its code, but it is about no application.
+            match = MatchResult(None, 0, "none", "Gmail forwarding confirmation.")
+            classification = None
+        else:
+            candidates = crud_inbound_email.list_match_candidates(db, user_id)
+            match = score_email(
+                from_domain=from_domain,
+                subject=subject,
+                snippet=snippet,
+                candidates=candidates,
+            )
+            classification = classify(subject, snippet)
 
         try:
             row = crud_inbound_email.create(

@@ -155,6 +155,47 @@ def test_falls_back_to_body_plain_when_not_stripped(adapter: MailgunAdapter) -> 
     assert email.text_body.startswith("Thanks for applying.")
 
 
+def test_manual_forward_keeps_the_full_body(adapter: MailgunAdapter) -> None:
+    """Mailgun's stripped-text removes the forwarded message, which is the
+    part that names the real sender, so a forward keeps body-plain."""
+    forwarded = (
+        "FYI\n\n---------- Forwarded message ---------\n"
+        "From: Spotify Careers <careers@spotify.com>\n\nUnfortunately..."
+    )
+    email = adapter.parse(
+        raw_body=multipart(
+            signed_fields(
+                **{
+                    "from": "Sam <sam@hotmail.com>",
+                    "subject": "Fwd: Your application",
+                    "body-plain": forwarded,
+                    "stripped-text": "FYI",
+                }
+            )
+        ),
+        headers=MULTIPART_HEADERS,
+    )
+    assert email.text_body == forwarded
+
+
+def test_gmail_confirmation_keeps_the_full_body(adapter: MailgunAdapter) -> None:
+    email = adapter.parse(
+        raw_body=multipart(
+            signed_fields(
+                **{
+                    "from": "Gmail Team <forwarding-noreply@google.com>",
+                    "subject": "(#123456789) Gmail Forwarding Confirmation",
+                    "body-plain": "Confirmation code: 123456789\nhttps://mail-settings.google.com/mail/vf-x",
+                    "stripped-text": "Confirmation code: 123456789",
+                }
+            )
+        ),
+        headers=MULTIPART_HEADERS,
+    )
+    assert email.text_body is not None
+    assert "mail-settings.google.com" in email.text_body
+
+
 def test_attachments_are_skipped(adapter: MailgunAdapter) -> None:
     body = multipart(signed_fields(), with_attachment=True)
     assert adapter.verify(raw_body=body, headers=MULTIPART_HEADERS, secret=SECRET) is True

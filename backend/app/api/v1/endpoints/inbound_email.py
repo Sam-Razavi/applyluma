@@ -26,6 +26,7 @@ from app.crud import user as crud_user
 from app.db.session import SessionLocal
 from app.services.inbound_email.address import parse_inbox_token
 from app.services.inbound_email.base import InboundParseError, NormalizedEmail
+from app.services.inbound_email.forwarded import unwrap_forward
 from app.services.inbound_email.matcher import normalize_domain
 from app.services.inbound_email.registry import UnknownVendorError, get_adapter
 from app.tasks.inbound_email import process_inbound_email
@@ -141,16 +142,25 @@ async def inbound_email_webhook(request: Request) -> Response:
         # which tokens exist.
         return JSONResponse(status_code=status.HTTP_200_OK, content=_IGNORED)
 
+    # A message the user forwarded by hand comes from the user. Match on the
+    # sender written in the forwarded header block instead. Done here, on the
+    # full body, because only the truncated snippet crosses the queue.
+    from_address, subject, body = email.from_address, email.subject, email.text_body
+    original = unwrap_forward(email.subject, email.text_body)
+    if original is not None:
+        from_address, subject, body = original.from_address, original.subject, original.body
+        sender_domain = normalize_domain(from_address.rpartition("@")[2])
+
     payload: dict[str, Any] = {
         "user_id": str(user.id),
         "dedupe_key": build_dedupe_key(message_id=email.message_id, email=email),
         "message_id": email.message_id,
-        "from_address": email.from_address,
+        "from_address": from_address,
         "from_domain": sender_domain,
-        "subject": email.subject,
+        "subject": subject,
         # Truncated here, before the queue: a Celery message is durable
         # storage, so handing it a full body would keep the body at rest.
-        "snippet": (email.text_body or "")[:SNIPPET_CHARS] or None,
+        "snippet": (body or "")[:SNIPPET_CHARS] or None,
         "received_at": email.received_at.isoformat() if email.received_at else None,
         "vendor": adapter.name,
     }

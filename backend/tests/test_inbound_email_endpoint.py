@@ -248,3 +248,33 @@ def test_dedupe_key_prefers_message_id_and_is_stable() -> None:
 
     without = inbound_endpoint.build_dedupe_key(message_id=None, email=email)
     assert without != first
+
+
+@pytest.mark.asyncio
+async def test_manual_forward_is_matched_on_the_original_sender(
+    monkeypatch: pytest.MonkeyPatch, enqueued: list[dict[str, Any]]
+) -> None:
+    """Pressing "Forward" makes the user the sender. The webhook reads the
+    original sender out of the forwarded header block instead, so the email
+    can still match the application."""
+    known_user(monkeypatch)
+    raw = body(
+        **{
+            "from": "Sam <sam@gmail.com>",
+            "subject": "Fwd: Your application to Spotify",
+            "text": (
+                "---------- Forwarded message ---------\n"
+                "From: Spotify Careers <careers@spotify.com>\n"
+                "Subject: Your application to Spotify\n\n"
+                "Unfortunately we will not move forward."
+            ),
+        }
+    )
+
+    response = await post(raw)
+
+    assert response.status_code == 202
+    assert enqueued[0]["from_address"] == "careers@spotify.com"
+    assert enqueued[0]["from_domain"] == "spotify.com"
+    assert enqueued[0]["subject"] == "Your application to Spotify"
+    assert enqueued[0]["snippet"] == "Unfortunately we will not move forward."

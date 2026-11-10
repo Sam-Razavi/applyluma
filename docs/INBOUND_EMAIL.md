@@ -104,18 +104,42 @@ Railway redeploys automatically. The migration runs on boot via
 
 ## 5. Find your forwarding address
 
-Open `/admin/users`, click your own user, and copy the address from the
-**Inbound mail address** panel.
+Open **Settings** in the app: the **Email forwarding** card shows your address
+with a copy button and step-by-step Gmail / Outlook setup. Admins see the card
+as soon as the three variables above are set; everyone else sees it once
+
+```
+INBOUND_EMAIL_USER_ENABLED=true
+```
+
+is also set, so the whole flow can be tried on an admin account first. The
+admin user drawer still shows each user's address too.
 
 It looks like `u-a1b2c3d4e5f60718@in.applyluma.com`.
 
 > Treat this address as a credential. Anyone who knows it can post mail into
-> your account. It is deliberately admin-only for now.
+> the account. "Get a new address" on the card replaces it.
 
 ## 6. Forward your mail
 
-**Outlook / Hotmail**: Settings → Mail → Forwarding → enable, paste the
-address, and tick "Keep a copy of forwarded messages".
+**Gmail**: Gmail only forwards to an address after you confirm a code it emails
+*to that address*. That email arrives in ApplyLuma, and the Settings card shows
+the code and a **Confirm forwarding** button within a minute. Then create a
+filter ("Has the words" — the card has a ready-made list) with "Forward it to"
+your address, so only job mail is forwarded.
+
+**Outlook / Hotmail**: Settings → Mail → Rules → add a rule ("Subject or body
+includes" job words → "Forward to" the address).
+
+**By hand**: forward any recruiter email. The webhook reads the original
+sender from the forwarded header block ("---------- Forwarded message",
+Outlook's "From:/Sent:" block, Apple Mail, and the Swedish variants), so
+hand-forwarded mail matches like auto-forwarded mail
+(`services/inbound_email/forwarded.py`).
+
+Emails that clearly read as a rejection, interview or offer but match no
+application show up on the Applications page as "Which application is this
+email about?", where one choice attaches the email and applies the status.
 
 **A domain you own**: instead of forwarding, point that subdomain's MX
 straight at Mailgun — fewer moving parts and no SPF breakage.
