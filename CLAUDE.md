@@ -535,6 +535,18 @@ Inbound Email Ingestion (August 2026, first slice):
     on logout) says this browser has signed in. Settings > Sign out now calls
     `/auth/logout` too; it used to clear only the page, leaving the cookie
     session alive for the next tab to restore.
+  - Google sign-in logout loop (November 2026): the API client used to strip
+    the bearer token from every `/api/v1/analytics/*` request ("public"),
+    but `/analytics/freshness` needs a signed-in user, so it relied on the
+    cookie. OAuth callbacks run on `GOOGLE_REDIRECT_URI`'s host
+    (`api.applyluma.com`), so Google users' cookies are on that host, not the
+    `VITE_API_URL` host the app calls; the dashboard's freshness call 401'd,
+    the refresh failed and they were logged out right after signing in. The
+    client now always sends the bearer, and `complete_oauth_login` puts the
+    refresh token in the callback fragment too (`#token=…&refresh=…`) so OAuth
+    sessions renew from memory like password ones. Pointing `VITE_API_URL`
+    at `https://api.applyluma.com` would put all cookies on one same-site
+    host (also fixing iOS, which blocks railway.app cookies as third-party).
   - Login: `get_by_email` is case-insensitive, and a failed password login on
     an OAuth-only account (no password) says which provider to use instead of
     "Incorrect email or password"; register's 409 says the same.

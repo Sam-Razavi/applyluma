@@ -45,12 +45,11 @@ function processQueue(error: unknown, token: string | null) {
 
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
-  const url = config.url ?? ''
-  const isPublicAnalyticsEndpoint =
-    (url.startsWith('/api/v1/analytics/') || url.startsWith('/api/analytics/')) &&
-    !url.includes('/comparison')
-
-  if (token && !isPublicAnalyticsEndpoint) {
+  // Always sent when we have one. Public endpoints ignore it; leaving it off
+  // made signed-in endpoints under /analytics (e.g. /analytics/freshness on
+  // the dashboard) depend on the cookie alone, and after Google sign-in the
+  // cookie lives on another host, so the 401 logged those users straight out.
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
 
