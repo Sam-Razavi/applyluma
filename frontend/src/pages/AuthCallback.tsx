@@ -20,6 +20,9 @@ export default function AuthCallback() {
     // linger in the visible address bar any longer than necessary.
     const hashParams = new URLSearchParams(window.location.hash.slice(1))
     const token = hashParams.get('token')
+    // Lets the session renew from memory, as after a password login, without
+    // depending on cookies set on the OAuth callback's host.
+    const refreshToken = hashParams.get('refresh') ?? ''
     window.history.replaceState(null, '', window.location.pathname)
 
     if (!token) {
@@ -32,7 +35,7 @@ export default function AuthCallback() {
     authApi
       .me()
       .then((user) => {
-        login(token, '', user)
+        login(token, refreshToken, user)
         navigate(consumeNextPath(), { replace: true })
       })
       .catch(() => {

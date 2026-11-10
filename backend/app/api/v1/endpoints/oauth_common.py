@@ -126,8 +126,11 @@ def complete_oauth_login(db: Session, user: User) -> RedirectResponse:
     crud_user.record_login(db, user)
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))
+    # The refresh token travels too, like the password login's JSON body: the
+    # cookies below are set on the callback's host, which need not be the host
+    # the app calls, so without it the session could not renew after an hour.
     response = RedirectResponse(
-        url=f"{settings.FRONTEND_URL}/auth/callback#token={access_token}",
+        url=f"{settings.FRONTEND_URL}/auth/callback#token={access_token}&refresh={refresh_token}",
         status_code=status.HTTP_302_FOUND,
     )
     set_auth_cookies(response, access_token, refresh_token)

@@ -54,6 +54,18 @@ describe('AuthCallback page', () => {
     expect(state.user).toEqual(mockUser);
   });
 
+  it('keeps the refresh token from the fragment so the session can renew', async () => {
+    // The OAuth cookies live on the callback's host, which need not be the
+    // host the app calls; without this the session died after an hour.
+    setLocationHash('#token=fragment-token&refresh=fragment-refresh');
+    vi.mocked(authApi.me).mockResolvedValueOnce({ id: '1', email: 'a@b.com' } as any);
+
+    renderCallback();
+
+    await waitFor(() => expect(useAuthStore.getState().refreshToken).toBe('fragment-refresh'));
+    expect(useAuthStore.getState().token).toBe('fragment-token');
+  });
+
   it('strips the fragment from the URL immediately so the token does not linger', async () => {
     setLocationHash('#token=fragment-token');
     vi.mocked(authApi.me).mockResolvedValueOnce({ id: '1', email: 'a@b.com' } as any);

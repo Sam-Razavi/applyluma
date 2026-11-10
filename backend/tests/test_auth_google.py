@@ -94,6 +94,13 @@ async def test_callback_success(monkeypatch: pytest.MonkeyPatch) -> None:
     resp = await _get("/api/v1/auth/google/callback?code=abc&state=s", cookies={"oauth_state": "s"})
     assert resp.status_code == 302
     assert "/auth/callback#token=" in resp.headers["location"]
+    # The refresh token rides along: the cookies are set on the callback's
+    # host, which need not be the host the app calls, so the app renews from it.
+    location = resp.headers["location"]
+    fragment = location.split("#", 1)[1]
+    params = dict(part.split("=", 1) for part in fragment.split("&"))
+    assert params["token"] and params["refresh"]
+    assert params["token"] != params["refresh"]
     assert "access_token" in resp.cookies
     assert recorded == [logged_in_user]
 
