@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.models.tailor_job import TailorIntensity, TailorStatus
 
@@ -11,6 +11,13 @@ class TailorSubmitRequest(BaseModel):
     job_description_id: uuid.UUID | None = None
     raw_job_posting_id: uuid.UUID | None = None
     intensity: TailorIntensity = TailorIntensity.medium
+
+    @field_validator("intensity", mode="before")
+    @classmethod
+    def accept_extension_intensity_names(cls, value: object) -> object:
+        # Extension 1.0.0 sends "low" / "high" for Light / Deep.
+        aliases = {"low": "light", "high": "aggressive", "deep": "aggressive"}
+        return aliases.get(value, value) if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def validate_single_job_source(self) -> "TailorSubmitRequest":

@@ -26,14 +26,6 @@
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  function firstText(selectors) {
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el && el.textContent.trim()) return el.textContent.trim();
-    }
-    return '';
-  }
-
   function normalizeUrl(url) {
     try {
       const u = new URL(url);
@@ -45,23 +37,29 @@
 
   // ── Job detail extraction ────────────────────────────────────────────────
 
-  function isJobPage() {
-    return /\/viewjob|\/rc\/clk/.test(window.location.href);
+  // A job is open on its own page (/viewjob?jk=) or in the search pane (?vjk=).
+  function jobKey() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('jk') || params.get('vjk');
   }
 
+  function isJobPage() {
+    return /\/viewjob|\/rc\/clk/.test(window.location.href) || Boolean(jobKey());
+  }
+
+  const SITE = {
+    isJobPage,
+    canonicalUrl: () => {
+      const key = jobKey();
+      return key ? `${window.location.origin}/viewjob?jk=${key}` : window.location.href;
+    },
+    title: TITLE_SELECTORS,
+    company: COMPANY_SELECTORS,
+    description: DESCRIPTION_SELECTORS,
+  };
+
   function extractJobData() {
-    if (!isJobPage()) {
-      chrome.storage.local.set({ linkedinJob: null });
-      return;
-    }
-    const data = {
-      title: firstText(TITLE_SELECTORS),
-      company: firstText(COMPANY_SELECTORS),
-      url: window.location.href,
-      description: firstText(DESCRIPTION_SELECTORS),
-      extractedAt: Date.now(),
-    };
-    chrome.storage.local.set({ linkedinJob: data });
+    ApplyLuma.storeSnapshot(SITE);
   }
 
   // ── Badge injection ──────────────────────────────────────────────────────
@@ -163,6 +161,9 @@
 
   // ── Boot ─────────────────────────────────────────────────────────────────
 
+  ApplyLuma.answerExtractRequests(SITE);
   setTimeout(extractJobData, 800);
+  // Job details often render after the first read; read again once they have.
+  setTimeout(extractJobData, 3000);
   void refreshBadges();
 })();

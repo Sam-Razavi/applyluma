@@ -146,6 +146,9 @@ async def test_bookmark_new_job_returns_201(monkeypatch: pytest.MonkeyPatch) -> 
     body = resp.json()
     assert body["list_name"] == "Extension"
     assert body["source_raw_job_posting_id"] == str(JOB_ID)
+    # Extension 1.0.0 reads this name for the match score, tracking and
+    # AI Tailor; without it all three silently did nothing.
+    assert body["raw_job_posting_id"] == str(JOB_ID)
 
 
 @pytest.mark.asyncio

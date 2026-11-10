@@ -9,7 +9,7 @@ from app.crud import job as crud_job
 from app.crud import job_description as crud_jd
 from app.models.user import User
 from app.schemas.job import ExternalJobBookmarkRequest
-from app.schemas.job_description import JobDescriptionPublic, JobDescriptionUpdate
+from app.schemas.job_description import ExternalJobBookmarkResponse, JobDescriptionUpdate
 from app.services.matching_service import MatchingService
 
 log = logging.getLogger(__name__)
@@ -17,12 +17,12 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/jobs/bookmark", tags=["job-bookmark"])
 
 
-@router.post("", response_model=JobDescriptionPublic, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ExternalJobBookmarkResponse, status_code=status.HTTP_201_CREATED)
 def bookmark_external_job(
     body: ExternalJobBookmarkRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> JobDescriptionPublic:
+) -> ExternalJobBookmarkResponse:
     """Save a job submitted from the browser extension.
 
     Creates a RawJobPosting if the URL hasn't been seen before, then
@@ -68,7 +68,9 @@ def bookmark_external_job(
         except Exception:
             log.exception("Instant scoring failed for posting %s — skipping", posting.id)
 
-    return JobDescriptionPublic.model_validate(jd)
+    response = ExternalJobBookmarkResponse.model_validate(jd)
+    response.raw_job_posting_id = posting.id
+    return response
 
 
 @router.get("/saved-urls")

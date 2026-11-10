@@ -34,6 +34,17 @@ class JobDescriptionPublic(JobDescriptionSummary):
     description: str
 
 
+class ExternalJobBookmarkResponse(JobDescriptionPublic):
+    """What the browser extension gets back after saving a job.
+
+    ``raw_job_posting_id`` repeats ``source_raw_job_posting_id`` under the name
+    extension 1.0.0 reads: it uses it for the match score, "Track
+    application" and AI Tailor, which all did nothing while it was missing.
+    """
+
+    raw_job_posting_id: uuid.UUID | None = None
+
+
 class JobDescriptionUpdate(BaseModel):
     """Partial update for starred, notes, and list_name."""
     starred: bool | None = None
