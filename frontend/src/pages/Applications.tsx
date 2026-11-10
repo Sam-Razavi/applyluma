@@ -14,6 +14,7 @@ import { exportApplicationsToCsv } from '../utils/exportCsv'
 import AddApplicationModal from '../components/applications/AddApplicationModal'
 import ApplicationDrawer from '../components/applications/ApplicationDrawer'
 import ApplicationStats from '../components/applications/ApplicationStats'
+import EmailInbox from '../components/applications/EmailInbox'
 import EmailSuggestions from '../components/applications/EmailSuggestions'
 import UnmatchedEmails from '../components/applications/UnmatchedEmails'
 import KanbanBoard from '../components/applications/KanbanBoard'
@@ -22,11 +23,14 @@ import { STATUS_META } from '../components/applications/statusMeta'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import ErrorBanner from '../components/ui/ErrorBanner'
 import { useApplicationsStore } from '../stores/applications'
+import { getEmailForwarding } from '../services/emailForwardingApi'
 import type { ApplicationStatus } from '../types/application'
 import { APPLICATION_STATUSES } from '../types/application'
 
 const STALE_DAYS = 14
 const TERMINAL_STATUSES = new Set(['rejected', 'withdrawn'])
+
+type ApplicationsTab = 'board' | 'inbox' | 'stats'
 
 export default function Applications() {
   const applications = useApplicationsStore((state) => state.applications)
@@ -46,11 +50,20 @@ export default function Applications() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   const [searchParams, setSearchParams] = useSearchParams()
-  const activeTab = (searchParams.get('tab') === 'stats' ? 'stats' : 'board') as 'board' | 'stats'
+  const tabParam = searchParams.get('tab')
+  const activeTab: ApplicationsTab = tabParam === 'stats' || tabParam === 'inbox' ? tabParam : 'board'
 
-  function setActiveTab(tab: 'board' | 'stats') {
+  function setActiveTab(tab: ApplicationsTab) {
     setSearchParams(tab === 'board' ? {} : { tab })
   }
+
+  // The Inbox tab only appears for people who can forward email.
+  const [forwardingEnabled, setForwardingEnabled] = useState(false)
+  useEffect(() => {
+    getEmailForwarding()
+      .then((status) => setForwardingEnabled(status.enabled))
+      .catch(() => setForwardingEnabled(false))
+  }, [])
 
   useEffect(() => {
     void fetchApplications()
@@ -195,14 +208,19 @@ export default function Applications() {
       </div>
 
       <div className="flex rounded-xl border border-line bg-surface p-1 shadow-sm">
-        {[
-          { id: 'board', label: 'Board' },
-          { id: 'stats', label: 'My Stats' },
-        ].map((tab) => (
+        {(
+          [
+            { id: 'board', label: 'Board' },
+            ...(forwardingEnabled || activeTab === 'inbox'
+              ? [{ id: 'inbox', label: 'Inbox' }]
+              : []),
+            { id: 'stats', label: 'My Stats' },
+          ] as { id: ApplicationsTab; label: string }[]
+        ).map((tab) => (
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id as 'board' | 'stats')}
+            onClick={() => setActiveTab(tab.id)}
             className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
               activeTab === tab.id
                 ? 'bg-brand-600 text-white shadow-sm'
@@ -216,6 +234,8 @@ export default function Applications() {
 
       {activeTab === 'stats' ? (
         <PersonalAnalytics />
+      ) : activeTab === 'inbox' ? (
+        <EmailInbox />
       ) : (
         <>
           {todayCount > 0 && (

@@ -45,12 +45,25 @@ _REJECTION_PHRASES: tuple[str, ...] = (
     "not be moving forward",
     "will not be proceeding",
     "decided not to proceed",
+    "decided not to move forward",
+    "not to move forward with your application",
+    "won't be moving forward",
+    "won't be progressing",
+    "will not be progressing",
+    "not to progress your application",
     "decided to move forward with other",
+    "move forward with another candidate",
     "proceed with other candidates",
+    "proceed with another candidate",
+    "pursue other candidates",
     "chosen another candidate",
     "selected another candidate",
+    "more closely match",
+    "position has been filled",
+    "role has been filled",
     "unsuccessful on this occasion",
     "your application was not successful",
+    "your application has been unsuccessful",
     "not been selected",
     "no longer under consideration",
     # Swedish
@@ -61,6 +74,11 @@ _REJECTION_PHRASES: tuple[str, ...] = (
     "valt att ga vidare med andra",
     "inte aktuell for tjansten",
     "vi har beslutat att inte ga vidare",
+    "inte ga vidare med din ansokan",
+    "ga vidare med en annan kandidat",
+    "valt en annan kandidat",
+    "tjansten ar tillsatt",
+    "tjansten har tillsatts",
 )
 
 _INTERVIEW_PHRASES: tuple[str, ...] = (
@@ -73,11 +91,14 @@ _INTERVIEW_PHRASES: tuple[str, ...] = (
     "schedule a call",
     "next step in the process",
     "move forward to an interview",
+    "invite you for an interview",
+    "invite you to interview",
     "available for a chat",
     # Swedish
     "vill bjuda in dig",
     "boka en tid",
     "kalla dig till intervju",
+    "kallelse till intervju",
     "traffas for en intervju",
     "nasta steg i processen",
 )
@@ -121,8 +142,12 @@ STATUS_FOR_KIND: dict[str, str] = {
 _FOLD = str.maketrans("àáâãäåèéêëìíîïòóôõöøùúûüýÿçñ", "aaaaaaeeeeiiiioooooouuuuyycn")
 
 
+# Mail clients write typographic apostrophes ("won’t"); the phrase lists use '.
+_APOSTROPHES = str.maketrans({"\u2019": "'", "\u2018": "'", "\u02bc": "'"})
+
+
 def _normalize(text: str) -> str:
-    return _WHITESPACE.sub(" ", text.lower().translate(_FOLD)).strip()
+    return _WHITESPACE.sub(" ", text.lower().translate(_FOLD).translate(_APOSTROPHES)).strip()
 
 
 def _sentences(text: str) -> list[str]:

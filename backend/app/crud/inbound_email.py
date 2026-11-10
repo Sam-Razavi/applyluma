@@ -245,6 +245,43 @@ def assign_to_application(
     return row
 
 
+def list_for_user(
+    db: Session,
+    user_id: uuid.UUID,
+    *,
+    skip: int = 0,
+    limit: int = 20,
+    matched: bool | None = None,
+    exclude_sender: str | None = None,
+) -> tuple[list[tuple[InboundEmail, str | None, str | None]], int]:
+    """The user's own forwarded mail, newest first, with what each matched."""
+    query = (
+        db.query(InboundEmail, Application.company_name, Application.job_title)
+        .outerjoin(Application, InboundEmail.matched_application_id == Application.id)
+        .filter(InboundEmail.user_id == user_id)
+    )
+    if exclude_sender:
+        query = query.filter(InboundEmail.from_address != exclude_sender)
+    if matched is True:
+        query = query.filter(InboundEmail.matched_application_id.isnot(None))
+    elif matched is False:
+        query = query.filter(InboundEmail.matched_application_id.is_(None))
+
+    total = query.count()
+    rows = query.order_by(InboundEmail.created_at.desc()).offset(skip).limit(limit).all()
+    return [(row[0], row[1], row[2]) for row in rows], total
+
+
+def delete_for_user(db: Session, email_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+    deleted = (
+        db.query(InboundEmail)
+        .filter(InboundEmail.id == email_id, InboundEmail.user_id == user_id)
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return bool(deleted)
+
+
 def set_suggestion_state(db: Session, row: InboundEmail, state: str) -> InboundEmail:
     row.suggestion_state = state
     db.commit()

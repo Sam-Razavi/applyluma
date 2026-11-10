@@ -348,3 +348,97 @@ async def test_unmatched_path_is_not_shadowed_by_the_id_route(
     response = await call("GET", "/api/v1/applications/email-unmatched")
 
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_gmail_confirmation_is_hidden_once_later_mail_arrives(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mail arriving after the confirmation means forwarding works; the
+    "confirm forwarding" prompt would only be noise."""
+    from datetime import timedelta
+
+    confirmation = SimpleNamespace(
+        subject="(#987654321) Gmail Forwarding Confirmation",
+        snippet="Confirmation code: 987654321",
+        created_at=NOW - timedelta(hours=1),
+    )
+    install_forwarding(monkeypatch, confirmation=confirmation)  # latest email is NOW
+    as_user(make_user(UserRole.admin))
+
+    data = (await call("GET", "/api/v1/email-forwarding")).json()
+
+    assert data["gmail_confirmation"] is None
+
+
+# --- The user's inbox ----------------------------------------------------------
+
+
+def inbox_row(**overrides: Any) -> SimpleNamespace:
+    data = {
+        "id": EMAIL_ID,
+        "from_address": "talent@supportwave.com",
+        "subject": "Application unsuccessful",
+        "snippet": "We regret to inform you...",
+        "received_at": None,
+        "created_at": NOW,
+        "classification": "rejection",
+        "suggested_status": "rejected",
+        "evidence": "We regret to inform you",
+        "suggestion_state": "pending",
+        "matched_application_id": APPLICATION_ID,
+    }
+    data.update(overrides)
+    return SimpleNamespace(**data)
+
+
+def install_inbox(monkeypatch: pytest.MonkeyPatch, rows: list[Any]) -> dict[str, Any]:
+    state: dict[str, Any] = {"listed": None, "deleted": None}
+
+    def list_for_user(db: Any, user_id: uuid.UUID, **kw: Any) -> tuple[list[Any], int]:
+        state["listed"] = kw
+        return rows, len(rows)
+
+    def delete_for_user(db: Any, email_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+        state["deleted"] = (email_id, user_id)
+        return email_id == EMAIL_ID
+
+    monkeypatch.setattr(
+        forwarding_endpoint,
+        "crud_inbound_email",
+        SimpleNamespace(list_for_user=list_for_user, delete_for_user=delete_for_user),
+    )
+    return state
+
+
+@pytest.mark.asyncio
+async def test_inbox_lists_emails_with_what_they_matched(monkeypatch: pytest.MonkeyPatch) -> None:
+    state = install_inbox(monkeypatch, [(inbox_row(), "supportwave", "IT Support Specialist")])
+    as_user(make_user())
+
+    response = await call("GET", "/api/v1/email-forwarding/messages?matched=true&limit=10")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    item = data["items"][0]
+    assert item["company_name"] == "supportwave"
+    assert item["classification"] == "rejection"
+    assert item["suggestion_state"] == "pending"
+    # Gmail's confirmation is setup plumbing and stays out of the inbox.
+    assert state["listed"]["exclude_sender"] == "forwarding-noreply@google.com"
+    assert state["listed"]["matched"] is True
+    assert state["listed"]["limit"] == 10
+
+
+@pytest.mark.asyncio
+async def test_inbox_delete_is_scoped_to_the_owner(monkeypatch: pytest.MonkeyPatch) -> None:
+    state = install_inbox(monkeypatch, [])
+    as_user(make_user())
+
+    ok = await call("DELETE", f"/api/v1/email-forwarding/messages/{EMAIL_ID}")
+    missing = await call("DELETE", f"/api/v1/email-forwarding/messages/{uuid.uuid4()}")
+
+    assert ok.status_code == 204
+    assert state["deleted"][1] == USER_ID
+    assert missing.status_code == 404

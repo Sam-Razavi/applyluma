@@ -105,6 +105,19 @@ def test_forwarding_queries_against_real_database() -> None:
         crud_inbound_email.set_suggestion_state(db, rejection, "accepted")
         assert crud_inbound_email.list_unmatched(db, user.id, since=now - timedelta(days=60)) == []
 
+        rows, total = crud_inbound_email.list_for_user(
+            db, user.id, exclude_sender="forwarding-noreply@google.com"
+        )
+        assert total == 5
+        assert all(row.from_address != "forwarding-noreply@google.com" for row, _, _ in rows)
+        matched_rows, matched_total = crud_inbound_email.list_for_user(db, user.id, matched=True)
+        assert matched_total == 2
+        assert {company for _, company, _ in matched_rows} == {"Acme"}
+
+        assert crud_inbound_email.delete_for_user(db, rejection.id, uuid.uuid4()) is False
+        assert crud_inbound_email.delete_for_user(db, rejection.id, user.id) is True
+        assert crud_inbound_email.forwarding_stats(db, user.id)[0] == 5
+
         old_token = user.inbox_token
         crud_user.rotate_inbox_token(db, user)
         assert user.inbox_token and user.inbox_token != old_token
