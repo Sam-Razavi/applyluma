@@ -263,6 +263,15 @@ Also shipped and easy to miss (verified 2026-07-08):
   - Google OAuth login (`endpoints/auth_google.py`, `/auth/callback` page).
   - In-app notifications UI: `NotificationBell` + `NotificationList` with
     mark-one/mark-all-read; high-match alert task writes notification rows.
+    November 2026: the bell had only ever been rendered by the old top
+    `Navbar`, which the sidebar layout stopped using, so no notification
+    (admin messages, high-match alerts, email suggestions, reminders) was
+    visible and the unread dots never lit. `Navbar.tsx`/`navLinks.ts` were
+    deleted; `AppLayout` now loads notifications and refreshes them every
+    60 s, with a bell in the sidebar header (desktop) and a phone header.
+    Clicking a notification opens the page its type is about. Admin
+    "Notify" (`POST /admin/users/{id}/notify`) takes `send_email`; a failed
+    email returns 502 with the in-app notification already saved.
   - Cover letter generator: `cover_letter_service.py`, `endpoints/cover_letters.py`,
     Celery task, history on the AI Tailor page.
   - Application status timeline (`ApplicationEvent` rows rendered by

@@ -225,4 +225,20 @@ describe('AdminUsers', () => {
     fireEvent.click(clearButton)
     await waitFor(() => expect(mockUpdateLimits).toHaveBeenCalledWith('u1', null))
   })
+
+  it('sends the notification by email too when asked', async () => {
+    mockSendNotification.mockResolvedValue(undefined)
+    render(<AdminUsers />)
+
+    const notifyButtons = await screen.findAllByRole('button', { name: 'Notify' })
+    fireEvent.click(notifyButtons[0])
+    fireEvent.change(screen.getByPlaceholderText('Title'), { target: { value: 'Hello' } })
+    fireEvent.change(screen.getByPlaceholderText('Message body'), { target: { value: 'Welcome aboard' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Also send by email/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() =>
+      expect(mockSendNotification).toHaveBeenCalledWith(users[0].id, 'Hello', 'Welcome aboard', true),
+    )
+  })
 })

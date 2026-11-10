@@ -392,6 +392,62 @@ async def test_notify_creates_notification(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 @pytest.mark.asyncio
+async def test_notify_sends_email_only_when_asked(monkeypatch: pytest.MonkeyPatch) -> None:
+    target = sample_user()
+    monkeypatch.setattr(admin_endpoint.crud_admin, "get_user_by_id_admin", lambda db, uid: target)
+    monkeypatch.setattr(admin_endpoint.notification_service, "create_notification", lambda db, **kw: None)
+    sent: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        admin_endpoint.email_service, "send_email", lambda to, subject, html: sent.append((to, subject))
+    )
+
+    quiet = await request(
+        "POST",
+        f"/api/v1/admin/users/{USER_ID}/notify",
+        current_user=admin_user(),
+        json_body={"title": "Hi", "body": "In-app only"},
+    )
+    emailed = await request(
+        "POST",
+        f"/api/v1/admin/users/{USER_ID}/notify",
+        current_user=admin_user(),
+        json_body={"title": "Hi", "body": "Also by email", "send_email": True},
+    )
+
+    assert quiet.status_code == 204
+    assert emailed.status_code == 204
+    assert sent == [(target.email, "Hi")]
+
+
+@pytest.mark.asyncio
+async def test_notify_reports_a_failed_email_but_keeps_the_notification(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = sample_user()
+    monkeypatch.setattr(admin_endpoint.crud_admin, "get_user_by_id_admin", lambda db, uid: target)
+    created: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        admin_endpoint.notification_service, "create_notification", lambda db, **kw: created.append(kw)
+    )
+
+    def broken_send(*args: Any) -> None:
+        raise RuntimeError("Resend down")
+
+    monkeypatch.setattr(admin_endpoint.email_service, "send_email", broken_send)
+
+    response = await request(
+        "POST",
+        f"/api/v1/admin/users/{USER_ID}/notify",
+        current_user=admin_user(),
+        json_body={"title": "Hi", "body": "Hello", "send_email": True},
+    )
+
+    assert response.status_code == 502
+    assert "Notification saved" in response.json()["detail"]
+    assert len(created) == 1
+
+
+@pytest.mark.asyncio
 async def test_notify_rejects_invalid_notification_type(monkeypatch: pytest.MonkeyPatch) -> None:
     """NotificationType Literal must reject unknown type strings with 422."""
     target = sample_user()

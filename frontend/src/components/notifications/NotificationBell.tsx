@@ -3,18 +3,17 @@ import { BellIcon } from '@heroicons/react/24/outline'
 import NotificationList from './NotificationList'
 import { useNotificationsStore } from '../../stores/notifications'
 
-export default function NotificationBell() {
+interface Props {
+  /** Which edge the dropdown lines up with: 'left' in the sidebar, 'right' in the phone header. */
+  align?: 'left' | 'right'
+}
+
+// Notifications are loaded and refreshed by AppLayout, once for the whole
+// shell; the sidebar and the phone header each render a bell.
+export default function NotificationBell({ align = 'right' }: Props) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-  const { unreadCount, fetchNotifications } = useNotificationsStore()
-
-  useEffect(() => {
-    void fetchNotifications()
-    const intervalId = window.setInterval(() => {
-      void fetchNotifications()
-    }, 60000)
-    return () => window.clearInterval(intervalId)
-  }, [fetchNotifications])
+  const unreadCount = useNotificationsStore((s) => s.unreadCount)
 
   useEffect(() => {
     function onClickOutside(event: MouseEvent) {
@@ -40,8 +39,8 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-fg-muted transition-colors duration-200 hover:bg-surface-strong hover:text-fg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-        aria-label="Notifications"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-fg-muted transition-colors duration-200 hover:bg-surface-strong hover:text-fg focus:outline-none focus:ring-2 focus:ring-brand-500"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
         aria-expanded={open}
       >
         <BellIcon className="h-5 w-5" aria-hidden="true" />
@@ -51,7 +50,7 @@ export default function NotificationBell() {
           </span>
         )}
       </button>
-      {open && <NotificationList />}
+      {open && <NotificationList align={align} onNavigate={() => setOpen(false)} />}
     </div>
   )
 }

@@ -146,6 +146,12 @@ class AdminNotifyRequest(BaseModel):
     type: NotificationType = "admin_message"
 
 
+class AdminUserNotifyRequest(AdminNotifyRequest):
+    # In-app notifications are only seen by someone who signs in; email reaches
+    # them either way.
+    send_email: bool = False
+
+
 class AdminBulkNotifyRequest(AdminNotifyRequest):
     audience: Literal["all", "role", "user"] = "all"
     role: UserRole | None = None
