@@ -3,6 +3,17 @@ import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 import type { User } from '../types'
 import posthog from 'posthog-js'
 
+// Kept here rather than imported from lib/session, which imports this store.
+const SIGNED_IN_HINT = 'applyluma_signed_in'
+function setSignedInHint(on: boolean) {
+  try {
+    if (on) localStorage.setItem(SIGNED_IN_HINT, '1')
+    else localStorage.removeItem(SIGNED_IN_HINT)
+  } catch {
+    // Storage blocked: only the landing page's restore-on-open is lost.
+  }
+}
+
 interface AuthState {
   user: User | null
   token: string | null
@@ -30,14 +41,17 @@ export const useAuthStore = create<AuthState>()(
         },
         login: (token, refreshToken, user) => {
           posthog.identify(user.id, { email: user.email, role: user.role })
+          setSignedInHint(true)
           set({ token, refreshToken, user, isAuthenticated: true })
         },
         logout: () => {
           posthog.reset()
+          setSignedInHint(false)
           set({ token: null, refreshToken: null, user: null, isAuthenticated: false })
         },
         setUser: (user) => {
           posthog.identify(user.id, { email: user.email, role: user.role })
+          setSignedInHint(true)
           set({ user, isAuthenticated: true })
         },
         setLoading: (isLoading) => set({ isLoading }),

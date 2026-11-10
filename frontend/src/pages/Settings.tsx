@@ -30,7 +30,7 @@ import type { TailorUsage } from '../types/tailor'
 
 export default function Settings() {
   const navigate = useNavigate()
-  const { user, setUser, logout } = useAuthStore()
+  const { user, setUser, logout, refreshToken } = useAuthStore()
   const { dark, toggle: toggleDark } = useThemeStore()
 
   // Profile
@@ -527,7 +527,15 @@ export default function Settings() {
           </div>
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
+              // Sign out on the server too: it clears the cookies and revokes
+              // the tokens. Clearing only this page left the cookie valid, so
+              // the next new tab would sign straight back in.
+              try {
+                await authApi.logout(refreshToken ?? undefined)
+              } catch {
+                /* fail open: still sign out here */
+              }
               logout()
               navigate('/login')
             }}

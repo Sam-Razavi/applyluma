@@ -115,4 +115,16 @@ describe('Settings — default CV template', () => {
     )
     expect(useAuthStore.getState().user?.preferred_template).toBe('modern')
   })
+
+  it('signs out on the server, not just on this page', async () => {
+    vi.mocked(authApi.logout).mockResolvedValue(undefined)
+    renderSettings(makeUser())
+
+    fireEvent.click(screen.getByRole('button', { name: /Sign out/ }))
+
+    // Clearing only this page left the cookie session alive, which a new tab
+    // would now restore.
+    await waitFor(() => expect(authApi.logout).toHaveBeenCalled())
+    await waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(false))
+  })
 })
