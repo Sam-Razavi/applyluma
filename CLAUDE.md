@@ -171,8 +171,22 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
     replaced the placeholder squares. Privacy policy section 5 "Browser
     Extension" discloses what it reads/sends/stores; disconnecting now also
     clears the cached saved/applied URL lists to match that wording.
-    Not yet done: the actual store submissions (need a developer account and
-    a reviewer test account).
+    Chrome Web Store: 1.0.0 published November 2026.
+  - 1.0.1 (November 2026): extraction moved to `content/common.js`, loaded
+    before each site script. The popup (and Alt+Shift+S) now asks the active
+    tab to extract on demand (`EXTRACT_JOB` message) instead of reading a
+    snapshot taken 0.8 s after load, which missed lazily rendered fields and
+    could describe another tab. Missing fields fall back to the page's
+    schema.org JobPosting JSON-LD (HTML double-decoded: LinkedIn
+    entity-escapes it) and, on LinkedIn, the "Title | Company | LinkedIn"
+    document title. LinkedIn search/collection panes (`?currentJobId=`) and
+    Indeed search panes (`?vjk=`) count as job pages, with canonical
+    `/jobs/view/<id>/` and `/viewjob?jk=` URLs. Intensity values are now
+    light/medium/aggressive.
+  - Server-side compatibility for the released 1.0.0: the bookmark response
+    also carries `raw_job_posting_id` (1.0.0 read that name and got
+    undefined, so match score, "Track application" and AI Tailor silently did
+    nothing), and `TailorSubmitRequest` maps "low"/"high" to light/aggressive.
 
 Job Sources & Dedupe delivered in July 2026:
   - New RemoteOK scraper (then `airflow/plugins/job_scrapers/remoteok_client.py`, now

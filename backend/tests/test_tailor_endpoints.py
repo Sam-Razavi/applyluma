@@ -733,3 +733,19 @@ async def test_preview_html_422_for_unknown_template(monkeypatch: pytest.MonkeyP
 
     assert response.status_code == 422
     assert "Unknown template" in response.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    ("sent", "stored"),
+    [("low", "light"), ("high", "aggressive"), ("light", "light"), ("medium", "medium")],
+)
+def test_submit_accepts_extension_intensity_names(sent: str, stored: str) -> None:
+    """Extension 1.0.0 sends "low"/"high" for its Light/Deep options."""
+    import uuid as _uuid
+
+    from app.schemas.tailor import TailorSubmitRequest
+
+    request = TailorSubmitRequest(
+        cv_id=_uuid.uuid4(), raw_job_posting_id=_uuid.uuid4(), intensity=sent
+    )
+    assert request.intensity.value == stored

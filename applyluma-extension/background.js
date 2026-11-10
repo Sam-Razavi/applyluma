@@ -141,9 +141,22 @@ const JOB_TTL_MS = 15 * 60 * 1000; // 15 minutes — mirrors popup.js
 chrome.commands.onCommand.addListener(async (command) => {
   if (command !== 'quick-save') return;
 
-  const { linkedinJob: rawJob } = await chrome.storage.local.get('linkedinJob');
-  const job = rawJob && rawJob.extractedAt && (Date.now() - rawJob.extractedAt) < JOB_TTL_MS
-    ? rawJob : null;
+  // Read the job from the active tab now (its details may have rendered after
+  // the page's own snapshot); fall back to the snapshot if the tab can't answer.
+  let job = null;
+  let answered = false;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && tab.id !== undefined) {
+      const reply = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_JOB' });
+      if (reply) { answered = true; job = reply.job || null; }
+    }
+  } catch { /* no ApplyLuma script on this tab */ }
+  if (!answered) {
+    const { linkedinJob: rawJob } = await chrome.storage.local.get('linkedinJob');
+    job = rawJob && rawJob.extractedAt && (Date.now() - rawJob.extractedAt) < JOB_TTL_MS
+      ? rawJob : null;
+  }
 
   if (!job || (!job.title && !job.company && !job.url)) {
     notify('ApplyLuma', 'No job detected on this page. Navigate to a job posting first.');

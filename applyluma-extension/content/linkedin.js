@@ -7,10 +7,12 @@
   // ── Selector sets — primary then fallbacks ──────────────────────────────
 
   const TITLE_SELECTORS = [
+    '.job-details-jobs-unified-top-card__job-title h1',
+    '.job-details-jobs-unified-top-card__job-title',
+    '.jobs-unified-top-card__job-title',
     'h1.t-24',
     'h1[class*="job-title"]',
-    '.job-details-jobs-unified-top-card__job-title h1',
-    '.jobs-unified-top-card__job-title',
+    'h1.top-card-layout__title',
   ];
 
   const COMPANY_SELECTORS = [
@@ -19,6 +21,7 @@
     '.jobs-unified-top-card__company-name a',
     '.jobs-unified-top-card__company-name',
     '[data-test-id="job-detail-company-name"]',
+    '.topcard__org-name-link',
   ];
 
   const DESCRIPTION_SELECTORS = [
@@ -26,19 +29,11 @@
     '#job-details',
     '.jobs-box__html-content',
     '.description__text',
+    '.jobs-description-content__text',
+    '.show-more-less-html__markup',
   ];
 
   // ── Helpers ─────────────────────────────────────────────────────────────
-
-  function firstText(selectors) {
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el && el.textContent.trim()) {
-        return el.textContent.trim();
-      }
-    }
-    return '';
-  }
 
   function normalizeUrl(url) {
     try {
@@ -51,22 +46,36 @@
 
   // ── Job detail extraction ────────────────────────────────────────────────
 
-  function extractJobData() {
-    const url = window.location.href;
-
-    if (!/linkedin\.com\/jobs\/view\//.test(url) && !/linkedin\.com\/jobs\/collections\//.test(url)) {
-      chrome.storage.local.set({ linkedinJob: null });
-      return;
+  // A job is open either on its own page (/jobs/view/<id>) or in the right-hand
+  // pane of search, collections and recommendations (?currentJobId=<id>).
+  function currentJobId() {
+    try {
+      const u = new URL(window.location.href);
+      const m = u.pathname.match(/\/jobs\/view\/(\d+)/);
+      return m ? m[1] : u.searchParams.get('currentJobId');
+    } catch {
+      return null;
     }
+  }
 
-    const data = {
-      title: firstText(TITLE_SELECTORS),
-      company: firstText(COMPANY_SELECTORS),
-      url,
-      description: firstText(DESCRIPTION_SELECTORS),
-      extractedAt: Date.now(),
-    };
-    chrome.storage.local.set({ linkedinJob: data });
+  const SITE = {
+    isJobPage: () => Boolean(currentJobId()),
+    // One stable URL per job, however it was opened, so saving twice is
+    // recognised and the "Saved" badges match.
+    canonicalUrl: () => `https://www.linkedin.com/jobs/view/${currentJobId()}/`,
+    title: TITLE_SELECTORS,
+    company: COMPANY_SELECTORS,
+    description: DESCRIPTION_SELECTORS,
+    // A job's own page is titled "Job title | Company | LinkedIn".
+    fromDocumentTitle: () => {
+      if (!/\/jobs\/view\//.test(window.location.pathname)) return null;
+      const parts = document.title.replace(/^\(\d+\)\s*/, '').split(' | ');
+      return parts.length >= 3 ? { title: parts[0], company: parts[1] } : null;
+    },
+  };
+
+  function extractJobData() {
+    ApplyLuma.storeSnapshot(SITE);
   }
 
   // ── Badge injection ──────────────────────────────────────────────────────
@@ -175,6 +184,9 @@
 
   // ── Boot ─────────────────────────────────────────────────────────────────
 
+  ApplyLuma.answerExtractRequests(SITE);
   setTimeout(extractJobData, 800);
+  // Job details often render after the first read; read again once they have.
+  setTimeout(extractJobData, 3000);
   void refreshBadges();
 })();

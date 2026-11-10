@@ -145,14 +145,37 @@ async function fetchWithAuth(url, options = {}) {
 // ── Initialise popup ────────────────────────────────────────────────────────
 
 const JOB_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const SAVED_JOBS_URL = 'https://applyluma.com/discover?tab=saved';
+
+// Ask the page in the active tab to read the job now. Reading on demand gets
+// fields that had not rendered yet when the page first loaded, and always
+// describes this tab rather than whichever tab was read last.
+async function extractFromActiveTab() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || tab.id === undefined) return { answered: false };
+    const reply = await Promise.race([
+      chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_JOB' }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
+    ]);
+    return reply ? { answered: true, job: reply.job || null } : { answered: false };
+  } catch {
+    // No ApplyLuma script on this tab (not a supported site, or a tab that
+    // was open before the extension was installed).
+    return { answered: false };
+  }
+}
 
 async function init() {
-  const [{ linkedinJob: rawJob }, { token }] = await Promise.all([
+  const [live, { linkedinJob: rawJob }, { token }] = await Promise.all([
+    extractFromActiveTab(),
     chrome.storage.local.get('linkedinJob'),
     getTokens().then((t) => ({ token: t.token })),
   ]);
-  const linkedinJob = rawJob && rawJob.extractedAt && (Date.now() - rawJob.extractedAt) < JOB_TTL_MS
+  const snapshot = rawJob && rawJob.extractedAt && (Date.now() - rawJob.extractedAt) < JOB_TTL_MS
     ? rawJob : null;
+  // The tab's own answer wins; the snapshot only covers a page that could not answer.
+  const linkedinJob = live.answered ? live.job : snapshot;
 
   const hasJob = linkedinJob && (linkedinJob.title || linkedinJob.company || linkedinJob.url);
 
@@ -163,7 +186,7 @@ async function init() {
     connectedCount.textContent = count > 0
       ? `${count} job${count !== 1 ? 's' : ''} saved to ApplyLuma`
       : 'Connected to ApplyLuma';
-    linkSavedJobs.addEventListener('click', (e) => { e.preventDefault(); chrome.tabs.create({ url: 'https://applyluma.com/jobs' }); });
+    linkSavedJobs.addEventListener('click', (e) => { e.preventDefault(); chrome.tabs.create({ url: SAVED_JOBS_URL }); });
     linkApp.addEventListener('click', (e) => { e.preventDefault(); chrome.tabs.create({ url: 'https://applyluma.com' }); });
     showView('connected');
     return;
@@ -254,7 +277,8 @@ btnSave.addEventListener('click', async () => {
     }
 
     const saved = await res.json();
-    savedRawJobPostingId = saved.raw_job_posting_id;
+    // The API calls it source_raw_job_posting_id; older servers only sent that.
+    savedRawJobPostingId = saved.raw_job_posting_id || saved.source_raw_job_posting_id;
     showStatus(alreadySaved ? 'Already in your saved jobs ✓' : 'Saved to ApplyLuma!', 'success');
     btnSave.disabled = true;
 
