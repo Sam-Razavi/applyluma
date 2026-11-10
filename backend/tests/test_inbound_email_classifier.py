@@ -12,6 +12,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.inbound_email.classifier import SUGGEST_THRESHOLD, classify
@@ -138,3 +140,42 @@ def test_subject_alone_can_classify() -> None:
 def test_classification_is_deterministic() -> None:
     args = ("Update on your application", "Unfortunately we will not be moving forward.")
     assert classify(*args) == classify(*args)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "Unfortunately, we have decided not to move forward with your application.",
+        "We won’t be moving forward with your application at this time.",
+        "We won't be progressing your application further.",
+        "We have decided to pursue other candidates.",
+        "We have chosen applicants whose experience more closely matches the role.",
+        "The position has been filled.",
+        "Your application has been unsuccessful.",
+        "Tyvärr har vi valt att inte gå vidare med din ansökan.",
+        "Vi har valt en annan kandidat.",
+        "Tjänsten är tillsatt.",
+    ],
+)
+def test_common_rejection_wordings_are_confident(body: str) -> None:
+    """Real rejections, mostly the "not to move forward" family, which used to
+    fall below the suggestion threshold."""
+    result = classify("Your application", body)
+    assert result is not None
+    assert result.kind == "rejection"
+    assert result.confidence >= SUGGEST_THRESHOLD
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "We would like to invite you for an interview next week.",
+        "We'd like to invite you to interview for the role.",
+        "Kallelse till intervju för tjänsten som utvecklare.",
+    ],
+)
+def test_more_interview_wordings(body: str) -> None:
+    result = classify("Next steps", body)
+    assert result is not None
+    assert result.kind == "interview"
+    assert result.confidence >= SUGGEST_THRESHOLD

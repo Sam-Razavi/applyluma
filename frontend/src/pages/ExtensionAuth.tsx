@@ -1,11 +1,30 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { AxiosError } from 'axios'
 import { ClipboardDocumentCheckIcon, ClipboardDocumentIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline'
 import { authApi } from '../services/api'
+import { useAuthStore } from '../stores'
+
+/**
+ * The extension opens this page in a new tab. A new tab has no access token in
+ * memory, and a cookie-only POST cannot pass the CSRF check from this origin
+ * (the csrf_token cookie belongs to the API's domain, so this page cannot read
+ * it). So first trade the httpOnly refresh cookie for an access token, then
+ * mint the extension's tokens with it.
+ */
+async function mintExtensionTokens() {
+  if (!useAuthStore.getState().token) {
+    const { access_token } = await authApi.refresh()
+    useAuthStore.getState().setToken(access_token)
+  }
+  return authApi.extensionToken()
+}
 
 export default function ExtensionAuth() {
   const [tokens, setTokens] = useState<{ access_token: string; refresh_token: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState(false)
+  const [signedOut, setSignedOut] = useState(false)
 
   const copyTokens = useCallback(
     (payloadTokens?: { access_token: string; refresh_token: string }) => {
@@ -29,13 +48,15 @@ export default function ExtensionAuth() {
     document.title = 'Connect Extension | ApplyLuma'
     // The web app authenticates via httpOnly cookies, so we mint a dedicated
     // bearer token pair for the extension to store and send.
-    authApi
-      .extensionToken()
+    mintExtensionTokens()
       .then((pair) => {
         setTokens(pair)
         copyTokens(pair)
       })
-      .catch(() => setError(true))
+      .catch((err: unknown) => {
+        if (err instanceof AxiosError && err.response?.status === 401) setSignedOut(true)
+        else setError(true)
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -52,7 +73,18 @@ export default function ExtensionAuth() {
           </div>
         </div>
 
-        {error ? (
+        {signedOut ? (
+          <div className="mb-6 rounded-xl bg-chip-warn px-4 py-3 text-sm text-chip-warn-fg">
+            <p className="font-medium">Sign in to ApplyLuma first.</p>
+            <p className="mt-1 text-fg-muted">You will come straight back here afterwards.</p>
+            <Link
+              to="/login?next=/extension-auth"
+              className="mt-3 inline-flex rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            >
+              Sign in
+            </Link>
+          </div>
+        ) : error ? (
           <div className="mb-6 rounded-xl bg-chip-danger px-4 py-3 text-sm font-medium text-chip-danger-fg ">
             Could not generate a token. Make sure you are signed in, then reload this page.
           </div>

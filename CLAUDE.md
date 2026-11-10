@@ -486,6 +486,22 @@ Inbound Email Ingestion (August 2026, first slice):
     offered on the Applications page (`UnmatchedEmails.tsx`,
     `/applications/email-unmatched` list/assign/dismiss); assigning applies the
     status through `update_application`. Privacy policy section 6 covers it.
+  - Inbox (November 2026): an "Inbox" tab on Applications (`EmailInbox.tsx`,
+    shown when forwarding is enabled for the user) lists the user's own
+    forwarded mail via `GET /email-forwarding/messages` (filter matched /
+    not matched, paginated, Gmail confirmations excluded) with what was
+    detected, what it matched and the suggestion state; `DELETE
+    /email-forwarding/messages/{id}` removes one. The Settings card hides
+    Gmail's confirmation prompt once later mail has arrived (or the user
+    clicks "I've confirmed it"), and its Outlook steps use "Redirect to",
+    which keeps the recruiter as `From:`.
+  - Extension sign-in: `/extension-auth` opens in a new tab with no in-memory
+    token, and a cookie-only POST cannot pass the CSRF check from
+    applyluma.com (the `csrf_token` cookie belongs to the API's domain), so
+    the page first trades the refresh cookie for an access token
+    (`authApi.refresh`). Signed out, it links to `/login?next=/extension-auth`;
+    `lib/nextPath.ts` keeps `next` in sessionStorage so Google/LinkedIn/GitHub
+    sign-in (via `/auth/callback`) returns there too.
   - Login: `get_by_email` is case-insensitive, and a failed password login on
     an OAuth-only account (no password) says which provider to use instead of
     "Incorrect email or password"; register's 409 says the same.

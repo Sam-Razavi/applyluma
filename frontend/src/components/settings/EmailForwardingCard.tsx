@@ -10,6 +10,8 @@ import {
 
 // Words that appear in almost every application reply, in English and
 // Swedish. Used for a mail filter, so only job mail is forwarded.
+const CONFIRMATION_DISMISSED_KEY = 'applyluma_gmail_confirmation_dismissed'
+
 export const FILTER_WORDS =
   'application OR applying OR applied OR interview OR candidate OR ansökan OR intervju OR tjänsten OR kandidat'
 
@@ -38,6 +40,13 @@ async function copy(text: string, what: string) {
 export default function EmailForwardingCard() {
   const [status, setStatus] = useState<EmailForwardingStatus | null>(null)
   const [rotating, setRotating] = useState(false)
+  const [dismissedConfirmation, setDismissedConfirmation] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CONFIRMATION_DISMISSED_KEY)
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
     let active = true
@@ -70,8 +79,23 @@ export default function EmailForwardingCard() {
     }
   }
 
+  function dismissConfirmation(receivedAt: string | null) {
+    const key = receivedAt ?? 'unknown'
+    setDismissedConfirmation(key)
+    try {
+      localStorage.setItem(CONFIRMATION_DISMISSED_KEY, key)
+    } catch {
+      // Not remembered across visits; hidden for now all the same.
+    }
+  }
+
   if (!status?.enabled || !status.address) return null
-  const { address, gmail_confirmation: confirmation } = status
+  const { address } = status
+  const confirmation =
+    status.gmail_confirmation &&
+    (status.gmail_confirmation.received_at ?? 'unknown') !== dismissedConfirmation
+      ? status.gmail_confirmation
+      : null
 
   return (
     <section className="rounded-2xl border border-line bg-surface p-6" aria-labelledby="email-forwarding-title">
@@ -136,6 +160,13 @@ export default function EmailForwardingCard() {
                 Copy code
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => dismissConfirmation(confirmation.received_at)}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-surface-strong"
+            >
+              I've confirmed it
+            </button>
           </div>
         </div>
       )}
@@ -186,11 +217,15 @@ export default function EmailForwardingCard() {
               <strong>Rules</strong> → <strong>Add new rule</strong>.
             </li>
             <li>
-              Name it ApplyLuma. Condition: <strong>Subject or body includes</strong>, and add
-              words such as application, interview, ansökan, intervju.
+              Name it ApplyLuma. Condition: <strong>Subject or body includes</strong>. Add each
+              word separately (press Enter after each): application, applying, applied,
+              interview, candidate, ansökan, intervju, tjänsten, kandidat, tyvärr.
             </li>
             <li>
-              Action: <strong>Forward to</strong>, paste the address above, and save.
+              Action: <strong>Redirect to</strong> (not "Forward to"), paste the address above,
+              and save. Redirect keeps the recruiter as the sender, which is what ApplyLuma
+              matches on. Mail sent to your own domain that already lands in Outlook is
+              covered by the same rule.
             </li>
           </ol>
         </details>

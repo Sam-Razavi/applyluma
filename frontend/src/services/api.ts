@@ -61,6 +61,9 @@ export const authApi = {
 
   // Mint bearer tokens for the browser extension (web app uses httpOnly cookies,
   // so its tokens aren't readable by JS and can't be handed to the extension).
+  /** Trade the httpOnly refresh cookie for an access token (fresh tabs have none in memory). */
+  refresh: (): Promise<{ access_token: string }> =>
+    client.post<{ access_token: string }>('/api/v1/auth/refresh', {}).then((r) => r.data),
   extensionToken: (): Promise<TokenPair> =>
     client.post<TokenPair>('/api/v1/auth/extension-token').then((r) => r.data),
 }

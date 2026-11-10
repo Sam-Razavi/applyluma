@@ -85,4 +85,26 @@ describe('EmailForwardingCard', () => {
     expect(await screen.findByText('u-new456@in.applyluma.com')).toBeInTheDocument()
     expect(mockRotate).toHaveBeenCalled()
   })
+
+  it("hides Gmail's prompt after \"I've confirmed it\"", async () => {
+    localStorage.clear()
+    mockGet.mockResolvedValue({
+      ...enabled,
+      gmail_confirmation: { code: null, link: 'https://mail-settings.google.com/mail/vf-abc', received_at: '2026-11-10T10:00:00Z' },
+    })
+    renderCard()
+
+    fireEvent.click(await screen.findByRole('button', { name: "I've confirmed it" }))
+
+    expect(screen.queryByText('Gmail wants you to confirm forwarding')).not.toBeInTheDocument()
+    expect(localStorage.getItem('applyluma_gmail_confirmation_dismissed')).toBe('2026-11-10T10:00:00Z')
+  })
+
+  it('tells Outlook users to redirect rather than forward', async () => {
+    mockGet.mockResolvedValue(enabled)
+    renderCard()
+
+    expect(await screen.findByText('Set up in Outlook or Hotmail')).toBeInTheDocument()
+    expect(screen.getByText('Redirect to')).toBeInTheDocument()
+  })
 })

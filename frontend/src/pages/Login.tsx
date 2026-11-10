@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,6 +9,7 @@ import { authApi } from '../services/api'
 import { authApi as authExtraApi } from '../services/authApi'
 import { useAuthStore } from '../stores'
 import { useAuthProviders } from '../hooks/useAuthProviders'
+import { consumeNextPath, rememberNextPath } from '../lib/nextPath'
 import OAuthButtons from '../components/auth/OAuthButtons'
 import type { AxiosError } from 'axios'
 import type { ApiError } from '../types'
@@ -42,18 +43,6 @@ const loginNotices: Record<string, { title: string; message: string }> = {
   },
 }
 
-function getSafeNextPath(nextPath: string | null) {
-  if (!nextPath || !nextPath.startsWith('/') || nextPath.startsWith('//')) {
-    return '/dashboard'
-  }
-
-  if (nextPath.startsWith('/login') || nextPath.startsWith('/register')) {
-    return '/dashboard'
-  }
-
-  return nextPath
-}
-
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -66,6 +55,12 @@ export default function Login() {
   const [magicSending, setMagicSending] = useState(false)
   const [magicSent, setMagicSent] = useState(false)
   const providers = useAuthProviders()
+  // Remembered too, so Google/LinkedIn/GitHub sign-in (which leaves the site)
+  // still returns to it.
+  useEffect(() => {
+    rememberNextPath(searchParams.get('next'))
+  }, [searchParams])
+
   const loginNotice = loginNotices[searchParams.get('reason') ?? searchParams.get('error') ?? '']
 
   const {
@@ -99,7 +94,7 @@ export default function Login() {
       const user = await authApi.me()
       login(tokenPair.access_token, tokenPair.refresh_token, user)
       toast.success(`Welcome back${user.full_name ? ', ' + user.full_name.split(' ')[0] : ''}!`)
-      navigate(getSafeNextPath(searchParams.get('next')), { replace: true })
+      navigate(consumeNextPath(), { replace: true })
     } catch (err) {
       const axiosErr = err as AxiosError<ApiError>
       const message = axiosErr.response?.data?.detail ?? 'Login failed. Please try again.'

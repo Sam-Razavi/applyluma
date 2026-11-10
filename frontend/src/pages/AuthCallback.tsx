@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '../services/api'
 import { useAuthStore } from '../stores'
+import { consumeNextPath } from '../lib/nextPath'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
@@ -32,7 +33,7 @@ export default function AuthCallback() {
       .me()
       .then((user) => {
         login(token, '', user)
-        navigate('/dashboard', { replace: true })
+        navigate(consumeNextPath(), { replace: true })
       })
       .catch(() => {
         navigate('/login?error=oauth_failed', { replace: true })
