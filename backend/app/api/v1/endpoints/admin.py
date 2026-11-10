@@ -33,11 +33,11 @@ from app.schemas.admin import (
     AdminLimitsUpdateRequest,
     AdminNotificationListResponse,
     AdminNotificationRow,
-    AdminNotifyRequest,
     AdminOverviewStats,
     AdminRoleUpdateRequest,
     AdminUserActivityResponse,
     AdminUserListResponse,
+    AdminUserNotifyRequest,
     AdminUserProfile,
     AdminUserRow,
     AiBudgetUpdate,
@@ -342,7 +342,7 @@ def update_active(
 @router.post("/users/{user_id}/notify", status_code=status.HTTP_204_NO_CONTENT)
 def send_notification(
     user_id: uuid.UUID,
-    body: AdminNotifyRequest,
+    body: AdminUserNotifyRequest,
     admin: AdminUser,
     db: DbSession,
     request: Request,
@@ -362,10 +362,22 @@ def send_notification(
         admin_user_id=admin.id,
         target_user_id=user_id,
         action="user.notified",
-        details={"type": body.type, "title": body.title},
+        details={"type": body.type, "title": body.title, "email": body.send_email},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
+    if body.send_email:
+        # After the in-app notification is saved, so a mail failure loses
+        # nothing; the admin is told the email part did not go out.
+        try:
+            subject, html_body = email_service.template_email(body.type, body.title, body.body)
+            email_service.send_email(user.email, subject, html_body)
+        except Exception:
+            logger.exception("admin_notify_email_failed", extra={"target_user_id": str(user_id)})
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Notification saved, but the email could not be sent.",
+            ) from None
 
 
 @router.post("/notifications/bulk", response_model=AdminBulkNotifyResponse)

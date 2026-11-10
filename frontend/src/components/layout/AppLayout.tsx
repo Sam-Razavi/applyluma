@@ -1,9 +1,10 @@
 import { Suspense, useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
+import NotificationBell from '../notifications/NotificationBell'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
 import RouteFallback from '../ui/RouteFallback'
 import { useInactivityLogout } from '../../hooks/useInactivityLogout'
@@ -25,6 +26,7 @@ export default function AppLayout() {
   const [resending, setResending] = useState(false)
   const location = useLocation()
   const unreadCount = useNotificationsStore((s) => s.unreadCount)
+  const fetchNotifications = useNotificationsStore((s) => s.fetchNotifications)
   const user = useAuthStore((s) => s.user)
   const showVerifyBanner = !!user && !user.is_verified && !bannerDismissed
 
@@ -44,6 +46,14 @@ export default function AppLayout() {
     window.scrollTo(0, 0)
   }, [location.pathname])
 
+  // Loaded once for the whole shell, then refreshed every minute. The bells
+  // and the unread dots in the navigation all read this.
+  useEffect(() => {
+    void fetchNotifications()
+    const intervalId = window.setInterval(() => void fetchNotifications(), 60000)
+    return () => window.clearInterval(intervalId)
+  }, [fetchNotifications])
+
   useEffect(() => {
     const base = PAGE_TITLES[location.pathname] ?? 'ApplyLuma'
     const title = `${base} | ApplyLuma`
@@ -59,7 +69,15 @@ export default function AppLayout() {
     >
       <Sidebar />
 
-      <main className="min-w-0 flex-1 pb-24 pt-4 md:ml-[224px] md:pb-8 md:pt-0">
+      <main className="min-w-0 flex-1 pb-24 pt-2 md:ml-[224px] md:pb-8 md:pt-0">
+        {/* Phone header: the sidebar (and its bell) is hidden below md. */}
+        <div className="flex items-center justify-between px-4 md:hidden">
+          <Link to="/dashboard" className="font-display text-lg font-bold tracking-tight text-fg">
+            ApplyLuma
+          </Link>
+          <NotificationBell align="right" />
+        </div>
+
         {showVerifyBanner && (
           <div
             className="mx-4 mt-2 flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm md:mx-8"

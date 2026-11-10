@@ -18,6 +18,7 @@ import { useNotificationsStore } from '../../stores/notifications'
 import { authApi } from '../../services/authApi'
 import { adminApi } from '../../services/adminApi'
 import UserAvatar from '../ui/UserAvatar'
+import NotificationBell from '../notifications/NotificationBell'
 
 type NavItem = {
   to: string
@@ -126,7 +127,7 @@ export default function Sidebar() {
       }}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-5">
+      <div className="flex h-16 items-center justify-between gap-2 pl-5 pr-3">
         <Link to="/dashboard" className="flex items-center gap-2">
           <span className="font-display text-lg font-bold tracking-tight text-fg">
             ApplyLuma
@@ -141,6 +142,7 @@ export default function Sidebar() {
             Beta
           </span>
         </Link>
+        <NotificationBell align="left" />
       </div>
 
       {/* Nav */}

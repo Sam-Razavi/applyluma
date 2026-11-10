@@ -1,4 +1,27 @@
+import { useNavigate } from 'react-router-dom'
 import { useNotificationsStore } from '../../stores/notifications'
+
+// Where a notification of each kind leads. Kinds not listed (e.g. a message
+// from an admin) just mark themselves read.
+const LINKS: Record<string, string> = {
+  email_status_suggestion: '/applications',
+  application_stale: '/applications',
+  deadline_reminder: '/applications',
+  application: '/applications',
+  applications: '/applications',
+  high_match_alert: '/discover',
+  jobs: '/discover',
+  tailor_complete: '/ai-tailor',
+  tailor_job: '/ai-tailor',
+  cover_letter_complete: '/ai-tailor',
+  cover_letter_job: '/ai-tailor',
+  weekly_summary: '/dashboard',
+}
+
+interface Props {
+  align?: 'left' | 'right'
+  onNavigate?: () => void
+}
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
@@ -9,11 +32,14 @@ function formatDate(value: string): string {
   }).format(new Date(value))
 }
 
-export default function NotificationList() {
+export default function NotificationList({ align = 'right', onNavigate }: Props) {
   const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotificationsStore()
+  const navigate = useNavigate()
 
   return (
-    <div className="absolute right-0 z-50 mt-3 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-line bg-raised shadow-2xl">
+    <div
+      className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} z-50 mt-3 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-line bg-raised shadow-2xl`}
+    >
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
         <h2 className="text-sm font-semibold text-fg">Notifications</h2>
         <button
@@ -42,6 +68,11 @@ export default function NotificationList() {
               type="button"
               onClick={() => {
                 if (!notification.is_read) void markRead(notification.id)
+                const link = LINKS[notification.type]
+                if (link) {
+                  onNavigate?.()
+                  navigate(link)
+                }
               }}
               className={`block w-full border-b border-line px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-strong ${
                 notification.is_read ? 'bg-surface' : 'bg-primary-50/60'
@@ -60,7 +91,7 @@ export default function NotificationList() {
                       {formatDate(notification.created_at)}
                     </time>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-fg-muted">{notification.body}</p>
+                  <p className="mt-1 line-clamp-3 whitespace-pre-line text-sm text-fg-muted">{notification.body}</p>
                 </div>
               </div>
             </button>

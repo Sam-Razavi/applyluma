@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '../../lib/errors'
 import {
   CartesianGrid,
   Line,
@@ -30,6 +31,7 @@ interface NotifyModal {
   user: AdminUserRow
   title: string
   body: string
+  sendEmail: boolean
   submitting: boolean
 }
 
@@ -138,11 +140,21 @@ export default function AdminUsers() {
     if (!notifyModal) return
     setNotifyModal((m) => m && { ...m, submitting: true })
     try {
-      await adminApi.sendNotification(notifyModal.user.id, notifyModal.title, notifyModal.body)
-      toast.success(`Notification sent to ${notifyModal.user.email}`)
+      await adminApi.sendNotification(
+        notifyModal.user.id,
+        notifyModal.title,
+        notifyModal.body,
+        notifyModal.sendEmail,
+      )
+      toast.success(
+        notifyModal.sendEmail
+          ? `Notification and email sent to ${notifyModal.user.email}`
+          : `Notification sent to ${notifyModal.user.email}`,
+      )
       setNotifyModal(null)
-    } catch {
-      toast.error('Failed to send notification')
+    } catch (err) {
+      // 502 means the in-app notification was saved but the email failed.
+      toast.error(getErrorMessage(err, 'Failed to send notification'))
       setNotifyModal((m) => m && { ...m, submitting: false })
     }
   }
@@ -355,7 +367,7 @@ export default function AdminUsers() {
                         </button>
                         <button
                           onClick={() =>
-                            setNotifyModal({ user: u, title: '', body: '', submitting: false })
+                            setNotifyModal({ user: u, title: '', body: '', sendEmail: false, submitting: false })
                           }
                           className="-my-2 py-2 text-xs font-medium text-accent-text hover:text-primary-800 transition-colors"
                         >
@@ -428,6 +440,20 @@ export default function AdminUsers() {
                 onChange={(e) => setNotifyModal((m) => m && { ...m, body: e.target.value })}
                 className="w-full resize-none rounded-lg border border-line-strong px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 "
               />
+              <label className="flex items-start gap-2 text-sm text-fg-muted">
+                <input
+                  type="checkbox"
+                  checked={notifyModal.sendEmail}
+                  onChange={(e) => setNotifyModal((m) => m && { ...m, sendEmail: e.target.checked })}
+                  className="mt-0.5"
+                />
+                <span>
+                  Also send by email
+                  <span className="block text-xs text-fg-subtle">
+                    Without this it only appears under the bell in the app, the next time they sign in.
+                  </span>
+                </span>
+              </label>
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button

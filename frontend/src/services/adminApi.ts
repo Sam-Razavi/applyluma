@@ -482,9 +482,9 @@ export const adminApi = {
     return client.get('/api/v1/admin/ai-jobs', { params }).then((r) => r.data)
   },
 
-  sendNotification(userId: string, title: string, body: string): Promise<void> {
+  sendNotification(userId: string, title: string, body: string, sendEmail = false): Promise<void> {
     return client
-      .post(`/api/v1/admin/users/${userId}/notify`, { title, body })
+      .post(`/api/v1/admin/users/${userId}/notify`, { title, body, send_email: sendEmail })
       .then(() => undefined)
   },
 
