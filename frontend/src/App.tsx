@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
@@ -13,6 +13,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import RouteFallback from './components/ui/RouteFallback'
+import { hasSignedInHint, restoreSession } from './lib/session'
 import { useAuthStore } from './stores'
 
 // First-paint entry points stay eager to avoid a fallback flash on the most
@@ -64,6 +65,17 @@ export default function App() {
   usePageTracking()
 
   useEffect(() => { initTheme() }, [])
+
+  // A new tab starts without this tab's session. When this browser has signed
+  // in before, restore it from the refresh cookie before routing, so the
+  // landing and login pages don't show to someone who is still signed in.
+  const [restoring, setRestoring] = useState(() => !isAuthenticated && hasSignedInHint())
+  useEffect(() => {
+    if (!restoring) return
+    void restoreSession().finally(() => setRestoring(false))
+  }, [restoring])
+
+  if (restoring) return <RouteFallback fullPage />
 
   return (
     <>

@@ -516,6 +516,16 @@ Inbound Email Ingestion (August 2026, first slice):
     (`authApi.refresh`). Signed out, it links to `/login?next=/extension-auth`;
     `lib/nextPath.ts` keeps `next` in sessionStorage so Google/LinkedIn/GitHub
     sign-in (via `/auth/callback`) returns there too.
+  - New-tab sessions (November 2026): the auth store persists to
+    sessionStorage (per tab), so every new tab (extension buttons, bookmarks,
+    email links) used to land on the login page despite a valid cookie.
+    `lib/session.ts` `restoreSession()` trades the refresh cookie for a
+    session, once per page load: `ProtectedRoute` tries it before redirecting
+    (and redirects with `?next=`), and `App` tries it at startup when the
+    `applyluma_signed_in` localStorage hint (set by the store on login, cleared
+    on logout) says this browser has signed in. Settings > Sign out now calls
+    `/auth/logout` too; it used to clear only the page, leaving the cookie
+    session alive for the next tab to restore.
   - Login: `get_by_email` is case-insensitive, and a failed password login on
     an OAuth-only account (no password) says which provider to use instead of
     "Incorrect email or password"; register's 409 says the same.
