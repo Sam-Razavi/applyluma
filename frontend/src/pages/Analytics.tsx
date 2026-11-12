@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import AnalyticsHeader from '../components/analytics/AnalyticsHeader'
 import JobFreshnessStat from '../components/analytics/JobFreshnessStat'
 import ChartCard from '../components/analytics/ChartCard'
@@ -7,6 +7,7 @@ import { getErrorMessage } from '../lib/errors'
 import { lazyWithRetry } from '../lib/lazyWithRetry'
 import { analyticsApi, cvApi } from '../services/api'
 import { useAuthStore } from '../stores'
+import { weeklyPostings } from '../utils/weeklyPostings'
 import type {
   CompanyInsight,
   CV,
@@ -40,6 +41,10 @@ const ResumeComparisonChart = lazyWithRetry(() => import('../components/analytic
 // Muse don't). Flip to true once a salary source is wired in. Kept as a flag so
 // the panels, fetches, and types stay wired and re-enabling is a one-line change.
 const SALARY_PANELS_ENABLED = false
+
+// Without the two salary panels the three-column grid has two rows that are
+// one card short, so one card in each takes the spare column.
+const WIDE_WITHOUT_SALARY = SALARY_PANELS_ENABLED ? undefined : 'lg:col-span-2'
 
 type LoadKey =
   | 'marketHealth'
@@ -182,7 +187,7 @@ async function fetchInitialAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
     analyticsApi.salaryInsights(),
     analyticsApi.hiringPatterns(30, 'daily'),
     analyticsApi.companyInsights(20),
-    analyticsApi.skillDemand(20, 0),
+    analyticsApi.skillDemand(8, -100, 'mentions'),
     analyticsApi.locationTrends(),
     analyticsApi.industryBreakdown(),
     analyticsApi.experienceLevels(),
@@ -380,7 +385,7 @@ export default function Analytics() {
   const loadSkillDemand = useCallback(async () => {
     setEndpointLoading('skillDemand', true)
     try {
-      setSkillDemand(await analyticsApi.skillDemand(20, 0))
+      setSkillDemand(await analyticsApi.skillDemand(8, -100, 'mentions'))
       setEndpointError('skillDemand', null)
     } catch (error) {
       setEndpointError('skillDemand', getErrorMessage(error, 'Failed to load data'))
@@ -603,6 +608,8 @@ export default function Analytics() {
     }
   }, [setEndpointError, setEndpointLoading, token])
 
+  const weekly = useMemo(() => weeklyPostings(hiringPatterns), [hiringPatterns])
+
   const handleResumeChange = (resumeId: string) => {
     setSelectedResumeId(resumeId)
     setResumeComparison(null)
@@ -653,13 +660,12 @@ export default function Analytics() {
           error={errors.marketHealth}
         />
         <KPICard
-          title="Growth"
-          value={skillDemand[0]?.trending_score_pct ?? null}
-          format="percentage"
-          trend={skillDemand[0]?.trending_score_pct ?? null}
+          title="New this week"
+          value={hiringPatterns.length > 0 ? weekly.thisWeek : null}
+          trend={weekly.growthPct}
           icon="trending-up"
-          loading={loading.skillDemand}
-          error={errors.skillDemand}
+          loading={loading.hiringPatterns}
+          error={errors.hiringPatterns}
         />
       </div>
 
@@ -667,6 +673,7 @@ export default function Analytics() {
         <ChartCard
           title="Trending Skills"
           subtitle="Top in-demand skills by job count"
+          className={WIDE_WITHOUT_SALARY}
           loading={loading.trendingSkills}
           error={errors.trendingSkills}
           empty={trendingSkills.length === 0}
@@ -724,8 +731,8 @@ export default function Analytics() {
         </Suspense>
 
         <ChartCard
-          title="Skill Demand Growth"
-          subtitle="This week vs last week"
+          title="Skill Demand"
+          subtitle="Most requested skills, this week vs last week"
           loading={loading.skillDemand}
           error={errors.skillDemand}
           empty={skillDemand.length === 0}
@@ -737,8 +744,8 @@ export default function Analytics() {
         </ChartCard>
 
         <ChartCard
-          title="Location Trends"
-          subtitle="Geographic distribution"
+          title="Top Locations"
+          subtitle="Where the jobs are"
           loading={loading.locationTrends}
           error={errors.locationTrends}
           empty={locationTrends.length === 0}
@@ -765,6 +772,7 @@ export default function Analytics() {
         <ChartCard
           title="Experience Levels"
           subtitle="Jobs by seniority"
+          className={WIDE_WITHOUT_SALARY}
           loading={loading.experienceLevels}
           error={errors.experienceLevels}
           empty={experienceLevels.length === 0}

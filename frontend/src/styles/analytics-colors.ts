@@ -57,17 +57,6 @@ export const ANALYTICS_COLORS = {
 
 export const CHART_COLORS = ANALYTICS_COLORS.chartPalette
 
-export const LOCATION_COLORS = [
-  '#6366f1',
-  '#3b82f6',
-  '#8b5cf6',
-  '#06b6d4',
-  '#14b8a6',
-  '#10b981',
-  '#f59e0b',
-  '#ec4899',
-]
-
 export const CHART_TOOLTIP_STYLE = {
   background: '#0C1218',
   border: '1px solid rgba(255,255,255,0.10)',

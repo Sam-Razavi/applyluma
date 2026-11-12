@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_redis_client
 from app.db.queries.analytics_queries import (
     ANALYTICS_CACHE_TTL_SECONDS,
+    LIVE_POSTINGS_SQL,
     build_cache_key,
     build_metadata,
     get_or_cache,
@@ -32,7 +33,7 @@ def get_job_market_health(
             # current ingestion instead of a stale dbt mart. Role mix is derived
             # from a title-keyword heuristic; salary stays null (no salary source yet).
             row = db.execute(
-                text(r"""
+                text(rf"""
                     WITH jobs AS (
                         SELECT
                             company,
@@ -49,7 +50,7 @@ def get_job_market_health(
                             (title ~* '(junior|jr\.?|intern|graduate|trainee|entry[ -]level|associate)') AS is_junior_role,
                             (title ~* '(manager|head of|director|\mvp\M|chief|cto|ceo|engineering manager)') AS is_management_role
                         FROM raw_job_postings
-                        WHERE NOT is_duplicate
+                        WHERE {LIVE_POSTINGS_SQL}
                     )
                     SELECT
                         COUNT(*) AS total_jobs,

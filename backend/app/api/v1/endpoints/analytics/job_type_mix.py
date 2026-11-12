@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_redis_client
 from app.db.queries.analytics_queries import (
     ANALYTICS_CACHE_TTL_SECONDS,
+    LIVE_POSTINGS_SQL,
     build_cache_key,
     build_metadata,
     get_or_cache,
@@ -20,6 +21,23 @@ from app.schemas.analytics import AnalyticsResponse, JobTypeMixItem
 
 router = APIRouter()
 
+# Sources name the same thing differently (Platsbanken "Heltid", Remotive
+# "full_time"); without this each spelling is its own slice of the chart.
+_JOB_TYPE_SQL = """
+    CASE
+        WHEN employment_type IS NULL OR btrim(employment_type) = '' THEN 'unknown'
+        WHEN lower(btrim(employment_type)) IN ('heltid', 'full_time', 'full-time', 'full time', 'fulltime')
+            THEN 'full_time'
+        WHEN lower(btrim(employment_type)) IN ('deltid', 'part_time', 'part-time', 'part time', 'parttime')
+            THEN 'part_time'
+        WHEN lower(btrim(employment_type)) IN ('contract', 'contractor', 'freelance', 'temporary')
+            THEN 'contract'
+        WHEN lower(btrim(employment_type)) IN ('internship', 'intern', 'praktik')
+            THEN 'internship'
+        ELSE 'other'
+    END
+"""
+
 
 @router.get("/job-type-mix", response_model=AnalyticsResponse[list[JobTypeMixItem]])
 def get_job_type_mix(
@@ -29,20 +47,20 @@ def get_job_type_mix(
     def fetch() -> AnalyticsResponse[list[JobTypeMixItem]]:
         def query() -> list[dict]:
             rows = db.execute(
-                text("""
+                text(f"""
                     WITH total AS (
-                        SELECT COUNT(*) AS n FROM raw_job_postings WHERE NOT is_duplicate
+                        SELECT COUNT(*) AS n FROM raw_job_postings WHERE {LIVE_POSTINGS_SQL}
                     )
                     SELECT
-                        COALESCE(employment_type, 'unknown') AS job_type,
+                        {_JOB_TYPE_SQL} AS job_type,
                         CASE WHEN remote_allowed THEN 'remote' ELSE 'on-site' END AS remote_label,
                         COUNT(*) AS job_count,
                         ROUND(COUNT(*) * 100.0 / NULLIF((SELECT n FROM total), 0), 2) AS pct_of_total,
                         NULL AS avg_salary_min,
                         NULL AS avg_salary_max
                     FROM raw_job_postings
-                    WHERE NOT is_duplicate
-                    GROUP BY employment_type, remote_allowed
+                    WHERE {LIVE_POSTINGS_SQL}
+                    GROUP BY 1, remote_allowed
                     ORDER BY job_count DESC
                 """)
             ).fetchall()

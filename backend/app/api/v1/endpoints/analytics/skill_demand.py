@@ -1,4 +1,4 @@
-"""GET /analytics/skill-demand - fastest-growing skills."""
+"""GET /analytics/skill-demand - week-on-week skill demand."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
@@ -12,6 +12,7 @@ from app.db.queries.analytics_queries import (
     build_cache_key,
     build_metadata,
     get_or_cache,
+    invalid_params,
     ok_response,
     rows_to_dicts,
     safe_execute,
@@ -22,11 +23,20 @@ from app.schemas.analytics import AnalyticsResponse, SkillDemand
 
 router = APIRouter()
 
+# "growth" ranks by percentage change, which favours rare skills (4 mentions
+# after 0 is +100%). "mentions" ranks by volume, for comparing the skills that
+# matter this week against last week.
+_ORDER_BY = {
+    "growth": "trending_score_pct DESC",
+    "mentions": "mentions_this_week + mentions_last_week DESC, skill",
+}
+
 
 @router.get("/skill-demand", response_model=AnalyticsResponse[list[SkillDemand]])
 def get_skill_demand(
     limit: int = Query(20),
     min_growth_pct: float = Query(5.0),
+    sort: str = Query("growth"),
     db: Session = Depends(get_db),
     redis_client=Depends(get_redis_client),
 ) -> AnalyticsResponse[list[SkillDemand]] | JSONResponse:
@@ -34,12 +44,14 @@ def get_skill_demand(
         return error
     if error := validate_float(min_growth_pct, "min_growth_pct", -100.0, 10_000.0):
         return error
+    if sort not in _ORDER_BY:
+        return invalid_params("sort must be growth or mentions", {"sort": f"received {sort}"})
 
     def fetch() -> AnalyticsResponse[list[SkillDemand]]:
         def query() -> list[dict]:
             # Live skill growth from raw_job_postings.extracted_skills (week-over-week).
             rows = db.execute(
-                text("""
+                text(f"""
                     WITH skill_counts AS (
                         SELECT
                             skill,
@@ -83,7 +95,7 @@ def get_skill_demand(
                         END AS trend
                     FROM scored
                     WHERE trending_score_pct >= :min_growth_pct
-                    ORDER BY trending_score_pct DESC
+                    ORDER BY {_ORDER_BY[sort]}
                     LIMIT :limit
                 """),
                 {"limit": limit, "min_growth_pct": min_growth_pct},
@@ -92,11 +104,11 @@ def get_skill_demand(
 
         data = get_or_cache(
             redis_client,
-            build_cache_key("skill_demand", limit=limit, min_growth_pct=min_growth_pct),
+            build_cache_key("skill_demand", limit=limit, min_growth_pct=min_growth_pct, sort=sort),
             ANALYTICS_CACHE_TTL_SECONDS,
             query,
         )
-        metadata = build_metadata(db, "public.raw_job_postings", {"limit": limit, "min_growth_pct": min_growth_pct})
+        metadata = build_metadata(db, "public.raw_job_postings", {"limit": limit, "min_growth_pct": min_growth_pct, "sort": sort})
         return ok_response(data, metadata)
 
     return safe_execute(fetch)

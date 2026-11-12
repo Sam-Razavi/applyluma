@@ -15,7 +15,7 @@ export default function AnalyticsHeader({
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-3xl font-bold text-fg">Market Intelligence</h1>
-        <p className="mt-2 text-sm text-fg-subtle">Real-time job market insights and analytics</p>
+        <p className="mt-2 text-sm text-fg-subtle">Job market insights from live job ads, updated nightly</p>
       </div>
 
       <div className="flex items-center gap-3">

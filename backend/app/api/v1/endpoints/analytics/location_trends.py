@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_redis_client
 from app.db.queries.analytics_queries import (
     ANALYTICS_CACHE_TTL_SECONDS,
+    LIVE_POSTINGS_SQL,
     build_cache_key,
     build_metadata,
     get_or_cache,
@@ -29,21 +30,23 @@ def get_location_trends(
     def fetch() -> AnalyticsResponse[list[LocationTrend]]:
         def query() -> list[dict]:
             rows = db.execute(
-                text("""
+                text(f"""
                     WITH totals AS (
-                        SELECT COUNT(*) AS grand_total FROM raw_job_postings WHERE NOT is_duplicate
+                        SELECT COUNT(*) AS grand_total FROM raw_job_postings WHERE {LIVE_POSTINGS_SQL}
                     ),
                     by_location AS (
                         SELECT
-                            location,
+                            -- Sources disagree on case ("Stockholm", "STOCKHOLM"):
+                            -- one row per place, shown in its most common spelling.
+                            MODE() WITHIN GROUP (ORDER BY btrim(location)) AS location,
                             COUNT(*) AS job_count,
                             ROUND(COUNT(*) * 100.0 / NULLIF((SELECT grand_total FROM totals), 0), 2) AS pct_of_total,
                             NULL AS avg_salary_midpoint,
                             ROUND(COUNT(*) FILTER (WHERE remote_allowed) * 100.0 / NULLIF(COUNT(*), 0), 1) AS remote_percentage
                         FROM raw_job_postings
-                        WHERE NOT is_duplicate
+                        WHERE {LIVE_POSTINGS_SQL}
                           AND location IS NOT NULL AND location != 'Unknown'
-                        GROUP BY location
+                        GROUP BY lower(btrim(location))
                     )
                     SELECT * FROM by_location ORDER BY job_count DESC LIMIT 30
                 """)
