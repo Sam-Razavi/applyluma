@@ -199,6 +199,16 @@ async def test_skill_demand_returns_200(monkeypatch: pytest.MonkeyPatch) -> None
     assert response.json()["success"] is True
 
 
+@pytest.mark.asyncio
+async def test_skill_demand_rejects_unknown_sort() -> None:
+    _setup_deps()
+
+    response = await _get("/api/v1/analytics/skill-demand?sort=price")
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_PARAMS"
+
+
 # ---------------------------------------------------------------------------
 # /analytics/experience-levels
 # ---------------------------------------------------------------------------

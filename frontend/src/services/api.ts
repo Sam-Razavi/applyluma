@@ -221,10 +221,14 @@ export const analyticsApi = {
   freshness: (): Promise<JobFreshness> =>
     client.get<JobFreshness>('/api/v1/analytics/freshness').then((r) => r.data),
 
-  skillDemand: (limit = 20, minGrowthPct = 0): Promise<SkillDemand[]> =>
+  skillDemand: (
+    limit = 20,
+    minGrowthPct = 0,
+    sort: 'growth' | 'mentions' = 'growth',
+  ): Promise<SkillDemand[]> =>
     client
       .get<AnalyticsEnvelope<SkillDemand[]>>('/api/v1/analytics/skill-demand', {
-        params: { limit, min_growth_pct: minGrowthPct },
+        params: { limit, min_growth_pct: minGrowthPct, sort },
       })
       .then((r) => unwrapAnalytics(r.data)),
 

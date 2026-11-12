@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_redis_client
 from app.db.queries.analytics_queries import (
     ANALYTICS_CACHE_TTL_SECONDS,
+    LIVE_POSTINGS_SQL,
     build_cache_key,
     build_metadata,
     get_or_cache,
@@ -29,8 +30,8 @@ def get_experience_levels(
     def fetch() -> AnalyticsResponse[list[ExperienceLevelBreakdown]]:
         def query() -> list[dict]:
             rows = db.execute(
-                text(r"""
-                    WITH total AS (SELECT COUNT(*) AS n FROM raw_job_postings WHERE NOT is_duplicate),
+                text(rf"""
+                    WITH total AS (SELECT COUNT(*) AS n FROM raw_job_postings WHERE {LIVE_POSTINGS_SQL}),
                     classified AS (
                         SELECT
                             CASE
@@ -41,7 +42,7 @@ def get_experience_levels(
                             END AS level,
                             remote_allowed
                         FROM raw_job_postings
-                        WHERE NOT is_duplicate
+                        WHERE {LIVE_POSTINGS_SQL}
                     )
                     SELECT
                         level,

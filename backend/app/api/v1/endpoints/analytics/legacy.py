@@ -11,6 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user_id, get_db
+from app.db.queries.analytics_queries import LIVE_POSTINGS_SQL
 from app.schemas.analytics import (
     AnalyticsOverview,
     CompanyStat,
@@ -84,9 +85,9 @@ def get_freshness(
     ingestion activity rather than a stale dbt-built table.
     """
     row = db.execute(
-        text("""
+        text(f"""
             SELECT
-                COUNT(*) FILTER (WHERE NOT is_duplicate) AS total_jobs,
+                COUNT(*) FILTER (WHERE {LIVE_POSTINGS_SQL}) AS total_jobs,
                 COUNT(*) FILTER (
                     WHERE NOT is_duplicate AND DATE(scraped_at) = CURRENT_DATE
                 ) AS new_today,

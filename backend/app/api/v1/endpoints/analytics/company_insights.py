@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_redis_client
 from app.db.queries.analytics_queries import (
     ANALYTICS_CACHE_TTL_SECONDS,
+    LIVE_POSTINGS_SQL,
     build_cache_key,
     build_metadata,
     get_or_cache,
@@ -40,7 +41,7 @@ def get_company_insights(
         def query() -> list[dict]:
             # Live company aggregation from the scraping landing table.
             rows = db.execute(
-                text("""
+                text(f"""
                     SELECT
                         company AS company_name,
                         COUNT(*) AS total_jobs,
@@ -57,7 +58,7 @@ def get_company_insights(
                             2
                         ), COUNT(*)::numeric) AS hiring_velocity
                     FROM raw_job_postings
-                    WHERE NOT is_duplicate
+                    WHERE {LIVE_POSTINGS_SQL}
                       AND (:location IS NULL OR location ILIKE '%' || :location || '%')
                     GROUP BY company
                     ORDER BY total_jobs DESC

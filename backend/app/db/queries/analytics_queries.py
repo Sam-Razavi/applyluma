@@ -26,6 +26,14 @@ ALLOWED_ANALYTICS_TABLES = {
     "public.cvs",
     "public.raw_job_postings",
 }
+# "The market now": the same rule as crud.job._is_live_deadline_clause, as raw
+# SQL for the text() queries. Archived postings are kept for 90 days as slim
+# rows (no description or skills), so counting them inflates totals and drags
+# per-posting averages towards zero.
+LIVE_POSTINGS_SQL = (
+    "NOT is_duplicate AND archived_at IS NULL "
+    "AND (application_deadline IS NULL OR application_deadline >= NOW())"
+)
 _METADATA_CACHE_TTL_SECONDS = 60
 _metadata_cache: dict[tuple[str, str], tuple[datetime, ResponseMetadata]] = {}
 

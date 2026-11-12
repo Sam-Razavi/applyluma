@@ -1,12 +1,18 @@
 import { useMemo } from 'react'
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { CHART_AXIS_TICK, CHART_COLORS, CHART_TOOLTIP_STYLE } from '../../../styles/analytics-colors'
 import { formatNumber } from '../../../utils/formatters'
+import { CATEGORY_AXIS_WIDTH, legendLabel } from './chartHelpers'
+import { CategoryTick } from './chartParts'
 import type { SkillDemand } from '../../../types'
 
 interface Props {
   data: SkillDemand[]
 }
+
+// One hue in two strengths: the pair reads as "the same skill, then and now".
+const THIS_WEEK = CHART_COLORS[0]
+const LAST_WEEK = 'rgba(59, 130, 246, 0.4)'
 
 export default function SkillDemandChart({ data }: Props) {
   const chartData = useMemo(
@@ -15,31 +21,30 @@ export default function SkillDemandChart({ data }: Props) {
         skill: skill.skill,
         thisWeek: skill.mentions_this_week,
         lastWeek: skill.mentions_last_week,
-        growth: skill.trending_score_pct,
       })),
     [data],
   )
 
   return (
     <>
-      <div className="h-48 w-full md:h-72">
+      <div className="h-64 w-full md:h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 5, right: 24, left: 0, bottom: 28 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--track)" vertical={false} />
-          <XAxis dataKey="skill" angle={-25} textAnchor="end" interval={0} tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={{ stroke: 'var(--glass-border-strong)' }} tickLine={false} />
-          <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
+          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 16, left: 8, bottom: 5 }} barGap={2} barCategoryGap="24%">
+          <XAxis type="number" allowDecimals={false} tick={CHART_AXIS_TICK} axisLine={{ stroke: 'var(--glass-border-strong)' }} tickLine={false} />
+          <YAxis type="category" dataKey="skill" width={CATEGORY_AXIS_WIDTH} interval={0} tick={<CategoryTick />} axisLine={false} tickLine={false} />
           <Tooltip
-            formatter={(value, name) => [formatNumber(Number(value)), name === 'thisWeek' ? 'This week' : 'Last week']}
+            formatter={(value, name) => [`${formatNumber(Number(value))} job ads`, name]}
             contentStyle={CHART_TOOLTIP_STYLE}
+            cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
           />
-          <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'var(--text-2)' }} iconType="circle" />
-          <Line type="monotone" dataKey="thisWeek" name="This week" stroke={CHART_COLORS[0]} strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="lastWeek" name="Last week" stroke={CHART_COLORS[1]} strokeWidth={2} dot={false} />
-          </LineChart>
+          <Legend itemSorter={null} formatter={legendLabel} wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} iconType="circle" />
+          <Bar dataKey="thisWeek" name="This week" fill={THIS_WEEK} radius={[0, 4, 4, 0]} />
+          <Bar dataKey="lastWeek" name="Last week" fill={LAST_WEEK} radius={[0, 4, 4, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
       <p id="skill-demand-desc" className="sr-only">
-        Line chart comparing this week's and last week's mentions for growing skills.
+        Bar chart comparing this week's and last week's job ads for the most requested skills.
       </p>
     </>
   )

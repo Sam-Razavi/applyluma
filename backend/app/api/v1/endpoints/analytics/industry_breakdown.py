@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_redis_client
 from app.db.queries.analytics_queries import (
     ANALYTICS_CACHE_TTL_SECONDS,
+    LIVE_POSTINGS_SQL,
     build_cache_key,
     build_metadata,
     get_or_cache,
@@ -29,23 +30,33 @@ def get_industry_breakdown(
     def fetch() -> AnalyticsResponse[list[IndustryBreakdown]]:
         def query() -> list[dict]:
             rows = db.execute(
-                text(r"""
-                    WITH total AS (SELECT COUNT(*) AS n FROM raw_job_postings WHERE NOT is_duplicate),
+                text(rf"""
+                    WITH total AS (SELECT COUNT(*) AS n FROM raw_job_postings WHERE {LIVE_POSTINGS_SQL}),
                     classified AS (
                         SELECT
                             CASE
-                                WHEN lower(title) ~* '\m(engineer|developer|programmer|software|backend|frontend|fullstack)\M' THEN 'Software Engineering'
-                                WHEN lower(title) ~* '\m(data|analyst|analytics|scientist|machine learning|ml|ai|nlp)\M' THEN 'Data & Analytics'
-                                WHEN lower(title) ~* '\m(devops|cloud|platform|infrastructure|sre|reliability|kubernetes|docker)\M' THEN 'DevOps & Infrastructure'
-                                WHEN lower(title) ~* '\m(product manager|product owner|ux|ui|designer|design)\M' THEN 'Product & Design'
-                                WHEN lower(title) ~* '\m(manager|director|head of|vp|cto|cio|chief)\M' THEN 'Management & Leadership'
+                                -- English titles match whole words; the second pattern
+                                -- on each line is Swedish, matched inside compounds
+                                -- ("systemutvecklare", "nätverkstekniker").
+                                WHEN lower(title) ~* '\m(engineer|developer|programmer|software|backend|frontend|fullstack|embedded|architect|tester|qa)\M'
+                                  OR lower(title) ~* '(utvecklare|programmerare|mjukvaru|ingenjör|arkitekt|testare)' THEN 'Software Engineering'
+                                WHEN lower(title) ~* '\m(data|analyst|analytics|scientist|machine learning|ml|ai|nlp)\M'
+                                  OR lower(title) ~* '(dataanaly|datavetare)' THEN 'Data & Analytics'
+                                WHEN lower(title) ~* '\m(devops|cloud|platform|infrastructure|sre|reliability|kubernetes|docker|network)\M'
+                                  OR lower(title) ~* '(infrastruktur|nätverk|systemförvaltare|drifttekniker)' THEN 'DevOps & Infrastructure'
+                                WHEN lower(title) ~* '\m(product manager|product owner|ux|ui|designer|design)\M'
+                                  OR lower(title) ~* '(produktägare|produktchef)' THEN 'Product & Design'
+                                WHEN lower(title) ~* '\m(manager|director|head of|vp|cto|cio|chief)\M'
+                                  OR lower(title) ~* '(projektledare|teamledare|gruppledare|chef\M)' THEN 'Management & Leadership'
+                                WHEN lower(title) ~* '\m(support|helpdesk|servicedesk|service desk|technician|administrator)\M'
+                                  OR lower(title) ~* '(tekniker|administratör|förvaltare)' THEN 'IT Support & Operations'
                                 WHEN lower(title) ~* '\m(finance|accountant|compliance|legal|counsel|risk)\M' THEN 'Finance & Legal'
                                 WHEN lower(title) ~* '\m(sales|marketing|growth|seo|content|social media)\M' THEN 'Sales & Marketing'
                                 ELSE 'Other'
                             END AS industry,
                             remote_allowed
                         FROM raw_job_postings
-                        WHERE NOT is_duplicate
+                        WHERE {LIVE_POSTINGS_SQL}
                     )
                     SELECT
                         industry,

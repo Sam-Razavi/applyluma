@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { CHART_AXIS_TICK, CHART_DARK_AXIS_TICK, CHART_TOOLTIP_STYLE } from '../../../styles/analytics-colors'
+import { CHART_AXIS_TICK, CHART_TOOLTIP_STYLE } from '../../../styles/analytics-colors'
 import { formatNumber, formatPercentage } from '../../../utils/formatters'
+import { CATEGORY_AXIS_WIDTH } from './chartHelpers'
+import { CategoryTick } from './chartParts'
 import type { CompanyInsight } from '../../../types'
 
 interface Props {
@@ -11,7 +13,7 @@ interface Props {
 export default function CompanyInsightsChart({ data }: Props) {
   const chartData = useMemo(
     () =>
-      data.slice(0, 12).map((company) => ({
+      data.slice(0, 10).map((company) => ({
         name: company.company_name,
         count: company.total_jobs,
         remote: company.remote_percentage,
@@ -22,11 +24,11 @@ export default function CompanyInsightsChart({ data }: Props) {
 
   return (
     <>
-      <div className="h-48 w-full md:h-72">
+      <div className="h-64 w-full md:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 16, left: 8, bottom: 5 }}>
           <XAxis type="number" tick={CHART_AXIS_TICK} axisLine={{ stroke: 'var(--glass-border-strong)' }} tickLine={false} />
-          <YAxis type="category" dataKey="name" width={92} tick={CHART_DARK_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={(v: string) => (v.length > 14 ? `${v.slice(0, 13)}…` : v)} />
+          <YAxis type="category" dataKey="name" width={CATEGORY_AXIS_WIDTH} interval={0} tick={<CategoryTick />} axisLine={false} tickLine={false} />
           <Tooltip
             formatter={(value, _name, props) => [
               `${formatNumber(Number(value))} jobs, ${formatPercentage(Number(props.payload.remote))} remote`,

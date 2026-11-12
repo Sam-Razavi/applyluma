@@ -1,75 +1,48 @@
 import { useMemo } from 'react'
-import { ResponsiveContainer, Tooltip, Treemap } from 'recharts'
-import { CHART_TOOLTIP_STYLE, LOCATION_COLORS } from '../../../styles/analytics-colors'
-import { formatCompactCurrency, formatNumber, formatPercentage } from '../../../utils/formatters'
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { CHART_AXIS_TICK, CHART_COLORS, CHART_TOOLTIP_STYLE } from '../../../styles/analytics-colors'
+import { formatNumber, formatPercentage } from '../../../utils/formatters'
+import { CATEGORY_AXIS_WIDTH } from './chartHelpers'
+import { CategoryTick } from './chartParts'
 import type { LocationTrend } from '../../../types'
 
 interface Props {
   data: LocationTrend[]
 }
 
-interface TreemapTileProps {
-  x?: number
-  y?: number
-  width?: number
-  height?: number
-  name?: string
-  size?: number
-  fill?: string
-}
-
-function TreemapTile({ x = 0, y = 0, width = 0, height = 0, name = '', size = 0, fill = '#4f46e5' }: TreemapTileProps) {
-  if (width < 60 || height < 50) return null
-
-  const shortName = name.length > 15 ? `${name.slice(0, 12)}...` : name
-
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} fill={fill} stroke="#fff" strokeWidth={3} />
-      {width > 80 && height > 60 && (
-        <>
-          <text x={x + width / 2} y={y + height / 2 - 8} textAnchor="middle" fill="#fff" fontSize={13} fontWeight={600}>
-            {shortName}
-          </text>
-          <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="#fff" fontSize={12} opacity={0.9}>
-            {formatNumber(size)} jobs
-          </text>
-        </>
-      )}
-    </g>
-  )
-}
-
 export default function LocationTrendsChart({ data }: Props) {
   const chartData = useMemo(
     () =>
-      data.slice(0, 12).map((location, index) => ({
+      data.slice(0, 10).map((location) => ({
         name: location.location,
-        size: location.job_count,
-        salary: location.avg_salary_midpoint,
+        count: location.job_count,
+        share: location.pct_of_total,
         remote: location.remote_percentage,
-        fill: LOCATION_COLORS[index % LOCATION_COLORS.length],
       })),
     [data],
   )
 
   return (
     <>
-      <div className="h-48 w-full md:h-72">
+      <div className="h-64 w-full md:h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <Treemap data={chartData} dataKey="size" nameKey="name" stroke="#fff" content={<TreemapTile />}>
+          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 16, left: 8, bottom: 5 }}>
+          <XAxis type="number" allowDecimals={false} tick={CHART_AXIS_TICK} axisLine={{ stroke: 'var(--glass-border-strong)' }} tickLine={false} />
+          <YAxis type="category" dataKey="name" width={CATEGORY_AXIS_WIDTH} interval={0} tick={<CategoryTick />} axisLine={false} tickLine={false} />
           <Tooltip
             formatter={(value, _name, props) => [
-              `${formatNumber(Number(value))} jobs, ${formatPercentage(props.payload.remote)} remote, ${formatCompactCurrency(props.payload.salary)} avg salary`,
+              `${formatNumber(Number(value))} jobs (${formatPercentage(Number(props.payload.share))} of all), ${formatPercentage(Number(props.payload.remote))} remote`,
               props.payload.name,
             ]}
             contentStyle={CHART_TOOLTIP_STYLE}
+            cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
           />
-          </Treemap>
+          <Bar dataKey="count" fill={CHART_COLORS[2]} radius={[0, 4, 4, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
       <p id="location-trends-desc" className="sr-only">
-        Treemap showing geographic distribution of job postings.
+        Bar chart showing the locations with the most job postings.
       </p>
     </>
   )

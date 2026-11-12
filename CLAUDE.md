@@ -662,6 +662,29 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     the app had been calling Adzuna keyless (the health check only looked at
     the app ID, so it reported "configured"; it now requires both).
 
+Analytics page fixes (November 2026):
+  - Point-in-time analytics count only live postings: `LIVE_POSTINGS_SQL` in
+    `app/db/queries/analytics_queries.py` (not duplicate, not archived, deadline
+    not passed; the raw-SQL twin of `crud.job._is_live_deadline_clause`). Used by
+    job-market-health, job-type-mix, location-trends, company-insights,
+    experience-levels, industry-breakdown and the `total_jobs` of `/freshness`.
+    Before this, the ~120k archived slim rows inflated "Total Jobs" and pulled
+    "Avg Skills/Job" to 0.0. Time series (hiring-patterns, the week-on-week
+    windows) still group by `scraped_at`.
+  - job-type-mix merges source spellings in SQL ("Heltid" = "full_time");
+    location-trends groups by `lower(btrim(location))`; industry-breakdown
+    classifies Swedish titles (matched inside compounds such as
+    "systemutvecklare") and has an "IT Support & Operations" sector.
+  - `GET /analytics/skill-demand?sort=growth|mentions`: growth ranking is
+    dominated by rare skills (4 mentions after 0 is +100%), so the page asks for
+    `mentions`.
+  - Charts: horizontal bar charts share `CategoryTick` (`charts/chartParts.tsx`,
+    one-line labels, every row labelled) and `chartHelpers.tsx`; donuts use
+    percentage radii so labels and legends fit on phones; `Legend` needs
+    `itemSorter={null}` or Recharts 3 sorts entries alphabetically. The "New this
+    week" KPI comes from `utils/weeklyPostings.ts` (daily hiring-patterns series).
+  - `tests/test_analytics_live_db.py` runs these queries on a real Postgres.
+
 ## Git Workflow
 
 Branch structure:
