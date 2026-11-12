@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints.admin import router as admin_router
-from app.api.v1.endpoints.ai import router as ai_router
 from app.api.v1.endpoints.alert_preferences import router as alert_preferences_router
 from app.api.v1.endpoints.analytics import router as analytics_router
 from app.api.v1.endpoints.auth import router as auth_router
@@ -23,7 +22,6 @@ api_router.include_router(auth_linkedin_router)
 api_router.include_router(auth_github_router)
 api_router.include_router(cvs_router)
 api_router.include_router(jd_router)
-api_router.include_router(ai_router)
 api_router.include_router(analytics_router)
 api_router.include_router(tailor_router)
 api_router.include_router(alert_preferences_router)
