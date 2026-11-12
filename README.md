@@ -11,15 +11,15 @@
 ApplyLuma is a production-deployed AI job-search platform that helps candidates discover matched jobs, tailor CVs, generate cover letters, track applications, and analyze job-market trends from one workspace.
 
 - Production: https://applyluma.com
-- Backend API: https://applyluma-production.up.railway.app
-- API docs: https://applyluma-production.up.railway.app/docs
+- Backend API: https://api.applyluma.com
+- API docs: https://api.applyluma.com/api/v1/docs
 - Browser extension: `applyluma-extension/`
 
 ## Product Preview
 
 ### Job Discovery and AI CV Tailoring
 
-| AI-matched job discovery | AI CV tailoring workflow |
+| Job discovery with CV match scores | AI CV tailoring workflow |
 | --- | --- |
 | ![Discover jobs with CV match scores and filters](docs/screenshots/discover-jobs.png) | ![AI CV Tailor source selection and tailoring intensity](docs/screenshots/ai-tailor.png) |
 
@@ -44,8 +44,8 @@ ApplyLuma is a production-deployed AI job-search platform that helps candidates 
 ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 
 - Full-stack product delivery: React, TypeScript, FastAPI, PostgreSQL, Redis, Celery, Docker, Railway, and Vercel.
-- AI workflows: resume analysis, section-by-section CV tailoring, cover letter generation, job URL extraction, and match-score explanation.
-- Data engineering: scheduled job ingestion, dbt transformations, analytics APIs, and a production dashboard.
+- AI workflows: section-by-section CV tailoring, cover letter generation, and job URL extraction.
+- Data engineering: scheduled job ingestion, SQL-built analytics marts, analytics APIs, and a production dashboard.
 - Security and operations: httpOnly cookie auth, CSRF protection, token denylist, rate limits, SSRF protection, admin audit logging, CI, and deployment docs.
 - Recruiter-visible product thinking: responsive UI, onboarding flows, job tracking, billing plans, alert preferences, and browser extension support.
 
@@ -54,7 +54,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 ### Candidate Workspace
 
 - Secure sign-up, login, password reset, email verification, and session handling.
-- CV upload (PDF, DOCX, and Markdown), parsing, AI analysis, version history, and authenticated PDF downloads.
+- CV upload (PDF, DOCX, and Markdown), parsing, completeness score, version history, and authenticated PDF downloads.
 - AI CV Tailor with asynchronous processing, section review, save, and export.
   Tailored output uses OpenAI Structured Outputs and renders through a choice
   of PDF templates (Nordic, Classic, Modern, Executive, Atlas, and Compact)
@@ -71,7 +71,9 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 
 - Swedish job discovery from Platsbanken, plus remote roles from RemoteOK, Remotive and The Muse.
 - International job search through Adzuna.
-- AI match scoring against the user's CV with matched and missing skill breakdowns.
+- Match scoring against the user's CV with matched and missing skill breakdowns. The score is a
+  transparent, rule-based weighted formula (skills 40%, experience 30%, salary 15%, education 10%,
+  location 5%); it makes no model call.
 - Saved jobs with collections, starring, notes, and detail views.
 - One-click actions from discovered jobs: tailor CV, save job, and add to applications.
 - Job alert emails for high-match roles with configurable threshold and frequency.
@@ -98,7 +100,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 | Frontend | React, TypeScript, Vite, Tailwind CSS, Framer Motion, Zustand, Recharts |
 | Backend | FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, Celery |
 | CV/Cover Letter Rendering | Jinja2 + WeasyPrint (templated PDF generation), legacy ReportLab fallback |
-| AI | OpenAI API for resume analysis, CV tailoring, cover letters, extraction, and scoring |
+| AI | OpenAI API for CV tailoring, cover letters, and job-ad extraction |
 | Data | Celery beat + worker on Railway (nightly job pipeline), Railway PostgreSQL |
 | Extension | Manifest V3, content scripts, Chrome/Firefox storage APIs |
 | Infrastructure | Railway, Vercel, Docker, Namecheap DNS |
@@ -112,16 +114,15 @@ applyluma/
 |-- backend/               FastAPI API, SQLAlchemy models, schemas, services, tasks, tests
 |-- frontend/              React + TypeScript app, pages, components, stores, tests
 |-- applyluma-extension/   MV3 browser extension for saving jobs from job boards
-|-- dbt/                   Analytics transformations
+|-- dbt/                   dbt models, kept for reference (production builds its marts with SQL)
 |-- deployment/            Railway, Vercel, DNS, and test checklists
-|-- docs/                  Product and technical documentation
-`-- graphify-out/          Local knowledge graph for codebase navigation
+`-- docs/                  Product and technical documentation
 ```
 
 ## Production Deployment
 
 - Frontend: Vercel, https://applyluma.com
-- Backend: Railway, https://applyluma-production.up.railway.app
+- Backend: Railway, https://api.applyluma.com
 - Database: Railway PostgreSQL
 - Cache and queue broker: Railway Redis
 - Data pipeline: Celery tasks on Railway (`app/tasks/job_pipeline.py`)
@@ -177,12 +178,12 @@ npm run dev
 
 ## Testing
 
-ApplyLuma ships with **1,186 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
+ApplyLuma ships with **1,295 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
 
 | Suite | Tests | Coverage |
 | --- | --- | --- |
-| Backend — Pytest (async, ASGI transport) | 840 across 63 files, incl. real-Postgres tests in CI | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, billing), Celery tasks (incl. the health watchdog), admin controls, auth and security |
-| Frontend — Vitest + React Testing Library | 339 across 50 files | Pages, Zustand stores, components, and formatters |
+| Backend — Pytest (async, ASGI transport) | 904 across 67 files, incl. real-Postgres tests in CI | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, billing), Celery tasks (incl. the health watchdog), admin controls, auth and security |
+| Frontend — Vitest + React Testing Library | 384 across 62 files | Pages, Zustand stores, components, and formatters |
 | dbt | 7 SQL assertions + `dbt parse` | Data-quality assertions and project validation |
 
 ```bash
@@ -216,7 +217,7 @@ Schedule:
 Production health check:
 
 ```bash
-curl https://applyluma-production.up.railway.app/api/v1/analytics/job-market-health
+curl https://api.applyluma.com/api/v1/analytics/job-market-health
 ```
 
 ## Environment Variables

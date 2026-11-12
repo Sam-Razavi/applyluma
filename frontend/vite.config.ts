@@ -20,6 +20,10 @@ export default defineConfig({
   ],
   build: {
     sourcemap: sentryEnabled,
+    // Vite inlines small assets as data: URLs, and the smallest font subsets
+    // fall under that limit. The CSP (vercel.json) allows fonts from 'self'
+    // only, so each inlined font was a blocked request and a console error.
+    assetsInlineLimit: (filePath) => (/\.(woff2?|ttf|otf|eot)$/i.test(filePath) ? false : undefined),
     rollupOptions: {
       output: isSsrBuild
         ? undefined

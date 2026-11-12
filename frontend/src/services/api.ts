@@ -1,6 +1,5 @@
 import client from '../api/client'
 import type {
-  AIAnalysis,
   AnalyticsEnvelope,
   CompanyInsight,
   CV,
@@ -159,16 +158,6 @@ export const jobApi = {
 
   scrapeUrl: (url: string): Promise<ScrapeUrlResult> =>
     client.post<ScrapeUrlResult>('/api/v1/job-descriptions/scrape-url', { url }).then((r) => r.data),
-}
-
-export const aiApi = {
-  tailorCV: (cvId: string, jobDescriptionId: string): Promise<AIAnalysis> =>
-    client
-      .post<AIAnalysis>('/api/v1/ai/tailor-cv', {
-        cv_id: cvId,
-        job_description_id: jobDescriptionId,
-      })
-      .then((r) => r.data),
 }
 
 function unwrapAnalytics<T>(envelope: AnalyticsEnvelope<T>): T {

@@ -94,14 +94,6 @@ export interface JobDescription {
   updated_at: string
 }
 
-export interface AIAnalysis {
-  match_score: number
-  strengths: string[]
-  gaps: string[]
-  recommendations: string[]
-  full_analysis: string
-}
-
 export type TrendDirection = 'up' | 'down' | 'stable'
 export type Granularity = 'daily' | 'weekly' | 'monthly'
 export type ExperienceLevel = 'junior' | 'mid' | 'senior' | 'management'

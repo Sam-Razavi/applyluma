@@ -685,6 +685,26 @@ Analytics page fixes (November 2026):
     week" KPI comes from `utils/weeklyPostings.ts` (daily hiring-patterns series).
   - `tests/test_analytics_live_db.py` runs these queries on a real Postgres.
 
+Thesis baseline (November 2026):
+  - ApplyLuma is the case study for Sam's bachelor thesis (SU/DSV, IB015N):
+    an AI-assisted job-fit assessment compared with the rule-based matcher.
+    `docs/thesis/BASELINE.md` records what existed before the thesis work,
+    including the exact rule-based formula; the git tag `pre-thesis-baseline`
+    marks the boundary.
+  - After that tag, do NOT change the rule-based matcher
+    (`matching_service.py`, `keyword_extractor.py`,
+    `job_scrapers/keyword_extraction.py`): it is the comparison target. Thesis
+    code goes in its own folders, in PRs titled `[thesis] ...`.
+  - In production only the skills part of the match score varies (no caller
+    passes a required experience or education), so the score is
+    `0.4 x skills + 54` (54.5 remote): range 54 to 94.5.
+  - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
+    (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
+    `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.
+  - Fonts are never inlined by Vite (`build.assetsInlineLimit` in
+    `vite.config.ts`): the CSP has `font-src 'self'`, and the inlined `data:`
+    subsets were four blocked requests (console errors) on every page.
+
 ## Git Workflow
 
 Branch structure:
