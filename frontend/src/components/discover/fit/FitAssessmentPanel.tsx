@@ -43,9 +43,11 @@ function Requirement({ item }: { item: FitRequirement }) {
   const status = STATUS[item.status]
   return (
     <li className="rounded-lg border border-line bg-surface p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className="text-sm font-medium text-fg">{item.text}</span>
-        <span className={`text-xs font-semibold ${status.className}`}>{status.label}</span>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="min-w-0 text-sm font-medium text-fg">{item.text}</span>
+        <span className={`shrink-0 whitespace-nowrap text-xs font-semibold ${status.className}`}>
+          {status.label}
+        </span>
       </div>
       {item.note && <p className="mt-1 text-xs text-fg-muted">{item.note}</p>}
       {item.cv_quote && item.cv_quote_found && (

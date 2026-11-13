@@ -74,6 +74,10 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 - Match scoring against the user's CV with matched and missing skill breakdowns. The score is a
   transparent, rule-based weighted formula (skills 40%, experience 30%, salary 15%, education 10%,
   location 5%); it makes no model call.
+- AI-assisted fit assessment next to the score (admins only for now): a language model lists the
+  ad's requirements and what the CV shows for each, every claim is checked against a quote from
+  the CV, and fixed rules turn the result into High Priority, Consider or Low Priority with a list
+  of missing information. See [Thesis](#thesis).
 - Saved jobs with collections, starring, notes, and detail views.
 - One-click actions from discovered jobs: tailor CV, save job, and add to applications.
 - Job alert emails for high-match roles with configurable threshold and frequency.
@@ -178,12 +182,12 @@ npm run dev
 
 ## Testing
 
-ApplyLuma ships with **1,295 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
+ApplyLuma ships with **1,358 automated tests** across the stack, all run in CI on every push and pull request to `main` and `dev`.
 
 | Suite | Tests | Coverage |
 | --- | --- | --- |
-| Backend — Pytest (async, ASGI transport) | 904 across 67 files, incl. real-Postgres tests in CI | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, billing), Celery tasks (incl. the health watchdog), admin controls, auth and security |
-| Frontend — Vitest + React Testing Library | 384 across 62 files | Pages, Zustand stores, components, and formatters |
+| Backend — Pytest (async, ASGI transport) | 960 across 72 files, incl. real-Postgres tests in CI | API endpoints, CRUD, services (CV parsing, AI tailoring, cover letters, match scoring, fit assessment, billing), Celery tasks (incl. the health watchdog), admin controls, auth and security |
+| Frontend — Vitest + React Testing Library | 391 across 63 files | Pages, Zustand stores, components, and formatters |
 | dbt | 7 SQL assertions + `dbt parse` | Data-quality assertions and project validation |
 
 ```bash
@@ -249,6 +253,28 @@ Key frontend variables:
 - `VITE_SENTRY_DSN`
 
 Never commit real secrets or production `.env` files.
+
+## Thesis
+
+ApplyLuma is the case study of a bachelor thesis at Stockholm University (DSV), "Designing and
+Evaluating an AI-Assisted Decision Support System". The thesis adds an AI-assisted job-fit
+assessment and compares it with the rule-based match score on the same controlled cases.
+
+| | Rule-based match score | AI-assisted fit assessment |
+| --- | --- | --- |
+| Reads | Skills from a fixed vocabulary found in the ad and the CV | The whole ad and the whole CV |
+| Decides by | A weighted formula | Fixed rules over a per-requirement judgement from a language model |
+| Tells mandatory from preferred | No | Yes |
+| Explains with | One generated line | A quote from the CV per requirement, checked against the CV |
+| Says when information is missing | No | Yes |
+| Shown to | Every user | Admins (a setting) |
+
+- What existed before the thesis: [`docs/thesis/BASELINE.md`](docs/thesis/BASELINE.md), git tag
+  `pre-thesis-baseline`.
+- Design, decision rules, evaluation design and the change log: [`thesis/`](thesis/).
+- The prototype frozen for evaluation: git tag `thesis-prototype-v1`.
+- Everything added for the thesis: `git log --oneline pre-thesis-baseline..HEAD`, pull requests
+  titled `[thesis]`.
 
 ## Current Limitations
 
