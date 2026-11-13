@@ -291,9 +291,9 @@ formula (see `docs/thesis/BASELINE.md`), not from outcomes:
 
 | Score | Skills part | Priority |
 |---|---|---|
-| 86 or more | 80 or more: nearly all of the ad's recognised skills are in the CV, with at least four matched | High Priority |
-| 70 to below 86 | 40 to below 80 | Consider |
-| Below 70 | Below 40, or no recognised skill in the ad (66) | Low Priority |
+| 86 or more | 80 or more: all or nearly all of the ad's recognised skills are in the CV (3 of 3, 4 of 4, 5 of 6) | High Priority |
+| 70 to below 86 | 40 to below 80: a good part of them (2 of 3, 3 of 5, 4 of 5) | Consider |
+| Below 70 | Below 40: half or fewer with little evidence (1 of 2, 2 of 4), or no recognised skill in the ad (66) | Low Priority |
 
 ### Measures
 
