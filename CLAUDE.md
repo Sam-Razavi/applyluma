@@ -699,8 +699,10 @@ Thesis baseline (November 2026):
     passes a required experience or education), so the score is
     `0.4 x skills + 54` (54.5 remote): range 54 to 94.5.
   - `thesis/DESIGN.md` is the design of the AI assessment (two model steps,
-    a quote check, then fixed decision rules). It is a draft until Sam has
-    answered its "Decisions needed" (Q1-Q7); build nothing before that.
+    a quote check, then fixed decision rules). Its decisions Q1-Q7 were made
+    on 2026-11-13; later changes go in `thesis/DESIGN_LOG.md`. Evaluation
+    cases are written by Sam and must stay out of the repo (and out of the
+    assistant's view) until the prompts and rules are frozen and tagged.
   - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
     (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
     `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.

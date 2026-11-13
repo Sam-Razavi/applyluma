@@ -1,8 +1,7 @@
 # Design: AI-assisted job-fit assessment
 
-Status: **draft v1 for review**. Nothing in this document is built yet. Sections marked
-**Decision needed** are choices for the thesis author; the text gives a recommended
-default and the reason for it.
+Status: **design v1, decisions made on 2026-11-13** (section 10). Nothing in this
+document is built yet. Changes after this point are recorded in `DESIGN_LOG.md`.
 
 This is activity 2 ("define the objectives for a solution") and the design half of
 activity 3 in the design science research process of Peffers et al. (2007). The state
@@ -136,7 +135,7 @@ It also returns a `summary` (two or three sentences), a list `missing_informatio
 (what the CV or the ad would need to say for a firmer answer), and its own
 `model_recommendation`, which is stored but never shown as the result.
 
-### Status definitions (**Decision needed, Q1**)
+### Status definitions (decision Q1)
 
 This is the most important definition in the design, because objective O3 depends on it.
 
@@ -147,9 +146,9 @@ This is the most important definition in the design, because objective O3 depend
 | not_met | The CV shows the candidate lacks it. Either the CV contradicts it (asks for a completed degree, CV says studies are ongoing), or it is a skill, tool or qualification that a CV normally lists and this CV does not mention it. |
 | not_enough_information | The CV does not settle it, and it is something CVs often leave out (driving licence, work permit, language level, willingness to travel), or the requirement itself is too vague to judge ("relevant experience", "good communication skills"). |
 
-The alternative would be to call every unmentioned requirement "not enough
-information". That is simpler, but then a CV with none of the required technologies
-would never be Low Priority, which contradicts the "clear mismatch" scenario in the
+The alternative considered was to call every unmentioned requirement "not enough
+information". It was rejected: a CV with none of the required technologies could then
+never be Low Priority, which contradicts the "clear mismatch" scenario in the
 research report.
 
 ### Quote check
@@ -163,7 +162,7 @@ case and differences in spacing.
   the list but is marked.
 - The share of quotes that pass is a transparency measure in the evaluation.
 
-### Decision rules, version 1 (**Decision needed, Q2**)
+### Decision rules, version 1 (decisions Q2 to Q4)
 
 Applied in this order, to the mandatory requirements, after the quote check:
 
@@ -183,16 +182,15 @@ requirement. It is shown next to the recommendation and does not change it.
 Preferred and unclear requirements do not change the recommendation in version 1.
 They are shown and counted in the summary ("3 of 5 preferred requirements met").
 
-Open points in these rules:
+Alternatives considered and not chosen for version 1:
 
-- **Is one missing mandatory requirement enough for Low Priority?** Version 1 says
-  yes, which matches "clearly misses an essential skill" in the report and is easy to
-  explain. A softer version would give Low Priority only when half or more of the
-  mandatory requirements are not met.
-- **Should preferred requirements matter?** For example, High Priority could also
-  require at least half of the preferred requirements to be met.
-- **Should an unclear requirement count as mandatory or as preferred?** Version 1
-  treats it as preferred.
+- Low Priority only when half or more of the mandatory requirements are not met.
+  Rejected because one unmet essential requirement is what the research report calls
+  a clear mismatch, and a single rule is easier to explain to the user.
+- Requiring half of the preferred requirements for High Priority. Rejected to keep
+  the rules to the distinction the report stresses: mandatory against preferred.
+- Treating an unclear requirement as mandatory. Rejected because it would turn vague
+  ads into Low Priority results, when the honest answer is that the ad does not say.
 
 ### Worked examples
 
@@ -238,23 +236,91 @@ The panel always shows: "This is a recommendation. The decision is yours."
   the thesis author, kept outside the repository, and added only after the prompts
   and rules are frozen and tagged.
 
-## 8. Evaluation in brief
+## 8. Evaluation design
 
-The full procedure will be in `thesis/README.md` and `thesis/protocol.yaml`.
+The full procedure will be in `thesis/README.md` and `thesis/protocol.yaml`. This
+section fixes the design; nothing here has been run.
 
-- **Methods** (Hevner et al., 2004, Table 2): simulation with artificial data,
-  functional black-box testing, and scenarios.
-- **Cases:** 12 to 18 fictional CV and ad pairs across three scenario types, in
-  English and Swedish, each with a reference decision written before any run.
-- **Both systems** get the same pairs. The rule-based score is turned into a
-  priority by thresholds fixed in advance.
-- **Measures:** agreement with the reference decision; stability across repeated
-  runs; change under variants (irrelevant text, name swap, instruction inside the ad);
-  share of quotes that pass the check; whether expected missing information was
-  flagged; failures, time and cost.
-- **Results are reported as counts and percentages**, with every disagreement listed
-  for the failure-case analysis. The sample is small and fictional, so this is an
-  initial evaluation, not proof of general performance.
+### Strategy
+
+Following FEDS (Venable, Pries-Heje & Baskerville, 2016), the strategy is **Technical
+Risk & Efficacy**: the main design risk is technical (can a language model judge
+requirements reliably?), and evaluating with real job seekers is out of reach for
+this project. Evaluation is therefore artificial throughout, in two kinds of episode:
+
+| Episode | Purpose (FEDS) | Material | Use of the result |
+|---|---|---|---|
+| During the build | Formative | Practice cases written by the developer | Improve prompts and rules; every change logged |
+| After the freeze | Summative | Evaluation cases written by the thesis author | Reported in the thesis; no changes afterwards without a new version |
+
+In the terms of Hevner et al. (2004, Table 2) the methods are simulation with
+artificial data, functional black-box testing, and scenarios.
+
+### Cases
+
+- Fictional CV and job ad pairs for junior IT roles, in English and Swedish, across
+  three scenario types: clear match or mismatch; unclear or missing information;
+  consistency and robustness.
+- The number of cases (12 to 18 in the research report) is to be justified by the
+  comparisons intended: scenario type by language by expected priority. The runner
+  reports per cell, so thin cells are visible.
+
+### Reference decisions, independent of both systems
+
+- Each case has a reference decision (High Priority, Consider, Low Priority) with a
+  written rationale, made by reading the CV and the ad, **before either system runs**.
+- The criteria for reference decisions are written for a human reader. They are not a
+  copy of the rule-based matcher's formula, and not a copy of the rule table in
+  section 5.
+- A second person labels the same cases without seeing the first labels or either
+  system's output. Agreement is reported; disagreements are recorded and resolved by
+  discussion, and the resolution is logged.
+- The evaluation cases are kept outside the repository, and away from the developer
+  of the prompts, until the prompts and rules are frozen and tagged.
+
+A limitation to state openly: the component's rules and the reference criteria share
+the idea that mandatory requirements weigh most. That is the design objective, but it
+means agreement with the reference partly reflects a shared view of the problem. The
+second labeller and the separately written criteria reduce this; they do not remove it.
+
+### The baseline on the same cases
+
+The rule-based matcher runs unchanged on the same pairs. Its score is turned into a
+priority by thresholds fixed here, before any result exists, and justified from the
+formula (see `docs/thesis/BASELINE.md`), not from outcomes:
+
+| Score | Skills part | Priority |
+|---|---|---|
+| 86 or more | 80 or more: nearly all of the ad's recognised skills are in the CV, with at least four matched | High Priority |
+| 70 to below 86 | 40 to below 80 | Consider |
+| Below 70 | Below 40, or no recognised skill in the ad (66) | Low Priority |
+
+### Measures
+
+Correctness and consistency are measured separately: a system can be consistently wrong.
+
+| Property | Measure |
+|---|---|
+| Correctness | Agreement with the reference decision, per system, scenario type and language; a miss by one step is reported apart from an opposite result |
+| Consistency | Share of the 5 repeated runs of a case that give the same priority, whether or not it is the correct one |
+| Robustness | Share of cases whose priority changes under each variant (irrelevant text in the ad, in the CV, a changed name, an instruction inside the ad), 3 runs each |
+| Transparency | Share of quotes that pass the check; a review sheet on which each explanation is judged as supported by the texts or not |
+| Missing or ambiguous information | Whether the information the case was built to lack is flagged; how often the limited-information flag is set |
+| Reliability | Failed calls, invalid outputs, time and cost per assessment |
+
+Every wrong recommendation and every unsupported explanation is listed with the full
+output of both systems, for the failure-case analysis.
+
+### Validity and limits
+
+- Fictional cases written by one person may not represent real ads and CVs; findings
+  hold for these scenarios and are an initial evaluation, not proof of general
+  performance.
+- The sample is small: results are counts and percentages, without significance tests.
+- The model is a hosted service. The model snapshot, temperature, seed, prompt and
+  rules versions are stored with every run, but the provider can change behaviour
+  behind a snapshot name; repeated runs measure this, they do not prevent it.
+- No user study: usefulness to real job seekers is argued from the design, not measured.
 
 ## 9. Out of scope
 
@@ -264,17 +330,22 @@ The full procedure will be in `thesis/README.md` and `thesis/protocol.yaml`.
 - A user study. The empirical material is controlled test runs.
 - Real applicants' CVs in the evaluation.
 
-## 10. Decisions needed
+## 10. Decisions
 
-| # | Question | Recommended default |
+Made by the thesis author on 2026-11-13.
+
+| # | Question | Decision |
 |---|---|---|
-| Q1 | When a required skill is not mentioned in the CV, is that `not_met` or `not_enough_information`? | `not_met` for skills, tools and qualifications; `not_enough_information` for things CVs often omit (section 5) |
-| Q2 | Is one unmet mandatory requirement enough for Low Priority? | Yes (rule 1) |
-| Q3 | Do preferred requirements affect the recommendation? | No, shown only |
+| Q1 | A required skill is not mentioned in the CV | `not_met` for skills, tools and qualifications; `not_enough_information` for things CVs often omit |
+| Q2 | Is one unmet mandatory requirement enough for Low Priority? | Yes |
+| Q3 | Do preferred requirements affect the recommendation? | No, they are shown only |
 | Q4 | Does an unclear requirement count as mandatory or preferred? | Preferred |
-| Q5 | How many repeated runs per case? | 5, and 3 per variant |
-| Q6 | Which score thresholds turn the rule-based score into a priority? The score ranges from 54 to 94.5 (see the baseline document) | To be set by the thesis author before any run |
-| Q7 | Will a second person check the reference decisions? | To be agreed with the supervisor |
+| Q5 | Repeated runs | 5 per case, 3 per variant |
+| Q6 | Thresholds for the rule-based score | By skill coverage: High at 86 or more, Low below 70 (section 8) |
+| Q7 | Who checks the reference decisions? | A second person, labelling blind |
+
+Still open, for the supervisor meeting: the final number of cases and how it is
+justified; who the second labeller is.
 
 ## References
 
@@ -286,3 +357,6 @@ The full procedure will be in `thesis/README.md` and `thesis/protocol.yaml`.
 - Peffers, K., Tuunanen, T., Rothenberger, M. A., & Chatterjee, S. (2007). A design
   science research methodology for information systems research. *Journal of
   Management Information Systems, 24*(3), 45–77.
+- Venable, J., Pries-Heje, J., & Baskerville, R. (2016). FEDS: A framework for
+  evaluation in design science research. *European Journal of Information Systems,
+  25*(1), 77–89. https://doi.org/10.1057/ejis.2014.36
