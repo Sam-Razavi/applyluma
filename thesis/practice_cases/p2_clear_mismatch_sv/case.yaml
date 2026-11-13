@@ -1,0 +1,6 @@
+scenario: clear
+language: sv
+reference: low_priority
+rationale: >
+  Java and Spring Boot are mandatory. The CV lists its skills in full and names
+  neither: the candidate works in Python and Django.

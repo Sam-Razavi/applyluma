@@ -721,6 +721,16 @@ Thesis baseline (November 2026):
     is judged unfinished. Real calls in a cloud session: the key is injected
     by the proxy, so run with `OPENAI_API_KEY=proxy-injected`.
     `thesis/practice_cases/` are for tuning only, never reported as results.
+  - Evaluation runner (thesis, November 2026): `python -m thesis.eval.run --cases
+    <folder> --out <folder>` from the repo root runs both systems on case folders
+    (`cv.md`, `ad.md`, `case.yaml`; format in `thesis/eval/cases.py`) under
+    `thesis/protocol.yaml` (5 runs per case, 3 per variant, reference date
+    2026-12-01, thresholds 86 / 70) and writes `results.jsonl`, `summary.md`,
+    `summary.csv`, `review_sheet.csv`. `thesis/eval/rule_based_adapter.py` holds no
+    scoring logic: it feeds `MatchingService` the CV through a stand-in session, and
+    `tests/test_thesis_eval.py` proves on a real Postgres that it equals
+    `batch_compute_scores`. A failed run is recorded, never retried. Practice-case
+    output is never committed (`thesis/results/practice*` is ignored).
   - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
     (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
     `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.

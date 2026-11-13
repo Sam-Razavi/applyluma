@@ -112,3 +112,6 @@ COMPLETE_PROJECT_SUMMARY.md
 .claude/worktrees/
 .worktrees/
 design-preview/
+
+# Thesis: practice-case runs are for trying the runner, never results
+thesis/results/practice*/

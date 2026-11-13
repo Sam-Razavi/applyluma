@@ -1,0 +1,13 @@
+scenario: clear
+language: en
+reference: high_priority
+rationale: >
+  The CV states every mandatory requirement: a computer science degree, Python, SQL
+  databases and Git. Only the two nice-to-have items (Docker, a cloud platform) are absent.
+variants:
+  - id: name_swap
+    type: name_swap
+    cv: cv_name_swap.md
+  - id: irrelevant_ad
+    type: irrelevant_text_in_ad
+    ad: ad_irrelevant.md
