@@ -25,6 +25,8 @@ const PURPOSE_LABELS: Record<string, string> = {
   tailor_compress: 'Tailor compress',
   cover_letter: 'Cover letters',
   cv_analysis: 'CV analysis',
+  fit_requirements: 'Fit assessment: job requirements',
+  fit_assessment: 'Fit assessment: CV evidence',
   url_scrape: 'URL import',
 }
 

@@ -70,6 +70,7 @@ celery_app = Celery(
         "app.tasks.notifications",
         "app.tasks.matching",
         "app.tasks.cover_letter",
+        "app.tasks.fit_assessment",
         "app.tasks.watchdog",
         "app.tasks.inbound_email",
         "app.tasks.job_retention",
@@ -95,6 +96,7 @@ celery_app.conf.update(
     task_routes={
         "app.tasks.tailor.*": {"queue": "ai_pipeline"},
         "app.tasks.cover_letter.*": {"queue": "ai_pipeline"},
+        "app.tasks.fit_assessment.*": {"queue": "ai_pipeline"},
     },
     beat_schedule={
         "check-upcoming-deadlines-daily": {

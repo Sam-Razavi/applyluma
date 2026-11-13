@@ -703,6 +703,24 @@ Thesis baseline (November 2026):
     on 2026-11-13; later changes go in `thesis/DESIGN_LOG.md`. Evaluation
     cases are written by Sam and must stay out of the repo (and out of the
     assistant's view) until the prompts and rules are frozen and tagged.
+  - AI fit assessment (thesis component, November 2026):
+    `services/fit_advisor/` has no database access (the evaluation runner
+    calls `assess()` directly). Model pinned to `gpt-4o-2024-08-06`,
+    temperature 0, fixed seed. A `met`/`partly_met` whose CV quote is not in
+    the CV is downgraded to `not_enough_information` before `decide()` runs.
+    Bump `PROMPT_VERSION` / `RULES_VERSION` on any change and log it in
+    `thesis/DESIGN_LOG.md`. Endpoints under `/fit-assessments` (literal paths
+    before `/{id}`); access is `FIT_ASSESSMENT_ACCESS` (off/admin/premium/all,
+    default admin) and 404s for everyone else; the task does not retry (a
+    retry would be a second model run stored as the first);
+    `fit_assessments.raw_job_posting_id` is SET NULL so retention can delete
+    postings. Alembic chain ends at `0035`. Panel:
+    `components/discover/fit/FitAssessmentPanel.tsx` in Discover job detail.
+    The model must be told the date (`assess(today=...)`, repeated before and
+    after the CV in the user message): without it a degree ending this year
+    is judged unfinished. Real calls in a cloud session: the key is injected
+    by the proxy, so run with `OPENAI_API_KEY=proxy-injected`.
+    `thesis/practice_cases/` are for tuning only, never reported as results.
   - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
     (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
     `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.

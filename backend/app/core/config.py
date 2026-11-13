@@ -87,5 +87,9 @@ class Settings(BaseSettings):
     # flow can be tried end to end before it is opened up.
     INBOUND_EMAIL_USER_ENABLED: bool = False
 
+    # Who may run the AI-assisted job-fit assessment (thesis component):
+    # "off", "admin", "premium" (premium and admin) or "all".
+    FIT_ASSESSMENT_ACCESS: str = "admin"
+
 
 settings = Settings()

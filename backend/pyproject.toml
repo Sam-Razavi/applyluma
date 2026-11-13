@@ -115,6 +115,7 @@ module = [
     "app.services.tailor_service",
     "app.services.url_scraper",
     "app.tasks.cover_letter",
+    "app.tasks.fit_assessment",
     "app.tasks.inbound_email",
     "app.tasks.job_pipeline",
     "app.tasks.job_retention",
