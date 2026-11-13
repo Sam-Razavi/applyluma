@@ -69,9 +69,9 @@ Test these features end-to-end on `https://applyluma.com`.
 - [ ] XSS protection checked with harmless test input `<script>alert('xss')</script>`
 
 ## Data Pipeline
-- [ ] Airflow scraper ran successfully
+- [ ] Nightly job pipeline ran successfully (`/admin/pipeline`)
 - [ ] `raw_job_postings` table populated
-- [ ] `transform_jobs` DAG completed
+- [ ] `transform_jobs` step completed
 - [ ] `analytics.fct_job_postings` has data
 - [ ] Analytics dashboard reflects scraped data
 

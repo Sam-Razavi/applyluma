@@ -774,7 +774,6 @@ Frontend:
 - Vite
 - Tailwind CSS on Vercel
 - framer-motion for mobile polish and page/element transitions
-- @use-gesture/react is installed for future gesture enhancements
 
 Data:
 - Nightly job pipeline as a Celery task on Railway (Airflow retired and
@@ -854,7 +853,7 @@ All tests live alongside the code they test. Run them before merging to `main`.
 Location: `frontend/src/`
 Run: `cd frontend && npm test`
 
-29 test files as of 2026-07-11 (245 tests); representative files, not exhaustive
+63 test files as of 2026-11-13 (391 tests); representative files, not exhaustive
 — run `find frontend/src -name '*.test.ts*'` for the full current list:
 - `src/stores/auth.test.ts` — auth store (login, logout, setUser, setLoading)
 - `src/pages/Login.test.tsx` — Login page (render, validation, success, error)
@@ -887,7 +886,7 @@ Rules for adding frontend tests:
 Location: `backend/tests/`
 Run: `cd backend && pytest`
 
-45 test files as of 2026-07-11 (570 tests); representative files, not exhaustive
+72 test files as of 2026-11-13 (960 tests); representative files, not exhaustive
 — run `ls backend/tests/*.py` for the full current list:
 - `tests/test_cv_endpoints.py` — CV upload, list, get, update, set-default, delete
 - `tests/test_jd_endpoints.py` — job description create, list, get, delete
@@ -1024,7 +1023,7 @@ TS errors block merge.
 
 ## Known Issues
 
-- 570 backend tests and 245 frontend tests passing as of 2026-07-11.
+- 960 backend tests and 391 frontend tests passing as of 2026-11-13.
 - `npm install` reported 2 moderate frontend dependency vulnerabilities; do not
   run `npm audit fix --force` casually because it can introduce breaking
   dependency upgrades.
