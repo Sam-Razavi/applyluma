@@ -6,6 +6,7 @@ from app.models.application_contact import ApplicationContact
 from app.models.application_event import ApplicationEvent
 from app.models.contact_submission import ContactSubmission
 from app.models.cv import CV
+from app.models.fit_assessment import FitAssessment
 from app.models.inbound_email import InboundEmail
 from app.models.job import ExtractedKeyword, JobMatchingScore, RawJobPosting, SavedJob
 from app.models.job_description import JobDescription
@@ -33,4 +34,5 @@ __all__ = [
     "AIUsageLog",
     "AppSetting",
     "InboundEmail",
+    "FitAssessment",
 ]
