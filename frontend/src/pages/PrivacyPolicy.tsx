@@ -50,7 +50,7 @@ export default function PrivacyPolicy() {
           <h2 className="text-xl font-semibold text-fg mb-3">4. Third-Party Services</h2>
           <p>We share data with the following processors to operate the Service:</p>
           <ul className="list-disc list-inside mt-2 space-y-1">
-            <li><strong>OpenAI</strong> — CV tailoring, cover letter generation, job match scoring</li>
+            <li><strong>OpenAI</strong> — CV tailoring, cover letter generation, and the AI job-fit assessment, which sends your default CV and the job ad only when you ask for an assessment</li>
             <li><strong>Stripe</strong> — subscription billing and payment processing</li>
             <li><strong>Resend</strong> — transactional email delivery</li>
             <li><strong>Mailgun</strong> — receives emails you forward to your ApplyLuma address (see section 6)</li>

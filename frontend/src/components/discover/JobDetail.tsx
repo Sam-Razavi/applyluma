@@ -18,6 +18,7 @@ import { createApplication } from '../../services/applicationsApi'
 import { useUsageStore, usageHint } from '../../stores/usage'
 import ScoreBreakdown from './ScoreBreakdown'
 import SkillsBreakdown from './SkillsBreakdown'
+import FitAssessmentPanel from './fit/FitAssessmentPanel'
 
 interface Props {
   jobId: string | null
@@ -192,6 +193,8 @@ export default function JobDetail({
               missingSkills={job.missing_skills}
               onSkillClick={onSkillClick}
             />
+
+            <FitAssessmentPanel jobId={job.job_id} />
 
             {/* Description */}
             {job.description && (
