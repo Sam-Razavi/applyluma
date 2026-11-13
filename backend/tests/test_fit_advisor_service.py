@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -193,8 +194,13 @@ def test_ad_without_requirements_makes_one_call_and_says_so() -> None:
 
 
 def test_calls_are_pinned_reproducible_and_recorded(no_usage_rows: list[dict[str, Any]]) -> None:
-    result, client = run([judgement("R1", "met", "BSc Computer Science")])
+    client = FakeClient(REQUIREMENTS, evidence([judgement("R1", "met", "BSc Computer Science")]))
+    result = service.assess(CV, AD, client=client, today=date(2026, 11, 13))
 
+    # The model is told the date, or it reads a 2026 degree as unfinished.
+    user2 = client.calls[1]["messages"][1]["content"]
+    assert user2.startswith("Today's date: 2026-11-13. Any study or job period in the CV that ends in 2026")
+    assert user2.endswith("Reminder: today is 2026-11-13. Any study or job period in the CV that ends in 2026 or earlier has ended.")
     for call in client.calls:
         assert call["model"] == fit_advisor.MODEL == "gpt-4o-2024-08-06"
         assert call["temperature"] == 0.0
@@ -205,6 +211,7 @@ def test_calls_are_pinned_reproducible_and_recorded(no_usage_rows: list[dict[str
         "model": "gpt-4o-2024-08-06",
         "prompt_version": prompts.PROMPT_VERSION,
         "rules_version": fit_advisor.RULES_VERSION,
+        "reference_date": "2026-11-13",
         "prompt_tokens": 200,
         "completion_tokens": 80,
         "model_calls": 2,
@@ -218,7 +225,7 @@ def test_ad_and_cv_reach_the_model_as_delimited_data() -> None:
     system1, user1 = (m["content"] for m in client.calls[0]["messages"])
     system2, user2 = (m["content"] for m in client.calls[1]["messages"])
     assert user1.startswith("<<<JOB AD\n") and user1.endswith("\nJOB AD>>>")
-    assert "<<<CV\n" in user2 and user2.endswith("\nCV>>>")
+    assert "<<<CV\n" in user2 and "\nCV>>>\n\nReminder: today is" in user2
     # The ad is not sent with the CV: step 2 sees only the requirement list.
     assert "driving licence is required" not in user2
     for system in (system1, system2):

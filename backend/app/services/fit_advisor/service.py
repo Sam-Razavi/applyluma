@@ -12,6 +12,7 @@ import json
 import time
 import uuid
 from dataclasses import asdict
+from datetime import date
 from typing import Any
 
 from openai import OpenAI
@@ -106,8 +107,13 @@ def assess(
     *,
     user_id: uuid.UUID | None = None,
     client: Any | None = None,
+    today: date | None = None,
 ) -> dict[str, Any]:
-    """Assess how a CV fits a job ad. Raises FitAdvisorError on failure."""
+    """Assess how a CV fits a job ad. Raises FitAdvisorError on failure.
+
+    `today` tells the model which dates in the CV are in the past; the
+    evaluation runner fixes it so that runs on different days are comparable.
+    """
     cv_text = (cv_text or "").strip()[:MAX_CV_CHARS]
     ad_text = (ad_text or "").strip()[:MAX_AD_CHARS]
     if not cv_text:
@@ -145,7 +151,9 @@ def assess(
             client,
             system=prompts.EVIDENCE_PROMPT,
             user=prompts.evidence_user_message(
-                json.dumps(for_model, ensure_ascii=False, indent=1), cv_text
+                json.dumps(for_model, ensure_ascii=False, indent=1),
+                cv_text,
+                (today or date.today()).isoformat(),
             ),
             schema=schemas.ASSESSMENT_SCHEMA,
             purpose="fit_assessment",
@@ -176,6 +184,7 @@ def assess(
             "model": MODEL,
             "prompt_version": prompts.PROMPT_VERSION,
             "rules_version": RULES_VERSION,
+            "reference_date": (today or date.today()).isoformat(),
             "prompt_tokens": usage1["prompt_tokens"] + usage2["prompt_tokens"],
             "completion_tokens": usage1["completion_tokens"] + usage2["completion_tokens"],
             "model_calls": 2 if requirements else 1,

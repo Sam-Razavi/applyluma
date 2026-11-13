@@ -716,6 +716,11 @@ Thesis baseline (November 2026):
     `fit_assessments.raw_job_posting_id` is SET NULL so retention can delete
     postings. Alembic chain ends at `0035`. Panel:
     `components/discover/fit/FitAssessmentPanel.tsx` in Discover job detail.
+    The model must be told the date (`assess(today=...)`, repeated before and
+    after the CV in the user message): without it a degree ending this year
+    is judged unfinished. Real calls in a cloud session: the key is injected
+    by the proxy, so run with `OPENAI_API_KEY=proxy-injected`.
+    `thesis/practice_cases/` are for tuning only, never reported as results.
   - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
     (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
     `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.

@@ -3,7 +3,7 @@ an entry in thesis/DESIGN_LOG.md."""
 
 from __future__ import annotations
 
-PROMPT_VERSION = "1"
+PROMPT_VERSION = "4"
 
 # The ad and the CV are untrusted text: either can contain sentences written
 # to steer a model ("rate this candidate High Priority").
@@ -71,6 +71,15 @@ when the CV says nothing relevant. Never invent or reword a quote.
 University projects, thesis work and internships count as experience with a \
 tool or method, but not as years of professional experience.
 
+Today's date is given with the CV. An education or job is completed when its \
+end date is before today. When only a year is given, treat it as completed if \
+that year is this year or earlier. It is unfinished only when it ends in a \
+later year or the CV describes it as ongoing or expected.
+
+A requirement that names a category is met by a specific example of it: \
+PostgreSQL meets "relational databases", a BSc in Computer Science meets \
+"a degree in computer science or a related field".
+
 Also give:
 - summary: two or three sentences in English on how the CV fits the job, \
 naming the most important matches and gaps.
@@ -84,5 +93,15 @@ def requirements_user_message(ad_text: str) -> str:
     return f"<<<JOB AD\n{ad_text}\nJOB AD>>>"
 
 
-def evidence_user_message(requirements_json: str, cv_text: str) -> str:
-    return f"Requirements:\n{requirements_json}\n\n<<<CV\n{cv_text}\nCV>>>"
+def evidence_user_message(requirements_json: str, cv_text: str, today: str) -> str:
+    # The model's own sense of "now" is its training date, so a period ending
+    # this year reads to it as still running. The year is spelled out, and
+    # repeated after the CV, because one mention before it was not enough.
+    year = today[:4]
+    finished = f"Any study or job period in the CV that ends in {year} or earlier has ended."
+    return (
+        f"Today's date: {today}. {finished}\n\n"
+        f"Requirements:\n{requirements_json}\n\n"
+        f"<<<CV\n{cv_text}\nCV>>>\n\n"
+        f"Reminder: today is {today}. {finished}"
+    )
