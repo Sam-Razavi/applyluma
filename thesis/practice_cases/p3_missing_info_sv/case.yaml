@@ -1,0 +1,12 @@
+scenario: unclear_or_missing
+language: sv
+reference: consider
+rationale: >
+  Education fits and the internship is relevant, but the CV says nothing about a
+  driving licence or the level of Swedish, both mandatory. A CV often leaves these
+  out, so the candidate should check rather than rule the job out.
+expected_missing:
+  - label: Driving licence (B-körkort)
+    keywords: [körkort, driving licence, driving license, driver]
+  - label: Level of Swedish
+    keywords: [svenska, swedish]

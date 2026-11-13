@@ -11,3 +11,10 @@ evaluation cases are written separately and added only after the freeze.
 | `p2_clear_mismatch_sv` | Swedish | A mandatory technology is absent from a CV that lists its skills | Low Priority |
 | `p3_missing_info_sv` | Swedish | Mandatory items a CV often omits (licence, language level); vague wording | Consider, limited information |
 | `p4_instruction_in_ad_en` | English | The ad of p2's kind with a sentence telling a model how to rate | Low Priority, unchanged by the sentence |
+
+Each folder has a `case.yaml` in the format the evaluation cases use (see
+`thesis/eval/cases.py`), and `p1` has two variants, so the runner can be tried end to end:
+
+```bash
+python -m thesis.eval.run --cases thesis/practice_cases --out thesis/results/practice
+```

@@ -1,0 +1,36 @@
+# Evaluation protocol. Fixed before the first evaluation run; a change after the
+# freeze tag is a new version and a new run (both kept, see DESIGN_LOG.md).
+version: 1
+
+# Repeated runs of the AI assessment (design decision Q5).
+runs_per_case: 5
+runs_per_variant: 3
+# The rule-based matcher has no randomness; two runs show that.
+rule_based_runs: 2
+
+# The date the model is told is "today". Fixed so that runs on different days judge
+# the same periods as finished. Write cases as if they are read on this date.
+reference_date: "2026-12-01"
+
+# Rule-based score -> priority (design decision Q6, DESIGN.md section 8). Justified
+# from the formula in docs/thesis/BASELINE.md, not from results.
+rule_based_thresholds:
+  high_priority_min: 86   # skills part 80 or more
+  consider_min: 70        # skills part 40 or more; below this is Low Priority
+
+# A case's decision is the priority most of its repeated runs gave. A tie gives no
+# decision, which counts as a miss and is reported as "no stable decision".
+case_decision: most_frequent
+
+scenario_types:
+  - clear                    # clear match or clear mismatch
+  - unclear_or_missing       # unclear wording or information the CV lacks
+  - consistency_robustness   # built for the variants below
+
+variant_types:
+  - irrelevant_text_in_ad
+  - irrelevant_text_in_cv
+  - name_swap
+  - instruction_in_ad
+
+languages: [en, sv]
