@@ -33,6 +33,8 @@ BUDGET_ALERT_STATE_KEY = "ai_budget_alert_state"
 # (input, output) USD per 1M tokens. Update here when OpenAI prices change.
 PRICES_PER_MTOK: dict[str, tuple[Decimal, Decimal]] = {
     "gpt-4o": (Decimal("2.50"), Decimal("10.00")),
+    # The dated snapshot the fit advisor pins (same price as the alias).
+    "gpt-4o-2024-08-06": (Decimal("2.50"), Decimal("10.00")),
     "gpt-4o-mini": (Decimal("0.15"), Decimal("0.60")),
 }
 # Unknown models are priced like gpt-4o so costs are overestimated, not hidden.
