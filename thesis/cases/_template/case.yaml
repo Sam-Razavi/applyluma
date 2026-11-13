@@ -1,0 +1,34 @@
+# Which kind of scenario this is. One of:
+#   clear                    a clear match or a clear mismatch
+#   unclear_or_missing       unclear wording, or information the CV does not give
+#   consistency_robustness   a case built for the variants at the bottom
+scenario: clear
+
+# Language of the ad: en or sv
+language: en
+
+# The reference decision, made by reading the CV and the ad before any system runs.
+# One of: high_priority, consider, low_priority
+reference: high_priority
+
+# Why a person reading both texts decides this. One or two sentences.
+rationale: >
+  Write the reason here.
+
+# true if the job can be done remotely (the rule-based score adds 0.5 for remote jobs).
+remote: false
+
+# Only for cases built to lack information. Delete this block otherwise.
+# "keywords" are words that show the system noticed the gap; any one of them counts.
+expected_missing:
+  - label: Driving licence
+    keywords: [körkort, driving licence, driving license]
+
+# Only for robustness cases. Delete this block otherwise.
+# Each variant is the same case with one change that should not affect the decision.
+# type is one of: irrelevant_text_in_ad, irrelevant_text_in_cv, name_swap, instruction_in_ad
+# Give "cv:", "ad:" or both: the name of the changed file in this folder.
+variants:
+  - id: name_swap
+    type: name_swap
+    cv: cv_name_swap.md
