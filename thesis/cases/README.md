@@ -1,7 +1,7 @@
 # Evaluation cases
 
 The cases the thesis reports on. They were added after the freeze tag
-`thesis-prototype-v1`, so the prompts and rules could not be adjusted to them.
+`thesis-prototype-v2`, so the prompts and rules could not be adjusted to them.
 
 ## One folder per case
 

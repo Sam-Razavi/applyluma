@@ -272,7 +272,8 @@ assessment and compares it with the rule-based match score on the same controlle
 - What existed before the thesis: [`docs/thesis/BASELINE.md`](docs/thesis/BASELINE.md), git tag
   `pre-thesis-baseline`.
 - Design, decision rules, evaluation design and the change log: [`thesis/`](thesis/).
-- The prototype frozen for evaluation: git tag `thesis-prototype-v1`.
+- The prototype frozen for evaluation: git tag `thesis-prototype-v2` (`v1` is the first
+  freeze, kept as history; the change between them is in the design log).
 - Everything added for the thesis: `git log --oneline pre-thesis-baseline..HEAD`, pull requests
   titled `[thesis]`.
 
