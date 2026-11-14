@@ -9,7 +9,7 @@ at https://applyluma.com/privacy (section "Browser Extension").
 | Field | Value |
 |---|---|
 | Name | ApplyLuma |
-| Summary (≤132 chars, = manifest `description`) | Save job postings from LinkedIn, Indeed, Glassdoor, and Arbetsförmedlingen to ApplyLuma with one click. |
+| Summary (≤132 chars, = manifest `description`) | Save job postings from LinkedIn, Indeed, Glassdoor, Arbetsförmedlingen and company career pages to ApplyLuma. |
 | Category (Chrome) | Productivity → Tools |
 | Category (Firefox) | Search Tools / Other |
 | Language | English |
@@ -23,7 +23,7 @@ at https://applyluma.com/privacy (section "Browser Extension").
 ApplyLuma turns the job posting you're reading into a tracked, scored lead in your ApplyLuma account — in one click.
 
 SAVE JOBS FROM WHERE YOU FIND THEM
-Open a posting on LinkedIn, Indeed, Glassdoor or Arbetsförmedlingen (Platsbanken) and click the ApplyLuma icon. The title, company, link and description are filled in for you. Add a note if you like, then save.
+Open a posting on LinkedIn, Indeed, Glassdoor, Arbetsförmedlingen (Platsbanken) or a company's own career page and click the ApplyLuma icon. The title, company, link and description are filled in for you. Add a note if you like, then save.
 
 SEE HOW WELL YOU MATCH
 Right after saving, the popup shows an AI match score comparing the job against your default CV in ApplyLuma.
@@ -43,7 +43,7 @@ Requires a free ApplyLuma account at https://applyluma.com.
 ## Single purpose (Chrome)
 
 ```
-Save job postings the user is viewing on supported job boards to their ApplyLuma account, and show which postings they have already saved or applied to.
+Save the job posting the user is viewing, on a job board or a company career page, to their ApplyLuma account, and show which postings they have already saved or applied to.
 ```
 
 ## Permission justifications (Chrome "Privacy practices" tab)
@@ -53,7 +53,9 @@ Save job postings the user is viewing on supported job boards to their ApplyLuma
 | `storage` | Stores the user's ApplyLuma sign-in token, the job details read from the current posting (kept 15 minutes) and the list of already-saved/applied job URLs used to badge listings. |
 | `alarms` | Refreshes the saved/applied job URL list from the ApplyLuma API every 30 minutes so badges stay current. |
 | `notifications` | Confirms success or failure when a job is saved with the keyboard shortcut, since no popup is open in that case. |
-| Host: `www.linkedin.com`, `se.indeed.com`, `www.indeed.com`, `www.glassdoor.com`, `arbetsformedlingen.se`, `www.arbetsformedlingen.se` | Content scripts read the job title, company, URL and description from job posting pages on these sites, and mark listings the user already saved or applied to. No other sites are accessed. |
+| `scripting` | Loads the extension's own packaged page script into the active tab when the user opens the popup or uses the shortcut and that tab has no script yet: a job-board tab that was already open when the extension was installed or updated, or a career page on another site (see `activeTab`). It only loads files from the package. |
+| `activeTab` | Lets the user save a job from a company career page that is not one of the job boards below. Access is granted by the browser only to the tab the user clicked the extension icon on (or used the shortcut on), only for that moment, and is used to read that page's job title, company, link and description. The extension has no access to other sites or tabs. |
+| Host: `www.linkedin.com`, `se.indeed.com`, `www.indeed.com`, `www.glassdoor.com`, `arbetsformedlingen.se`, `www.arbetsformedlingen.se` | Content scripts read the job title, company, URL and description from job posting pages on these sites, and mark listings the user already saved or applied to. Any other site is read only through `activeTab`, when the user invokes the extension on it. |
 | Host: `applyluma-production.up.railway.app` | The ApplyLuma API, where saved jobs are sent and the user's saved/applied list is read. |
 | Remote code | No. All JavaScript ships in the package; there is no `eval` and no remotely loaded script. |
 

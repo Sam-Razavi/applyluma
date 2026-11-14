@@ -3,6 +3,8 @@
 
 (function () {
   'use strict';
+  if (ApplyLuma.siteLoaded) return;
+  ApplyLuma.siteLoaded = true;
 
   const TITLE_SELECTORS = [
     '[data-testid="jobsearch-JobInfoHeader-title"]',

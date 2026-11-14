@@ -183,6 +183,22 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
     Indeed search panes (`?vjk=`) count as job pages, with canonical
     `/jobs/view/<id>/` and `/viewjob?jk=` URLs. Intensity values are now
     light/medium/aggressive.
+  - 1.0.2 (November 2026): Platsbanken company name was never read (the page's
+    element is `#pb-company-name`, there is no JSON-LD; now also falls back to the
+    "Title - Employer - Platsbanken" document title). LinkedIn's content script
+    matches all of `www.linkedin.com` (it is a single-page app: arriving at a job
+    from the feed loads no new document, so a `/jobs/*` script was never there).
+    Popup and shortcut load the site script on demand (`scripting` permission,
+    supported hosts only) into a tab that was open before install/update. Site
+    scripts guard against running twice (`ApplyLuma.siteLoaded`).
+  - 1.1.0 (November 2026, built on 1.0.2 before either was uploaded): works on
+    any career page. `content/generic.js` is NOT in the manifest; the popup and
+    the shortcut load it into the active tab on demand (`activeTab` +
+    `scripting`), so it runs only where the user invokes the extension. A page
+    counts as a job when it has schema.org `JobPosting` JSON-LD, is on a known
+    ATS host, or has a job-like path; structured data is preferred over layout
+    (`preferStructured`). Privacy policy section 5 and `store/STORE_LISTING.md`
+    were changed to say so: the old promise was "reads no other website".
   - Server-side compatibility for the released 1.0.0: the bookmark response
     also carries `raw_job_posting_id` (1.0.0 read that name and got
     undefined, so match score, "Track application" and AI Tailor silently did

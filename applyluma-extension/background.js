@@ -16,6 +16,67 @@ const JOB_SITE_PATTERNS = [
   'https://www.arbetsformedlingen.se/*',
 ];
 
+// Same helpers as popup/popup.js (the two run in separate contexts).
+// The page script that reads each job board. A board's script is normally
+// already in its tabs; it is loaded on demand into one that was open before
+// the extension was installed or updated. Any other site gets the generic
+// script, and only because the user opened the popup or used the shortcut
+// there (activeTab).
+const SITE_SCRIPTS = [
+  [/(^|\.)linkedin\.com$/, 'content/linkedin.js'],
+  [/(^|\.)indeed\.com$/, 'content/indeed.js'],
+  [/(^|\.)arbetsformedlingen\.se$/, 'content/platsbanken.js'],
+  [/(^|\.)glassdoor\.com$/, 'content/glassdoor.js'],
+];
+
+const GENERIC_SCRIPT = 'content/generic.js';
+
+function siteScriptFor(url) {
+  try {
+    const { protocol, hostname } = new URL(url);
+    if (protocol !== 'https:' && protocol !== 'http:') return null;
+    const match = SITE_SCRIPTS.find(([pattern]) => pattern.test(hostname));
+    return match ? match[1] : GENERIC_SCRIPT;
+  } catch {
+    return null;
+  }
+}
+
+// Ask the tab's page script for the job. Resolves to null if nothing answers.
+async function askTab(tabId) {
+  try {
+    return await Promise.race([
+      chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_JOB' }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
+    ]);
+  } catch {
+    return null; // no ApplyLuma script on this tab
+  }
+}
+
+// Ask the tab; if it has no page script yet, load the right one and ask again.
+// The browser only allows this on the job boards in the manifest and on the
+// tab the user just invoked the extension on.
+async function readJobFromTab(tab) {
+  if (!tab || tab.id === undefined) return null;
+  let reply = await askTab(tab.id);
+  if (!reply) {
+    const script = siteScriptFor(tab.url || '');
+    if (script) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content/common.js', script],
+        });
+        reply = await askTab(tab.id);
+      } catch {
+        // The page refused the script (a browser page, or a frame still loading).
+      }
+    }
+  }
+  return reply;
+}
+
 // ── Auth helpers ─────────────────────────────────────────────────────────────
 
 async function getTokens() {
@@ -147,10 +208,8 @@ chrome.commands.onCommand.addListener(async (command) => {
   let answered = false;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab && tab.id !== undefined) {
-      const reply = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_JOB' });
-      if (reply) { answered = true; job = reply.job || null; }
-    }
+    const reply = await readJobFromTab(tab);
+    if (reply) { answered = true; job = reply.job || null; }
   } catch { /* no ApplyLuma script on this tab */ }
   if (!answered) {
     const { linkedinJob: rawJob } = await chrome.storage.local.get('linkedinJob');

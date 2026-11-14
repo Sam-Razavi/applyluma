@@ -66,9 +66,11 @@ export default function PrivacyPolicy() {
         <section>
           <h2 className="text-xl font-semibold text-fg mb-3">5. Browser Extension</h2>
           <p>
-            The optional ApplyLuma extension for Chrome and Firefox works only on job
-            posting pages on LinkedIn, Indeed, Glassdoor and Arbetsförmedlingen. It does
-            not read any other website and does not record your browsing history.
+            The optional ApplyLuma extension for Chrome and Firefox runs on job posting
+            pages on LinkedIn, Indeed, Glassdoor and Arbetsförmedlingen. On any other
+            website, such as a company's career page, it reads the page only at the
+            moment you click the extension's icon or use its keyboard shortcut there,
+            and only that one page. It does not record your browsing history.
           </p>
           <ul className="list-disc list-inside mt-2 space-y-2">
             <li>

@@ -3,6 +3,8 @@
 
 (function () {
   'use strict';
+  if (ApplyLuma.siteLoaded) return;
+  ApplyLuma.siteLoaded = true;
 
   const TITLE_SELECTORS = [
     '[class*="JobAd_title"]',
@@ -12,6 +14,7 @@
   ];
 
   const COMPANY_SELECTORS = [
+    '#pb-company-name',
     '[class*="JobAd_employer"]',
     '[class*="employer-name"]',
     '[class*="company-name"]',
@@ -19,6 +22,7 @@
   ];
 
   const DESCRIPTION_SELECTORS = [
+    'lib-pb-section-job-main-content',
     '[class*="JobAd_description"]',
     '[class*="job-description"]',
     '[class*="JobDescription"]',
@@ -47,6 +51,13 @@
     title: TITLE_SELECTORS,
     company: COMPANY_SELECTORS,
     description: DESCRIPTION_SELECTORS,
+    // An ad's page is titled "Job title - Employer - Platsbanken". The title
+    // itself may contain " - ", so the employer is the part before the suffix.
+    fromDocumentTitle: () => {
+      const parts = document.title.split(' - ');
+      if (parts.length < 3 || parts[parts.length - 1].trim() !== 'Platsbanken') return null;
+      return { title: parts.slice(0, -2).join(' - ').trim(), company: parts[parts.length - 2].trim() };
+    },
   };
 
   function extractJobData() {
