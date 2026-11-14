@@ -190,7 +190,7 @@ export default function ApplicationCard({ application, isSelectMode, isSelected,
           {priorityLabels[application.priority] ?? 'Low'}
         </span>
         {application.source && (
-          <span className="rounded-full bg-chip-accent px-2 py-0.5 text-xs font-medium text-accent-text">
+          <span className="rounded-full bg-chip-accent px-2 py-0.5 text-xs font-medium capitalize text-accent-text">
             {application.source.replace('_', ' ')}
           </span>
         )}

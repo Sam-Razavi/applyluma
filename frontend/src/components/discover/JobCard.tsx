@@ -69,7 +69,7 @@ export default function JobCard({ job, onClick, onSave }: Props) {
             </span>
           )}
           {(job.application_id || job.application_status) && (
-            <span className="rounded-full bg-chip-success px-2.5 py-0.5 text-xs font-medium text-chip-success-fg">
+            <span className="rounded-full bg-chip-success px-2.5 py-0.5 text-xs font-medium capitalize text-chip-success-fg">
               {job.application_status ? job.application_status.replace('_', ' ') : 'Applied'}
             </span>
           )}

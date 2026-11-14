@@ -23,6 +23,7 @@ from app.services.job_scrapers.platsbanken import PlatsbankenClient
 from app.services.job_scrapers.remoteok import RemoteOKClient
 from app.services.job_scrapers.remotive import RemotiveClient
 from app.services.job_scrapers.skills import skills_for_posting
+from app.services.job_scrapers.text_repair import fix_mojibake
 from app.services.job_scrapers.the_muse import TheMuseClient
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,36 @@ def scrape_source(source: str) -> int:
     """Fetch one source and insert new postings. Returns rows inserted."""
     scraper = build_scraper(source)
     return scraper.save_to_db(scraper.fetch_jobs())
+
+
+def repair_garbled_text(db: Session) -> int:
+    """Restore damaged characters in stored RemoteOK postings.
+
+    New postings are repaired when scraped; this covers rows stored before
+    that, which the scraper never updates (it inserts with ON CONFLICT DO
+    NOTHING). Returns the number of postings changed.
+    """
+    rows = db.execute(
+        text(
+            """
+            SELECT id, title, company, location, description
+            FROM raw_job_postings
+            WHERE source = 'remoteok'
+              AND archived_at IS NULL
+              AND concat_ws(' ', title, company, location, description) ~ '[\u00c2-\u00f4][\u0080-\u00bf]'
+            """
+        )
+    ).mappings().all()
+    changed = 0
+    for row in rows:
+        fixed = {field: fix_mojibake(row[field]) for field in ("title", "company", "location", "description") if row[field]}
+        if all(fixed[field] == row[field] for field in fixed):
+            continue
+        assignments = ", ".join(f"{field} = :{field}" for field in fixed)
+        db.execute(text(f"UPDATE raw_job_postings SET {assignments} WHERE id = :id"), {**fixed, "id": row["id"]})
+        changed += 1
+    db.commit()
+    return changed
 
 
 def mark_duplicates(db: Session) -> int:

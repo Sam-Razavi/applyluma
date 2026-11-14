@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from app.services.job_scrapers.base import BaseScraper
+from app.services.job_scrapers.text_repair import fix_mojibake
 
 logger = logging.getLogger(__name__)
 
@@ -36,16 +37,16 @@ class RemoteOKClient(BaseScraper):
                 continue
             # The first array element is a legal/attribution notice, not a job.
             job_id = str(item.get("id") or "")
-            title = item.get("position") or ""
+            title = fix_mojibake(item.get("position") or "")
             if not job_id or not title:
                 continue
             jobs.append(
                 {
                     "job_id_external": job_id,
                     "title": title,
-                    "company": item.get("company") or "",
-                    "location": item.get("location") or "Remote",
-                    "description": self._html_to_text(item.get("description", "")),
+                    "company": fix_mojibake(item.get("company") or ""),
+                    "location": fix_mojibake(item.get("location") or "Remote"),
+                    "description": fix_mojibake(self._html_to_text(item.get("description", ""))),
                     "url": item.get("url", ""),
                     "salary_min": self._salary(item.get("salary_min")),
                     "salary_max": self._salary(item.get("salary_max")),

@@ -125,7 +125,7 @@ export default function Dashboard() {
     },
     {
       title: 'Discover Jobs',
-      description: 'Browse AI-matched Swedish job listings from multiple sources.',
+      description: 'Browse Swedish job listings from multiple sources, scored against your CV.',
       href: '/discover',
       icon: <MagnifyingGlassIcon className="h-6 w-6 text-accent-text" />,
       iconBg: 'bg-chip-accent',
@@ -287,7 +287,7 @@ export default function Dashboard() {
                       <p className="truncate text-sm font-medium text-fg ">{app.company_name}</p>
                       <p className="truncate text-xs text-fg-subtle">{app.job_title}</p>
                     </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[app.status] ?? 'bg-track text-fg-muted'}`}>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_COLOR[app.status] ?? 'bg-track text-fg-muted'}`}>
                       {app.status.replace('_', ' ')}
                     </span>
                   </li>
