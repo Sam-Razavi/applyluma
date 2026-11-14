@@ -278,3 +278,16 @@ async def test_manual_forward_is_matched_on_the_original_sender(
     assert enqueued[0]["from_domain"] == "spotify.com"
     assert enqueued[0]["subject"] == "Your application to Spotify"
     assert enqueued[0]["snippet"] == "Unfortunately we will not move forward."
+
+
+@pytest.mark.asyncio
+async def test_bulk_mail_is_flagged_before_the_queue(
+    monkeypatch: pytest.MonkeyPatch, enqueued: list[dict[str, Any]]
+) -> None:
+    """The headers never cross the queue, so the flag is decided here."""
+    known_user(monkeypatch)
+
+    await post(body())
+    await post(body(**{"from": "Dan <dan@tldrnewsletter.com>", "message_id": "<n-1@tldr>"}))
+
+    assert [p["bulk"] for p in enqueued] == [False, True]

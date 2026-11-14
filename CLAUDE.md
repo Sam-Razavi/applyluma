@@ -534,6 +534,16 @@ Inbound Email Ingestion (August 2026, first slice):
     Gmail's confirmation prompt once later mail has arrived (or the user
     clicks "I've confirmed it"), and its Outlook steps use "Redirect to",
     which keeps the recruiter as `From:`.
+  - Relevance filter (November 2026): people forward their whole inbox, so
+    every newsletter and receipt was stored and shown, and a parcel notice from
+    amazon.se matched an Amazon application by sender domain.
+    `relevance.py` `is_job_related` (pure) keeps mail with a confident
+    classification, job wording, a match or an ATS sender, and drops shop and
+    delivery subjects and bulk mail not tied to an application. Dropped mail is
+    NOT stored (the task returns `ignored`). The bulk flag is computed in the
+    webhook (`looks_bulk`: List-Unsubscribe and similar headers, sender, body),
+    because headers do not cross the queue. Migration `0036` deleted stored
+    noise nobody had acted on; Alembic chain ends at `0036`.
   - Extension sign-in: `/extension-auth` opens in a new tab with no in-memory
     token, and a cookie-only POST cannot pass the CSRF check from
     applyluma.com (the `csrf_token` cookie belongs to the API's domain), so

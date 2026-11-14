@@ -29,6 +29,7 @@ from app.services.inbound_email.base import InboundParseError, NormalizedEmail
 from app.services.inbound_email.forwarded import unwrap_forward
 from app.services.inbound_email.matcher import normalize_domain
 from app.services.inbound_email.registry import UnknownVendorError, get_adapter
+from app.services.inbound_email.relevance import looks_bulk
 from app.tasks.inbound_email import process_inbound_email
 
 logger = logging.getLogger(__name__)
@@ -146,10 +147,13 @@ async def inbound_email_webhook(request: Request) -> Response:
     # sender written in the forwarded header block instead. Done here, on the
     # full body, because only the truncated snippet crosses the queue.
     from_address, subject, body = email.from_address, email.subject, email.text_body
+    message_headers = email.headers
     original = unwrap_forward(email.subject, email.text_body)
     if original is not None:
         from_address, subject, body = original.from_address, original.subject, original.body
         sender_domain = normalize_domain(from_address.rpartition("@")[2])
+        # The headers are those of the user's own forward, not of the original.
+        message_headers = {}
 
     payload: dict[str, Any] = {
         "user_id": str(user.id),
@@ -163,6 +167,8 @@ async def inbound_email_webhook(request: Request) -> Response:
         "snippet": (body or "")[:SNIPPET_CHARS] or None,
         "received_at": email.received_at.isoformat() if email.received_at else None,
         "vendor": adapter.name,
+        # Decided here: the headers do not cross the queue.
+        "bulk": looks_bulk(headers=message_headers, from_address=from_address, snippet=body),
     }
 
     try:

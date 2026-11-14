@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.crud import inbound_email as crud_inbound_email
+from app.services.inbound_email.matcher import MatchCandidate
 from app.tasks import inbound_email as task_module
 from app.tasks.celery_app import celery_app
 
@@ -249,3 +250,36 @@ def test_unmatched_email_never_raises_a_suggestion(monkeypatch: pytest.MonkeyPat
     assert result["status"] == "unmatched"
     assert result["suggestion"] == "none"
     assert notified == []
+
+
+@pytest.mark.parametrize(
+    "noise",
+    [
+        {"from_address": "dan@tldrnewsletter.com", "from_domain": "tldrnewsletter.com",
+         "subject": "Gemini Hydrogen arrives", "snippet": "This week in tech.", "bulk": True},
+        {"from_address": "shipment-tracking@amazon.se", "from_domain": "amazon.se",
+         "subject": "Skickade: Amazon Basics HDMI Splitter", "snippet": "Ditt paket är på väg."},
+    ],
+)
+def test_mail_that_is_not_about_a_job_is_not_stored(
+    monkeypatch: pytest.MonkeyPatch, noise: dict[str, Any]
+) -> None:
+    created: dict[str, Any] = {}
+    monkeypatch.setattr(
+        task_module.crud_inbound_email, "exists_for_dedupe_key", lambda db, **kw: False
+    )
+    # The parcel notice comes from a company the user applied to: the sender
+    # domain matches, and it must still be dropped.
+    monkeypatch.setattr(
+        task_module.crud_inbound_email,
+        "list_match_candidates",
+        lambda db, u: [MatchCandidate(application_id=uuid.uuid4(), company_name="Amazon")],
+    )
+    monkeypatch.setattr(
+        task_module.crud_inbound_email, "create", lambda db, **kw: _record(created, kw)
+    )
+
+    result = task_module.process_inbound_email(payload(**noise))
+
+    assert result["status"] == "ignored"
+    assert created == {}
