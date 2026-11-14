@@ -3,6 +3,8 @@
 
 (function () {
   'use strict';
+  if (ApplyLuma.siteLoaded) return;
+  ApplyLuma.siteLoaded = true;
 
   // ── Selector sets — primary then fallbacks ──────────────────────────────
 
@@ -171,7 +173,9 @@
       setTimeout(extractJobData, 800);
     }
     // Re-inject badges as new cards load (infinite scroll / SPA pagination).
-    void refreshBadges();
+    // Only under /jobs: the script is present on all of LinkedIn so it can
+    // answer after in-app navigation, but it has nothing to do on the feed.
+    if (location.pathname.startsWith('/jobs')) void refreshBadges();
   }).observe(document, { subtree: true, childList: true });
 
   // ── Message listener (from background worker) ────────────────────────────

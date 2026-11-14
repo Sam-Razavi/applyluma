@@ -53,6 +53,7 @@ Save job postings the user is viewing on supported job boards to their ApplyLuma
 | `storage` | Stores the user's ApplyLuma sign-in token, the job details read from the current posting (kept 15 minutes) and the list of already-saved/applied job URLs used to badge listings. |
 | `alarms` | Refreshes the saved/applied job URL list from the ApplyLuma API every 30 minutes so badges stay current. |
 | `notifications` | Confirms success or failure when a job is saved with the keyboard shortcut, since no popup is open in that case. |
+| `scripting` | Loads the extension's own packaged page script into the active tab when the user opens the popup or uses the shortcut on one of the supported job sites and that tab has no script yet (a tab that was already open when the extension was installed or updated). It is only ever used on the host-permission sites below and only loads files from the package. |
 | Host: `www.linkedin.com`, `se.indeed.com`, `www.indeed.com`, `www.glassdoor.com`, `arbetsformedlingen.se`, `www.arbetsformedlingen.se` | Content scripts read the job title, company, URL and description from job posting pages on these sites, and mark listings the user already saved or applied to. No other sites are accessed. |
 | Host: `applyluma-production.up.railway.app` | The ApplyLuma API, where saved jobs are sent and the user's saved/applied list is read. |
 | Remote code | No. All JavaScript ships in the package; there is no `eval` and no remotely loaded script. |

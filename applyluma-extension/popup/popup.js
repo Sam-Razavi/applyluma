@@ -150,18 +150,67 @@ const SAVED_JOBS_URL = 'https://applyluma.com/discover?tab=saved';
 // Ask the page in the active tab to read the job now. Reading on demand gets
 // fields that had not rendered yet when the page first loaded, and always
 // describes this tab rather than whichever tab was read last.
+// The page script that reads each supported site. Used to load it on demand
+// into a tab that has none: one that was open before the extension was
+// installed or updated.
+const SITE_SCRIPTS = [
+  [/(^|\.)linkedin\.com$/, 'content/linkedin.js'],
+  [/(^|\.)indeed\.com$/, 'content/indeed.js'],
+  [/(^|\.)arbetsformedlingen\.se$/, 'content/platsbanken.js'],
+  [/(^|\.)glassdoor\.com$/, 'content/glassdoor.js'],
+];
+
+function siteScriptFor(url) {
+  try {
+    const host = new URL(url).hostname;
+    const match = SITE_SCRIPTS.find(([pattern]) => pattern.test(host));
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+// Ask the tab's page script for the job. Resolves to null if nothing answers.
+async function askTab(tabId) {
+  try {
+    return await Promise.race([
+      chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_JOB' }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
+    ]);
+  } catch {
+    return null; // no ApplyLuma script on this tab
+  }
+}
+
+// Ask the tab; if it has no page script yet and is a supported site, load the
+// script and ask again. tab.url is only visible for sites the extension has
+// permission for, so nothing is ever loaded into any other page.
+async function readJobFromTab(tab) {
+  if (!tab || tab.id === undefined) return null;
+  let reply = await askTab(tab.id);
+  if (!reply) {
+    const script = siteScriptFor(tab.url || '');
+    if (script) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content/common.js', script],
+        });
+        reply = await askTab(tab.id);
+      } catch {
+        // The page refused the script (a browser page, or a frame still loading).
+      }
+    }
+  }
+  return reply;
+}
+
 async function extractFromActiveTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab || tab.id === undefined) return { answered: false };
-    const reply = await Promise.race([
-      chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_JOB' }),
-      new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
-    ]);
+    const reply = await readJobFromTab(tab);
     return reply ? { answered: true, job: reply.job || null } : { answered: false };
   } catch {
-    // No ApplyLuma script on this tab (not a supported site, or a tab that
-    // was open before the extension was installed).
     return { answered: false };
   }
 }
