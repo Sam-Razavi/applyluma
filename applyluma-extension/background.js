@@ -17,9 +17,11 @@ const JOB_SITE_PATTERNS = [
 ];
 
 // Same helpers as popup/popup.js (the two run in separate contexts).
-// The page script that reads each supported site. Used to load it on demand
-// into a tab that has none: one that was open before the extension was
-// installed or updated.
+// The page script that reads each job board. A board's script is normally
+// already in its tabs; it is loaded on demand into one that was open before
+// the extension was installed or updated. Any other site gets the generic
+// script, and only because the user opened the popup or used the shortcut
+// there (activeTab).
 const SITE_SCRIPTS = [
   [/(^|\.)linkedin\.com$/, 'content/linkedin.js'],
   [/(^|\.)indeed\.com$/, 'content/indeed.js'],
@@ -27,11 +29,14 @@ const SITE_SCRIPTS = [
   [/(^|\.)glassdoor\.com$/, 'content/glassdoor.js'],
 ];
 
+const GENERIC_SCRIPT = 'content/generic.js';
+
 function siteScriptFor(url) {
   try {
-    const host = new URL(url).hostname;
-    const match = SITE_SCRIPTS.find(([pattern]) => pattern.test(host));
-    return match ? match[1] : null;
+    const { protocol, hostname } = new URL(url);
+    if (protocol !== 'https:' && protocol !== 'http:') return null;
+    const match = SITE_SCRIPTS.find(([pattern]) => pattern.test(hostname));
+    return match ? match[1] : GENERIC_SCRIPT;
   } catch {
     return null;
   }
@@ -49,9 +54,9 @@ async function askTab(tabId) {
   }
 }
 
-// Ask the tab; if it has no page script yet and is a supported site, load the
-// script and ask again. tab.url is only visible for sites the extension has
-// permission for, so nothing is ever loaded into any other page.
+// Ask the tab; if it has no page script yet, load the right one and ask again.
+// The browser only allows this on the job boards in the manifest and on the
+// tab the user just invoked the extension on.
 async function readJobFromTab(tab) {
   if (!tab || tab.id === undefined) return null;
   let reply = await askTab(tab.id);

@@ -8,14 +8,24 @@ codebase runs in Chrome and Firefox. Plain JavaScript, no build step.
 
 | Site | Hosts | Content script |
 |---|---|---|
-| LinkedIn | `www.linkedin.com/jobs/*` | `content/linkedin.js` |
+| LinkedIn | `www.linkedin.com` | `content/linkedin.js` |
 | Indeed | `se.indeed.com`, `www.indeed.com` | `content/indeed.js` |
 | Glassdoor | `www.glassdoor.com` | `content/glassdoor.js` |
 | Arbetsförmedlingen (Platsbanken) | `arbetsformedlingen.se`, `www.arbetsformedlingen.se` | `content/platsbanken.js` |
+| Any other career page | none (`activeTab`) | `content/generic.js`, loaded on demand |
 
-To add a site, add it to `manifest.json` (`host_permissions` + a
-`content_scripts` entry), to `JOB_SITE_PATTERNS` in `background.js`, and to
-`detectSource()` in both `background.js` and `popup/popup.js`.
+The four job boards have their own scripts, always present in their tabs, which
+also mark listings already saved or applied to. Every other site is read by
+`content/generic.js`, which is not in the manifest: the popup or the shortcut
+loads it into the active tab when the user invokes the extension there. It
+treats a page as a job when it carries schema.org `JobPosting` data, is on a
+known applicant-tracking host, or has a job-like path, and it prefers the
+structured data over anything read from the page layout.
+
+To give a site its own script, add it to `manifest.json` (`host_permissions` + a
+`content_scripts` entry), to `JOB_SITE_PATTERNS` in `background.js`, to
+`SITE_SCRIPTS` and `detectSource()` in both `background.js` and
+`popup/popup.js`.
 
 ## Features
 

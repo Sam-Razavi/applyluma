@@ -95,17 +95,26 @@
    *   canonicalUrl?(): string,   // stable job URL (e.g. LinkedIn /jobs/view/<id>/)
    *   title, company, description: CSS selector lists,
    *   fromDocumentTitle?(): { title, company } | null,
+   *   preferStructured?: boolean, // JSON-LD before the selectors (unknown layouts)
+   *   maxDescription?: number,    // cut a description read from a whole page
    * }
    */
   function extract(site) {
     if (!site.isJobPage()) return null;
     const ld = jsonLdJob() || {};
     const fromTitle = (site.fromDocumentTitle && site.fromDocumentTitle()) || {};
+    const field = (name) => {
+      const fromPage = firstText(site[name]);
+      return site.preferStructured
+        ? pick(ld[name], fromPage, fromTitle[name])
+        : pick(fromPage, ld[name], fromTitle[name]);
+    };
+    const description = field('description');
     return {
-      title: pick(firstText(site.title), ld.title, fromTitle.title),
-      company: pick(firstText(site.company), ld.company, fromTitle.company),
+      title: field('title'),
+      company: field('company'),
       url: site.canonicalUrl ? site.canonicalUrl() : window.location.href,
-      description: pick(firstText(site.description), ld.description),
+      description: site.maxDescription ? description.slice(0, site.maxDescription) : description,
       extractedAt: Date.now(),
     };
   }
