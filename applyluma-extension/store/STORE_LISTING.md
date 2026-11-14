@@ -26,7 +26,7 @@ SAVE JOBS FROM WHERE YOU FIND THEM
 Open a posting on LinkedIn, Indeed, Glassdoor, Arbetsförmedlingen (Platsbanken) or a company's own career page and click the ApplyLuma icon. The title, company, link and description are filled in for you. Add a note if you like, then save.
 
 SEE HOW WELL YOU MATCH
-Right after saving, the popup shows an AI match score comparing the job against your default CV in ApplyLuma.
+Right after saving, the popup shows a match score comparing the job against your default CV in ApplyLuma.
 
 TRACK AND TAILOR WITHOUT SWITCHING TABS
 Add the job to your application tracker, or start an AI-tailored version of your CV for that specific role, directly from the popup.
