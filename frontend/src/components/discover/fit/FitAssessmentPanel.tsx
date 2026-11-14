@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDownIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowPathIcon,
+  ChevronDownIcon,
+  ExclamationTriangleIcon,
+  SparklesIcon,
+} from '@heroicons/react/24/outline'
 import { getErrorMessage } from '../../../lib/errors'
 import { fitAssessmentApi } from '../../../services/fitAssessmentApi'
 import type {
@@ -23,11 +28,15 @@ const RECOMMENDATION: Record<FitRecommendation, { label: string; className: stri
 }
 
 const STATUS: Record<FitStatus, { label: string; className: string }> = {
-  met: { label: 'Met', className: 'text-success-600' },
-  partly_met: { label: 'Partly met', className: 'text-warning-600' },
-  not_met: { label: 'Not met', className: 'text-danger-600' },
-  not_enough_information: { label: 'Not enough information', className: 'text-fg-muted' },
+  met: { label: 'Met', className: 'bg-success-500/15 text-success-600' },
+  partly_met: { label: 'Partly met', className: 'bg-warning-500/15 text-warning-600' },
+  not_met: { label: 'Not met', className: 'bg-danger-500/15 text-danger-600' },
+  not_enough_information: { label: 'Not enough information', className: 'bg-surface-strong text-fg-muted' },
 }
+
+// Sized like the other actions in the job detail (Save, Tailor CV).
+const ACTION =
+  'flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm disabled:opacity-60 sm:w-auto'
 
 const GROUPS: { importance: FitImportance; title: string; hint: string }[] = [
   { importance: 'mandatory', title: 'Mandatory', hint: 'These decide the recommendation.' },
@@ -43,9 +52,13 @@ function Requirement({ item }: { item: FitRequirement }) {
   const status = STATUS[item.status]
   return (
     <li className="rounded-lg border border-line bg-surface p-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 text-sm font-medium text-fg">{item.text}</span>
-        <span className={`shrink-0 whitespace-nowrap text-xs font-semibold ${status.className}`}>
+      {/* A short chip stays on the right; a long one drops under the title on a
+          phone instead of squeezing it into a narrow column. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1.5">
+        <span className="min-w-[55%] flex-1 text-sm font-medium text-fg">{item.text}</span>
+        <span
+          className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${status.className}`}
+        >
           {status.label}
         </span>
       </div>
@@ -172,13 +185,23 @@ export default function FitAssessmentPanel({ jobId }: Props) {
           )}
 
           {!assessment && (
-            <button type="button" className="btn-primary" onClick={() => void run(false)} disabled={busy}>
+            <button
+              type="button"
+              className={`btn-primary ${ACTION}`}
+              onClick={() => void run(false)}
+              disabled={busy}
+            >
+              <SparklesIcon className="h-4 w-4" aria-hidden="true" />
               {busy ? 'Starting…' : 'Assess this job'}
             </button>
           )}
 
           {running && (
-            <p className="text-sm text-fg-muted" role="status">
+            <p className="flex items-center gap-3 text-sm text-fg-muted" role="status">
+              <span
+                className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"
+                aria-hidden="true"
+              />
               Reading the ad and your CV. This takes up to half a minute.
             </p>
           )}
@@ -188,7 +211,13 @@ export default function FitAssessmentPanel({ jobId }: Props) {
               <p className="text-sm text-danger-600">
                 The assessment could not be completed{assessment.error_message ? `: ${assessment.error_message}` : '.'}
               </p>
-              <button type="button" className="btn-ghost" onClick={() => void run(true)} disabled={busy}>
+              <button
+                type="button"
+                className={`btn-ghost ${ACTION}`}
+                onClick={() => void run(true)}
+                disabled={busy}
+              >
+                <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
                 Try again
               </button>
             </div>
@@ -248,11 +277,12 @@ export default function FitAssessmentPanel({ jobId }: Props) {
                 </span>
                 <button
                   type="button"
-                  className="text-xs font-medium text-accent-text hover:underline disabled:opacity-50"
+                  className="btn-ghost flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs disabled:opacity-60"
                   onClick={() => void run(true)}
                   disabled={busy}
                 >
-                  Run again
+                  <ArrowPathIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  {busy ? 'Starting…' : 'Run again'}
                 </button>
               </div>
             </>
