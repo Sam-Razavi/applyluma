@@ -142,3 +142,27 @@ def test_active_user_ids_skips_users_without_a_default_cv(session: Any) -> None:
             db.delete(user)
         db.commit()
 
+
+def test_repair_garbled_text_fixes_stored_remoteok_postings_only(session: Any) -> None:
+    from sqlalchemy import text
+
+    from app.services import job_pipeline as steps
+
+    damaged = "Engineer — Platform".encode().decode("latin-1")
+    tag = uuid.uuid4().hex[:8]
+    _posting(session, source="remoteok", title=f"{damaged} {tag}", company="Sotheby’s".encode().decode("latin-1"))
+    _posting(session, source="remoteok", title=f"Clean title {tag}", company="Acme")
+    _posting(session, source="platsbanken", title=f"{damaged} sv {tag}", company="Åre kommun")
+    session.commit()
+
+    assert steps.repair_garbled_text(session) >= 1
+    rows = dict(
+        session.execute(
+            text("SELECT title, company FROM raw_job_postings WHERE title LIKE :tag"), {"tag": f"%{tag}"}
+        ).all()
+    )
+    assert rows[f"Engineer — Platform {tag}"] == "Sotheby’s"
+    assert rows[f"Clean title {tag}"] == "Acme"
+    assert f"{damaged} sv {tag}" in rows  # other sources are left alone
+    assert steps.repair_garbled_text(session) == 0  # nothing left to repair
+

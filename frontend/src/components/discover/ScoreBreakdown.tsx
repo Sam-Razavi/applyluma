@@ -86,7 +86,7 @@ export default function ScoreBreakdown({
             </>
           ) : (
             <p className="text-xs text-fg-subtle">
-              Score details unavailable — upload a CV so AI matching can run.
+              Score details unavailable — upload a CV so the match score can be calculated.
             </p>
           )}
         </div>

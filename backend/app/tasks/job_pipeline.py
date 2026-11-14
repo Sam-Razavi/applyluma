@@ -102,6 +102,7 @@ def run_job_pipeline() -> dict[str, Any]:
     summary: dict[str, Any] = {}
     try:
         summary["sources"] = {source: _scrape(db, source) for source in steps.SOURCES}
+        summary["text_repair"] = _step(db, "text_repair", steps.repair_garbled_text)
         summary["dedupe"] = _step(db, "dedupe", steps.mark_duplicates)
         summary["skills"] = _step(db, "skills", steps.tag_skills)
         summary["keywords"] = _step(db, "keywords", steps.extract_keywords, log_as="extracted_keywords")

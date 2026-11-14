@@ -652,6 +652,10 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
   - Fixed while porting: `BaseScraper.save_to_db` reported only the last
     100-row page's inserts (execute_values paging), so busy sources were
     under-counted in the run log.
+  - RemoteOK sends some text with UTF-8 read as Latin-1 (an em dash shows as "â" plus
+    two control characters). `job_scrapers/text_repair.py` `fix_mojibake` repairs it at
+    scrape time, and the pipeline step `repair_garbled_text` repairs stored live
+    RemoteOK rows. RemoteOK only: on Swedish text a real "Ä°" would be changed.
   - Real-database coverage: `tests/test_job_pipeline_db.py` (opt-in via
     `TEST_DATABASE_URL`, like `test_job_retention.py`).
   - First production run (2026-11-01, manual): 897 new postings, every step
