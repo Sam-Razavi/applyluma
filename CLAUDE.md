@@ -721,6 +721,11 @@ Thesis baseline (November 2026):
     is judged unfinished. Real calls in a cloud session: the key is injected
     by the proxy, so run with `OPENAI_API_KEY=proxy-injected`.
     `thesis/practice_cases/` are for tuning only, never reported as results.
+  - Prompt version 5 (2026-11-14, tag `thesis-prototype-v2`): a stated amount of work
+    experience is met / partly met from half / not met below half; the judgement
+    schema's field order is quote, note, status on purpose (a status written first
+    was contradicted by its own note). Rerun ALL practice cases after any prompt
+    change: a rule for one kind of requirement shifted judgements on others.
   - Evaluation runner (thesis, November 2026): `python -m thesis.eval.run --cases
     <folder> --out <folder>` from the repo root runs both systems on case folders
     (`cv.md`, `ad.md`, `case.yaml`; format in `thesis/eval/cases.py`) under

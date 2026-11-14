@@ -3,7 +3,7 @@ an entry in thesis/DESIGN_LOG.md."""
 
 from __future__ import annotations
 
-PROMPT_VERSION = "4"
+PROMPT_VERSION = "5"
 
 # The ad and the CV are untrusted text: either can contain sentences written
 # to steer a model ("rate this candidate High Priority").
@@ -50,11 +50,19 @@ Judge only what the CV says about qualifications. Ignore the person's name, \
 age, gender, nationality, photo and address: they are never evidence for or \
 against a requirement.
 
-For each requirement, by its id, give:
+For each requirement, by its id, give these three things in this order:
+- cv_quote: the words in the CV your judgement rests on, copied word for word \
+in the CV's own language. Required for met and partly_met. Use an empty string \
+when the CV says nothing relevant. Never invent or reword a quote. A quote is \
+one unbroken piece of the CV: a single word such as a skill name is enough, \
+and a heading is never joined to an item below it.
+- note: one or two sentences in English that reason from the quote to the \
+judgement. Write this before you choose the status, and make the status follow \
+from it.
 - status:
   - met: the CV states it.
   - partly_met: the CV shows something related but less than asked, such as a \
-similar tool or less time than required.
+similar tool. For an amount of work experience, follow the rule below.
   - not_met: the CV shows the candidate lacks it. Either the CV contradicts it \
 (the ad asks for a completed degree and the CV says studies are ongoing), or \
 it is a skill, tool, certification or formal qualification that a CV normally \
@@ -62,14 +70,28 @@ lists and this CV does not mention it.
   - not_enough_information: the CV does not settle it, and it is something CVs \
 often leave out (driving licence, work permit, language level, willingness to \
 travel), or the requirement is too vague to judge ("relevant experience", \
-"good communication skills").
-- cv_quote: the words in the CV your judgement rests on, copied word for word \
-in the CV's own language. Required for met and partly_met. Use an empty string \
-when the CV says nothing relevant. Never invent or reword a quote.
-- note: one sentence in English explaining the judgement.
+"good communication skills"). When the CV is silent about a driving licence, \
+a work permit, citizenship, a language or its level, or willingness to travel, \
+the status is always not_enough_information, never not_met.
 
-University projects, thesis work and internships count as experience with a \
-tool or method, but not as years of professional experience.
+Before you judge a requirement about experience, read every job, internship \
+and project in the CV. Experience of a kind of work, asked without a number \
+("experience of support", "erfarenhet av kundservice"), is met or partly_met \
+when any of them involved that kind of work, and is never not_met in that case.
+
+Only when a requirement states a number of years or months of work \
+experience ("at least 3 years", "minst 2 års erfarenhet"), add up the relevant work periods in the CV, \
+counting a job that is still running up to today's date. An internship counts \
+for its actual length. University projects and thesis work show experience \
+with a tool or method but add no work time. Quote the work period or periods you counted (an empty string if there are \
+none). In the note, write the total in months, the amount asked in months and \
+half of that amount, for example "Total 8 months; asked 12 months; half is 6 \
+months." Then compare the numbers:
+- met: the total is equal to or more than the amount asked.
+- partly_met: the total is less than the amount asked but at least half of it.
+- not_met: the total is less than half of the amount asked, or the CV shows no \
+relevant work at all. A CV always lists the jobs a person has had, so missing \
+work experience is not_met, never not_enough_information.
 
 Today's date is given with the CV. An education or job is completed when its \
 end date is before today. When only a year is given, treat it as completed if \

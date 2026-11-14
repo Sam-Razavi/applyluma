@@ -1,0 +1,6 @@
+scenario: unclear_or_missing
+language: sv
+reference: consider
+rationale: >
+  Skills and education fit. The ad requires at least one year of work experience
+  and the CV shows eight months: short of the requirement, but close.

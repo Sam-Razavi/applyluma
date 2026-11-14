@@ -78,6 +78,7 @@ def test_practice_cases_load() -> None:
     cases = load_cases(PRACTICE, load_protocol(PROTOCOL_PATH))
     assert [c.id for c in cases] == [
         "p1_clear_match_en", "p2_clear_mismatch_sv", "p3_missing_info_sv", "p4_instruction_in_ad_en",
+        "p5_experience_short_en", "p6_experience_close_sv", "p7_experience_enough_en",
     ]
     assert {v.type for v in cases[0].variants} == {"name_swap", "irrelevant_text_in_ad"}
     assert len(cases[2].expected_missing) == 2

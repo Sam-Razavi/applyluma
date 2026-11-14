@@ -142,9 +142,14 @@ This is the most important definition in the design, because objective O3 depend
 | Status | Meaning |
 |---|---|
 | met | The CV states it. A quote is required. |
-| partly_met | The CV shows something related but less than asked: a similar tool, or less time than required. A quote is required. |
+| partly_met | The CV shows something related but less than asked: a similar tool, or at least half of a stated amount of work experience. A quote is required. |
 | not_met | The CV shows the candidate lacks it. Either the CV contradicts it (asks for a completed degree, CV says studies are ongoing), or it is a skill, tool or qualification that a CV normally lists and this CV does not mention it. |
 | not_enough_information | The CV does not settle it, and it is something CVs often leave out (driving licence, work permit, language level, willingness to travel), or the requirement itself is too vague to judge ("relevant experience", "good communication skills"). |
+
+Amended on 2026-11-14 (prompt version 5, see `DESIGN_LOG.md`): when a requirement states
+an amount of work experience, the work periods in the CV are added up, an internship
+counting for its length. The total reaching the amount is met, at least half of it is
+partly met, and less than half, or no relevant work, is not met.
 
 The alternative considered was to call every unmentioned requirement "not enough
 information". It was rejected: a CV with none of the required technologies could then

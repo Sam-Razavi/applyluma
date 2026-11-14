@@ -1,0 +1,6 @@
+scenario: clear
+language: en
+reference: high_priority
+rationale: >
+  The CV shows more than two years in a running developer job (August 2024 to
+  December 2026), with C#, .NET and SQL Server: every mandatory requirement is met.

@@ -51,9 +51,12 @@ ASSESSMENT_SCHEMA: dict[str, Any] = {
                 "items": _object(
                     {
                         "requirement_id": {"type": "string"},
-                        "status": {"type": "string", "enum": list(STATUSES)},
+                        # Evidence and reasoning come before the verdict: the model
+                        # writes fields in this order, and a status chosen first was
+                        # sometimes contradicted by the note that followed it.
                         "cv_quote": {"type": "string"},
                         "note": {"type": "string"},
+                        "status": {"type": "string", "enum": list(STATUSES)},
                     }
                 ),
             },

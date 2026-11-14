@@ -1,0 +1,6 @@
+scenario: clear
+language: en
+reference: low_priority
+rationale: >
+  The skills and the degree fit, but the ad requires at least three years of
+  professional backend experience and the CV shows one five-month internship.

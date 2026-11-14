@@ -12,7 +12,7 @@ after the `pre-thesis-baseline` tag; what existed before is described in
 | [`protocol.yaml`](protocol.yaml) | The evaluation protocol: number of runs, the date given to the model, the thresholds that turn the rule-based score into a priority |
 | [`practice_cases/`](practice_cases/) | Fictional cases used while building. Not evaluation cases; nothing measured on them is a result |
 | [`eval/`](eval/) | The evaluation runner: both systems on the same cases, then the tables |
-| `cases/` | The evaluation cases. Added after the freeze tag `thesis-prototype-v1` |
+| `cases/` | The evaluation cases. Added after the freeze tag `thesis-prototype-v2` |
 | `results/` | One folder per evaluation run, committed as produced |
 
 Code of the component, outside this folder:
@@ -52,4 +52,4 @@ It writes into the `--out` folder:
 rebuilds the tables from `results.jsonl` without calling the model. Both refuse if the
 cases, prompts, rules or model differ from the stored run.
 
-Still to come: the freeze tag, the evaluation cases and the results.
+Still to come: the evaluation cases and the results.
