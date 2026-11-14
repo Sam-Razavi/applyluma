@@ -39,9 +39,9 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills, onSkillC
   if (total === 0) {
     return (
       <div className="rounded-xl border border-line bg-surface p-4">
-        <h3 className="text-sm font-semibold text-fg">Skills match</h3>
+        <h3 className="text-sm font-semibold text-fg">Keywords from the ad</h3>
         <p className="mt-2 text-xs text-fg-subtle">
-          Upload a CV so AI can compare your skills against this role.
+          Upload a CV to see which keywords from this ad it contains.
         </p>
       </div>
     )
@@ -55,11 +55,16 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills, onSkillC
   return (
     <div className="rounded-xl border border-line bg-surface p-4">
       <h3 className="text-sm font-semibold text-fg">
-        {matchedSkills.length} of {total} required skills matched
+        {matchedSkills.length} of {total} keywords from the ad found in your CV
       </h3>
+      {/* The score line above counts technical skills only, so its numbers can
+          differ from this card's: say so instead of leaving two counts unexplained. */}
+      <p className="mt-1 text-xs text-fg-subtle">
+        Includes languages and soft skills. The match score counts technical skills only.
+      </p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <div>
-          <p className="mb-2 text-xs font-semibold text-chip-success-fg">Matched</p>
+          <p className="mb-2 text-xs font-semibold text-chip-success-fg">Found in your CV</p>
           <div className="flex flex-wrap gap-1.5">
             {matchedSkills.length ? (
               matchedSkills.map((skill) => (
@@ -77,7 +82,7 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills, onSkillC
           </div>
         </div>
         <div>
-          <p className="mb-2 text-xs font-semibold text-chip-danger-fg">Missing</p>
+          <p className="mb-2 text-xs font-semibold text-chip-danger-fg">Not found in your CV</p>
           <div className="flex flex-wrap gap-1.5">
             {missingSkills.length ? (
               missingSkills.map((skill) => (
@@ -92,7 +97,7 @@ export default function SkillsBreakdown({ matchedSkills, missingSkills, onSkillC
                 />
               ))
             ) : (
-              <span className="text-xs text-fg-subtle">No gaps found</span>
+              <span className="text-xs text-fg-subtle">None missing</span>
             )}
           </div>
         </div>
