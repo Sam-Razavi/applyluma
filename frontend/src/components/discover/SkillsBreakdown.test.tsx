@@ -12,12 +12,12 @@ describe('SkillsBreakdown', () => {
   it('shows upload prompt when no skills provided', () => {
     render(<SkillsBreakdown matchedSkills={[]} missingSkills={[]} />)
     expect(screen.getByText(/Upload a CV/)).toBeInTheDocument()
-    expect(screen.getByText('Skills match')).toBeInTheDocument()
+    expect(screen.getByText('Keywords from the ad')).toBeInTheDocument()
   })
 
   it('shows matched and missing skill counts', () => {
     render(<SkillsBreakdown matchedSkills={['Python', 'React']} missingSkills={['Docker']} />)
-    expect(screen.getByText(/2 of 3 required skills matched/)).toBeInTheDocument()
+    expect(screen.getByText(/2 of 3 keywords from the ad found in your CV/)).toBeInTheDocument()
   })
 
   it('renders matched skill pills', () => {
@@ -37,9 +37,9 @@ describe('SkillsBreakdown', () => {
     expect(screen.getByText('None yet')).toBeInTheDocument()
   })
 
-  it('shows "No gaps found" when missingSkills is empty but matchedSkills exist', () => {
+  it('shows "None missing" when missingSkills is empty but matchedSkills exist', () => {
     render(<SkillsBreakdown matchedSkills={['Python']} missingSkills={[]} />)
-    expect(screen.getByText('No gaps found')).toBeInTheDocument()
+    expect(screen.getByText('None missing')).toBeInTheDocument()
   })
 
   it('copies skill to clipboard when missing skill pill is clicked', async () => {
