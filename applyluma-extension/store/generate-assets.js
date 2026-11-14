@@ -89,8 +89,8 @@ async function compose(browser, popupPng, heading, sub, file) {
   await popupShot(browser, { savedUrls: [] }, null, `${tmp}/connect.png`);
   await popupShot(browser, { applyluma_token: 'x', savedUrls: new Array(24).fill('u') }, null, `${tmp}/connected.png`);
 
-  await compose(browser, `${tmp}/save.png`, 'Save any job in one click', 'Title, company and description are read straight from LinkedIn, Indeed, Glassdoor and Arbetsförmedlingen.', `${OUT}/screenshot-1-save.png`);
-  await compose(browser, `${tmp}/score.png`, 'See how well you match', 'Get an AI match score against your CV, track the application, and tailor your CV — without leaving the posting.', `${OUT}/screenshot-2-match.png`);
+  await compose(browser, `${tmp}/save.png`, 'Save any job in one click', 'Title, company and description are read straight from LinkedIn, Indeed, Glassdoor, Arbetsförmedlingen and company career pages.', `${OUT}/screenshot-1-save.png`);
+  await compose(browser, `${tmp}/score.png`, 'See how well you match', 'Get a match score against your CV, track the application, and tailor your CV — without leaving the posting.', `${OUT}/screenshot-2-match.png`);
   await compose(browser, `${tmp}/connected.png`, 'Everything lands in ApplyLuma', 'Saved jobs sync to your dashboard. Press Alt+Shift+S to save without opening the popup.', `${OUT}/screenshot-3-synced.png`);
 
   // Small promo tile 440x280
