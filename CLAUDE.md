@@ -671,6 +671,12 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     the last source to run, its failure also marked the whole scraping stage
     `failed` for the watchdog. The Adzuna key is still used by the web Job
     Search tab (other countries).
+  - The Muse was dropped (November 2026): its public API answered 404 on every
+    nightly run from at least 2026-11-10. Sources are now `remotive`, `remoteok`,
+    `platsbanken`; `the_muse` is in `RETIRED_SOURCES`, so its old rows show as
+    retired, not stale, until retention removes them.
+  - `POST /job-descriptions/scrape-url` logs `job_url_import_refused` with the
+    site's host and the reason (never the full link) for every 422.
   - Scraper errors are redacted (`job_scrapers.base.redact`): requests puts
     the full URL with query string into error messages, so the Adzuna
     `app_key` was being written to Railway logs and `pipeline_run_log` before

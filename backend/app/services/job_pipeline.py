@@ -24,13 +24,12 @@ from app.services.job_scrapers.remoteok import RemoteOKClient
 from app.services.job_scrapers.remotive import RemotiveClient
 from app.services.job_scrapers.skills import skills_for_posting
 from app.services.job_scrapers.text_repair import fix_mojibake
-from app.services.job_scrapers.the_muse import TheMuseClient
 
 logger = logging.getLogger(__name__)
 
 # Order matters only for logs. Dropped: Jobbsafari (RSS feed gone, no API) and
 # Indeed SE via Adzuna (Adzuna has no Sweden endpoint; every call returns 404).
-SOURCES: list[str] = ["remotive", "the_muse", "remoteok", "platsbanken"]
+SOURCES: list[str] = ["remotive", "remoteok", "platsbanken"]
 
 KEYWORD_BATCH_SIZE = 500
 KEYWORD_MAX_BATCHES = 20
@@ -49,8 +48,6 @@ def build_scraper(source: str) -> BaseScraper:
     conn = db_conn_str()
     if source == "remotive":
         return RemotiveClient(db_conn_str=conn, limit=100)
-    if source == "the_muse":
-        return TheMuseClient(db_conn_str=conn, pages=5)
     if source == "remoteok":
         return RemoteOKClient(db_conn_str=conn)
     if source == "platsbanken":

@@ -85,7 +85,7 @@ export interface JobSourceCount {
 
 // Static fallback for the source filter, used only when GET /jobs/sources fails.
 // Values must match the `source` column in raw_job_postings exactly.
-export const JOB_SOURCES = ['platsbanken', 'the_muse', 'remotive', 'remoteok', 'adzuna_remote', 'adzuna_de', 'adzuna_nl', 'adzuna_fr'] as const
+export const JOB_SOURCES = ['platsbanken', 'remotive', 'remoteok', 'adzuna_remote', 'adzuna_de', 'adzuna_nl', 'adzuna_fr'] as const
 export type JobSource = (typeof JOB_SOURCES)[number]
 
 export const SOURCE_LABELS: Record<string, string> = {
