@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class RawJobPostingSummary(BaseModel):
@@ -132,9 +132,12 @@ class UpdateSavedJobRequest(BaseModel):
 
 
 class ExternalJobBookmarkRequest(BaseModel):
+    """A job read from a web page by the extension. Text is cut to the column
+    sizes rather than refused: a page with an over-long heading must still save."""
+
     title: str
     company: str
-    url: str
+    url: str = Field(min_length=1, max_length=2048)
     description: str
     source: str = "linkedin"
     notes: str | None = None
@@ -142,6 +145,28 @@ class ExternalJobBookmarkRequest(BaseModel):
     salary_min: int | None = None
     salary_max: int | None = None
     contract_type: str | None = None
+
+    @field_validator("title", "company", "location", mode="before")
+    @classmethod
+    def _fit_255(cls, value: object) -> object:
+        return value.replace("\x00", "").strip()[:255] if isinstance(value, str) else value
+
+    @field_validator("source", "contract_type", mode="before")
+    @classmethod
+    def _fit_64(cls, value: object) -> object:
+        return value.replace("\x00", "").strip()[:64] if isinstance(value, str) else value
+
+    @field_validator("description", "notes", mode="before")
+    @classmethod
+    def _no_nul(cls, value: object) -> object:
+        return value.replace("\x00", "")[:100_000] if isinstance(value, str) else value
+
+    @field_validator("url")
+    @classmethod
+    def _web_url(cls, value: str) -> str:
+        if not value.lower().startswith(("http://", "https://")):
+            raise ValueError("url must start with http:// or https://")
+        return value
 
 
 class AnalyzeTextRequest(BaseModel):

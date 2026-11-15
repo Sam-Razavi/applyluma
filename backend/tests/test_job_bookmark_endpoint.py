@@ -345,3 +345,40 @@ async def test_get_saved_urls_unauthenticated_returns_401() -> None:
     ) as client:
         resp = await client.get("/api/v1/jobs/bookmark/saved-urls")
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_bookmark_cuts_overlong_page_text_instead_of_failing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A page heading longer than the title column used to fail the insert (500)."""
+    seen: dict[str, Any] = {}
+
+    def create(db: Any, body: Any) -> SimpleNamespace:
+        seen["body"] = body
+        return _posting()
+
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "get_raw_job_by_url", lambda db, url: None)
+    monkeypatch.setattr(bookmark_endpoint.crud_job, "create_raw_job_from_external", create)
+    monkeypatch.setattr(bookmark_endpoint.crud_jd, "get_or_create_from_raw_job", lambda *a, **kw: _jd())
+    _stub_no_scoring(monkeypatch)
+
+    response = await _post(
+        {
+            "title": "T" * 400,
+            "company": "C\x00" * 200,
+            "url": "https://careers.example.com/jobs/1",
+            "description": "text\x00 with a NUL",
+            "source": "extension",
+        }
+    )
+
+    assert response.status_code == 201
+    body = seen["body"]
+    assert len(body.title) == 255 and len(body.company) <= 255
+    assert "\x00" not in body.company and "\x00" not in body.description
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("url", ["", "javascript:alert(1)", "chrome://extensions", "https://x.test/" + "a" * 2100])
+async def test_bookmark_refuses_an_address_that_is_not_a_web_page(url: str) -> None:
+    response = await _post({"title": "T", "company": "C", "url": url, "description": "d"})
+    assert response.status_code == 422

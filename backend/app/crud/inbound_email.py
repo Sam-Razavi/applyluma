@@ -62,6 +62,14 @@ def list_match_candidates(
     ]
 
 
+def _fit(value: str | None, limit: int | None) -> str | None:
+    """Text Postgres will accept: no NUL characters, at most ``limit`` long."""
+    if value is None:
+        return None
+    cleaned = value.replace("\x00", "")
+    return cleaned[:limit] if limit else cleaned
+
+
 def create(
     db: Session,
     *,
@@ -88,11 +96,13 @@ def create(
     row = InboundEmail(
         user_id=user_id,
         dedupe_key=dedupe_key,
-        message_id=message_id,
-        from_address=from_address,
-        from_domain=from_domain,
-        subject=subject,
-        snippet=truncate_snippet(snippet),
+        # Cut to the column sizes: an over-long header would otherwise fail
+        # the insert and lose the email.
+        message_id=_fit(message_id, 512),
+        from_address=_fit(from_address, 320) or "",
+        from_domain=_fit(from_domain, 255) or "",
+        subject=_fit(subject, 512),
+        snippet=truncate_snippet(_fit(snippet, None)),
         received_at=received_at,
         vendor=vendor,
         matched_application_id=match.application_id,

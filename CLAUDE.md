@@ -199,6 +199,16 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
     ATS host, or has a job-like path; structured data is preferred over layout
     (`preferStructured`). Privacy policy section 5 and `store/STORE_LISTING.md`
     were changed to say so: the old promise was "reads no other website".
+  - 1.1.1 (November 2026): `content/url.js` (`ApplyLumaUrl.jobUrlKey` /
+    `cleanUrl`) is the one place job addresses are compared; it is loaded by
+    the page scripts, the popup and the background worker (`importScripts` in
+    Chrome, `background.scripts` in Firefox). The old comparison dropped the
+    whole query string, so on Indeed (`/viewjob?jk=`) saving one job marked
+    every job "Saved". The background refresh now renews an expired access
+    token instead of wiping the saved list after an hour, and a 401 with no
+    refresh token returns the popup to the connect screen. On applicant-system
+    hosts the employer comes from the path or subdomain, never the system's
+    hostname. `node --test tests/*.test.js` runs in `scripts/package.sh`.
   - Server-side compatibility for the released 1.0.0: the bookmark response
     also carries `raw_job_posting_id` (1.0.0 read that name and got
     undefined, so match score, "Track application" and AI Tailor silently did
@@ -697,6 +707,30 @@ Job pipeline moved to Railway Celery (November 2026, replaces Astro/Airflow):
     as `ADZUNA_API_KEY` **or** `ADZUNA_APP_KEY` — Railway uses the latter, so
     the app had been calling Adzuna keyless (the health check only looked at
     the app ID, so it reported "configured"; it now requires both).
+
+Bug sweep (November 2026, migration `0037`; Alembic chain ends at `0037`):
+  - `raw_job_postings.user_submitted` marks a posting one user saved with the
+    extension. It is excluded by `_is_live_deadline_clause` and
+    `LIVE_POSTINGS_SQL`, so it stays out of other users' Discover, the source
+    filter, alerts, nightly scoring, analytics, the duplicate check and the
+    retention "is scraping alive" test. Before this, any page a user saved
+    appeared in everyone's Discover.
+  - Platsbanken deadlines: JobTech's field is `application_deadline`; the
+    scraper read `last_application_date`, so no deadline was stored after the
+    move to Railway and expired ads stayed in Discover for 30 days.
+    `PlatsbankenClient.save_to_db` also updates the deadline of ads already
+    stored, and the pipeline step `recheck_platsbanken_listings` asks
+    `/ad/<id>` about live ads with no deadline (404 = taken down = archived;
+    at most 800 a night; a failed request is never read as "removed").
+  - `is_remote` (what the Discover "Remote" filter and badge read) was set
+    once by migration `0019` and by nothing since. Pipeline step
+    `flag_remote_jobs` sets it nightly; Platsbanken remote work comes from
+    `workplace_model` ("Distansarbete").
+  - Inbound email: automated confirmations ("Thank you for applying", "Tack
+    för din ansökan") are kept although they carry mailing-list headers
+    (`_APPLICATION_SUBJECT`); stored fields are cut to their column sizes.
+  - `ExternalJobBookmarkRequest` cuts over-long page text and refuses an
+    address that is not http(s) (both used to be a 500).
 
 Analytics page fixes (November 2026):
   - Point-in-time analytics count only live postings: `LIVE_POSTINGS_SQL` in

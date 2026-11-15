@@ -80,7 +80,8 @@ def _platsbanken_hit(job_id: str = "123") -> dict[str, Any]:
         "workplace_address": {"city": "", "municipality": "Stockholm"},
         "description": {"text": "Vi söker en utvecklare med Python."},
         "webpage_url": "https://arbetsformedlingen.se/platsbanken/annonser/123",
-        "last_application_date": "2026-12-01T23:59:59",
+        "application_deadline": "2026-12-01T23:59:59",  # JobTech's name for it
+        "workplace_model": {"concept_id": "ZxwM_gtz_n61", "label": "Arbete på plats"},
         "must_have": {"skills": [{"label": "Python"}]},
         "nice_to_have": {"skills": [{"label": "Docker"}, {"label": "Python"}]},
         "occupation": {"label": "Mjukvaruutvecklare"},
@@ -93,6 +94,45 @@ def test_platsbanken_parses_location_deadline_and_skills() -> None:
     assert job["application_deadline"] == "2026-12-01T23:59:59"
     assert job["raw_data"]["must_have_skills"] == ["Python"]
     assert job["description"].startswith("Vi söker")
+    assert job["remote_allowed"] is False
+
+
+def test_platsbanken_reads_remote_work_from_the_workplace_model() -> None:
+    hit = _platsbanken_hit()
+    hit["workplace_model"] = {"concept_id": "L4T8_Z9y_DkN", "label": "Distansarbete"}
+    [job] = PlatsbankenClient(DSN).parse_response([hit])
+    assert job["remote_allowed"] is True
+    hit["workplace_model"] = {"concept_id": None, "label": None}
+    [job] = PlatsbankenClient(DSN).parse_response([hit])
+    assert job["remote_allowed"] is False
+
+
+def test_platsbanken_ad_status_tells_a_listed_ad_from_a_removed_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = PlatsbankenClient(DSN)
+
+    class _Answer:
+        def __init__(self, status: int, data: Any = None) -> None:
+            self.status_code, self._data = status, data
+
+        def raise_for_status(self) -> None:
+            if self.status_code >= 400:
+                raise requests.HTTPError(str(self.status_code))
+
+        def json(self) -> Any:
+            return self._data
+
+    answers = {
+        "1": _Answer(200, {"removed": False, "application_deadline": "2026-12-01T23:59:59"}),
+        "2": _Answer(404),
+        "3": _Answer(200, {"removed": True, "application_deadline": None}),
+        "4": _Answer(503),
+    }
+    monkeypatch.setattr(client._session, "get", lambda url, **kw: answers[url.rsplit("/", 1)[1]])
+    assert client.ad_status("1") == (True, "2026-12-01T23:59:59")
+    assert client.ad_status("2") == (False, None)
+    assert client.ad_status("3") == (False, None)
+    with pytest.raises(requests.HTTPError):  # an outage is not "the ad is gone"
+        client.ad_status("4")
 
 
 def test_platsbanken_fails_only_when_every_request_fails(monkeypatch: pytest.MonkeyPatch) -> None:

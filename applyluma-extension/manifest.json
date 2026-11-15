@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ApplyLuma",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Save job postings from LinkedIn, Indeed, Glassdoor, Arbetsförmedlingen and company career pages to ApplyLuma.",
   "homepage_url": "https://applyluma.com",
   "permissions": ["storage", "alarms", "notifications", "scripting", "activeTab"],
@@ -38,22 +38,22 @@
   "content_scripts": [
     {
       "matches": ["https://www.linkedin.com/*"],
-      "js": ["content/common.js", "content/linkedin.js"],
+      "js": ["content/url.js", "content/common.js", "content/linkedin.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://se.indeed.com/*", "https://www.indeed.com/*"],
-      "js": ["content/common.js", "content/indeed.js"],
+      "js": ["content/url.js", "content/common.js", "content/indeed.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://arbetsformedlingen.se/*", "https://www.arbetsformedlingen.se/*"],
-      "js": ["content/common.js", "content/platsbanken.js"],
+      "js": ["content/url.js", "content/common.js", "content/platsbanken.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://www.glassdoor.com/*"],
-      "js": ["content/common.js", "content/glassdoor.js"],
+      "js": ["content/url.js", "content/common.js", "content/glassdoor.js"],
       "run_at": "document_idle"
     }
   ],
@@ -68,7 +68,7 @@
   },
   "background": {
     "service_worker": "background.js",
-    "scripts": ["background.js"]
+    "scripts": ["content/url.js", "background.js"]
   },
   "icons": {
     "16": "icons/icon16.png",

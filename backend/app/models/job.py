@@ -32,6 +32,11 @@ class RawJobPosting(Base):
     is_remote: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     extracted_skills: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     is_duplicate: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Saved by one user from the browser extension, not scraped. Kept out of
+    # everything shared between users (Discover, alerts, analytics, dedupe).
+    user_submitted: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     application_deadline: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
