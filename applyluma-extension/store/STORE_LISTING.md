@@ -29,7 +29,7 @@ SEE HOW WELL YOU MATCH
 Right after saving, the popup shows a match score comparing the job against your default CV in ApplyLuma.
 
 TRACK AND TAILOR WITHOUT SWITCHING TABS
-Add the job to your application tracker, or start an AI-tailored version of your CV for that specific role, directly from the popup.
+Add the job to your application tracker, mark it "I applied" the moment you send your application, or start an AI-tailored version of your CV for that specific role, directly from the popup.
 
 NEVER SAVE THE SAME JOB TWICE
 Job listings you've already saved or applied to are marked "Saved ✓" / "Applied ✓" in search results, and the toolbar badge shows how many jobs you've saved.

@@ -8,12 +8,21 @@ import {
   type EmailForwardingStatus,
 } from '../../services/emailForwardingApi'
 
-// Words that appear in almost every application reply, in English and
-// Swedish. Used for a mail filter, so only job mail is forwarded.
 const CONFIRMATION_DISMISSED_KEY = 'applyluma_gmail_confirmation_dismissed'
 
-export const FILTER_WORDS =
-  'application OR applying OR applied OR interview OR candidate OR ansökan OR intervju OR tjänsten OR kandidat'
+// Words recruiters and recruiting systems use, in English and Swedish, for a
+// mail filter so only job mail is forwarded. Deliberately generous: mail
+// providers match whole words only ("tjänst" does not match "tjänsten"), and
+// ApplyLuma discards anything that turns out not to be about a job without
+// storing it, so a missed reply costs more than an extra newsletter.
+const FILTER_WORD_LIST = [
+  'application', 'applying', 'applied', 'applicant', 'interview', 'candidate', 'candidacy',
+  'recruiter', 'recruitment', 'recruiting', 'hiring', 'position', 'vacancy', 'unfortunately',
+  'ansökan', 'ansökning', 'sökt', 'intervju', 'tjänst', 'tjänsten', 'kandidat',
+  'rekrytering', 'rekryterare', 'tyvärr', 'anställning',
+]
+
+export const FILTER_WORDS = FILTER_WORD_LIST.join(' OR ')
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString(undefined, {
@@ -171,7 +180,11 @@ export default function EmailForwardingCard() {
         </div>
       )}
 
-      <div className="mt-5 space-y-2">
+      <p className="mt-5 text-sm text-fg-muted">
+        Replies missing here? Your mail filter may still use the older, shorter word list. Edit
+        the filter in your mail account and paste the words below again.
+      </p>
+      <div className="mt-3 space-y-2">
         <details className="rounded-xl border border-line px-4 py-3">
           <summary className="cursor-pointer text-sm font-medium text-fg">Set up in Gmail</summary>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-fg-muted">
@@ -218,8 +231,7 @@ export default function EmailForwardingCard() {
             </li>
             <li>
               Name it ApplyLuma. Condition: <strong>Subject or body includes</strong>. Add each
-              word separately (press Enter after each): application, applying, applied,
-              interview, candidate, ansökan, intervju, tjänsten, kandidat, tyvärr.
+              word separately (press Enter after each): {FILTER_WORD_LIST.join(', ')}.
             </li>
             <li>
               Action: <strong>Redirect to</strong> (not "Forward to"), paste the address above,

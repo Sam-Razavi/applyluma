@@ -93,6 +93,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   the_muse: 'The Muse',
   remotive: 'Remotive',
   remoteok: 'RemoteOK',
+  career_pages: 'Company career pages',
   jobbsafari: 'Jobbsafari',
   indeed_se: 'Indeed SE',
   adzuna_remote: 'Remote (Adzuna)',

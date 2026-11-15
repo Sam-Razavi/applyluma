@@ -39,6 +39,7 @@ const scoreValue = document.getElementById('score-value');
 const scoreBar = document.getElementById('score-bar');
 const scoreHint = document.getElementById('score-hint');
 
+const btnApplied = document.getElementById('btn-applied');
 const btnTrack = document.getElementById('btn-track');
 const trackStatus = document.getElementById('track-status');
 
@@ -301,12 +302,14 @@ btnConnect.addEventListener('click', async () => {
 
 // ── Save job ────────────────────────────────────────────────────────────────
 
-btnSave.addEventListener('click', async () => {
+// Saves the job on the page. Returns the saved posting's id, or null when the
+// save did not happen (the reason is already on screen).
+async function saveJob() {
   const { token } = await getTokens();
-  if (!token) { showView('connect'); return; }
+  if (!token) { showView('connect'); return null; }
 
   const url = fieldUrl.value.trim();
-  if (!url) { showStatus('Job URL is required.', 'error-msg'); return; }
+  if (!url) { showStatus('Job URL is required.', 'error-msg'); return null; }
 
   const notes = fieldNotes.value.trim();
   const body = {
@@ -334,23 +337,80 @@ btnSave.addEventListener('click', async () => {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      showStatus(err.detail || `Error ${res.status}`, 'error-msg');
-      return;
+      showStatus(typeof err.detail === 'string' ? err.detail : `Error ${res.status}`, 'error-msg');
+      return null;
     }
 
     const saved = await res.json();
     // The API calls it source_raw_job_posting_id; older servers only sent that.
     savedRawJobPostingId = saved.raw_job_posting_id || saved.source_raw_job_posting_id;
     showStatus(alreadySaved ? 'Already in your saved jobs ✓' : 'Saved to ApplyLuma!', 'success');
-    btnSave.disabled = true;
 
     fetchAndRenderScore(savedRawJobPostingId);
     loadTailorSection(savedRawJobPostingId);
+    return savedRawJobPostingId;
+  } catch (err) {
+    if (err.message && err.message.includes('reconnect')) return null;
+    showStatus('Network error — check your connection.', 'error-msg');
+    return null;
+  } finally {
+    setSaving(false);
+    // Saved once is enough; a failed save can be tried again.
+    btnSave.disabled = Boolean(savedRawJobPostingId);
+  }
+}
+
+btnSave.addEventListener('click', () => void saveJob());
+
+// ── I applied ───────────────────────────────────────────────────────────────
+
+// Records the application as sent today. If the job is already tracked (as a
+// wishlist item, say) that application is moved to "applied", not duplicated.
+async function recordApplied(rawJobPostingId, jobUrl) {
+  const today = new Date().toISOString();
+  const check = await fetchWithAuth(
+    `${API_BASE}/api/v1/applications/check-duplicate?job_url=${encodeURIComponent(jobUrl)}`,
+  );
+  const existing = check.ok ? await check.json() : null;
+  if (existing && existing.duplicate && existing.match === 'url' && existing.application) {
+    return fetchWithAuth(`${API_BASE}/api/v1/applications/${existing.application.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'applied', applied_date: today }),
+    });
+  }
+  return fetchWithAuth(`${API_BASE}/api/v1/applications`, {
+    method: 'POST',
+    body: JSON.stringify({ raw_job_posting_id: rawJobPostingId, status: 'applied', applied_date: today }),
+  });
+}
+
+btnApplied.addEventListener('click', async () => {
+  btnApplied.disabled = true;
+  try {
+    const rawJobPostingId = savedRawJobPostingId || (await saveJob());
+    if (!rawJobPostingId) { btnApplied.disabled = false; return; }
+
+    const res = await recordApplied(rawJobPostingId, fieldUrl.value.trim());
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showStatus(typeof err.detail === 'string' ? err.detail : `Error ${res.status}`, 'error-msg');
+      btnApplied.disabled = false;
+      return;
+    }
+
+    btnApplied.textContent = 'Marked as applied ✓';
+    btnApplied.classList.add('btn-applied--done');
+    showStatus('Saved and marked as applied today.', 'success');
+    // It is tracked now, so the separate "Track application" has nothing to do.
+    btnTrack.textContent = 'Tracked ✓';
+    btnTrack.classList.add('btn-track--done');
+    btnTrack.disabled = true;
+    // Have the background worker refresh the "Applied ✓" badges on job pages.
+    chrome.runtime.sendMessage({ type: 'REFRESH_URLS' }).catch(() => {});
   } catch (err) {
     if (err.message && err.message.includes('reconnect')) return;
     showStatus('Network error — check your connection.', 'error-msg');
-  } finally {
-    setSaving(false);
+    btnApplied.disabled = false;
   }
 });
 

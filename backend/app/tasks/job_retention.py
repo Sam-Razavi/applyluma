@@ -24,7 +24,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, exists, func, or_, select
+from sqlalchemy import ColumnElement, Select, and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 ARCHIVE_AFTER_DAYS = 30
 PURGE_AFTER_ARCHIVED_DAYS = 90
 SCRAPE_STALE_AFTER = timedelta(days=2)
+KEPT_WHILE_LISTED_SOURCE = "career_pages"
 
 # Work in small committed batches. Postgres writes a new version of every
 # updated row (plus WAL) before the old one can be reclaimed, so a single
@@ -103,7 +104,15 @@ def _archive(db: Session, now: datetime, age_rule: bool = True) -> tuple[int, in
     """Archive expired/old postings; slim the unreferenced ones in the same write."""
     due: ColumnElement[bool] = RawJobPosting.application_deadline < now
     if age_rule:
-        due = or_(due, RawJobPosting.scraped_at < now - timedelta(days=ARCHIVE_AFTER_DAYS))
+        # Not for jobs read from an employer's own career page: those stay
+        # open for months, and the scraper archives one the day it is closed.
+        due = or_(
+            due,
+            and_(
+                RawJobPosting.scraped_at < now - timedelta(days=ARCHIVE_AFTER_DAYS),
+                RawJobPosting.source != KEPT_WHILE_LISTED_SOURCE,
+            ),
+        )
     query = select(RawJobPosting.id).where(RawJobPosting.archived_at.is_(None), due)
     archived = slimmed = 0
     for _ in range(MAX_BATCHES_PER_RUN):

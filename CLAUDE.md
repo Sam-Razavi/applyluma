@@ -732,6 +732,38 @@ Bug sweep (November 2026, migration `0037`; Alembic chain ends at `0037`):
   - `ExternalJobBookmarkRequest` cuts over-long page text and refuses an
     address that is not http(s) (both used to be a 500).
 
+Sources and apply flow (November 2026):
+  - New source `career_pages` (`job_scrapers/career_pages.py`): reads the
+    public job feeds of Greenhouse, Lever, Ashby and Teamtailor for the
+    employers in `job_scrapers/career_boards.py` (42 boards, ~630 jobs).
+    Only jobs doable from Sweden are kept (`place_in_scope`: a Swedish
+    location, or remote with a Europe-wide main location). External id is
+    `<system>:<board>:<id>`. A board is always fetched whole, so a stored job
+    missing from a board that answered is archived the same night; a board
+    that failed is left alone. Retention's 30-day age rule skips this source
+    (`KEPT_WHILE_LISTED_SOURCE`): these jobs stay open for months.
+    To add an employer, add one line to `career_boards.py`.
+  - Tested and NOT added: JobTech JobAd Links (94% of its IT ads are the
+    Platsbanken ads already scraped; the rest come with a ~225-character
+    teaser, too short to score or tailor against) and Arbeitnow (290 of 300
+    jobs are on-site in France/Germany).
+  - Create an application from an email: `POST
+    /email-forwarding/messages/{id}/application` (company + title confirmed by
+    the user; status from the email, else "applied"; date from the email; the
+    email is then tied to the application). `inbound_email/guess.py` (pure)
+    prefills company and title from the subject and sender;
+    `CreateFromEmail.tsx` in the Inbox tab.
+  - Mail filter words (`EmailForwardingCard.tsx` `FILTER_WORD_LIST`) widened:
+    the old nine-word list missed "unfortunately", "position", "recruiter",
+    "tyvärr", "rekrytering", and mail providers match whole words only
+    ("tjänst" did not match "tjänsten"). Existing users must re-paste the
+    words into their own mail filter; the server cannot change it.
+  - Extension 1.2.0: "I applied to this job" in the popup saves the job and
+    records the application as applied today (an existing application for
+    the same URL is moved to "applied", found via `check-duplicate`, not
+    duplicated). The popup asks the background worker to refresh the
+    saved/applied lists (`REFRESH_URLS`).
+
 Analytics page fixes (November 2026):
   - Point-in-time analytics count only live postings: `LIVE_POSTINGS_SQL` in
     `app/db/queries/analytics_queries.py` (not duplicate, not archived, deadline

@@ -11,19 +11,23 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
+from app.crud import application as crud_application
 from app.crud import inbound_email as crud_inbound_email
 from app.crud import user as crud_user
+from app.models.inbound_email import InboundEmail
 from app.models.user import User, UserRole
+from app.schemas.application import ApplicationCreate, ApplicationSummary
 from app.services.inbound_email.address import build_inbox_address
 from app.services.inbound_email.forwarded import (
     GMAIL_FORWARDING_SENDER,
     parse_gmail_confirmation,
 )
+from app.services.inbound_email.guess import guess_application
 
 router = APIRouter(prefix="/email-forwarding", tags=["email-forwarding"])
 
@@ -60,6 +64,15 @@ class ForwardedEmail(BaseModel):
     application_id: uuid.UUID | None = None
     company_name: str | None = None
     job_title: str | None = None
+    # For an email tied to no application: a guess at what it is about, to
+    # prefill "create application from this email".
+    guessed_company: str | None = None
+    guessed_title: str | None = None
+
+
+class ApplicationFromEmail(BaseModel):
+    company_name: str = Field(min_length=1, max_length=255)
+    job_title: str = Field(min_length=1, max_length=255)
 
 
 class ForwardedEmailList(BaseModel):
@@ -160,10 +173,64 @@ def list_forwarded_emails(
             application_id=row.matched_application_id,
             company_name=company_name,
             job_title=job_title,
+            **_guess(row),
         )
         for row, company_name, job_title in rows
     ]
     return ForwardedEmailList(items=items, total=total)
+
+
+def _guess(row: InboundEmail) -> dict[str, str | None]:
+    if row.matched_application_id is not None:
+        return {}
+    company, title = guess_application(from_domain=row.from_domain, subject=row.subject)
+    return {"guessed_company": company or None, "guessed_title": title or None}
+
+
+# What the email itself says the application's status is now. An email that
+# only confirms receipt, or says nothing clear, means "applied".
+_STATUS_FROM_EMAIL = {"rejected", "interview", "offer"}
+
+
+@router.post(
+    "/messages/{email_id}/application",
+    response_model=ApplicationSummary,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_application_from_email(
+    email_id: uuid.UUID,
+    body: ApplicationFromEmail,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApplicationSummary:
+    """Start tracking the application an email is about.
+
+    The user confirms the employer and job title; the status and date come
+    from the email. The email is then tied to the new application, so later
+    mail from the same employer matches it.
+    """
+    row = crud_inbound_email.get_for_user(db, email_id, current_user.id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found")
+    if row.matched_application_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="This email already belongs to an application"
+        )
+    new_status = row.suggested_status if row.suggested_status in _STATUS_FROM_EMAIL else "applied"
+    application = crud_application.create_application(
+        db,
+        current_user.id,
+        ApplicationCreate(
+            company_name=body.company_name.strip(),
+            job_title=body.job_title.strip(),
+            status=new_status,  # type: ignore[arg-type]
+            applied_date=row.received_at or row.created_at,
+            source="email",
+        ),
+    )
+    crud_inbound_email.assign_to_application(db, row, application.id)
+    crud_inbound_email.set_suggestion_state(db, row, "accepted")
+    return ApplicationSummary.model_validate(application)
 
 
 @router.delete("/messages/{email_id}", status_code=status.HTTP_204_NO_CONTENT)

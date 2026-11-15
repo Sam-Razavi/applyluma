@@ -425,3 +425,14 @@ body {
   color: #4f46e5;
   text-decoration: underline;
 }
+
+/* "I applied": sits under Save, same width, visibly the second choice. */
+.btn-applied {
+  margin-top: 8px;
+}
+
+.btn-applied--done {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}

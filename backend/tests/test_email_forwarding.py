@@ -378,6 +378,7 @@ def inbox_row(**overrides: Any) -> SimpleNamespace:
     data = {
         "id": EMAIL_ID,
         "from_address": "talent@supportwave.com",
+        "from_domain": "supportwave.com",
         "subject": "Application unsuccessful",
         "snippet": "We regret to inform you...",
         "received_at": None,
@@ -442,3 +443,110 @@ async def test_inbox_delete_is_scoped_to_the_owner(monkeypatch: pytest.MonkeyPat
     assert ok.status_code == 204
     assert state["deleted"][1] == USER_ID
     assert missing.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Create an application from an email
+# ---------------------------------------------------------------------------
+
+
+def install_create_from_email(monkeypatch: pytest.MonkeyPatch, row: Any) -> dict[str, Any]:
+    state: dict[str, Any] = {"created": None, "assigned": None, "state": None}
+    application_id = uuid.uuid4()
+
+    def create_application(db: Any, user_id: uuid.UUID, body: Any) -> SimpleNamespace:
+        state["created"] = (user_id, body)
+        return SimpleNamespace(
+            id=application_id, user_id=user_id, company_name=body.company_name, job_title=body.job_title,
+            job_url=None, status=body.status, applied_date=body.applied_date, interview_date=None,
+            deadline=None, source=body.source, salary_min=None, salary_max=None, location=None,
+            remote_type=None, priority=1, notes=None, raw_job_posting_id=None, job_description_id=None,
+            cv_id=None, created_at=NOW, updated_at=NOW,
+        )
+
+    monkeypatch.setattr(forwarding_endpoint.crud_application, "create_application", create_application)
+    monkeypatch.setattr(
+        forwarding_endpoint,
+        "crud_inbound_email",
+        SimpleNamespace(
+            get_for_user=lambda db, email_id, user_id: row if email_id == EMAIL_ID else None,
+            assign_to_application=lambda db, r, app_id: state.__setitem__("assigned", app_id),
+            set_suggestion_state=lambda db, r, s: state.__setitem__("state", s),
+        ),
+    )
+    state["application_id"] = application_id
+    return state
+
+
+@pytest.mark.asyncio
+async def test_an_application_is_created_from_an_unmatched_email(monkeypatch: pytest.MonkeyPatch) -> None:
+    row = inbox_row(
+        matched_application_id=None, classification="acknowledged", suggested_status=None,
+        received_at=NOW, suggestion_state="none",
+    )
+    state = install_create_from_email(monkeypatch, row)
+    as_user(make_user())
+
+    response = await call(
+        "POST",
+        f"/api/v1/email-forwarding/messages/{EMAIL_ID}/application",
+        json={"company_name": " Supportwave ", "job_title": "IT Support Specialist"},
+    )
+
+    assert response.status_code == 201
+    user_id, body = state["created"]
+    assert user_id == USER_ID
+    assert (body.company_name, body.job_title) == ("Supportwave", "IT Support Specialist")
+    # A plain confirmation means "applied", dated by the email.
+    assert body.status == "applied" and body.applied_date == NOW and body.source == "email"
+    # The email now belongs to the application, so later mail matches it.
+    assert state["assigned"] == state["application_id"]
+    assert state["state"] == "accepted"
+
+
+@pytest.mark.asyncio
+async def test_a_rejection_email_creates_the_application_as_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    state = install_create_from_email(monkeypatch, inbox_row(matched_application_id=None))
+    as_user(make_user())
+
+    response = await call(
+        "POST",
+        f"/api/v1/email-forwarding/messages/{EMAIL_ID}/application",
+        json={"company_name": "Supportwave", "job_title": "IT Support"},
+    )
+
+    assert response.status_code == 201
+    assert state["created"][1].status == "rejected"
+
+
+@pytest.mark.asyncio
+async def test_create_from_email_refuses_a_matched_or_unknown_email(monkeypatch: pytest.MonkeyPatch) -> None:
+    install_create_from_email(monkeypatch, inbox_row())  # already matched
+    as_user(make_user())
+    body = {"company_name": "A", "job_title": "B"}
+
+    matched = await call("POST", f"/api/v1/email-forwarding/messages/{EMAIL_ID}/application", json=body)
+    unknown = await call("POST", f"/api/v1/email-forwarding/messages/{uuid.uuid4()}/application", json=body)
+    empty = await call(
+        "POST", f"/api/v1/email-forwarding/messages/{EMAIL_ID}/application",
+        json={"company_name": "", "job_title": "B"},
+    )
+
+    assert matched.status_code == 409
+    assert unknown.status_code == 404
+    assert empty.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_inbox_offers_a_guess_for_unmatched_emails_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    unmatched = inbox_row(
+        matched_application_id=None, from_domain="spotify.com",
+        subject="Your application for Backend Engineer at Spotify",
+    )
+    install_inbox(monkeypatch, [(unmatched, None, None), (inbox_row(), "supportwave", "IT Support")])
+    as_user(make_user())
+
+    items = (await call("GET", "/api/v1/email-forwarding/messages")).json()["items"]
+
+    assert (items[0]["guessed_company"], items[0]["guessed_title"]) == ("Spotify", "Backend Engineer")
+    assert items[1]["guessed_company"] is None

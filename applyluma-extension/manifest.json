@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ApplyLuma",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Save job postings from LinkedIn, Indeed, Glassdoor, Arbetsförmedlingen and company career pages to ApplyLuma.",
   "homepage_url": "https://applyluma.com",
   "permissions": ["storage", "alarms", "notifications", "scripting", "activeTab"],
