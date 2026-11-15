@@ -212,6 +212,30 @@ async def test_scrape_url_returns_422_on_generic_error(monkeypatch: pytest.Monke
     assert response.status_code == 422
 
 
+@pytest.mark.asyncio
+async def test_a_refused_link_is_logged_with_its_site_and_reason_only(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_scrape(url: str) -> dict:
+        raise ValueError("This page requires a login to view job details.")
+
+    monkeypatch.setattr(jd_endpoint, "scrape_job_url", fake_scrape)
+
+    with caplog.at_level("WARNING", logger=jd_endpoint.__name__):
+        response = await request(
+            "POST",
+            "/api/v1/job-descriptions/scrape-url",
+            current_user=user(),
+            json_body={"url": "https://www.linkedin.com/jobs/view/123?trk=secret-token"},
+        )
+
+    assert response.status_code == 422
+    [record] = [r for r in caplog.records if r.message == "job_url_import_refused"]
+    assert record.host == "www.linkedin.com"
+    assert "requires a login" in record.reason
+    assert "secret-token" not in str(record.__dict__)
+
+
 # ---------------------------------------------------------------------------
 # get_or_create_from_raw_job: concurrent-submit race on uq_jd_user_raw_job
 # ---------------------------------------------------------------------------

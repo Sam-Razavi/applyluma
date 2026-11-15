@@ -125,7 +125,7 @@ _HEALTH_WINDOW = timedelta(hours=25)
 # Sources that are no longer scraped. Their archived rows stay in
 # raw_job_postings for 90 days; they are listed as retired, not stale.
 RETIRED_SOURCES: frozenset[str] = frozenset(
-    {"jobbsafari", "indeed_se", "adzuna_remote", "adzuna_nl", "adzuna_fr", "adzuna_de"}
+    {"jobbsafari", "indeed_se", "the_muse", "adzuna_remote", "adzuna_nl", "adzuna_fr", "adzuna_de"}
 )
 
 

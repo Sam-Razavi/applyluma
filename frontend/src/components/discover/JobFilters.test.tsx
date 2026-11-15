@@ -123,8 +123,8 @@ describe('JobFilters', () => {
     render(<JobFilters filters={defaultFilters} onChange={onChange} onReset={vi.fn()} />)
     const selects = screen.getAllByRole('combobox')
     // order: sort select [0], location combobox [1], source select [2]
-    fireEvent.change(selects[2], { target: { value: 'the_muse' } })
-    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, source: 'the_muse' })
+    fireEvent.change(selects[2], { target: { value: 'remotive' } })
+    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, source: 'remotive' })
   })
 
   it('calls onChange when remote-only checkbox changes', () => {

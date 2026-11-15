@@ -12,13 +12,12 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services import job_pipeline
-from app.services.job_scrapers import platsbanken, the_muse
+from app.services.job_scrapers import platsbanken
 from app.services.job_scrapers.base import redact
 from app.services.job_scrapers.platsbanken import PlatsbankenClient
 from app.services.job_scrapers.remoteok import RemoteOKClient
 from app.services.job_scrapers.remotive import RemotiveClient
 from app.services.job_scrapers.skills import extract_tracked_skills, skills_for_posting
-from app.services.job_scrapers.the_muse import TheMuseClient
 
 DSN = "postgresql://u:p@localhost/db"
 
@@ -58,36 +57,6 @@ def test_remotive_parses_and_strips_html() -> None:
     assert job["location"] == "Remote"
     assert job["remote_allowed"] is True
     assert "<" not in job["description"] and "• Python" in job["description"]
-
-
-def test_the_muse_detects_remote_and_landing_page() -> None:
-    [job] = TheMuseClient(DSN).parse_response(
-        [
-            {
-                "id": 1,
-                "name": "Data Engineer",
-                "company": {"name": "Muse Co"},
-                "locations": [{"name": "Flexible / Remote"}],
-                "contents": "<p>Pipelines</p>",
-                "refs": {"landing_page": "https://themuse.com/1"},
-                "type": "external",
-            }
-        ]
-    )
-    assert job["remote_allowed"] is True
-    assert job["url"] == "https://themuse.com/1"
-    assert job["company"] == "Muse Co"
-
-
-def test_the_muse_fails_when_the_first_page_fails(monkeypatch: pytest.MonkeyPatch) -> None:
-    client = TheMuseClient(DSN)
-
-    def boom(url: str, **kwargs: Any) -> Any:
-        raise requests.ConnectionError("down")
-
-    monkeypatch.setattr(client, "_get", boom)
-    with pytest.raises(requests.ConnectionError):
-        client.fetch_jobs()
 
 
 def test_remoteok_skips_legal_notice_and_zero_salaries() -> None:
@@ -264,8 +233,5 @@ def test_every_listed_source_has_a_scraper() -> None:
         job_pipeline.build_scraper("jobbsafari")
     with pytest.raises(ValueError):
         job_pipeline.build_scraper("indeed_se")  # Adzuna has no Sweden endpoint
-
-
-def test_the_muse_module_is_the_ported_copy() -> None:
-    # Guard against importing the frozen Airflow copy by mistake.
-    assert the_muse.__name__ == "app.services.job_scrapers.the_muse"
+    with pytest.raises(ValueError):
+        job_pipeline.build_scraper("the_muse")  # its public API answers 404

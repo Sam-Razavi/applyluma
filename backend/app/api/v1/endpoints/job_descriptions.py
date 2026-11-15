@@ -1,4 +1,6 @@
+import logging
 import uuid
+from urllib.parse import urlsplit
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -19,6 +21,8 @@ from app.services.keyword_extractor import KeywordExtractor
 from app.services.url_scraper import scrape_job_url
 
 _extractor = KeywordExtractor()
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/job-descriptions", tags=["job-descriptions"])
 
@@ -41,22 +45,26 @@ async def scrape_url(
     current_user: User = Depends(get_current_user),
 ) -> ScrapeUrlResult:
     url_str = str(body.url)
+
+    def refused(reason: str, exc: Exception) -> HTTPException:
+        # Only the site and the reason: the full link may carry tracking or
+        # session parameters that do not belong in the logs.
+        logger.warning(
+            "job_url_import_refused",
+            extra={"host": urlsplit(url_str).hostname or "", "reason": reason, "error": type(exc).__name__},
+        )
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=reason)
+
     try:
         result = await scrape_job_url(url_str)
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Failed to fetch URL (HTTP {exc.response.status_code})",
-        ) from exc
+        raise refused(f"Failed to fetch URL (HTTP {exc.response.status_code})", exc) from exc
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
+        raise refused(str(exc), exc) from exc
     except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Could not scrape the provided URL. Check that the URL is publicly accessible and try again.",
+        raise refused(
+            "Could not scrape the provided URL. Check that the URL is publicly accessible and try again.",
+            exc,
         ) from exc
     return ScrapeUrlResult(**result)
 
