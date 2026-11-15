@@ -37,6 +37,19 @@ _JOB_WORDS = re.compile(
     r")"
 )
 
+# A subject that is plainly about one application. Automated confirmations
+# ("Thank you for applying", "Tack för din ansökan") carry mailing-list
+# headers like any newsletter, and this is what tells the two apart.
+_APPLICATION_SUBJECT = re.compile(
+    r"\b("
+    r"your application|application (received|was sent|sent|submitted|update|status|confirmation)|"
+    r"thank you for applying|thanks for applying|thank you for your (application|interest)|"
+    r"we(.ve| have) received your application|"
+    r"din ansokan|tack for din ansokan|tack for din intresseanmalan|vi har (tagit emot|mottagit) din ansokan|"
+    r"ansokan (mottagen|bekraftelse)"
+    r")"
+)
+
 # Words that mark shop and delivery mail. Checked in the subject only: a job ad
 # may well mention "delivery" in its text.
 _COMMERCE_WORDS = re.compile(
@@ -100,6 +113,8 @@ def is_job_related(
         # user applied for: job-alert digests and newsletters mention jobs too.
         if has_job_words and (matched or from_ats):
             return True, "Bulk mail about an application the user tracks."
+        if _APPLICATION_SUBJECT.search(folded_subject):
+            return True, "An automated message about one application."
         return False, "Newsletter or automated bulk mail."
 
     if has_job_words:

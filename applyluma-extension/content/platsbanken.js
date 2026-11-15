@@ -31,14 +31,7 @@
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  function normalizeUrl(url) {
-    try {
-      const u = new URL(url);
-      return u.origin + u.pathname.replace(/\/$/, '');
-    } catch {
-      return url;
-    }
-  }
+  const normalizeUrl = ApplyLumaUrl.jobUrlKey;
 
   // ── Job detail extraction ────────────────────────────────────────────────
 

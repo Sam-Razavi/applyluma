@@ -74,14 +74,7 @@ function setSaving(active) {
   btnSaveSpinner.classList.toggle('hidden', !active);
 }
 
-function normalizeUrl(url) {
-  try {
-    const u = new URL(url);
-    return u.origin + u.pathname.replace(/\/$/, '');
-  } catch {
-    return url;
-  }
-}
+const normalizeUrl = (url) => ApplyLumaUrl.jobUrlKey(url);
 
 function detectSource(url) {
   if (url.includes('linkedin.com')) return 'linkedin';
@@ -111,6 +104,15 @@ async function clearTokens() {
 
 // ── Authenticated fetch with auto-refresh ────────────────────────────────────
 
+// Forget the sign-in and say why the connect screen is back.
+async function sessionEnded() {
+  await clearTokens();
+  connectError.textContent = 'Your session has expired. Log in again to continue.';
+  connectError.classList.remove('hidden');
+  showView('connect');
+  throw new Error('Session expired. Please reconnect.');
+}
+
 async function fetchWithAuth(url, options = {}) {
   const { token, refreshToken } = await getTokens();
 
@@ -119,6 +121,11 @@ async function fetchWithAuth(url, options = {}) {
       ...options,
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}), Authorization: `Bearer ${t}` },
     });
+
+  if (!token) {
+    showView('connect');
+    throw new Error('Not connected. Please reconnect.');
+  }
 
   let res = await doFetch(token);
 
@@ -133,10 +140,11 @@ async function fetchWithAuth(url, options = {}) {
       await setTokens(newToken, refreshToken);
       res = await doFetch(newToken);
     } else {
-      await clearTokens();
-      showView('connect');
-      throw new Error('Session expired. Please reconnect.');
+      await sessionEnded();
     }
+  } else if (res.status === 401) {
+    // A pasted token with nothing to renew it: the sign-in has run out.
+    await sessionEnded();
   }
 
   return res;
@@ -199,7 +207,7 @@ async function readJobFromTab(tab) {
       try {
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ['content/common.js', script],
+          files: ['content/url.js', 'content/common.js', script],
         });
         reply = await askTab(tab.id);
       } catch {

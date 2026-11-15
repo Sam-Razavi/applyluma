@@ -31,7 +31,7 @@ ALLOWED_ANALYTICS_TABLES = {
 # rows (no description or skills), so counting them inflates totals and drags
 # per-posting averages towards zero.
 LIVE_POSTINGS_SQL = (
-    "NOT is_duplicate AND archived_at IS NULL "
+    "NOT is_duplicate AND NOT user_submitted AND archived_at IS NULL "
     "AND (application_deadline IS NULL OR application_deadline >= NOW())"
 )
 _METADATA_CACHE_TTL_SECONDS = 60

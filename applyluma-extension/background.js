@@ -1,5 +1,9 @@
 // ApplyLuma extension background service worker (Phase 7)
 
+// Chrome runs this file as a service worker and loads the shared helper here;
+// Firefox lists it before this file in the manifest's background.scripts.
+if (typeof importScripts === 'function') importScripts('content/url.js');
+
 const API_BASE = 'https://applyluma-production.up.railway.app';
 const ALARM_NAME = 'al-saved-urls';
 const REFRESH_MINUTES = 30;
@@ -66,7 +70,7 @@ async function readJobFromTab(tab) {
       try {
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ['content/common.js', script],
+          files: ['content/url.js', 'content/common.js', script],
         });
         reply = await askTab(tab.id);
       } catch {
@@ -121,6 +125,10 @@ async function authedFetch(url, options = {}) {
       await clearTokens();
       throw new Error('session_expired');
     }
+  } else if (res.status === 401) {
+    // No refresh token to renew with: the saved sign-in is no longer valid.
+    await clearTokens();
+    throw new Error('session_expired');
   }
 
   return res;
@@ -128,14 +136,7 @@ async function authedFetch(url, options = {}) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function normalizeUrl(url) {
-  try {
-    const u = new URL(url);
-    return u.origin + u.pathname.replace(/\/$/, '');
-  } catch {
-    return url;
-  }
-}
+const normalizeUrl = (url) => ApplyLumaUrl.jobUrlKey(url);
 
 function detectSource(url) {
   if (url.includes('linkedin.com')) return 'linkedin';
@@ -167,16 +168,18 @@ async function refreshSavedUrls() {
   const { token } = await getTokens();
   if (!token) return;
 
-  const headers = { Authorization: `Bearer ${token}` };
-
   try {
+    // authedFetch renews an expired access token (they last an hour); a plain
+    // fetch here used to get 401 and wipe the lists until the next save.
     const [savedRes, appliedRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v1/jobs/bookmark/saved-urls`, { headers }),
-      fetch(`${API_BASE}/api/v1/applications/applied-urls`, { headers }),
+      authedFetch(`${API_BASE}/api/v1/jobs/bookmark/saved-urls`),
+      authedFetch(`${API_BASE}/api/v1/applications/applied-urls`),
     ]);
+    // Keep what is cached when a request fails, rather than showing nothing.
+    if (!savedRes.ok || !appliedRes.ok) return;
 
-    const savedUrls = savedRes.ok ? (await savedRes.json()).urls.map(normalizeUrl) : [];
-    const appliedUrls = appliedRes.ok ? (await appliedRes.json()).urls.map(normalizeUrl) : [];
+    const savedUrls = (await savedRes.json()).urls.map(normalizeUrl);
+    const appliedUrls = (await appliedRes.json()).urls.map(normalizeUrl);
 
     await chrome.storage.local.set({ savedUrls, appliedUrls });
     updateBadge(savedUrls);
@@ -191,7 +194,7 @@ async function refreshSavedUrls() {
       }).catch(() => {});
     }
   } catch {
-    // Fail silently — next alarm will retry.
+    // Offline or signed out — the next alarm will retry.
   }
 }
 

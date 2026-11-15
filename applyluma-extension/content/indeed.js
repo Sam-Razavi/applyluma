@@ -28,14 +28,7 @@
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  function normalizeUrl(url) {
-    try {
-      const u = new URL(url);
-      return u.origin + u.pathname.replace(/\/$/, '');
-    } catch {
-      return url;
-    }
-  }
+  const normalizeUrl = ApplyLumaUrl.jobUrlKey;
 
   // ── Job detail extraction ────────────────────────────────────────────────
 
@@ -104,7 +97,10 @@
     const links = document.querySelectorAll('a[data-jk], a.jcs-JobTitle, a[id^="job_"]');
 
     links.forEach((link) => {
-      const normalized = normalizeUrl(link.href);
+      // A card names its job in data-jk; its href is often a tracking link.
+      const normalized = link.dataset.jk
+        ? `${window.location.origin}/viewjob?jk=${link.dataset.jk}`
+        : normalizeUrl(link.href);
       const isApplied = appliedSet.has(normalized);
       const isSaved = savedSet.has(normalized);
       if (!isApplied && !isSaved) return;

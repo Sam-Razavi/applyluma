@@ -15,11 +15,15 @@ import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import psycopg2
+import psycopg2.extras
+
 from app.services.job_scrapers.base import BaseScraper
 
 logger = logging.getLogger(__name__)
 
 JOBTECH_SEARCH_URL = "https://jobsearch.api.jobtechdev.se/search"
+JOBTECH_AD_URL = "https://jobsearch.api.jobtechdev.se/ad/{job_id}"
 
 PAGE_SIZE = 100  # JobTech's maximum ``limit``
 MAX_OFFSET = 2000  # JobTech rejects a larger ``offset``
@@ -64,6 +68,27 @@ def publication_windows(
         windows.append((_fmt(cursor), _fmt(end) if end < now else None))
         cursor = end
     return windows
+
+
+def _deadline(item: dict[str, Any]) -> str | None:
+    """The ad's last application date. JobTech calls it ``application_deadline``."""
+    return item.get("application_deadline") or item.get("last_application_date") or None
+
+
+def _is_remote(item: dict[str, Any]) -> bool:
+    model = item.get("workplace_model")
+    label = model.get("label") if isinstance(model, dict) else None
+    return bool(label) and "distans" in str(label).lower()
+
+
+UPDATE_DEADLINES_SQL = """
+    UPDATE raw_job_postings AS p
+    SET application_deadline = v.deadline::timestamptz
+    FROM (VALUES %s) AS v(job_id, deadline)
+    WHERE p.source = 'platsbanken'
+      AND p.job_id_external = v.job_id
+      AND p.application_deadline IS DISTINCT FROM v.deadline::timestamptz
+"""
 
 
 class PlatsbankenClient(BaseScraper):
@@ -193,8 +218,8 @@ class PlatsbankenClient(BaseScraper):
                     "salary_min": None,
                     "salary_max": None,
                     "employment_type": employment_type,
-                    "remote_allowed": bool(item.get("workplace_address", {}).get("municipality") == ""),
-                    "application_deadline": item.get("last_application_date"),
+                    "remote_allowed": _is_remote(item),
+                    "application_deadline": _deadline(item),
                     "raw_data": {
                         "source": "platsbanken",
                         "id": job_id,
@@ -207,9 +232,40 @@ class PlatsbankenClient(BaseScraper):
                             s.get("label") for s in item.get("nice_to_have", {}).get("skills", [])
                         ],
                         "publication_date": item.get("publication_date"),
-                        "last_application_date": item.get("last_application_date"),
+                        "last_application_date": _deadline(item),
                     },
                 }
             )
 
         return jobs
+
+    def save_to_db(self, jobs: list[dict[str, Any]]) -> int:
+        """Insert new ads, then bring the deadline of ads already stored up to
+        date: the insert skips them, and an employer can extend a deadline."""
+        inserted = super().save_to_db(jobs)
+        deadlines = [
+            (j["job_id_external"], j["application_deadline"])
+            for j in jobs
+            if j.get("application_deadline")
+        ]
+        if deadlines:
+            conn = psycopg2.connect(self._db_conn_str)
+            try:
+                with conn, conn.cursor() as cur:
+                    psycopg2.extras.execute_values(
+                        cur, UPDATE_DEADLINES_SQL, deadlines, page_size=len(deadlines)
+                    )
+                    logger.info("Updated the deadline of %d stored Platsbanken ads", cur.rowcount)
+            finally:
+                conn.close()
+        return inserted
+
+    def ad_status(self, job_id: str) -> tuple[bool, str | None]:
+        """(still listed, deadline) for one ad. JobTech answers 404 once an ad
+        has been taken down or its deadline has passed."""
+        resp = self._session.get(JOBTECH_AD_URL.format(job_id=job_id), timeout=self.REQUEST_TIMEOUT)
+        if resp.status_code == 404:
+            return False, None
+        resp.raise_for_status()
+        ad = resp.json()
+        return not ad.get("removed", False), _deadline(ad)

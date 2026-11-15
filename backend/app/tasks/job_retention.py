@@ -92,7 +92,10 @@ def _purge(db: Session, now: datetime) -> int:
 
 
 def _scraping_is_fresh(db: Session, now: datetime) -> bool:
-    newest = db.scalar(select(func.max(RawJobPosting.scraped_at)))
+    # A job someone saved with the extension is not proof the scrapers run.
+    newest = db.scalar(
+        select(func.max(RawJobPosting.scraped_at)).where(RawJobPosting.user_submitted.is_(False))
+    )
     return newest is not None and newest >= now - SCRAPE_STALE_AFTER
 
 

@@ -3,6 +3,8 @@
 A posting scraped today is marked as a duplicate when a live (non-duplicate)
 posting with the same normalised title, company, and location was already
 scraped within the window — regardless of source. The oldest posting wins.
+Postings a user saved from the extension take no part: one would otherwise
+hide the scraped ad from everyone.
 Location is part of the key so the same role advertised in different cities
 is never collapsed into one posting.
 
@@ -30,6 +32,7 @@ MARK_TODAYS_DUPLICATES_SQL = f"""
         FROM raw_job_postings
         WHERE scraped_at >= CURRENT_DATE - INTERVAL '{DEDUPE_WINDOW_DAYS} days'
           AND is_duplicate = false
+          AND user_submitted = false
     )
     UPDATE raw_job_postings
     SET is_duplicate = true

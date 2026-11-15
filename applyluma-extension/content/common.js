@@ -1,5 +1,6 @@
-// Shared job extraction for every site script. Loaded before the site script
-// (see manifest.json), in the same isolated world, so it shares this global.
+// Shared job extraction for every site script. Loaded after url.js and before
+// the site script (see manifest.json), in the same isolated world, so it
+// shares these globals.
 //
 // Two things make extraction reliable:
 // 1. The popup asks the tab to extract *when it opens* (EXTRACT_JOB message),
@@ -111,9 +112,10 @@
     };
     const description = field('description');
     return {
-      title: field('title'),
+      // A heading can carry a second line (a location under the job title).
+      title: field('title').split('\n')[0].trim(),
       company: field('company'),
-      url: site.canonicalUrl ? site.canonicalUrl() : window.location.href,
+      url: site.canonicalUrl ? site.canonicalUrl() : ApplyLumaUrl.cleanUrl(window.location.href),
       description: site.maxDescription ? description.slice(0, site.maxDescription) : description,
       extractedAt: Date.now(),
     };

@@ -63,7 +63,8 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
 
     monkeypatch.setattr(steps, "scrape_source", scrape)
     for name, rows in (
-        ("repair_garbled_text", 1), ("mark_duplicates", 2), ("tag_skills", 40), ("extract_keywords", 40),
+        ("repair_garbled_text", 1), ("recheck_platsbanken_listings", 3), ("flag_remote_jobs", 4),
+        ("mark_duplicates", 2), ("tag_skills", 40), ("extract_keywords", 40),
         ("compute_daily_metrics", 48), ("refresh_salary_analytics", 900),
     ):
         monkeypatch.setattr(
@@ -85,7 +86,8 @@ def test_runs_every_step_in_order_and_logs_runs(env: dict[str, Any]) -> None:
 
     sources = [f"scrape:{s}" for s in task_module.steps.SOURCES]
     assert env["calls"] == sources + [
-        "repair_garbled_text", "mark_duplicates", "tag_skills", "extract_keywords",
+        "repair_garbled_text", "recheck_platsbanken_listings", "flag_remote_jobs",
+        "mark_duplicates", "tag_skills", "extract_keywords",
         "compute_daily_metrics", "refresh_salary_analytics",
     ]
     assert [r[0] for r in env["runs"]] == task_module.steps.SOURCES + [

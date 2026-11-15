@@ -24,8 +24,9 @@ from app.services.keyword_extractor import KeywordExtractor
 # ------------------------------------------------------------------
 
 def _is_live_deadline_clause() -> ColumnElement[bool]:
-    """A posting users should still see: not archived by the retention task
-    (migration 0034) and not past its deadline.
+    """A posting every user may see: scraped (not one user's own extension
+    save, migration 0037), not archived by the retention task (migration
+    0034) and not past its deadline.
 
     Jobs with no known deadline are treated as still live — we only hide a
     job when we positively know its deadline has passed. Deadline data only
@@ -34,6 +35,7 @@ def _is_live_deadline_clause() -> ColumnElement[bool]:
     so a deadline can pass hours before the posting is archived."""
     return and_(
         RawJobPosting.archived_at.is_(None),
+        RawJobPosting.user_submitted.is_(False),
         or_(
             RawJobPosting.application_deadline.is_(None),
             RawJobPosting.application_deadline >= datetime.now(UTC),
@@ -90,7 +92,7 @@ def list_sources(db: Session) -> list[dict[str, Any]]:
     """Return distinct job sources with live posting counts, most populous first."""
     rows = (
         db.query(RawJobPosting.source, func.count(RawJobPosting.id).label("count"))
-        .filter(RawJobPosting.is_duplicate.is_(False), RawJobPosting.archived_at.is_(None))
+        .filter(RawJobPosting.is_duplicate.is_(False), _is_live_deadline_clause())
         .group_by(RawJobPosting.source)
         .order_by(desc("count"))
         .all()
@@ -441,6 +443,7 @@ def create_raw_job_from_external(db: Session, data: ExternalJobBookmarkRequest) 
         salary_max=data.salary_max,
         employment_type=data.contract_type,
         is_duplicate=False,
+        user_submitted=True,
         raw_data={},
     )
     db.add(posting)

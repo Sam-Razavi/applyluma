@@ -1,5 +1,5 @@
-"""Steps of the nightly job pipeline (scrape → dedupe → skills → keywords →
-metrics → salary analytics), run in order by app.tasks.job_pipeline.
+"""Steps of the nightly job pipeline (scrape → listing check → dedupe → skills
+→ keywords → metrics → salary analytics), run in order by app.tasks.job_pipeline.
 
 Each step is a plain function over a Session, so it can be tested against a
 real database without Celery.
@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from collections import Counter
 from datetime import date
 from typing import Any, cast
 
+import requests
 from sqlalchemy import CursorResult, text
 from sqlalchemy.orm import Session
 
@@ -30,6 +32,11 @@ logger = logging.getLogger(__name__)
 # Order matters only for logs. Dropped: Jobbsafari (RSS feed gone, no API) and
 # Indeed SE via Adzuna (Adzuna has no Sweden endpoint; every call returns 404).
 SOURCES: list[str] = ["remotive", "remoteok", "platsbanken"]
+
+# Ads asked about per night, and how many failed requests end the step early.
+LISTING_CHECK_LIMIT = 800
+LISTING_CHECK_MAX_FAILURES = 5
+LISTING_CHECK_PAUSE_SECONDS = 0.2
 
 KEYWORD_BATCH_SIZE = 500
 KEYWORD_MAX_BATCHES = 20
@@ -87,6 +94,86 @@ def repair_garbled_text(db: Session) -> int:
         assignments = ", ".join(f"{field} = :{field}" for field in fixed)
         db.execute(text(f"UPDATE raw_job_postings SET {assignments} WHERE id = :id"), {**fixed, "id": row["id"]})
         changed += 1
+    db.commit()
+    return changed
+
+
+def flag_remote_jobs(db: Session) -> int:
+    """Set is_remote, which the Discover "Remote" filter and badge read.
+
+    The scrapers only fill remote_allowed, so without this every posting
+    scraped since the column was added counted as on-site.
+    """
+    flagged = cast(
+        CursorResult[Any],
+        db.execute(
+            text(
+                """
+                UPDATE raw_job_postings
+                SET is_remote = true
+                WHERE archived_at IS NULL
+                  AND NOT is_remote
+                  AND (remote_allowed
+                       OR lower(coalesce(location, '')) ~ '(remote|distans)')
+                """
+            )
+        ),
+    ).rowcount
+    db.commit()
+    return int(flagged or 0)
+
+
+def recheck_platsbanken_listings(db: Session, client: PlatsbankenClient | None = None) -> int:
+    """Ask Platsbanken about live ads that have no deadline stored.
+
+    The nightly search fills the deadline of every ad it still lists, so what
+    is left is an ad that was taken down, or one older than the search window.
+    An ad that is gone is archived; one still listed gets its deadline.
+    Returns the number of postings changed.
+    """
+    rows = db.execute(
+        text(
+            """
+            SELECT id, job_id_external FROM raw_job_postings
+            WHERE source = 'platsbanken'
+              AND NOT user_submitted
+              AND archived_at IS NULL
+              AND application_deadline IS NULL
+              AND job_id_external ~ '^[0-9]+$'
+            ORDER BY scraped_at
+            LIMIT :limit
+            """
+        ),
+        {"limit": LISTING_CHECK_LIMIT},
+    ).all()
+    if not rows:
+        return 0
+    client = client or PlatsbankenClient(db_conn_str=db_conn_str())
+    changed = failures = 0
+    for row in rows:
+        try:
+            listed, deadline = client.ad_status(row.job_id_external)
+        except (requests.RequestException, ValueError) as exc:
+            failures += 1
+            logger.warning("Platsbanken listing check failed for %s: %s", row.job_id_external, exc)
+            if failures >= LISTING_CHECK_MAX_FAILURES:
+                break
+            continue
+        if not listed:
+            db.execute(
+                text("UPDATE raw_job_postings SET archived_at = now() WHERE id = :id"), {"id": row.id}
+            )
+            changed += 1
+        elif deadline:
+            db.execute(
+                text(
+                    "UPDATE raw_job_postings SET application_deadline = CAST(:deadline AS timestamptz) "
+                    "WHERE id = :id"
+                ),
+                {"id": row.id, "deadline": deadline},
+            )
+            changed += 1
+        time.sleep(LISTING_CHECK_PAUSE_SECONDS)
     db.commit()
     return changed
 

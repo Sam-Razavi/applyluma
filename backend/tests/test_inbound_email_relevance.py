@@ -69,6 +69,29 @@ def test_job_mail_is_kept(mail: dict[str, Any]) -> None:
     assert judge(**mail) is True
 
 
+@pytest.mark.parametrize(
+    "subject",
+    ["Thank you for applying to Acme", "Your application was sent to Acme", "Tack för din ansökan"],
+)
+def test_an_automated_confirmation_is_kept_though_it_is_bulk_mail(subject: str) -> None:
+    keep, _ = is_job_related(
+        subject=subject, snippet="We will be in touch. Unsubscribe", from_domain="acme.com",
+        classification=None, matched=False, bulk=True,
+    )
+    assert keep
+
+
+@pytest.mark.parametrize(
+    "subject", ["30 new jobs for Python developer", "5 interview tips from our recruiters", "Jobs you may like"]
+)
+def test_job_alert_digests_are_still_dropped(subject: str) -> None:
+    keep, _ = is_job_related(
+        subject=subject, snippet="Apply now. Unsubscribe", from_domain="jobsite.com",
+        classification=None, matched=False, bulk=True,
+    )
+    assert not keep
+
+
 def test_a_clear_decision_is_kept_even_from_a_bulk_sender() -> None:
     assert judge(
         sender="newsletter@bigcorp.com",

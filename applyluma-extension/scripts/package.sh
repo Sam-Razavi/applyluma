@@ -45,7 +45,10 @@ node -e '
 # 3. All scripts parse.
 while IFS= read -r f; do
   node --check "$f" || fail "syntax error in $f"
-done < <(find background.js content popup -name '*.js')
+done < <(find background.js content popup tests -name '*.js')
+
+# 4. Unit tests.
+node --test tests/*.test.js >/dev/null || fail "tests failed (run: node --test tests/*.test.js)"
 
 echo "package: checks passed (v$VERSION)"
 [[ "${1:-}" == "--check" ]] && exit 0

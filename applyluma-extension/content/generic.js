@@ -27,9 +27,38 @@
     return JOB_HOSTS.test(hostname) || JOB_PATH.test(pathname) || /[?&](gh_jid|jobid|job_id)=/i.test(search);
   }
 
-  // The company's name as the page gives it, else its domain without "www.".
+  // Hosts where the employer is the first part of the path
+  // (jobs.lever.co/<employer>/...) or of the host (<employer>.teamtailor.com).
+  const TENANT_IN_PATH = /(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|workable\.com|smartrecruiters\.com)$/i;
+  const TENANT_IN_HOST = /(^|\.)(teamtailor\.com|recruitee\.com|bamboohr\.com|myworkdayjobs\.com|personio\.(com|de)|jobvite\.com)$/i;
+  const NOT_A_TENANT = /^(www|jobs?|apply|careers?|boards?|job-boards|embed|app|ext|[a-z]{2})$/i;
+
+  function tidyName(slug) {
+    return decodeURIComponent(slug)
+      .replace(/[-_+]+/g, ' ')
+      .replace(/\b[a-z]/g, (c) => c.toUpperCase())
+      .trim();
+  }
+
+  // On an applicant-tracking system the host names the system, not the
+  // employer, so the employer is read from where that system puts it.
+  function employerOnJobHost() {
+    const { hostname, pathname } = window.location;
+    let slug = '';
+    if (TENANT_IN_PATH.test(hostname)) slug = pathname.split('/').filter(Boolean)[0] || '';
+    else if (TENANT_IN_HOST.test(hostname)) slug = hostname.split('.')[0];
+    return slug && !NOT_A_TENANT.test(slug) ? tidyName(slug) : '';
+  }
+
+  // The company's name as the page gives it; else, on a company's own site,
+  // its domain without "www.". Never the name of a recruiting system: an
+  // empty field the user fills in is better than a wrong employer.
   function siteName() {
-    return meta('og:site_name') || window.location.hostname.replace(/^www\./, '');
+    const named = meta('og:site_name');
+    if (!JOB_HOSTS.test(window.location.hostname)) {
+      return named || window.location.hostname.replace(/^www\./, '');
+    }
+    return employerOnJobHost() || (/greenhouse|lever|workday|teamtailor|reachmee|varbi|jobylon/i.test(named) ? '' : named);
   }
 
   const SITE = {

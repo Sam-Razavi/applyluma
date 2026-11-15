@@ -1,4 +1,5 @@
-"""Nightly job pipeline (02:00 UTC): scrape every source, then dedupe, tag
+"""Nightly job pipeline (02:00 UTC): scrape every source, close ads that are
+no longer listed, flag remote jobs, then dedupe, tag
 skills, extract keywords, compute daily metrics, rebuild the salary analytics
 tables, and queue match scoring for every active user.
 
@@ -103,6 +104,8 @@ def run_job_pipeline() -> dict[str, Any]:
     try:
         summary["sources"] = {source: _scrape(db, source) for source in steps.SOURCES}
         summary["text_repair"] = _step(db, "text_repair", steps.repair_garbled_text)
+        summary["listing_check"] = _step(db, "listing_check", steps.recheck_platsbanken_listings)
+        summary["remote"] = _step(db, "remote", steps.flag_remote_jobs)
         summary["dedupe"] = _step(db, "dedupe", steps.mark_duplicates)
         summary["skills"] = _step(db, "skills", steps.tag_skills)
         summary["keywords"] = _step(db, "keywords", steps.extract_keywords, log_as="extracted_keywords")
