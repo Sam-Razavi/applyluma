@@ -23,6 +23,7 @@ from app.services import notification_service
 from app.services.inbound_email.classifier import Classification, classify
 from app.services.inbound_email.forwarded import is_gmail_confirmation
 from app.services.inbound_email.matcher import MatchResult, score_email
+from app.services.inbound_email.relevance import is_job_related
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,20 @@ def process_inbound_email(payload: dict[str, Any]) -> dict[str, str]:
                 candidates=candidates,
             )
             classification = classify(subject, snippet)
+
+            keep, why = is_job_related(
+                subject=subject,
+                snippet=snippet,
+                from_domain=from_domain,
+                classification=classification,
+                matched=match.application_id is not None,
+                bulk=bool(payload.get("bulk")),
+            )
+            if not keep:
+                # Not stored at all: a newsletter or a receipt is none of the
+                # product's business. The log line carries no content.
+                logger.info("inbound_email_ignored", extra={"reason": why, "from_domain": from_domain})
+                return {"status": "ignored", "reason": why}
 
         try:
             row = crud_inbound_email.create(

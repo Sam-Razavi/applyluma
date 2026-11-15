@@ -112,6 +112,11 @@ export default function PrivacyPolicy() {
               stored.
             </li>
             <li>
+              <strong>What we do not keep:</strong> forwarded emails that are not about a
+              job application, such as newsletters, receipts and delivery notices, are
+              discarded when they arrive and are never stored.
+            </li>
+            <li>
               <strong>What we do with it:</strong> match the email to one of your tracked
               applications and recognise rejections, interview invitations and offers, so
               we can suggest a status change. Nothing changes until you confirm it.
