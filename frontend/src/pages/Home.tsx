@@ -12,7 +12,7 @@ const FEATURES = [
     icon: '🔍',
     title: 'Swedish Job Discovery',
     description:
-      'Browse thousands of jobs from Platsbanken, RemoteOK and Remotive with a match score calculated against your own CV.',
+      'Browse thousands of jobs from Platsbanken, company career pages, RemoteOK and Remotive with a match score calculated against your own CV.',
   },
   {
     icon: '✉️',

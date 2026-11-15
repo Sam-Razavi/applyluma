@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.services.job_scrapers.base import BaseScraper
+from app.services.job_scrapers.career_pages import CareerPagesClient
 from app.services.job_scrapers.dedupe import MARK_TODAYS_DUPLICATES_SQL
 from app.services.job_scrapers.keyword_extraction import extract_keywords_simple
 from app.services.job_scrapers.platsbanken import PlatsbankenClient
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 # Order matters only for logs. Dropped: Jobbsafari (RSS feed gone, no API) and
 # Indeed SE via Adzuna (Adzuna has no Sweden endpoint; every call returns 404).
-SOURCES: list[str] = ["remotive", "remoteok", "platsbanken"]
+SOURCES: list[str] = ["remotive", "remoteok", "platsbanken", "career_pages"]
 
 # Ads asked about per night, and how many failed requests end the step early.
 LISTING_CHECK_LIMIT = 800
@@ -59,6 +60,8 @@ def build_scraper(source: str) -> BaseScraper:
         return RemoteOKClient(db_conn_str=conn)
     if source == "platsbanken":
         return PlatsbankenClient(db_conn_str=conn)
+    if source == "career_pages":
+        return CareerPagesClient(db_conn_str=conn)
     raise ValueError(f"Unknown job source: {source}")
 
 

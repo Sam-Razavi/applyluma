@@ -69,7 +69,7 @@ ApplyLuma is built like a real SaaS product rather than a demo app. It combines:
 
 ### Job Discovery
 
-- Swedish job discovery from Platsbanken, plus remote roles from RemoteOK and Remotive.
+- Swedish job discovery from Platsbanken and from employers' own career pages (Greenhouse, Lever, Ashby, Teamtailor), plus remote roles from RemoteOK and Remotive.
 - International job search through Adzuna.
 - Match scoring against the user's CV with matched and missing skill breakdowns. The score is a
   transparent, rule-based weighted formula (skills 40%, experience 30%, salary 15%, education 10%,
@@ -213,7 +213,7 @@ scrapers live in `backend/app/services/job_scrapers/`, the steps in
 Schedule:
 
 - 01:00 UTC: job retention (archive / slim / purge old postings)
-- 02:00 UTC: job pipeline (scrape Remotive, RemoteOK and Platsbanken;
+- 02:00 UTC: job pipeline (scrape Remotive, RemoteOK, Platsbanken and company career pages;
   dedupe; skills; keywords; daily metrics; salary analytics; queue match
   scoring for users with a CV)
 - 04:30 UTC: high-match job alerts

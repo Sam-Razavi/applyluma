@@ -235,7 +235,7 @@ export default function Applications() {
       {activeTab === 'stats' ? (
         <PersonalAnalytics />
       ) : activeTab === 'inbox' ? (
-        <EmailInbox />
+        <EmailInbox onApplicationCreated={() => void fetchApplications()} />
       ) : (
         <>
           {todayCount > 0 && (

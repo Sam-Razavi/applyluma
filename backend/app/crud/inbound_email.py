@@ -242,6 +242,14 @@ def get_unmatched(db: Session, email_id: uuid.UUID, user_id: uuid.UUID) -> Inbou
     return _unmatched_query(db, user_id).filter(InboundEmail.id == email_id).first()
 
 
+def get_for_user(db: Session, email_id: uuid.UUID, user_id: uuid.UUID) -> InboundEmail | None:
+    return (
+        db.query(InboundEmail)
+        .filter(InboundEmail.id == email_id, InboundEmail.user_id == user_id)
+        .first()
+    )
+
+
 def assign_to_application(
     db: Session, row: InboundEmail, application_id: uuid.UUID
 ) -> InboundEmail:

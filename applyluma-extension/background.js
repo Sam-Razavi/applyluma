@@ -277,6 +277,11 @@ chrome.runtime.onStartup.addListener(() => {
   void clearStaleJobData();
 });
 
+// The popup asks for a refresh after it changes what is saved or applied.
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg && msg.type === 'REFRESH_URLS') void refreshSavedUrls();
+});
+
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) void refreshSavedUrls();
 });

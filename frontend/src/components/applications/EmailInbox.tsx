@@ -7,6 +7,7 @@ import {
   listForwardedEmails,
   type ForwardedEmail,
 } from '../../services/emailForwardingApi'
+import CreateFromEmail from './CreateFromEmail'
 
 const PAGE_SIZE = 20
 
@@ -45,7 +46,7 @@ function formatDate(value: string) {
  * Every email the user forwarded, newest first: who it came from, what it
  * appears to say, which application it matched and what happened next.
  */
-export default function EmailInbox() {
+export default function EmailInbox({ onApplicationCreated }: { onApplicationCreated?: () => void } = {}) {
   const [filter, setFilter] = useState<Filter>('all')
   const [items, setItems] = useState<ForwardedEmail[]>([])
   const [total, setTotal] = useState(0)
@@ -189,6 +190,27 @@ export default function EmailInbox() {
                     <p className="text-xs text-fg-subtle">
                       ApplyLuma keeps the first 2,000 characters of each email.
                     </p>
+                    {!email.application_id && (
+                      <CreateFromEmail
+                        email={email}
+                        onCreated={(application) => {
+                          setItems((current) =>
+                            current.map((item) =>
+                              item.id === email.id
+                                ? {
+                                    ...item,
+                                    application_id: application.id,
+                                    company_name: application.company_name,
+                                    job_title: application.job_title,
+                                    suggestion_state: 'accepted',
+                                  }
+                                : item,
+                            ),
+                          )
+                          onApplicationCreated?.()
+                        }}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => void handleDelete(email)}

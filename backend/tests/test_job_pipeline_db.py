@@ -360,3 +360,67 @@ def test_listing_check_archives_removed_ads_and_fills_deadlines(session: Any) ->
     assert rows[f"Ad 2 {tag}"][0] is False and rows[f"Ad 2 {tag}"][1] is not None
     assert rows[f"Ad 3 {tag}"] == (False, None)  # listed, no deadline given: untouched
     assert rows[f"Ad 4 {tag}"] == (False, None)  # the request failed: never treated as removed
+
+
+def test_career_page_jobs_are_archived_when_their_board_drops_them(session: Any) -> None:
+    """A stored job missing from a board that answered has been closed; a job
+    on a board that did not answer must be left alone."""
+    from sqlalchemy import text
+
+    from app.services.job_scrapers.career_pages import SOURCE, CareerPagesClient
+
+    tag = uuid.uuid4().hex[:8]
+
+    def job(board: str, job_id: str) -> dict[str, Any]:
+        return {
+            "job_id_external": f"lever:{board}:{job_id}", "title": f"{job_id} {tag}", "company": "Acme",
+            "location": "Stockholm", "description": "d", "url": f"https://jobs.lever.co/{board}/{job_id}",
+            "remote_allowed": False, "raw_data": {},
+        }
+
+    first = CareerPagesClient(os.environ["TEST_DATABASE_URL"], boards=[])
+    first.fetched_boards = [("lever", f"up{tag}"), ("lever", f"down{tag}")]
+    assert first.save_to_db([job(f"up{tag}", "stays"), job(f"up{tag}", "closed"), job(f"down{tag}", "other")]) == 3
+
+    second = CareerPagesClient(os.environ["TEST_DATABASE_URL"], boards=[])
+    second.fetched_boards = [("lever", f"up{tag}")]  # the other board did not answer tonight
+    assert second.save_to_db([job(f"up{tag}", "stays")]) == 0
+
+    archived = dict(
+        session.execute(
+            text(
+                "SELECT title, archived_at IS NOT NULL FROM raw_job_postings "
+                "WHERE source = :source AND title LIKE :tag"
+            ),
+            {"source": SOURCE, "tag": f"%{tag}"},
+        ).all()
+    )
+    assert archived == {f"stays {tag}": False, f"closed {tag}": True, f"other {tag}": False}
+
+
+def test_career_page_jobs_are_not_archived_for_age(session: Any) -> None:
+    from datetime import UTC, datetime
+
+    from sqlalchemy import text
+
+    from app.tasks import job_retention
+
+    tag = uuid.uuid4().hex[:8]
+    _posting(session, source="career_pages", title=f"Evergreen {tag}", company="Acme")
+    _posting(session, source="remotive", title=f"Old {tag}", company="Acme")
+    session.flush()
+    session.execute(
+        text("UPDATE raw_job_postings SET scraped_at = now() - interval '45 days' WHERE title LIKE :tag"),
+        {"tag": f"%{tag}"},
+    )
+    session.commit()
+
+    job_retention._archive(session, datetime.now(UTC), age_rule=True)
+
+    archived = dict(
+        session.execute(
+            text("SELECT title, archived_at IS NOT NULL FROM raw_job_postings WHERE title LIKE :tag"),
+            {"tag": f"%{tag}"},
+        ).all()
+    )
+    assert archived == {f"Evergreen {tag}": False, f"Old {tag}": True}

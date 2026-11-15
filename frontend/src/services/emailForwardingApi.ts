@@ -38,6 +38,9 @@ export interface ForwardedEmail {
   application_id: string | null
   company_name: string | null
   job_title: string | null
+  /** For an unmatched email: a guess at what it is about, to prefill the form. */
+  guessed_company?: string | null
+  guessed_title?: string | null
 }
 
 export function listForwardedEmails(params: {
@@ -52,4 +55,14 @@ export function listForwardedEmails(params: {
 
 export function deleteForwardedEmail(emailId: string): Promise<void> {
   return client.delete(`/api/v1/email-forwarding/messages/${emailId}`).then(() => undefined)
+}
+
+/** Start tracking the application an email is about; ties the email to it. */
+export function createApplicationFromEmail(
+  emailId: string,
+  body: { company_name: string; job_title: string },
+): Promise<{ id: string; company_name: string; job_title: string; status: string }> {
+  return client
+    .post(`/api/v1/email-forwarding/messages/${emailId}/application`, body)
+    .then((r) => r.data)
 }
