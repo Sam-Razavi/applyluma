@@ -185,6 +185,17 @@ describe('Discover page', () => {
     expect(screen.queryByPlaceholderText('Search jobs by title or company')).not.toBeInTheDocument()
   })
 
+  it('opens the job given in the URL (the extension links here)', async () => {
+    vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockResolvedValue([])
+    vi.mocked(jobDiscoveryApi.fetchJobDetail).mockReturnValue(new Promise(() => {}))
+    render(
+      <MemoryRouter initialEntries={['/discover?job=job-from-extension']}>
+        <Discover />
+      </MemoryRouter>,
+    )
+    await waitFor(() => expect(jobDiscoveryApi.fetchJobDetail).toHaveBeenCalledWith('job-from-extension'))
+  })
+
   it('switches to the Saved tab when clicked', async () => {
     vi.mocked(jobDiscoveryApi.fetchDiscoveredJobs).mockResolvedValue([])
     renderDiscover()

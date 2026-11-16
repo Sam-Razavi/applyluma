@@ -36,6 +36,15 @@ def clear_overrides() -> Iterator[None]:
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(autouse=True)
+def no_stored_application(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The update endpoint reads the application before changing it; tests
+    that care about the stored state patch this again."""
+    monkeypatch.setattr(
+        applications_endpoint.crud_application, "get_application", lambda db, application_id, user_id: None
+    )
+
+
 def user() -> SimpleNamespace:
     return SimpleNamespace(id=USER_ID, is_active=True)
 
@@ -539,3 +548,60 @@ async def test_get_stats(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert response.status_code == 200
     assert response.json() == stats
+
+
+# ---------------------------------------------------------------------------
+# "Interview stage reached" is sent once, when a save moves the application
+# there, not on every later save while it stays at interview.
+# ---------------------------------------------------------------------------
+
+
+def _install_interview_case(monkeypatch: pytest.MonkeyPatch, status_before: str) -> list[dict[str, Any]]:
+    sent: list[dict[str, Any]] = []
+    history = [event_data(new_value="interview", old_value="applied")]  # moved there once, earlier
+    monkeypatch.setattr(
+        applications_endpoint.crud_application,
+        "get_application",
+        lambda db, application_id, user_id: application_data(status=status_before, events=history),
+    )
+    monkeypatch.setattr(
+        applications_endpoint.crud_application,
+        "update_application",
+        lambda db, application_id, user_id, data: application_data(status="interview", events=history),
+    )
+    monkeypatch.setattr(
+        applications_endpoint.notification_service,
+        "create_notification",
+        lambda db, **kwargs: sent.append(kwargs),
+    )
+    return sent
+
+
+@pytest.mark.asyncio
+async def test_moving_to_interview_notifies_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    sent = _install_interview_case(monkeypatch, status_before="applied")
+
+    response = await request(
+        "PATCH", f"/api/v1/applications/{APPLICATION_ID}", current_user=user(),
+        json_body={"status": "interview"},
+    )
+
+    assert response.status_code == 200
+    assert [n["type"] for n in sent] == ["interview_reminder"]
+
+
+@pytest.mark.asyncio
+async def test_saving_an_application_already_at_interview_does_not_notify_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The edit form sends the status with every save (here: adding the
+    interview date), which used to send a second notification and email."""
+    sent = _install_interview_case(monkeypatch, status_before="interview")
+
+    response = await request(
+        "PATCH", f"/api/v1/applications/{APPLICATION_ID}", current_user=user(),
+        json_body={"status": "interview", "interview_date": "2026-11-20T10:00:00Z"},
+    )
+
+    assert response.status_code == 200
+    assert sent == []

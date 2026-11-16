@@ -45,6 +45,15 @@ const trackStatus = document.getElementById('track-status');
 
 const btnDisconnect = document.getElementById('btn-disconnect');
 
+const fitSection = document.getElementById('fit-section');
+const btnFit = document.getElementById('btn-fit');
+const fitResult = document.getElementById('fit-result');
+const fitBadge = document.getElementById('fit-badge');
+const fitSummary = document.getElementById('fit-summary');
+const fitMissing = document.getElementById('fit-missing');
+const fitLink = document.getElementById('fit-link');
+const fitStatus = document.getElementById('fit-status');
+
 const tailorSection = document.getElementById('tailor-section');
 const tailorUsage = document.getElementById('tailor-usage');
 const tailorCvSelect = document.getElementById('tailor-cv-select');
@@ -55,6 +64,7 @@ const tailorStatus = document.getElementById('tailor-status');
 
 let savedRawJobPostingId = null;
 let tailorPollTimer = null;
+let fitPollTimer = null;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -347,6 +357,7 @@ async function saveJob() {
     showStatus(alreadySaved ? 'Already in your saved jobs ✓' : 'Saved to ApplyLuma!', 'success');
 
     fetchAndRenderScore(savedRawJobPostingId);
+    loadFitSection(savedRawJobPostingId);
     loadTailorSection(savedRawJobPostingId);
     return savedRawJobPostingId;
   } catch (err) {
@@ -439,21 +450,140 @@ function renderScore(score) {
     return;
   }
 
+  // Same bands as the match score in the app (utils/matchScore.ts).
   const pct = Math.round(score);
   scoreValue.textContent = `${pct}%`;
   scoreBar.style.width = `${pct}%`;
 
   if (pct >= 80) {
     scoreBar.style.background = 'linear-gradient(90deg, #4f46e5, #7c3aed)';
-    scoreHint.textContent = 'Strong match!';
+    scoreHint.textContent = 'Strong match.';
   } else if (pct >= 60) {
     scoreBar.style.background = '#f59e0b';
-    scoreHint.textContent = 'Good match.';
+    scoreHint.textContent = 'Partial match.';
   } else {
     scoreBar.style.background = '#ef4444';
-    scoreHint.textContent = 'Partial match — consider tailoring your CV.';
+    scoreHint.textContent = 'Skills gap — consider tailoring your CV.';
   }
 }
+
+// ── AI fit assessment ───────────────────────────────────────────────────────
+
+const FIT_LABELS = {
+  high_priority: 'High priority',
+  consider: 'Consider',
+  low_priority: 'Low priority',
+};
+const FIT_POLL_MS = 3000;
+const FIT_POLL_LIMIT = 60; // three minutes
+
+function setFitStatus(text, isError = false) {
+  fitStatus.textContent = text;
+  fitStatus.className = `fit-status${isError ? ' error-msg' : ''}`;
+  fitStatus.classList.remove('hidden');
+}
+
+function stopFitPolling() {
+  if (fitPollTimer) { clearInterval(fitPollTimer); fitPollTimer = null; }
+}
+
+function renderFit(assessment) {
+  const result = assessment.result || {};
+  const label = FIT_LABELS[assessment.recommendation];
+  fitBadge.textContent = label || '—';
+  fitBadge.className = `fit-badge fit-badge--${assessment.recommendation || 'none'}`;
+  fitSummary.textContent = result.summary || '';
+  const missing = (result.missing_information || []).length;
+  fitMissing.textContent = missing
+    ? `${missing} point${missing !== 1 ? 's' : ''} missing or unclear in the ad or your CV.`
+    : '';
+  fitMissing.classList.toggle('hidden', !missing);
+  fitStatus.classList.add('hidden');
+  fitResult.classList.remove('hidden');
+  btnFit.classList.add('hidden');
+}
+
+// Follows one assessment until it is done. The model takes about 5–10 s.
+function pollFit(assessmentId) {
+  stopFitPolling();
+  let polls = 0;
+  setFitStatus('Assessing… this takes a few seconds.');
+  fitPollTimer = setInterval(async () => {
+    polls += 1;
+    try {
+      const res = await fetchWithAuth(`${API_BASE}/api/v1/fit-assessments/${assessmentId}`);
+      if (!res.ok) return;
+      const assessment = await res.json();
+      if (assessment.status === 'complete') {
+        stopFitPolling();
+        renderFit(assessment);
+      } else if (assessment.status === 'failed') {
+        stopFitPolling();
+        setFitStatus('The assessment failed. Try again in ApplyLuma.', true);
+        btnFit.disabled = false;
+      }
+    } catch { /* keep polling */ }
+    if (fitPollTimer && polls >= FIT_POLL_LIMIT) {
+      stopFitPolling();
+      setFitStatus('Still running. Open the job in ApplyLuma to see the result.');
+    }
+  }, FIT_POLL_MS);
+}
+
+// Shows the section only when the server has the assessment switched on for
+// this account; shows a finished assessment of this job straight away.
+async function loadFitSection(rawJobPostingId) {
+  try {
+    const statusRes = await fetchWithAuth(`${API_BASE}/api/v1/fit-assessments/status`);
+    if (!statusRes.ok) return;
+    const { enabled } = await statusRes.json();
+    if (!enabled) return;
+
+    fitLink.onclick = (e) => {
+      e.preventDefault();
+      chrome.tabs.create({ url: `https://applyluma.com/discover?job=${encodeURIComponent(rawJobPostingId)}` });
+    };
+    fitSection.classList.remove('hidden');
+
+    const latestRes = await fetchWithAuth(
+      `${API_BASE}/api/v1/fit-assessments/latest?raw_job_posting_id=${encodeURIComponent(rawJobPostingId)}`,
+    );
+    const latest = latestRes.ok ? await latestRes.json() : null;
+    if (!latest) return;
+    if (latest.status === 'complete') renderFit(latest);
+    else if (latest.status === 'pending' || latest.status === 'processing') {
+      btnFit.disabled = true;
+      pollFit(latest.id);
+    }
+  } catch {
+    // The section stays hidden; saving and the match score are unaffected.
+  }
+}
+
+btnFit.addEventListener('click', async () => {
+  if (!savedRawJobPostingId) return;
+  btnFit.disabled = true;
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/v1/fit-assessments`, {
+      method: 'POST',
+      body: JSON.stringify({ raw_job_posting_id: savedRawJobPostingId }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setFitStatus(typeof err.detail === 'string' ? err.detail : `Error ${res.status}`, true);
+      btnFit.disabled = false;
+      return;
+    }
+    const assessment = await res.json();
+    // An unchanged CV and ad give back the stored assessment at once.
+    if (assessment.status === 'complete') renderFit(assessment);
+    else pollFit(assessment.id);
+  } catch (err) {
+    if (err.message && err.message.includes('reconnect')) return;
+    setFitStatus('Network error — check your connection.', true);
+    btnFit.disabled = false;
+  }
+});
 
 // ── Track Application ────────────────────────────────────────────────────────
 
@@ -607,6 +737,7 @@ btnTailor.addEventListener('click', async () => {
 
 btnDisconnect.addEventListener('click', async () => {
   if (tailorPollTimer) { clearInterval(tailorPollTimer); tailorPollTimer = null; }
+  stopFitPolling();
   await clearTokens();
   showView('connect');
 });

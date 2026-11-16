@@ -209,6 +209,15 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
     refresh token returns the popup to the connect screen. On applicant-system
     hosts the employer comes from the path or subdomain, never the system's
     hostname. `node --test tests/*.test.js` runs in `scripts/package.sh`.
+  - 1.3.0 (November 2026): after saving, the popup shows the AI fit
+    assessment under the match score for accounts the server enables it for
+    (`GET /fit-assessments/status`; admins only while `FIT_ASSESSMENT_ACCESS`
+    is `admin`). It shows a stored assessment of the job at once, otherwise an
+    "Assess fit with AI" button that polls `/fit-assessments/{id}`. "See the
+    full assessment" opens `/discover?job=<raw_job_posting_id>`, which opens
+    that job's detail (works for extension-saved jobs too). It only calls the
+    frozen assessment; no prompt or rule changed. Score hints use the app's
+    bands (`utils/matchScore.ts`: Strong >= 80, Partial >= 60, else gap).
   - Server-side compatibility for the released 1.0.0: the bookmark response
     also carries `raw_job_posting_id` (1.0.0 read that name and got
     undefined, so match score, "Track application" and AI Tailor silently did
@@ -763,6 +772,13 @@ Sources and apply flow (November 2026):
     the same URL is moved to "applied", found via `check-duplicate`, not
     duplicated). The popup asks the background worker to refresh the
     saved/applied lists (`REFRESH_URLS`).
+
+Interview notification sent twice (November 2026): `PATCH /applications/{id}`
+  notified when the application had *ever* moved to interview, and the edit
+  form sends the status with every save, so a later save (adding the
+  interview date) sent "Interview stage reached" and its email again. It now
+  reads the status before the update and notifies only on a real change to
+  interview.
 
 Analytics page fixes (November 2026):
   - Point-in-time analytics count only live postings: `LIVE_POSTINGS_SQL` in
