@@ -91,6 +91,21 @@
           </div>
           <p id="score-hint" class="score-hint"></p>
 
+          <!-- AI fit assessment: only for accounts the server enables it for -->
+          <div id="fit-section" class="fit-section hidden">
+            <button id="btn-fit" class="btn btn-secondary">Assess fit with AI</button>
+            <div id="fit-result" class="fit-result hidden">
+              <div class="fit-header">
+                <span class="score-label">AI fit assessment</span>
+                <span id="fit-badge" class="fit-badge"></span>
+              </div>
+              <p id="fit-summary" class="fit-summary"></p>
+              <p id="fit-missing" class="fit-missing hidden"></p>
+              <a id="fit-link" class="fit-link" href="#">See the full assessment →</a>
+            </div>
+            <p id="fit-status" class="fit-status hidden"></p>
+          </div>
+
           <button id="btn-track" class="btn btn-track hidden">
             Track application
           </button>

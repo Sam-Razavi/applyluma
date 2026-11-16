@@ -80,6 +80,15 @@ export default function Discover() {
     setSearchParams(t === 'for-you' ? {} : { tab: t }, { replace: true })
   }
 
+  function closeJob() {
+    setSelectedJobId(null)
+    if (searchParams.has('job')) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('job')
+      setSearchParams(next, { replace: true })
+    }
+  }
+
   // For You state
   const [jobs, setJobs] = useState<DiscoveredJob[]>([])
   const [filters, setFilters] = useState<Filters>(() => ({
@@ -91,7 +100,8 @@ export default function Discover() {
   const [loading, setLoading] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  // ?job=<id> opens that job straight away (the extension links here).
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(() => searchParams.get('job'))
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [searchInput, setSearchInput] = useState('')
   const savedJobMapRef = useRef<Map<string, string>>(new Map())
@@ -403,7 +413,7 @@ export default function Discover() {
           <JobDetail
             jobId={selectedJobId}
             isSaved={selectedJobSaved}
-            onClose={() => setSelectedJobId(null)}
+            onClose={closeJob}
             onSave={(id) => {
               const job = jobs.find((j) => j.job_id === id)
               if (job) void handleSave(job)

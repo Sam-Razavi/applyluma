@@ -29,17 +29,6 @@ from app.services import notification_service
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 
-def _moved_to_interview(application) -> bool:
-    for event in getattr(application, "events", []) or []:
-        if (
-            getattr(event, "event_type", None) == "status_changed"
-            and getattr(event, "new_value", None) == "interview"
-            and getattr(event, "old_value", None) != "interview"
-        ):
-            return True
-    return False
-
-
 @router.post("", response_model=ApplicationPublic, status_code=status.HTTP_201_CREATED)
 def create_application(
     body: ApplicationCreate,
@@ -302,6 +291,11 @@ def update_application(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApplicationPublic:
+    # Read before the update: the edit form sends the status with every save,
+    # so "the new status is interview" alone would notify again on each save
+    # of an application already at that stage.
+    before = crud_application.get_application(db, application_id, current_user.id)
+    old_status = before.status if before is not None else None
     try:
         application = crud_application.update_application(db, application_id, current_user.id, body)
     except crud_application.ForeignReferenceNotOwnedError as exc:
@@ -311,7 +305,7 @@ def update_application(
         ) from None
     if not application:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
-    if body.status == "interview" and _moved_to_interview(application):
+    if body.status == "interview" and old_status != "interview":
         try:
             notification_service.create_notification(
                 db,
