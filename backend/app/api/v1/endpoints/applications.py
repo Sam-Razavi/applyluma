@@ -126,10 +126,11 @@ def get_application_analytics(
 
 @router.get("/insights", response_model=ApplicationInsights)
 def get_application_insights(
+    tz: str | None = Query(default=None, max_length=64),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApplicationInsights:
-    return crud_application.get_insights(db, current_user.id)
+    return crud_application.get_insights(db, current_user.id, tz)
 
 
 def _suggestion_payload(row, company_name: str, job_title: str, current_status: str) -> dict:

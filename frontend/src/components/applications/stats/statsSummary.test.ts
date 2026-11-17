@@ -15,6 +15,7 @@ function insights(overrides: Partial<ApplicationInsights> = {}): ApplicationInsi
     interview_rate: 0.25,
     awaiting_reply: 2,
     awaiting_reply_days: 14,
+    daily_counts: [],
     stage_reach: [],
     work_modes: [],
     top_locations: [],

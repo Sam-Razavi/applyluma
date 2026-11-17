@@ -9,6 +9,7 @@ import SourceBreakdownChart from './SourceBreakdownChart'
 import {
   BarList,
   CvTable,
+  DailyBars,
   SalarySummary,
   SourceTable,
   StageProgress,
@@ -159,6 +160,16 @@ export default function PersonalAnalytics() {
 
       <SectionTitle title="Progress" subtitle="Where your applications stand and how fast you are sending them." />
       <div className="grid gap-4 lg:grid-cols-2">
+        {insights && (
+          <ChartCard
+            title="Sent per day"
+            subtitle="Applications sent in the last 7 days"
+            className="lg:col-span-2"
+          >
+            <DailyBars days={insights.daily_counts} />
+          </ChartCard>
+        )}
+
         <ChartCard
           title="Application Funnel"
           subtitle="Counts by current pipeline status"
