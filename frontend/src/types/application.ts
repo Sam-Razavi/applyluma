@@ -115,6 +115,11 @@ export interface InsightLabelCount {
   count: number
 }
 
+export interface InsightDailyCount {
+  date: string // YYYY-MM-DD
+  count: number
+}
+
 export interface InsightStageReach {
   stage: 'applied' | 'phone_screen' | 'interview' | 'offer'
   count: number
@@ -157,6 +162,7 @@ export interface ApplicationInsights {
   interview_rate: number
   awaiting_reply: number
   awaiting_reply_days: number
+  daily_counts: InsightDailyCount[]
   stage_reach: InsightStageReach[]
   work_modes: InsightLabelCount[]
   top_locations: InsightLabelCount[]

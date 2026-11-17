@@ -8,13 +8,15 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, tzinfo
 from statistics import median
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.schemas.application_analytics import (
     ApplicationInsights,
     CvPerformance,
+    DailyCount,
     LabelCount,
     SourcePerformance,
     StageReach,
@@ -36,6 +38,16 @@ WORK_MODE_LABELS = {
     "on-site": "On-site",
     "on_site": "On-site",
 }
+
+
+def resolve_timezone(name: str | None) -> tzinfo:
+    """The caller's IANA timezone, or UTC when missing or unknown."""
+    if not name:
+        return UTC
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return UTC
 
 
 def _aware(value: datetime | None) -> datetime | None:
@@ -70,6 +82,7 @@ def compute_insights(
     status_history: Mapping[str, set[str]],
     cv_titles: Mapping[str, str],
     now: datetime | None = None,
+    tz: tzinfo = UTC,
 ) -> ApplicationInsights:
     """Build the insights payload.
 
@@ -107,6 +120,23 @@ def compute_insights(
     applied_last_7d = sum(1 for a in submitted_apps if added(a) >= week_ago)
     applied_prev_7d = sum(1 for a in submitted_apps if two_weeks_ago <= added(a) < week_ago)
     applied_last_30d = sum(1 for a in submitted_apps if added(a) >= month_ago)
+
+    # --- sent per day, last 7 days (today included, oldest first) ---------
+    def sent_on(app: Mapping[str, Any]) -> date:
+        # applied_date is a calendar date stored as midnight UTC: read it as
+        # that date. A card without one falls back to when it was created,
+        # seen from the caller's timezone.
+        applied = _aware(app.get("applied_date"))
+        if applied is not None:
+            return applied.date()
+        return (_aware(app["created_at"]) or now).astimezone(tz).date()
+
+    today = now.astimezone(tz).date()
+    per_day = Counter(sent_on(a) for a in submitted_apps)
+    daily_counts = [
+        DailyCount(date=day.isoformat(), count=per_day.get(day, 0))
+        for day in (today - timedelta(days=offset) for offset in range(6, -1, -1))
+    ]
 
     # --- waiting on a reply ----------------------------------------------
     cutoff = now - timedelta(days=AWAITING_REPLY_DAYS)
@@ -217,6 +247,7 @@ def compute_insights(
         interview_rate=_rate(interview_count, submitted),
         awaiting_reply=awaiting_reply,
         awaiting_reply_days=AWAITING_REPLY_DAYS,
+        daily_counts=daily_counts,
         stage_reach=stage_reach,
         work_modes=_top(modes),
         top_locations=_top(locations),

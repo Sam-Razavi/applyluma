@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
@@ -21,7 +22,7 @@ from app.schemas.application_analytics import (
     SourceCount,
     WeeklyApplicationCount,
 )
-from app.services.application_insights import compute_insights
+from app.services.application_insights import compute_insights, resolve_timezone
 
 APPLICATION_STATUSES = (
     "wishlist",
@@ -33,7 +34,14 @@ APPLICATION_STATUSES = (
     "withdrawn",
 )
 RESPONSE_STATUSES = {"phone_screen", "interview", "offer", "rejected"}
+# Stages that mean "I have applied": entering one without a date stamps today.
+APPLIED_STAGES = {"applied", "phone_screen", "interview", "offer"}
 SALARY_BUCKETS = ("<30k", "30-60k", "60-90k", "90-120k", "120k+")
+
+
+def _today_utc_midnight() -> datetime:
+    """applied_date is a calendar date, stored as midnight UTC (see the UI)."""
+    return datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 class RawJobPostingNotFoundError(ValueError):
@@ -121,6 +129,9 @@ def create_application(db: Session, user_id: uuid.UUID, data: ApplicationCreate)
 
     if not values.get("company_name") or not values.get("job_title"):
         raise MissingApplicationFieldsError("company_name and job_title are required")
+
+    if values.get("status") in APPLIED_STAGES and not values.get("applied_date"):
+        values["applied_date"] = _today_utc_midnight()
 
     application = Application(user_id=user_id, **values)
     db.add(application)
@@ -269,6 +280,17 @@ def update_application(
     for field, value in updates.items():
         setattr(application, field, value)
 
+    # Moving a card to an applied-or-later stage (drag and drop, an accepted
+    # email suggestion) sends only the status. Without this the card sat in
+    # "Applied" showing "Not applied". A date the caller sent, even an
+    # explicit clear, is left alone.
+    if (
+        application.status in APPLIED_STAGES
+        and application.applied_date is None
+        and "applied_date" not in updates
+    ):
+        application.applied_date = _today_utc_midnight()
+
     if "status" in updates and updates["status"] != old_status:
         db.add(
             ApplicationEvent(
@@ -390,7 +412,9 @@ def get_analytics(db: Session, user_id: uuid.UUID) -> ApplicationAnalytics:
     )
 
 
-def get_insights(db: Session, user_id: uuid.UUID) -> ApplicationInsights:
+def get_insights(
+    db: Session, user_id: uuid.UUID, timezone: str | None = None
+) -> ApplicationInsights:
     rows = (
         db.query(Application)
         .filter(Application.user_id == user_id)
@@ -440,7 +464,7 @@ def get_insights(db: Session, user_id: uuid.UUID) -> ApplicationInsights:
         ):
             cv_titles[str(cv_id)] = title or filename
 
-    return compute_insights(applications, history, cv_titles)
+    return compute_insights(applications, history, cv_titles, tz=resolve_timezone(timezone))
 
 
 def _average_response_days(db: Session, params: dict[str, Any]) -> float | None:

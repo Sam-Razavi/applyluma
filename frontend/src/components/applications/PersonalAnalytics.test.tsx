@@ -33,6 +33,11 @@ const insights: ApplicationInsights = {
   interview_rate: 0.33,
   awaiting_reply: 1,
   awaiting_reply_days: 14,
+  daily_counts: [
+    { date: '2026-11-15', count: 0 },
+    { date: '2026-11-16', count: 1 },
+    { date: '2026-11-17', count: 2 },
+  ],
   stage_reach: [
     { stage: 'applied', count: 3, rate: 1 },
     { stage: 'phone_screen', count: 1, rate: 0.33 },
@@ -84,6 +89,9 @@ describe('PersonalAnalytics', () => {
 
     expect(await screen.findByText('Your search at a glance')).toBeInTheDocument()
     expect(screen.getByText(/You have sent 3 applications so far, 2 of them in the last 7 days/)).toBeInTheDocument()
+    expect(screen.getByText('Sent per day')).toBeInTheDocument()
+    expect(screen.getByText('Today')).toBeInTheDocument()
+    expect(screen.getByText(/3 applications sent in the last 7 days/)).toBeInTheDocument()
     expect(screen.getByText('Waiting for a reply')).toBeInTheDocument()
     expect(screen.getByText('Results by CV')).toBeInTheDocument()
     expect(screen.getByText('Main CV')).toBeInTheDocument()

@@ -67,6 +67,11 @@ class UpcomingItem(BaseModel):
     days_away: int
 
 
+class DailyCount(BaseModel):
+    date: str  # YYYY-MM-DD
+    count: int
+
+
 class ApplicationInsights(BaseModel):
     total: int
     submitted: int
@@ -79,6 +84,7 @@ class ApplicationInsights(BaseModel):
     interview_rate: float
     awaiting_reply: int
     awaiting_reply_days: int
+    daily_counts: list[DailyCount]
     stage_reach: list[StageReach]
     work_modes: list[LabelCount]
     top_locations: list[LabelCount]
