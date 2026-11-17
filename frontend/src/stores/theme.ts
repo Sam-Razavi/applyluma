@@ -8,12 +8,16 @@ interface ThemeState {
 
 function applyClass(dark: boolean) {
   document.documentElement.classList.toggle('dark', dark)
+  // Keep the mobile browser chrome in step with the page background.
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', dark ? '#080E12' : '#E7ECF2')
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      dark: true,
+      dark: false,
       toggle: () => {
         const next = !get().dark
         applyClass(next)
@@ -22,11 +26,12 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'theme',
-      version: 1,
-      // Light mode did not exist before v1, so any value persisted earlier
-      // was never a real choice. Force those users to dark; light is opt-in.
+      version: 2,
+      // v1 persisted only on an explicit toggle, but light was not the default
+      // then. Reset once so everyone starts in light; they can switch back
+      // with the toggle (their choice is stored again from there).
       migrate: (persisted, version) => {
-        if (version < 1) return { dark: true } as ThemeState
+        if (version < 2) return { dark: false } as ThemeState
         return persisted as ThemeState
       },
     },

@@ -19,6 +19,7 @@ import { authApi } from '../../services/authApi'
 import { adminApi } from '../../services/adminApi'
 import UserAvatar from '../ui/UserAvatar'
 import NotificationBell from '../notifications/NotificationBell'
+import ThemeToggle from '../ui/ThemeToggle'
 
 type NavItem = {
   to: string
@@ -142,7 +143,10 @@ export default function Sidebar() {
             Beta
           </span>
         </Link>
-        <NotificationBell align="left" />
+        <div className="flex items-center">
+          <ThemeToggle />
+          <NotificationBell align="left" />
+        </div>
       </div>
 
       {/* Nav */}

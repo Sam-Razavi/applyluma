@@ -5,6 +5,7 @@ import { EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
 import NotificationBell from '../notifications/NotificationBell'
+import ThemeToggle from '../ui/ThemeToggle'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
 import RouteFallback from '../ui/RouteFallback'
 import { useInactivityLogout } from '../../hooks/useInactivityLogout'
@@ -75,7 +76,10 @@ export default function AppLayout() {
           <Link to="/dashboard" className="font-display text-lg font-bold tracking-tight text-fg">
             ApplyLuma
           </Link>
-          <NotificationBell align="right" />
+          <div className="flex items-center">
+            <ThemeToggle />
+            <NotificationBell align="right" />
+          </div>
         </div>
 
         {showVerifyBanner && (

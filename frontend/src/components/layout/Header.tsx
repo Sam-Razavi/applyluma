@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import ThemeToggle from '../ui/ThemeToggle'
 
 export default function Header() {
   return (
@@ -7,7 +8,8 @@ export default function Header() {
         <Link to="/" className="py-2 text-xl font-bold text-accent-text tracking-tight">
           ApplyLuma
         </Link>
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2 sm:gap-4">
+          <ThemeToggle />
           <Link
             to="/login"
             className="py-2.5 text-sm text-fg-muted hover:text-fg transition-colors"

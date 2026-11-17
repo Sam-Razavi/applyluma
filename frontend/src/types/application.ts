@@ -110,6 +110,67 @@ export interface ApplicationAnalytics {
   salary_distribution: ApplicationSalaryBucketCount[]
 }
 
+export interface InsightLabelCount {
+  label: string
+  count: number
+}
+
+export interface InsightStageReach {
+  stage: 'applied' | 'phone_screen' | 'interview' | 'offer'
+  count: number
+  rate: number
+}
+
+export interface InsightSourcePerformance {
+  source: string
+  applications: number
+  responses: number
+  response_rate: number
+}
+
+export interface InsightCvPerformance {
+  cv_id: string | null
+  title: string
+  applications: number
+  responses: number
+  response_rate: number
+}
+
+export interface InsightUpcomingItem {
+  application_id: string
+  company_name: string
+  job_title: string
+  kind: 'interview' | 'deadline'
+  date: string
+  days_away: number
+}
+
+export interface ApplicationInsights {
+  total: number
+  submitted: number
+  active: number
+  closed: number
+  wishlist: number
+  applied_last_7d: number
+  applied_prev_7d: number
+  applied_last_30d: number
+  interview_rate: number
+  awaiting_reply: number
+  awaiting_reply_days: number
+  stage_reach: InsightStageReach[]
+  work_modes: InsightLabelCount[]
+  top_locations: InsightLabelCount[]
+  top_companies: InsightLabelCount[]
+  weekday_counts: InsightLabelCount[]
+  source_performance: InsightSourcePerformance[]
+  cv_performance: InsightCvPerformance[]
+  upcoming: InsightUpcomingItem[]
+  salary_median: number | null
+  salary_min: number | null
+  salary_max: number | null
+  salary_sample: number
+}
+
 export interface ApplicationContactCreate {
   name?: string | null
   role?: string | null
