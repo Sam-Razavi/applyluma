@@ -89,8 +89,15 @@ export function fetchApplicationAnalytics(): Promise<ApplicationAnalytics> {
 }
 
 export function fetchApplicationInsights(): Promise<ApplicationInsights> {
+  // The server needs the browser's timezone to decide where "today" starts.
+  let tz: string | undefined
+  try {
+    tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch {
+    tz = undefined
+  }
   return client
-    .get<ApplicationInsights>('/api/v1/applications/insights')
+    .get<ApplicationInsights>('/api/v1/applications/insights', { params: tz ? { tz } : undefined })
     .then((r) => r.data)
 }
 

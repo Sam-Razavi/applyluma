@@ -877,6 +877,20 @@ Theme default & My Stats (November 2026):
     still renders the original charts if the insights call fails. The route
     is declared before `/{application_id}`.
 
+Applied date & sent-per-day (November 2026, migration `0038`; Alembic chain ends at `0038`):
+  - A card dragged to Applied (or advanced by an accepted email suggestion)
+    sent only the status, so it sat in the Applied column showing "Not
+    applied". `crud.application.update_application` and `create_application`
+    now stamp today's date (midnight UTC, the app's calendar-date convention)
+    whenever a card is in `applied`/`phone_screen`/`interview`/`offer` with no
+    date; an explicit `applied_date` (even a clear) is respected. Migration
+    `0038` backfills existing cards from their first applied-stage event, else
+    `created_at`; it is not reversible.
+  - `GET /applications/insights?tz=<IANA zone>` adds `daily_counts` (last 7
+    days, today last); My Stats shows them as the "Sent per day" card.
+    `applied_date` is read as a plain calendar date; cards without one fall
+    back to `created_at` in the caller's timezone.
+
 ## Git Workflow
 
 Branch structure:

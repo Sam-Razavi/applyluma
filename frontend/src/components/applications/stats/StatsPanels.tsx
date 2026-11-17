@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type {
   ApplicationSalaryBucketCount,
+  InsightDailyCount,
   InsightCvPerformance,
   InsightLabelCount,
   InsightSourcePerformance,
@@ -122,6 +123,58 @@ export function StageProgress({ stages, submitted }: { stages: InsightStageReach
       <p className="mt-4 text-xs text-fg-muted">
         Out of {submitted} sent. Each bar counts every application that reached that stage, even if it was
         later rejected.
+      </p>
+    </div>
+  )
+}
+
+/** Applications sent on each of the last 7 days, today on the right. */
+export function DailyBars({ days }: { days: InsightDailyCount[] }) {
+  const total = days.reduce((sum, d) => sum + d.count, 0)
+  const max = Math.max(...days.map((d) => d.count), 1)
+  const label = (iso: string, index: number) => {
+    // Parse as a plain calendar date: the server already chose the day.
+    const [y, m, d] = iso.split('-').map(Number)
+    const date = new Date(y, m - 1, d)
+    return {
+      weekday: index === days.length - 1 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' }),
+      day: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    }
+  }
+  return (
+    <div>
+      <div className="flex h-40 gap-2" role="img" aria-label="Applications sent per day, last 7 days">
+        {days.map((day, index) => {
+          const text = label(day.date, index)
+          const isToday = index === days.length - 1
+          return (
+            <div key={day.date} className="flex h-full flex-1 flex-col items-center gap-1">
+              <span className={`text-sm font-semibold ${day.count > 0 ? 'text-fg' : 'text-fg-subtle'}`}>
+                {day.count}
+              </span>
+              <div className="flex w-full flex-1 items-end">
+                <div
+                  className="w-full rounded-t"
+                  style={{
+                    height: `${(day.count / max) * 100}%`,
+                    minHeight: day.count > 0 ? 6 : 2,
+                    background: isToday ? 'var(--accent)' : day.count > 0 ? 'var(--accent-text)' : 'var(--track)',
+                    opacity: isToday || day.count === 0 ? 1 : 0.55,
+                  }}
+                />
+              </div>
+              <span className={`text-xs ${isToday ? 'font-semibold text-fg' : 'text-fg-subtle'}`}>
+                {text.weekday}
+              </span>
+              <span className="hidden text-[10px] text-fg-subtle sm:block">{text.day}</span>
+            </div>
+          )
+        })}
+      </div>
+      <p className="mt-3 text-xs text-fg-muted">
+        {total === 0
+          ? 'Nothing sent in the last 7 days.'
+          : `${total} application${total === 1 ? '' : 's'} sent in the last 7 days (${(total / 7).toFixed(1)} a day on average).`}
       </p>
     </div>
   )
