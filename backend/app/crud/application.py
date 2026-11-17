@@ -15,11 +15,13 @@ from app.models.job_description import JobDescription
 from app.schemas.application import ApplicationContactCreate, ApplicationCreate, ApplicationUpdate
 from app.schemas.application_analytics import (
     ApplicationAnalytics,
+    ApplicationInsights,
     FunnelCount,
     SalaryBucketCount,
     SourceCount,
     WeeklyApplicationCount,
 )
+from app.services.application_insights import compute_insights
 
 APPLICATION_STATUSES = (
     "wishlist",
@@ -246,7 +248,9 @@ def get_applications(
 
 
 def get_application(db: Session, id: uuid.UUID, user_id: uuid.UUID) -> Application | None:
-    return db.query(Application).filter(Application.id == id, Application.user_id == user_id).first()
+    return (
+        db.query(Application).filter(Application.id == id, Application.user_id == user_id).first()
+    )
 
 
 def update_application(
@@ -361,9 +365,7 @@ def get_analytics(db: Session, user_id: uuid.UUID) -> ApplicationAnalytics:
         if status in funnel_counts:
             funnel_counts[status] = int(_row_value(row, "count") or 0)
 
-    submitted_count = sum(
-        count for status, count in funnel_counts.items() if status != "wishlist"
-    )
+    submitted_count = sum(count for status, count in funnel_counts.items() if status != "wishlist")
     response_count = sum(funnel_counts[status] for status in RESPONSE_STATUSES)
     offer_count = funnel_counts["offer"]
     response_rate = response_count / submitted_count if submitted_count else 0.0
@@ -386,6 +388,59 @@ def get_analytics(db: Session, user_id: uuid.UUID) -> ApplicationAnalytics:
         top_sources=top_sources,
         salary_distribution=salary_distribution,
     )
+
+
+def get_insights(db: Session, user_id: uuid.UUID) -> ApplicationInsights:
+    rows = (
+        db.query(Application)
+        .filter(Application.user_id == user_id)
+        .order_by(Application.created_at.desc())
+        .limit(2000)
+        .all()
+    )
+    applications = [
+        {
+            "id": a.id,
+            "status": a.status,
+            "created_at": a.created_at,
+            "applied_date": a.applied_date,
+            "interview_date": a.interview_date,
+            "deadline": a.deadline,
+            "source": a.source,
+            "location": a.location,
+            "remote_type": a.remote_type,
+            "company_name": a.company_name,
+            "job_title": a.job_title,
+            "cv_id": a.cv_id,
+            "salary_min": a.salary_min,
+            "salary_max": a.salary_max,
+        }
+        for a in rows
+    ]
+
+    history: dict[str, set[str]] = {}
+    ids = [a.id for a in rows]
+    if ids:
+        for application_id, new_value in (
+            db.query(ApplicationEvent.application_id, ApplicationEvent.new_value)
+            .filter(
+                ApplicationEvent.application_id.in_(ids),
+                ApplicationEvent.event_type.in_(("created", "status_changed")),
+            )
+            .all()
+        ):
+            if new_value:
+                history.setdefault(str(application_id), set()).add(str(new_value))
+
+    cv_ids = {a.cv_id for a in rows if a.cv_id}
+    cv_titles: dict[str, str] = {}
+    if cv_ids:
+        for cv_id, title, filename in (
+            db.query(CV.id, CV.title, CV.filename).filter(CV.id.in_(cv_ids)).all()
+        ):
+            cv_titles[str(cv_id)] = title or filename
+
+    return compute_insights(applications, history, cv_titles)
 
 
 def _average_response_days(db: Session, params: dict[str, Any]) -> float | None:

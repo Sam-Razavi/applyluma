@@ -845,6 +845,22 @@ Thesis baseline (November 2026):
     `vite.config.ts`): the CSP has `font-src 'self'`, and the inlined `data:`
     subsets were four blocked requests (console errors) on every page.
 
+Theme default & My Stats (November 2026):
+  - Light is the default theme (`stores/theme.ts` persist version 2 resets
+    older stored choices once; `public/theme-init.js` must keep the same
+    version number). `components/ui/ThemeToggle.tsx` sits in the sidebar
+    header, the phone header and the public `Header`; Settings still has the
+    switch.
+  - Applications > "My Stats" is much more detailed: `GET
+    /applications/insights` (`services/application_insights.py`, pure
+    `compute_insights`, tests in `test_application_insights.py`) adds stage
+    reach from status history, week-on-week volume, applications waiting
+    14+ days, results by source and by CV, weekday pattern, work style,
+    locations, repeat employers, upcoming interviews/deadlines and salary
+    median. `PersonalAnalytics.tsx` shows a plain-language summary first and
+    still renders the original charts if the insights call fails. The route
+    is declared before `/{application_id}`.
+
 ## Git Workflow
 
 Branch structure:
