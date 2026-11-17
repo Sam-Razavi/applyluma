@@ -143,10 +143,9 @@ export default function Sidebar() {
             Beta
           </span>
         </Link>
-        <div className="flex items-center">
-          <ThemeToggle />
-          <NotificationBell align="left" />
-        </div>
+        {/* The theme switch lives in the footer: the 224 px header has room
+            for the logo and one button only. */}
+        <NotificationBell align="left" />
       </div>
 
       {/* Nav */}
@@ -239,15 +238,18 @@ export default function Sidebar() {
           </div>
           <ChevronRightIcon className="h-4 w-4 shrink-0 text-fg-subtle" />
         </Link>
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={signingOut}
-          className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg disabled:opacity-60"
-        >
-          <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
-          {signingOut ? 'Signing out…' : 'Sign out'}
-        </button>
+        <div className="mt-1 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={signingOut}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-strong hover:text-fg disabled:opacity-60"
+          >
+            <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
+            {signingOut ? 'Signing out…' : 'Sign out'}
+          </button>
+          <ThemeToggle />
+        </div>
       </div>
     </aside>
   )
