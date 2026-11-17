@@ -23,7 +23,7 @@ from app.schemas.application import (
     UnmatchedEmailAssign,
     UnmatchedEmailList,
 )
-from app.schemas.application_analytics import ApplicationAnalytics
+from app.schemas.application_analytics import ApplicationAnalytics, ApplicationInsights
 from app.services import notification_service
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -122,6 +122,14 @@ def get_application_analytics(
     db: Session = Depends(get_db),
 ) -> ApplicationAnalytics:
     return crud_application.get_analytics(db, current_user.id)
+
+
+@router.get("/insights", response_model=ApplicationInsights)
+def get_application_insights(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApplicationInsights:
+    return crud_application.get_insights(db, current_user.id)
 
 
 def _suggestion_payload(row, company_name: str, job_title: str, current_status: str) -> dict:

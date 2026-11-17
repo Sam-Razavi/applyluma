@@ -2,6 +2,7 @@ import client from '../api/client'
 import type {
   Application,
   ApplicationAnalytics,
+  ApplicationInsights,
   ApplicationContact,
   ApplicationContactCreate,
   ApplicationCreate,
@@ -84,6 +85,12 @@ export function fetchStats(): Promise<ApplicationStats> {
 export function fetchApplicationAnalytics(): Promise<ApplicationAnalytics> {
   return client
     .get<ApplicationAnalytics>('/api/v1/applications/analytics')
+    .then((r) => r.data)
+}
+
+export function fetchApplicationInsights(): Promise<ApplicationInsights> {
+  return client
+    .get<ApplicationInsights>('/api/v1/applications/insights')
     .then((r) => r.data)
 }
 
