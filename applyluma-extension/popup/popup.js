@@ -6,6 +6,7 @@ const EXTENSION_AUTH_URL = 'https://applyluma.com/extension-auth';
 // ── DOM references ──────────────────────────────────────────────────────────
 
 const views = {
+  loading: document.getElementById('view-loading'),
   noJob: document.getElementById('view-no-job'),
   connected: document.getElementById('view-connected'),
   connect: document.getElementById('view-connect'),
@@ -199,7 +200,8 @@ async function askTab(tabId) {
   try {
     return await Promise.race([
       chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_JOB' }),
-      new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
+      // Long enough for the page to fetch the job's own page when it must.
+      new Promise((resolve) => setTimeout(() => resolve(null), 8000)),
     ]);
   } catch {
     return null; // no ApplyLuma script on this tab

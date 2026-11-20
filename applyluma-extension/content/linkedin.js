@@ -63,6 +63,20 @@
     title: TITLE_SELECTORS,
     company: COMPANY_SELECTORS,
     description: DESCRIPTION_SELECTORS,
+    // LinkedIn's public page for one job (no sign-in), with a layout that has
+    // stayed the same while the signed-in pages change.
+    fetchJobPage: async () => {
+      const id = currentJobId();
+      if (!id) return null;
+      const resp = await fetch(`${window.location.origin}/jobs-guest/jobs/api/jobPosting/${id}`, { credentials: 'omit' });
+      if (!resp.ok) return null;
+      return { doc: new DOMParser().parseFromString(await resp.text(), 'text/html') };
+    },
+    fetched: {
+      title: ['.top-card-layout__title', '.topcard__title', 'h1', 'h2'],
+      company: ['.topcard__org-name-link', '.topcard__flavor a'],
+      description: ['.show-more-less-html__markup', '.description__text'],
+    },
     // A job's own page is titled "Job title | Company | LinkedIn".
     fromDocumentTitle: () => {
       if (!/\/jobs\/view\//.test(window.location.pathname)) return null;
