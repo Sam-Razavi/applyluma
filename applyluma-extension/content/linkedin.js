@@ -41,12 +41,14 @@
 
   // ── Job detail extraction ────────────────────────────────────────────────
 
-  // A job is open either on its own page (/jobs/view/<id>) or in the right-hand
+  // A job is open either on its own page (/jobs/view/[<slug>-]<id>) or in the right-hand
   // pane of search, collections and recommendations (?currentJobId=<id>).
   function currentJobId() {
     try {
       const u = new URL(window.location.href);
-      const m = u.pathname.match(/\/jobs\/view\/(\d+)/);
+      // /jobs/view/123 when signed in; /jobs/view/<title>-at-<company>-123 from
+      // Google, job-alert emails and shared links.
+      const m = u.pathname.match(/\/jobs\/view\/(?:[^/]*-)?(\d+)\/?$/);
       return m ? m[1] : u.searchParams.get('currentJobId');
     } catch {
       return null;
