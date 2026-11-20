@@ -47,6 +47,9 @@ It writes into the `--out` folder:
 | `summary.md` | The tables: correctness, consistency, robustness, transparency, missing information, reliability, and every case where a system differs from the reference |
 | `summary.csv` | One line per case, variant and system, for tables and charts |
 | `review_sheet.csv` | The first AI run of every case, one line per requirement, with empty columns for judging by hand whether each explanation is supported by the texts |
+| `summary.xlsx`, `review_sheet.xlsx` | The same two tables as Excel workbooks, for filling in the review sheet by hand (Excel garbles Swedish letters in a CSV and, in a Swedish locale, expects `;` between columns). Written when `openpyxl` is installed |
+
+Before anything is sent to the model, the runner checks every case folder and lists every problem: a missing or empty file, a value it does not know, a variant file that is missing or identical to the case, and text still copied from `cases/_template`.
 
 `--resume` continues a run that stopped, without repeating stored runs. `--report-only`
 rebuilds the tables from `results.jsonl` without calling the model. Both refuse if the

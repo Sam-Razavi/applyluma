@@ -9,12 +9,15 @@ From the repository root:
     --systems         "ai,rule_based" (default), or one of them
 
 Writes into --out: run.json (what was run), results.jsonl (every run, complete),
-summary.md, summary.csv and review_sheet.csv.
+summary.md, summary.csv and review_sheet.csv, plus Excel copies of the two CSV
+tables (summary.xlsx, review_sheet.xlsx) when openpyxl is installed.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import subprocess
 import sys
@@ -32,7 +35,7 @@ from app.services import ai_usage  # noqa: E402
 from app.services.fit_advisor import llm, prompts, service  # noqa: E402
 from app.services.fit_advisor.decision import RULES_VERSION  # noqa: E402
 from thesis.eval import report, rule_based_adapter  # noqa: E402
-from thesis.eval.cases import Case, load_cases, load_protocol, text_hash  # noqa: E402
+from thesis.eval.cases import Case, CaseError, load_cases, load_protocol, text_hash  # noqa: E402
 
 AssessFn = Callable[..., dict[str, Any]]
 
@@ -118,12 +121,46 @@ def read_records(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def write_xlsx(path: Path, csv_text: str) -> bool:
+    """An Excel copy of a CSV table. Excel opens a UTF-8 CSV in the old Windows
+    encoding (Swedish letters break) and, in a Swedish locale, expects ";" between
+    columns, so the review sheet is easier to fill in as a workbook. Skipped when
+    openpyxl is not installed; the CSV is the record either way."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font
+    except ImportError:
+        return False
+    rows = list(csv.reader(io.StringIO(csv_text)))
+    book = Workbook()
+    sheet = book.active
+    sheet.title = path.stem[:31]
+    for row in rows:
+        sheet.append(row)
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+    sheet.freeze_panes = "A2"
+    for index, column in enumerate(zip(*rows, strict=False), start=1):
+        width = min(max((len(value) for value in column), default=8) + 2, 60)
+        letter = sheet.cell(row=1, column=index).column_letter
+        sheet.column_dimensions[letter].width = width
+        if width == 60:
+            for cell in sheet[letter][1:]:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+    book.save(path)
+    return True
+
+
 def write_reports(out: Path, cases: list[Case], records: list[dict[str, Any]], info: dict[str, Any]) -> None:
     price = ai_usage.PRICES_PER_MTOK[info["model"]]
     protocol = info["protocol"]
     (out / "summary.md").write_text(report.summary_markdown(cases, records, protocol, info, price), encoding="utf-8")
-    (out / "summary.csv").write_text(report.summary_csv(cases, records), encoding="utf-8")
-    (out / "review_sheet.csv").write_text(report.review_sheet_csv(cases, records), encoding="utf-8")
+    for name, table in (
+        ("summary", report.summary_csv(cases, records)),
+        ("review_sheet", report.review_sheet_csv(cases, records)),
+    ):
+        (out / f"{name}.csv").write_text(table, encoding="utf-8")
+        write_xlsx(out / f"{name}.xlsx", table)
 
 
 def execute(
@@ -199,7 +236,13 @@ def main() -> None:
     # of the app's usage table.
     llm.ai_usage.record_ai_usage = lambda **_: None  # type: ignore[assignment]
 
-    execute(args.cases, args.out, args.protocol, systems=systems, resume=args.resume, report_only=args.report_only)
+    try:
+        execute(
+            args.cases, args.out, args.protocol, systems=systems, resume=args.resume, report_only=args.report_only
+        )
+    except CaseError as exc:
+        # The list of problems is the message; a traceback would bury it.
+        sys.exit(str(exc))
 
 
 if __name__ == "__main__":

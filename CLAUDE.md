@@ -854,6 +854,13 @@ Thesis baseline (November 2026):
     `tests/test_thesis_eval.py` proves on a real Postgres that it equals
     `batch_compute_scores`. A failed run is recorded, never retried. Practice-case
     output is never committed (`thesis/results/practice*` is ignored).
+    The case loader refuses text still copied from `cases/_template` and the runner
+    prints case problems as a plain list; `summary.xlsx` / `review_sheet.xlsx` are
+    written next to the CSVs when openpyxl is installed (Excel garbles Swedish
+    letters in a UTF-8 CSV and expects `;` in a Swedish locale). Pre-evaluation
+    check 2026-11-20: frozen files unchanged since `thesis-prototype-v2`, matcher
+    unchanged since `pre-thesis-baseline`, practice cases 7/7 with identical
+    judgements in every run, 154/154 CV quotes found, 0.0102 USD per assessment.
   - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
     (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
     `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.
