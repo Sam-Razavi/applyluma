@@ -77,6 +77,12 @@ def text_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
+# The text the files in cases/_template start with. A copied template whose
+# placeholder was never replaced would otherwise be assessed as a real case.
+TEMPLATE_PLACEHOLDER = "Replace this text with"
+TEMPLATE_RATIONALE = "Write the reason here."
+
+
 def _read(path: Path, problems: list[str]) -> str:
     if not path.is_file():
         problems.append(f"{path.parent.name}: {path.name} is missing")
@@ -84,6 +90,8 @@ def _read(path: Path, problems: list[str]) -> str:
     text = path.read_text(encoding="utf-8").strip()
     if not text:
         problems.append(f"{path.parent.name}: {path.name} is empty")
+    elif text.startswith(TEMPLATE_PLACEHOLDER):
+        problems.append(f"{path.parent.name}: {path.name} still has the template's placeholder text")
     return text
 
 
@@ -109,7 +117,7 @@ def _load_case(folder: Path, protocol: dict[str, Any], problems: list[str]) -> C
     if reference not in PRIORITIES:
         problems.append(f"{name}: reference must be one of {list(PRIORITIES)}")
     rationale = str(meta.get("rationale") or "").strip()
-    if not rationale:
+    if not rationale or rationale == TEMPLATE_RATIONALE:
         problems.append(f"{name}: rationale is missing")
 
     expected: list[ExpectedMissing] = []

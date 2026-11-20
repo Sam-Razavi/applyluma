@@ -96,6 +96,32 @@ def test_case_problems_are_all_reported(tmp_path: Path) -> None:
         assert expected in message
 
 
+def test_an_unedited_copy_of_the_template_is_rejected(tmp_path: Path) -> None:
+    """A copied template whose placeholders were never replaced must not be run."""
+    import shutil
+
+    shutil.copytree(REPO / "thesis" / "cases" / "_template", tmp_path / "c01_copy")
+    case_yaml = tmp_path / "c01_copy" / "case.yaml"
+    # Even with the variants block deleted, as the template tells you to.
+    case_yaml.write_text(case_yaml.read_text(encoding="utf-8").split("variants:")[0], encoding="utf-8")
+    with pytest.raises(CaseError) as error:
+        load_cases(tmp_path, load_protocol(PROTOCOL_PATH))
+    message = str(error.value)
+    for expected in ("cv.md still has the template", "ad.md still has the template", "rationale is missing"):
+        assert expected in message
+
+
+def test_the_runner_lists_case_problems_without_a_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write_case(tmp_path, "a", "scenario: nonsense\nlanguage: en\nreference: maybe\n")
+    monkeypatch.setattr(sys, "argv", ["run", "--cases", str(tmp_path), "--out", str(tmp_path / "out")])
+    with pytest.raises(SystemExit) as stopped:
+        run.main()
+    assert "a: scenario" in str(stopped.value.code)
+    assert not (tmp_path / "out").exists()
+
+
 def test_variant_identical_to_the_case_is_rejected(tmp_path: Path) -> None:
     _write_case(
         tmp_path, "a", GOOD + "variants:\n  - id: v\n    type: name_swap\n    cv: same.md\n",
@@ -273,3 +299,14 @@ def test_adapter_scores_exactly_like_production(remote: bool) -> None:
     finally:
         db.rollback()
         db.close()
+
+
+def test_excel_copy_keeps_swedish_text_and_every_cell(tmp_path: Path) -> None:
+    openpyxl = pytest.importorskip("openpyxl")
+    table = 'case,note\nc01,"Körkort saknas, kan ej bedömas"\nc02,"two\nlines"\n'
+    assert run.write_xlsx(tmp_path / "review_sheet.xlsx", table)
+    sheet = openpyxl.load_workbook(tmp_path / "review_sheet.xlsx").active
+    assert [[c.value for c in row] for row in sheet.iter_rows()] == [
+        ["case", "note"], ["c01", "Körkort saknas, kan ej bedömas"], ["c02", "two\nlines"],
+    ]
+
