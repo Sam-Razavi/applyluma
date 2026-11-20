@@ -51,7 +51,37 @@
     title: TITLE_SELECTORS,
     company: COMPANY_SELECTORS,
     description: DESCRIPTION_SELECTORS,
+    // The job's own page on the same site. Fetched with the browser's Indeed
+    // session, so Indeed's bot check treats it like the page the user opened.
+    fetchJobPage: async () => {
+      const key = jobKey();
+      if (!key) return null;
+      const resp = await fetch(`${window.location.origin}/viewjob?jk=${encodeURIComponent(key)}`);
+      if (!resp.ok) return null;
+      const html = await resp.text();
+      return { doc: new DOMParser().parseFromString(html, 'text/html'), extra: fromInitialData(html) };
+    },
   };
+
+  // Indeed's pages carry the job as JSON for their own scripts; read the three
+  // fields from it when the markup gives nothing.
+  function jsonString(html, name) {
+    const m = html.match(new RegExp(`"${name}"\\s*:\\s*("(?:[^"\\\\]|\\\\.)*")`));
+    if (!m) return '';
+    try {
+      return JSON.parse(m[1]);
+    } catch {
+      return '';
+    }
+  }
+
+  function fromInitialData(html) {
+    return {
+      title: ApplyLuma.clean(jsonString(html, 'jobTitle')),
+      company: ApplyLuma.clean(jsonString(html, 'companyName')),
+      description: ApplyLuma.htmlToText(jsonString(html, 'sanitizedJobDescription')),
+    };
+  }
 
   function extractJobData() {
     ApplyLuma.storeSnapshot(SITE);

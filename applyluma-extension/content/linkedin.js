@@ -41,12 +41,14 @@
 
   // ── Job detail extraction ────────────────────────────────────────────────
 
-  // A job is open either on its own page (/jobs/view/<id>) or in the right-hand
+  // A job is open either on its own page (/jobs/view/[<slug>-]<id>) or in the right-hand
   // pane of search, collections and recommendations (?currentJobId=<id>).
   function currentJobId() {
     try {
       const u = new URL(window.location.href);
-      const m = u.pathname.match(/\/jobs\/view\/(\d+)/);
+      // /jobs/view/123 when signed in; /jobs/view/<title>-at-<company>-123 from
+      // Google, job-alert emails and shared links.
+      const m = u.pathname.match(/\/jobs\/view\/(?:[^/]*-)?(\d+)\/?$/);
       return m ? m[1] : u.searchParams.get('currentJobId');
     } catch {
       return null;
@@ -61,6 +63,20 @@
     title: TITLE_SELECTORS,
     company: COMPANY_SELECTORS,
     description: DESCRIPTION_SELECTORS,
+    // LinkedIn's public page for one job (no sign-in), with a layout that has
+    // stayed the same while the signed-in pages change.
+    fetchJobPage: async () => {
+      const id = currentJobId();
+      if (!id) return null;
+      const resp = await fetch(`${window.location.origin}/jobs-guest/jobs/api/jobPosting/${id}`, { credentials: 'omit' });
+      if (!resp.ok) return null;
+      return { doc: new DOMParser().parseFromString(await resp.text(), 'text/html') };
+    },
+    fetched: {
+      title: ['.top-card-layout__title', '.topcard__title', 'h1', 'h2'],
+      company: ['.topcard__org-name-link', '.topcard__flavor a'],
+      description: ['.show-more-less-html__markup', '.description__text'],
+    },
     // A job's own page is titled "Job title | Company | LinkedIn".
     fromDocumentTitle: () => {
       if (!/\/jobs\/view\//.test(window.location.pathname)) return null;

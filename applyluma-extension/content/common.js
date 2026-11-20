@@ -26,9 +26,9 @@
     return clean(el.innerText || el.textContent || '');
   }
 
-  function firstText(selectors) {
+  function firstText(selectors, root = document) {
     for (const sel of selectors || []) {
-      const el = document.querySelector(sel);
+      const el = root.querySelector(sel);
       if (el) {
         const text = textOf(el);
         if (text) return text;
@@ -67,8 +67,8 @@
   }
 
   // schema.org JobPosting embedded as JSON-LD, if the page has one.
-  function jsonLdJob() {
-    for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+  function jsonLdJob(root = document) {
+    for (const script of root.querySelectorAll('script[type="application/ld+json"]')) {
       try {
         const job = findJobPosting(JSON.parse(script.textContent));
         if (!job) continue;
@@ -98,6 +98,8 @@
    *   fromDocumentTitle?(): { title, company } | null,
    *   preferStructured?: boolean, // JSON-LD before the selectors (unknown layouts)
    *   maxDescription?: number,    // cut a description read from a whole page
+   *   fetchJobPage?(): Promise<{ doc?: Document, extra?: {title, company, description} } | null>,
+   *   fetched?: { title, company, description }, // selectors for the fetched page
    * }
    */
   function extract(site) {
@@ -121,6 +123,37 @@
     };
   }
 
+  // A job's own page fetched from the same site, read for the fields the open
+  // page did not give. Signed-in LinkedIn and Indeed render the job with markup
+  // that changes often; the job's standalone page is far more stable. Only the
+  // job the user is looking at is fetched, and only when something is missing.
+  async function fillFromJobPage(site, job) {
+    if (!site.fetchJobPage || (job.title && job.company && job.description)) return job;
+    let fetched;
+    try {
+      fetched = await site.fetchJobPage();
+    } catch {
+      return job; // offline, blocked or changed: keep what the open page gave
+    }
+    if (!fetched) return job;
+    const { doc, extra = {} } = fetched;
+    const ld = (doc && jsonLdJob(doc)) || {};
+    const fromDoc = (name) => (doc ? firstText((site.fetched || {})[name] || site[name], doc) : '');
+    const fill = (name) => job[name] || pick(fromDoc(name), ld[name], extra[name]);
+    const description = fill('description');
+    return {
+      ...job,
+      title: fill('title').split('\n')[0].trim(),
+      company: fill('company'),
+      description: site.maxDescription ? description.slice(0, site.maxDescription) : description,
+    };
+  }
+
+  async function extractComplete(site) {
+    const job = extract(site);
+    return job ? fillFromJobPage(site, job) : null;
+  }
+
   // Background snapshot, used by the keyboard shortcut and as a fallback.
   function storeSnapshot(site) {
     chrome.storage.local.set({ linkedinJob: extract(site) });
@@ -129,13 +162,15 @@
   function answerExtractRequests(site) {
     chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       if (msg && msg.type === 'EXTRACT_JOB') {
-        const job = extract(site);
-        if (job) chrome.storage.local.set({ linkedinJob: job });
-        sendResponse({ job });
+        extractComplete(site).then((job) => {
+          if (job) chrome.storage.local.set({ linkedinJob: job });
+          sendResponse({ job });
+        });
+        return true; // the answer comes after the job page is fetched
       }
       return false;
     });
   }
 
-  globalThis.ApplyLuma = { clean, firstText, jsonLdJob, extract, storeSnapshot, answerExtractRequests };
+  globalThis.ApplyLuma = { clean, firstText, jsonLdJob, htmlToText, extract, extractComplete, storeSnapshot, answerExtractRequests };
 })();
