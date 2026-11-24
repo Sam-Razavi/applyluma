@@ -20,6 +20,10 @@ case.yaml:
       - id: name_swap
         type: name_swap             # one of protocol.yaml variant_types
         cv: cv_name_swap.md         # a file in the case folder; cv, ad or both
+    second_label: consider          # optional; the second labeller's blind decision
+    first_label: high_priority      # optional; the author's own label before discussing a
+                                    # disagreement (default: reference)
+    resolution: What was decided.   # required when the labels differ
 """
 
 from __future__ import annotations
@@ -64,6 +68,15 @@ class Case:
     remote: bool = False
     expected_missing: tuple[ExpectedMissing, ...] = ()
     variants: tuple[Variant, ...] = field(default=())
+    # Labels before the reference was settled (DESIGN.md section 8). first_label is
+    # the thesis author's, second_label the second labeller's, made blind.
+    first_label: str = ""
+    second_label: str | None = None
+    resolution: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.first_label:
+            object.__setattr__(self, "first_label", self.reference)
 
 
 def load_protocol(path: Path) -> dict[str, Any]:
@@ -148,6 +161,17 @@ def _load_case(folder: Path, protocol: dict[str, Any], problems: list[str]) -> C
             problems.append(f"{name}/{variant_id}: the variant is identical to the case")
         variants.append(Variant(variant_id, str(item.get("type")), variant_cv, variant_ad))
 
+    first_label = meta.get("first_label") or reference
+    if meta.get("first_label") is not None and first_label not in PRIORITIES:
+        problems.append(f"{name}: first_label must be one of {list(PRIORITIES)}")
+    second_label = meta.get("second_label")
+    if second_label is not None and second_label not in PRIORITIES:
+        problems.append(f"{name}: second_label must be one of {list(PRIORITIES)}")
+    resolution = str(meta.get("resolution") or "").strip()
+    labels_differ = first_label != reference or (second_label is not None and second_label != first_label)
+    if labels_differ and not resolution:
+        problems.append(f"{name}: the labels differ, so resolution must say what was decided and why")
+
     if len(problems) > before:
         return None
     return Case(
@@ -161,6 +185,9 @@ def _load_case(folder: Path, protocol: dict[str, Any], problems: list[str]) -> C
         remote=bool(meta.get("remote", False)),
         expected_missing=tuple(expected),
         variants=tuple(variants),
+        first_label=str(first_label),
+        second_label=None if second_label is None else str(second_label),
+        resolution=resolution,
     )
 
 

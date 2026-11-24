@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 import uuid
 from decimal import Decimal
@@ -22,7 +23,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "backend"))
 
-from thesis.eval import report, rule_based_adapter, run  # noqa: E402
+from thesis.eval import labelling, report, rule_based_adapter, run  # noqa: E402
 from thesis.eval.cases import CaseError, load_cases, load_protocol  # noqa: E402
 
 PROTOCOL_PATH = REPO / "thesis" / "protocol.yaml"
@@ -310,3 +311,144 @@ def test_excel_copy_keeps_swedish_text_and_every_cell(tmp_path: Path) -> None:
         ["case", "note"], ["c01", "Körkort saknas, kan ej bedömas"], ["c02", "two\nlines"],
     ]
 
+
+
+# ---- the second labeller -----------------------------------------------------
+
+
+def test_second_label_loads_and_differing_labels_need_a_resolution(tmp_path: Path) -> None:
+    protocol = load_protocol(PROTOCOL_PATH)
+    _write_case(tmp_path, "c1", GOOD + "second_label: high_priority\n")
+    _write_case(tmp_path, "c2", GOOD + "second_label: consider\n")
+    _write_case(tmp_path, "c3", GOOD + "first_label: consider\n")
+    _write_case(tmp_path, "c4", GOOD + "second_label: perhaps\n")
+    with pytest.raises(CaseError) as error:
+        load_cases(tmp_path, protocol)
+    message = str(error.value)
+    assert "c1" not in message
+    assert "c2: the labels differ, so resolution" in message
+    assert "c3: the labels differ, so resolution" in message
+    assert "c4: second_label must be one of" in message
+
+    for name in ("c2", "c3", "c4"):
+        shutil.rmtree(tmp_path / name)
+    _write_case(
+        tmp_path, "c2",
+        GOOD + "first_label: consider\nsecond_label: high_priority\nresolution: The degree is finished.\n",
+    )
+    first, second = load_cases(tmp_path, protocol)
+    assert (first.first_label, first.second_label, first.resolution) == ("high_priority", "high_priority", "")
+    assert (second.first_label, second.second_label, second.reference) == ("consider", "high_priority", "high_priority")
+
+
+def test_cohen_kappa() -> None:
+    assert report.cohen_kappa([("consider", "consider"), ("low_priority", "low_priority")]) == 1.0
+    pairs = [("high_priority", "high_priority"), ("consider", "low_priority")]
+    assert round(report.cohen_kappa(pairs) or 0, 2) == 0.33
+    assert report.cohen_kappa([("consider", "consider")] * 3) is None  # one label only: undefined
+    assert report.cohen_kappa([]) is None
+
+
+def test_summary_shows_labeller_agreement_and_every_combination(tmp_path: Path) -> None:
+    cases_dir = tmp_path / "cases"
+    cases_dir.mkdir()
+    _write_case(cases_dir, "c1", GOOD + "second_label: high_priority\n")
+    _write_case(
+        cases_dir, "c2",
+        GOOD.replace("high_priority", "low_priority")
+        + "first_label: consider\nsecond_label: low_priority\nresolution: SQL is a must, and it is missing.\n",
+    )
+    out, _ = _run(tmp_path, lambda *a, **k: _output("high_priority"))
+    summary = (out / "summary.md").read_text()
+
+    labellers = summary.split("## Reference decisions")[1].split("## 1.")[0]
+    assert "| Cases with a second label | 2 of 2 (100%) |" in labellers
+    assert "| Same label | 1 of 2 (50%) |" in labellers
+    assert "| One step apart | 1 |" in labellers and "| Cohen's kappa | 0.33 |" in labellers
+    assert "| Consider | 0 | 0 | 1 |" in labellers  # author Consider, second labeller Low
+    assert "`c2`: author Consider, second labeller Low Priority; reference Low Priority." in labellers
+
+    assert "2 of 18 combinations have a case." in summary
+    assert "| clear | en | High Priority | 1 | 1 of 1 |" in summary
+    assert "| unclear_or_missing | sv | Low Priority | 0 | - | - |" in summary
+    assert "| clear | en | Low Priority | 1 | 0 of 1 |" in summary
+
+
+def test_summary_says_when_no_case_has_a_second_label() -> None:
+    cases = load_cases(PRACTICE, load_protocol(PROTOCOL_PATH))
+    assert "No case has a second label." in report._labellers(cases)
+
+
+def _labelling_cases(root: Path) -> None:
+    for name, cv in (("c01_clear_match_en", "CV of Ada <script>"), ("c02_clear_mismatch_sv", "CV of Bo"),
+                     ("c03_missing_info_en", "CV of Cy")):
+        _write_case(
+            root, name,
+            GOOD.replace("All there.", "SECRET RATIONALE")
+            + "variants:\n  - id: swap\n    type: name_swap\n    cv: cv2.md\n",
+            {"cv2.md": "VARIANT TEXT"},
+        )
+        (root / name / "cv.md").write_text(cv, encoding="utf-8")
+
+
+def test_labelling_sheet_shows_only_the_texts_and_the_key_matches_it(tmp_path: Path) -> None:
+    cases_dir = tmp_path / "cases"
+    cases_dir.mkdir()
+    _labelling_cases(cases_dir)
+    (cases_dir / "CRITERIA.md").write_text("Mandatory requirements weigh most.", encoding="utf-8")
+    out = tmp_path / "labelling"
+    labelling.write_sheet(cases_dir, out, PROTOCOL_PATH, seed=1)
+
+    sheet = (out / "labelling_sheet.html").read_text(encoding="utf-8")
+    for hidden in ("c01_", "clear_match", "SECRET RATIONALE", "VARIANT TEXT", "high_priority", "<script>"):
+        assert hidden not in sheet
+    assert "CV of Ada &lt;script&gt;" in sheet and "1 December 2026" in sheet
+    assert "Mandatory requirements weigh most." in sheet
+
+    key = labelling._read_table(out / "labelling_key.csv")
+    assert key[0] == labelling.KEY_HEADER and len(key) == 4
+    for number, folder in key[1:]:
+        section = sheet.split(f"<h2>Case {number}</h2>")[1].split("</section>")[0]
+        assert (cases_dir / folder / "cv.md").read_text(encoding="utf-8").replace("<", "&lt;").replace(">", "&gt;") in section
+    answers = labelling._read_table(out / "labelling_answers.csv")
+    assert answers == [labelling.ANSWER_HEADER, ["1", "", ""], ["2", "", ""], ["3", "", ""]]
+    # The same seed gives the same order.
+    again = tmp_path / "again"
+    labelling.write_sheet(cases_dir, again, PROTOCOL_PATH, seed=1)
+    assert (again / "labelling_key.csv").read_text() == (out / "labelling_key.csv").read_text()
+
+
+@pytest.mark.parametrize(
+    ("written", "expected"),
+    [("High Priority", "high_priority"), ("high_priority", "high_priority"), (" consider ", "consider"),
+     ("Låg prioritet", "low_priority"), ("Överväg", "consider"), ("LOW", "low_priority"), ("maybe", None), ("", None)],
+)
+def test_parse_decision(written: str, expected: str | None) -> None:
+    assert labelling.parse_decision(written) == expected
+
+
+def test_compare_reads_a_swedish_excel_csv_and_lists_every_problem(tmp_path: Path) -> None:
+    cases_dir = tmp_path / "cases"
+    cases_dir.mkdir()
+    _labelling_cases(cases_dir)
+    cases = load_cases(cases_dir, load_protocol(PROTOCOL_PATH))
+    key = [labelling.KEY_HEADER, ["1", "c02_clear_mismatch_sv"], ["2", "c01_clear_match_en"],
+           ["3", "c03_missing_info_en"]]
+    form = tmp_path / "answers.csv"
+    form.write_text(
+        "Case;Decision;Reason\n1;Consider;Has most of it\n2;high priority;\n3;perhaps;\n9;Low;\n",
+        encoding="utf-8-sig",
+    )
+    rows, problems = labelling.compare(cases, key, labelling._read_table(form))
+    assert [(r["case"].id, r["second"], r["same"]) for r in rows] == [
+        ("c01_clear_match_en", "high_priority", True), ("c02_clear_mismatch_sv", "consider", False),
+    ]
+    assert rows[1]["reason"] == "Has most of it"
+    assert problems == [
+        "Case 3: decision 'perhaps' is not High Priority, Consider or Low Priority",
+        "Case 9: not in the key, or its folder is gone",
+    ]
+
+    form.write_text("Case,Decision,Reason\n1,Consider,\n", encoding="utf-8")
+    _, problems = labelling.compare(cases, key, labelling._read_table(form))
+    assert problems == ["Case 2: no answer", "Case 3: no answer"]
