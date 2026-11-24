@@ -115,3 +115,4 @@ design-preview/
 
 # Thesis: practice-case runs are for trying the runner, never results
 thesis/results/practice*/
+thesis/results/stress*/

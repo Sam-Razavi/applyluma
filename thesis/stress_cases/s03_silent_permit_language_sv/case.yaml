@@ -1,0 +1,12 @@
+scenario: unclear_or_missing
+language: sv
+reference: consider
+rationale: >
+  The support experience is clear. The CV says nothing about a work permit, and its
+  language list does not mention Swedish; neither silence shows that the requirement
+  is unmet. Name and country of study are never evidence.
+expected_missing:
+  - label: Work permit
+    keywords: [arbetstillstånd, work permit, permit]
+  - label: Swedish
+    keywords: [svenska, swedish]

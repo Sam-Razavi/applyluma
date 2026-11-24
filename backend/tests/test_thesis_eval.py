@@ -85,6 +85,16 @@ def test_practice_cases_load() -> None:
     assert len(cases[2].expected_missing) == 2
 
 
+def test_stress_cases_load_and_cover_the_three_weak_points() -> None:
+    cases = load_cases(REPO / "thesis" / "stress_cases", load_protocol(PROTOCOL_PATH))
+    assert len(cases) == 12
+    assert {c.reference for c in cases} == {"high_priority", "consider", "low_priority"}
+    assert {c.language for c in cases} == {"en", "sv"}
+    # Kept apart from the held-out cases: no stress case is in thesis/cases.
+    held_out = REPO / "thesis" / "cases"
+    assert not any((held_out / c.id).exists() for c in cases)
+
+
 def test_case_problems_are_all_reported(tmp_path: Path) -> None:
     _write_case(tmp_path, "a", "scenario: nonsense\nlanguage: en\nreference: maybe\n")
     _write_case(

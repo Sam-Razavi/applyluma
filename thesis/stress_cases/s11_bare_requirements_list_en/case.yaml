@@ -1,0 +1,7 @@
+scenario: clear
+language: en
+reference: low_priority
+rationale: >
+  The items under "Requirements" carry no "must" or "required", but the heading makes
+  them required. A completed degree is required and the CV says the studies end in
+  2027. Python and PostgreSQL are shown.

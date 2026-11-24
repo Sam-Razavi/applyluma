@@ -492,7 +492,7 @@ def test_the_evidence_prompt_no_longer_treats_absence_as_a_mismatch() -> None:
     together.
     """
     text = prompts.EVIDENCE_PROMPT
-    assert prompts.PROMPT_VERSION == "6"
+    assert prompts.PROMPT_VERSION == "7"
     assert "a CV normally" not in text and "normally lists" not in text
     assert "always lists the jobs" not in text
     assert "never not_met only because the CV does not mention it" in text
@@ -500,7 +500,27 @@ def test_the_evidence_prompt_no_longer_treats_absence_as_a_mismatch() -> None:
     for silent in ("driving licence", "work permit", "language level", "willingness to travel"):
         assert silent in text.split("not_enough_information: the CV does not settle it")[1]
     assert "states the person's total relevant experience" in text
-    assert "a short documented period does not show that the total is short" in text
+    assert "a short added-up total does not show that the person's total is short" in text
+    # Prompt 7 (stress case s09): a stated total below half is not_met, said outright,
+    # and the note must say whether the total is stated or added up.
+    assert "A total stated by the CV that is below half is always not_met" in text
+    assert "say whether the CV states that total itself or you added it up" in text
     assert "half of the amount asked" in text  # the half rule itself is unchanged
     assert "An education or job is completed when its end date is before today" in text
     assert "is never not_met in that case" in text  # experience without a number
+
+
+def test_the_requirements_prompt_reads_list_headings() -> None:
+    """Prompt 7 (stress case s08): items under a "Requirements" heading are
+    mandatory; a heading that only describes the person decides nothing."""
+    text = prompts.REQUIREMENTS_PROMPT
+    mandatory = text.split("- mandatory:")[1].split("- preferred:")[0]
+    preferred = text.split("- preferred:")[1].split("- unclear:")[0]
+    unclear = text.split("- unclear:")[1].split("- ad_quote:")[0]
+    for heading in ('"Requirements"', '"Must have"', '"Krav"', '"Vi kräver"'):
+        assert heading in mandatory
+    for heading in ('"Nice to have"', '"Meriterande"'):
+        assert heading in preferred
+    for heading in ('"About you"', '"Vi tror att du"', '"Om dig"'):
+        assert heading in unclear
+    assert "Do not guess" in unclear

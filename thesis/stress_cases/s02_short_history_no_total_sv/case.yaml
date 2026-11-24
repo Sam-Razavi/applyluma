@@ -1,0 +1,10 @@
+scenario: unclear_or_missing
+language: sv
+reference: consider
+rationale: >
+  The CV documents a six-month internship and states no total. The jobs a CV lists are
+  not necessarily all the work a person has done, so two years cannot be judged short
+  from this; C# and the degree are shown.
+expected_missing:
+  - label: Total work experience
+    keywords: [erfarenhet, experience, years, år]
