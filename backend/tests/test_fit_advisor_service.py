@@ -95,9 +95,11 @@ def test_requirements_get_stable_ids_and_judgements_follow_them() -> None:
     ])
 
     assert [r["id"] for r in result["requirements"]] == ["R1", "R2", "R3", "R4"]
+    # R3's not_met has nothing quoted, so it is not counted as a mismatch (rules v2).
     assert [r["status"] for r in result["requirements"]] == [
-        "met", "met", "not_met", "not_enough_information",
+        "met", "met", "not_enough_information", "not_enough_information",
     ]
+    assert result["requirements"][2]["model_status"] == "not_met"
     # The second call is given our ids, not the model's own.
     assert '"id": "R4"' in client.calls[1]["messages"][1]["content"]
     assert '"id": "w"' not in client.calls[1]["messages"][1]["content"]
@@ -133,8 +135,9 @@ def test_met_with_a_quote_that_is_not_in_the_cv_does_not_count() -> None:
     # Without the invented evidence the rules no longer say High, whatever the model suggested.
     assert result["recommendation"] == "consider"
     assert result["model_recommendation"] == "high_priority"
+    # Three set aside: the two invented "met" quotes and the unquoted "not_met".
     assert result["quote_stats"] == {
-        "ad_quotes": 4, "ad_quotes_found": 4, "cv_quotes": 3, "cv_quotes_found": 1, "downgraded": 2,
+        "ad_quotes": 4, "ad_quotes_found": 4, "cv_quotes": 3, "cv_quotes_found": 1, "downgraded": 3,
     }
 
 
@@ -159,16 +162,19 @@ def test_requirement_the_model_skipped_is_unknown_not_unmet() -> None:
     assert result["recommendation"] == "consider"
 
 
-def test_unmet_mandatory_requirement_gives_low_priority() -> None:
-    result, _ = run([
+def test_unmet_mandatory_requirement_with_quoted_evidence_gives_low_priority() -> None:
+    cv = CV + "Driving licence: none.\n"
+    client = FakeClient(REQUIREMENTS, evidence([
         judgement("R1", "met", "BSc Computer Science, KTH, 2026"),
-        judgement("R2", "not_met"),
-        judgement("R3", "not_met"),
-        judgement("R4", "not_enough_information"),
-    ], recommendation="consider")
+        judgement("R2", "met", "REST API in Python with FastAPI"),
+        judgement("R4", "not_met", "Driving licence: none."),
+    ], recommendation="consider"))
+
+    result = service.assess(cv, AD, client=client)
 
     assert result["recommendation"] == "low_priority"
     assert result["rule"] == "R1"
+    assert result["requirements"][3]["downgraded"] is False
 
 
 def test_ad_quote_that_is_not_in_the_ad_is_marked() -> None:
@@ -259,3 +265,242 @@ def test_model_failures_surface_as_fit_advisor_errors() -> None:
     truncated.chat = SimpleNamespace(completions=SimpleNamespace(create=truncated._create))
     with pytest.raises(fit_advisor.FitAdvisorError, match="truncated"):
         service.assess(CV, AD, client=truncated)
+
+
+# ---- prompt 6 / rules 2: missing evidence is not a mismatch -------------------
+#
+# Scenario numbers refer to the list in thesis/DESIGN_LOG.md (prompt 6 / rules 2).
+# The model is faked: these pin what the code does with its answers. Whether the
+# real model follows the prompt is checked on the practice cases, not here.
+
+AD_K8S = """Junior Platform Engineer
+Requirements: a bachelor's degree in computer science. Python is required.
+Kubernetes is required. At least 2 years of professional experience.
+Experience of user support is required. Terraform is a plus."""
+
+K8S_REQUIREMENTS = [
+    {"id": "a", "text": "Bachelor's degree in computer science", "category": "education",
+     "importance": "mandatory", "ad_quote": "a bachelor's degree in computer science"},
+    {"id": "b", "text": "Python", "category": "skill", "importance": "mandatory",
+     "ad_quote": "Python is required"},
+    {"id": "c", "text": "Kubernetes", "category": "skill", "importance": "mandatory",
+     "ad_quote": "Kubernetes is required"},
+    {"id": "d", "text": "At least 2 years of professional experience", "category": "experience",
+     "importance": "mandatory", "ad_quote": "At least 2 years of professional experience"},
+    {"id": "e", "text": "Experience of user support", "category": "experience",
+     "importance": "mandatory", "ad_quote": "Experience of user support is required"},
+    {"id": "f", "text": "Terraform", "category": "skill", "importance": "preferred",
+     "ad_quote": "Terraform is a plus"},
+]
+
+CV_K8S = """Ali Berg
+BSc Computer Science, Uppsala University, 2022-2025
+Developer, Lumen AB, January 2025 - present: Python services on Kubernetes.
+Internship, IT helpdesk, Uppsala kommun, summer 2024: helped staff with laptops and accounts.
+Skills: Python, Kubernetes, Docker, Git"""
+
+
+def assess_k8s(
+    judgements: list[dict[str, str]], cv: str = CV_K8S, requirements: list[dict[str, str]] | None = None
+) -> dict[str, Any]:
+    client = FakeClient(requirements or K8S_REQUIREMENTS, evidence(judgements))
+    return service.assess(cv, AD_K8S, client=client, today=date(2026, 12, 1))
+
+
+ALL_MET = [
+    judgement("R1", "met", "BSc Computer Science, Uppsala University, 2022-2025"),
+    judgement("R2", "met", "Python services on Kubernetes"),
+    judgement("R3", "met", "Kubernetes"),
+    judgement("R4", "met", "Developer, Lumen AB, January 2025 - present"),
+    judgement("R5", "met", "helped staff with laptops and accounts"),
+    judgement("R6", "not_enough_information"),
+]
+
+
+def with_judgement(index: int, item: dict[str, str]) -> list[dict[str, str]]:
+    return [item if i == index else j for i, j in enumerate(ALL_MET)]
+
+
+CV_NO_K8S = CV_K8S.replace(" on Kubernetes", "").replace("Kubernetes, ", "")
+
+
+def test_unmentioned_mandatory_skill_is_not_enough_information_and_not_low() -> None:
+    """Scenario 1: Kubernetes required, the CV never mentions it."""
+    result = assess_k8s(with_judgement(2, judgement("R3", "not_enough_information")), cv=CV_NO_K8S)
+
+    assert result["requirements"][2]["status"] == "not_enough_information"
+    assert result["recommendation"] == "consider" and result["rule"] == "R3"
+
+
+def test_a_model_not_met_for_an_unmentioned_skill_is_set_aside() -> None:
+    """Scenarios 1 and 6: the old reading (absent, so unmet) no longer gives Low."""
+    result = assess_k8s(with_judgement(2, judgement("R3", "not_met")), cv=CV_NO_K8S)
+
+    k8s = result["requirements"][2]
+    assert (k8s["status"], k8s["model_status"], k8s["downgraded"], k8s["downgrade_reason"]) == (
+        "not_enough_information", "not_met", True, "cv_quote_missing",
+    )
+    assert result["recommendation"] == "consider"
+
+
+def test_a_not_met_whose_quote_is_not_in_the_cv_is_set_aside() -> None:
+    """Scenario 6: an invented quote cannot carry a mismatch."""
+    result = assess_k8s(
+        with_judgement(2, judgement("R3", "not_met", "No experience with Kubernetes")), cv=CV_NO_K8S
+    )
+
+    k8s = result["requirements"][2]
+    assert (k8s["status"], k8s["downgrade_reason"], k8s["cv_quote_found"]) == (
+        "not_enough_information", "cv_quote_not_found", False,
+    )
+    assert result["recommendation"] == "consider"
+
+
+def test_a_cv_that_states_the_lack_gives_low() -> None:
+    """Scenario 2: the CV itself says the qualification is missing."""
+    cv = CV_NO_K8S + "\nNot yet worked with Kubernetes."
+    result = assess_k8s(with_judgement(2, judgement("R3", "not_met", "Not yet worked with Kubernetes")), cv=cv)
+
+    assert result["requirements"][2]["status"] == "not_met"
+    assert result["requirements"][2]["downgrade_reason"] == ""
+    assert result["recommendation"] == "low_priority" and result["rule"] == "R1"
+
+
+def test_an_unfinished_degree_is_not_met() -> None:
+    """Scenario 3: a completed degree is required, the CV says it ends in 2027."""
+    cv = CV_K8S.replace("2022-2025", "2024-2027 (expected)")
+    result = assess_k8s(with_judgement(0, judgement("R1", "not_met", "2024-2027 (expected)")), cv=cv)
+
+    assert result["requirements"][0]["status"] == "not_met"
+    assert result["recommendation"] == "low_priority"
+
+
+def test_positive_evidence_for_every_mandatory_requirement_gives_high() -> None:
+    """Scenario 4; also scenario 7: an internship meets "experience of user support",
+    an amount of experience asked without a number."""
+    result = assess_k8s(ALL_MET)
+
+    assert result["recommendation"] == "high_priority" and result["rule"] == "R2"
+    assert result["requirements"][4]["status"] == "met"
+    assert all(not r["downgraded"] for r in result["requirements"])
+
+
+def test_positive_judgement_without_evidence_is_still_set_aside() -> None:
+    """Scenario 5: the downgrade from version 1 is unchanged."""
+    result = assess_k8s(with_judgement(2, judgement("R3", "met", "Kubernetes certified")), cv=CV_NO_K8S)
+
+    k8s = result["requirements"][2]
+    assert (k8s["status"], k8s["model_status"], k8s["downgrade_reason"]) == (
+        "not_enough_information", "met", "cv_quote_not_found",
+    )
+    assert result["recommendation"] == "consider"
+
+
+@pytest.mark.parametrize(
+    ("status", "quote", "expected"),
+    [
+        # Scenario 8: enough dated evidence, judged by the documented half rule.
+        ("met", "Developer, Lumen AB, January 2025 - present", "high_priority"),
+        ("partly_met", "Developer, Lumen AB, January 2025 - present", "consider"),
+        # Scenario 9: a short or undated history is not a confirmed shortfall.
+        ("not_enough_information", "Developer, Lumen AB, January 2025 - present", "consider"),
+        ("not_met", "", "consider"),
+    ],
+)
+def test_quantified_experience(status: str, quote: str, expected: str) -> None:
+    result = assess_k8s(with_judgement(3, judgement("R4", status, quote)))
+
+    assert result["recommendation"] == expected
+
+
+def test_a_stated_total_below_half_is_a_confirmed_shortfall() -> None:
+    """Scenario 8: the CV states the total, so the shortfall is documented."""
+    cv = CV_K8S + "\nIn total 6 months of professional experience."
+    result = assess_k8s(
+        with_judgement(3, judgement("R4", "not_met", "In total 6 months of professional experience")), cv=cv
+    )
+
+    assert result["requirements"][3]["status"] == "not_met"
+    assert result["recommendation"] == "low_priority"
+
+
+def test_a_found_quote_is_not_checked_for_what_it_means() -> None:
+    """The limit of the code-level check, pinned so it is not mistaken for more.
+
+    The prompt says a dated period alone never confirms a shortfall. If the model
+    still says not_met and quotes a dated period, the quote IS in the CV and the
+    code keeps the judgement: substring matching cannot tell whether the words
+    establish the mismatch. Manual review of the evaluation output covers this.
+    """
+    result = assess_k8s(
+        with_judgement(3, judgement("R4", "not_met", "Developer, Lumen AB, January 2025 - present"))
+    )
+
+    assert result["requirements"][3]["status"] == "not_met"
+    assert result["recommendation"] == "low_priority"
+
+
+def test_preferred_and_unclear_requirements_do_not_make_it_low() -> None:
+    """Scenario 10."""
+    requirements = [*K8S_REQUIREMENTS[:5], dict(K8S_REQUIREMENTS[5], importance="unclear"),
+                    dict(K8S_REQUIREMENTS[5], id="g", importance="preferred")]
+    cv = CV_K8S + "\nNever used Terraform."
+    judgements = [*ALL_MET[:5], judgement("R6", "not_met", "Never used Terraform"),
+                  judgement("R7", "not_met", "Never used Terraform")]
+
+    result = assess_k8s(judgements, cv=cv, requirements=requirements)
+
+    assert result["recommendation"] == "high_priority"
+
+
+# ---- rules 2: requirements whose wording is not in the ad ---------------------
+
+
+def test_an_invented_mandatory_requirement_cannot_make_it_low() -> None:
+    """Scenario 11: the requirement is not in the ad, its 'not met' is not decisive."""
+    invented = {"id": "x", "text": "Security clearance", "category": "other", "importance": "mandatory",
+                "ad_quote": "Security clearance is required"}
+    cv = CV_K8S + "\nNo security clearance."
+    judgements = [*ALL_MET[:5], judgement("R6", "not_enough_information"),
+                  judgement("R7", "not_met", "No security clearance.")]
+
+    result = assess_k8s(judgements, cv=cv, requirements=[*K8S_REQUIREMENTS, invented])
+
+    item = result["requirements"][6]
+    assert item["ad_quote_found"] is False and item["status"] == "not_met"
+    assert result["recommendation"] == "consider" and result["rule"] == "R4"
+    assert result["limited_information"] is True
+    # Kept in the output for audit, and counted apart.
+    assert result["mandatory_unverified"] == 1 and result["mandatory_total"] == 5
+    assert result["quote_stats"]["ad_quotes_found"] == 6
+
+
+def test_validly_quoted_requirements_behave_as_before() -> None:
+    """Scenario 16: every quote is found, so rules 2 give what rules 1 gave."""
+    result = assess_k8s(ALL_MET)
+
+    assert all(r["ad_quote_found"] for r in result["requirements"])
+    assert result["mandatory_unverified"] == 0
+    assert (result["mandatory_total"], result["mandatory_met"]) == (5, 5)
+
+
+def test_the_evidence_prompt_no_longer_treats_absence_as_a_mismatch() -> None:
+    """Pins prompt 6 against the phrases that made absence count as not_met.
+
+    A prompt change once shifted judgements on unrelated requirements, so the
+    rules for dates, licences, skills, certifications and experience are pinned
+    together.
+    """
+    text = prompts.EVIDENCE_PROMPT
+    assert prompts.PROMPT_VERSION == "6"
+    assert "a CV normally" not in text and "normally lists" not in text
+    assert "always lists the jobs" not in text
+    assert "never not_met only because the CV does not mention it" in text
+    assert "Required for met, partly_met and not_met" in text
+    for silent in ("driving licence", "work permit", "language level", "willingness to travel"):
+        assert silent in text.split("not_enough_information: the CV does not settle it")[1]
+    assert "states the person's total relevant experience" in text
+    assert "a short documented period does not show that the total is short" in text
+    assert "half of the amount asked" in text  # the half rule itself is unchanged
+    assert "An education or job is completed when its end date is before today" in text
+    assert "is never not_met in that case" in text  # experience without a number

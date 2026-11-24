@@ -1,7 +1,9 @@
 # Evaluation cases
 
-The cases the thesis reports on. They were added after the freeze tag
-`thesis-prototype-v2`, so the prompts and rules could not be adjusted to them.
+The cases the thesis reports on. They are added only after the evaluation candidate is
+frozen and tagged (proposed: `thesis-prototype-v3`, prompt 6 / rules 2; the earlier freeze
+`thesis-prototype-v2` was superseded before any case existed), so the prompts and rules
+cannot be adjusted to them.
 
 ## One folder per case
 
@@ -27,7 +29,10 @@ thesis/cases/
 4. For a robustness case, add the changed text as an extra file in the same folder
    (for example `cv_name_swap.md`) and list it under `variants` in `case.yaml`.
 
-The reference decision and its rationale are written before either system is run.
+The reference decision and its rationale are written before either system is run, from
+your own criteria for a human reader (`CRITERIA.md`), never from either system's rules.
+The AI component's rules changed on 2026-11-24 (rules version 2: a skill missing from the
+CV is no longer a mismatch); that must not change how you label a case.
 
 ## The 18 cases
 

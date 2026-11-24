@@ -13,8 +13,12 @@ export interface FitRequirement {
   cv_quote: string
   /** null when the model gave no quote. */
   cv_quote_found: boolean | null
-  /** The model said met, but its quote is not in the CV, so it does not count. */
+  /** The model's judgement was set aside: its CV quote was missing or not in the CV. */
   downgraded: boolean
+  /** What the model said before the quote check (from prompt 5 on). */
+  model_status?: FitStatus
+  /** Why it was set aside (from rules 2 on): "cv_quote_missing" or "cv_quote_not_found". */
+  downgrade_reason?: string
   note: string
 }
 
@@ -23,6 +27,8 @@ export interface FitResult {
   rule: string
   reason: string
   limited_information: boolean
+  /** Mandatory requirements whose wording was not found in the ad (rules 2 on). */
+  mandatory_unverified?: number
   summary: string
   missing_information: string[]
   requirements: FitRequirement[]

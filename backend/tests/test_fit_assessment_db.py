@@ -106,6 +106,12 @@ def fit_advisor_prompt_version() -> str:
     return PROMPT_VERSION
 
 
+def fit_advisor_rules_version() -> str:
+    from app.services.fit_advisor import RULES_VERSION
+
+    return RULES_VERSION
+
+
 async def call(method: str, path: str, **kw: Any) -> httpx.Response:
     from app.main import app
 
@@ -145,7 +151,7 @@ async def test_request_run_and_read_an_assessment(env: SimpleNamespace, monkeypa
     assert assessment["status"] == "pending" and assessment["result"] is None
     assert (assessment["job_title"], assessment["company"]) == ("Junior Developer", "Acme")
     assert (assessment["model"], assessment["prompt_version"], assessment["rules_version"]) == (
-        "gpt-4o-2024-08-06", fit_advisor_prompt_version(), "1",
+        "gpt-4o-2024-08-06", fit_advisor_prompt_version(), fit_advisor_rules_version(),
     )
     assert env.queued == [assessment["id"]]
 

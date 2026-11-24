@@ -871,6 +871,20 @@ Thesis baseline (November 2026):
     one step, opposite, Cohen's kappa). Rerun of the practice cases 2026-11-21:
     59/59 runs gave the same priority as on 11-20; one run judged a preferred
     requirement differently (temperature 0 and a seed are not fully repeatable).
+  - Prompt 6 / rules 2 (2026-11-24, after `thesis-prototype-v2`, before any held-out
+    case): missing CV evidence is not a mismatch. An unmentioned skill is
+    `not_enough_information`; `not_met` needs CV words that show the mismatch, and a
+    quantified-experience shortfall needs a total the CV states. Code sets aside a
+    `not_met` with no CV quote or one not in the CV (`downgrade_reason`), as it already
+    did for `met`. A mandatory requirement whose ad quote is not in the ad is unverified
+    (fail closed when the flag is missing): order R1 verified not_met -> Low, R4 any
+    unverified mandatory -> Consider + limited information, R2 all met -> High, R3
+    else. Counts in the result are of verified mandatory requirements, plus
+    `mandatory_unverified`. The panel is titled "AI assessment: qualification fit" and
+    says it does not judge job attractiveness or predict hiring. Practice cases p2, p4
+    and p5 keep their historical Low labels; the expected outcome under the new
+    criteria (Consider) is in `thesis/practice_cases/README.md`. Proposed freeze tag:
+    `thesis-prototype-v3`.
   - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
     (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
     `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.
