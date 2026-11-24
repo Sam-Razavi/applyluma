@@ -108,7 +108,7 @@ describe('FitAssessmentPanel', () => {
     expect(screen.getByText('From your CV: “REST API in Python”')).toBeInTheDocument()
     expect(screen.getByText(/Limited information/)).toBeInTheDocument()
     expect(screen.getByText('Whether you have a driving licence')).toBeInTheDocument()
-    expect(screen.getByText('This is a recommendation. The decision is yours.')).toBeInTheDocument()
+    expect(screen.getByText(/Whether to apply is your decision/)).toBeInTheDocument()
     expect(screen.getByText(/Rule R3 · rules v1 · prompt v1/)).toBeInTheDocument()
   })
 
@@ -161,5 +161,87 @@ describe('FitAssessmentPanel', () => {
     expect(screen.queryByText('A partial fit.')).not.toBeInTheDocument()
     // The recommendation stays visible in the header.
     expect(screen.getByText('Consider')).toBeInTheDocument()
+  })
+
+  it('says it judges qualification fit, not whether the job suits you, and leaves the choice to you', async () => {
+    api.latest.mockResolvedValue(assessment())
+
+    render(<FitAssessmentPanel jobId="job-1" />)
+
+    const note = await screen.findByText(/compares the qualifications shown in your CV/)
+    // Shown with the result, next to the reason and the summary.
+    expect(note).toHaveTextContent("with the job's requirements")
+    expect(note).toHaveTextContent('does not judge whether the job suits you (salary, location')
+    expect(note).toHaveTextContent('does not predict whether you would be hired')
+    expect(note).toHaveTextContent('Whether to apply is your decision.')
+    expect(screen.getByRole('button', { name: /qualification fit/ })).toBeInTheDocument()
+  })
+
+  it.each([
+    ['high_priority', 'High priority'],
+    ['consider', 'Consider'],
+    ['low_priority', 'Low priority'],
+  ] as const)('shows %s as "%s"', async (value, label) => {
+    const base = assessment()
+    api.latest.mockResolvedValue(
+      assessment({ recommendation: value, result: { ...base.result!, recommendation: value } }),
+    )
+
+    render(<FitAssessmentPanel jobId="job-1" />)
+
+    expect(await screen.findByText(label)).toBeInTheDocument()
+  })
+
+  it('explains that an unverified mandatory requirement cannot support a firm assessment', async () => {
+    const base = assessment()
+    api.latest.mockResolvedValue(
+      assessment({
+        result: {
+          ...base.result!,
+          rule: 'R4',
+          mandatory_unverified: 1,
+          requirements: [
+            requirement({ ad_quote: 'Security clearance is required', ad_quote_found: false, text: 'Security clearance' }),
+            requirement({ id: 'R3', text: 'Docker', importance: 'preferred', ad_quote: 'Docker', ad_quote_found: false }),
+          ],
+        },
+      }),
+    )
+
+    render(<FitAssessmentPanel jobId="job-1" />)
+
+    expect(
+      await screen.findByText(/could not be found in the ad, so it cannot be verified\. It cannot support a firm assessment, and it can make the result Consider/),
+    ).toBeInTheDocument()
+    // A preferred one only gets the short mark: it never decides the result.
+    expect(screen.getByText(/From the ad: “Docker” \(wording not found in the ad\)/)).toBeInTheDocument()
+    expect(screen.getAllByText(/cannot support a firm assessment/)).toHaveLength(1)
+  })
+
+  it('says a set-aside "not met" is not proof that the requirement is lacking', async () => {
+    const base = assessment()
+    api.latest.mockResolvedValue(
+      assessment({
+        result: {
+          ...base.result!,
+          requirements: [
+            requirement({
+              text: 'Kubernetes',
+              status: 'not_enough_information',
+              model_status: 'not_met',
+              downgraded: true,
+              downgrade_reason: 'cv_quote_missing',
+              cv_quote: '',
+              cv_quote_found: null,
+            }),
+          ],
+        },
+      }),
+    )
+
+    render(<FitAssessmentPanel jobId="job-1" />)
+
+    expect(await screen.findByText(/not proof that you lack it/)).toBeInTheDocument()
+    expect(screen.getByText('Not enough information')).toBeInTheDocument()
   })
 })

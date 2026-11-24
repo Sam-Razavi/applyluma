@@ -1,7 +1,9 @@
 # Design: AI-assisted job-fit assessment
 
-Status: **design v1, decisions made on 2026-11-13** (section 10). Nothing in this
-document is built yet. Changes after this point are recorded in `DESIGN_LOG.md`.
+Status: **design v1, decisions made on 2026-11-13** (section 10), built and tagged as
+`thesis-prototype-v1` and `-v2`. **Revised on 2026-11-24: prompt version 6, rules
+version 2** (decisions Q1 revised, Q9 and Q10). Changes after design v1 are recorded
+in `DESIGN_LOG.md`.
 
 This is activity 2 ("define the objectives for a solution") and the design half of
 activity 3 in the design science research process of Peffers et al. (2007). The state
@@ -49,7 +51,9 @@ Functional:
   summary; the list of requirements with importance, status and quoted evidence; a
   list of missing or unclear information; a "limited information" flag.
 - **FR3** Every quote is checked against its source text. A quote that cannot be found
-  is flagged, and a judgement that rests on it does not count as met.
+  is flagged. A judgement that rests on a CV quote that is not in the CV counts neither
+  as met nor as not met. A mandatory requirement whose ad quote is not in the ad cannot
+  make the recommendation Low or High (rules version 2).
 - **FR4** Every assessment is stored with the model name, prompt version, rules
   version and the full model output.
 - **FR5** In the app, an assessment starts only when the user asks for it, on one job
@@ -135,56 +139,95 @@ It also returns a `summary` (two or three sentences), a list `missing_informatio
 (what the CV or the ad would need to say for a firmer answer), and its own
 `model_recommendation`, which is stored but never shown as the result.
 
-### Status definitions (decision Q1)
+### Status definitions (decision Q1, revised 2026-11-24)
 
 This is the most important definition in the design, because objective O3 depends on it.
+Version 6 of the prompt separates **missing evidence** from **evidence of a mismatch**:
 
 | Status | Meaning |
 |---|---|
-| met | The CV states it. A quote is required. |
-| partly_met | The CV shows something related but less than asked: a similar tool, or at least half of a stated amount of work experience. A quote is required. |
-| not_met | The CV shows the candidate lacks it. Either the CV contradicts it (asks for a completed degree, CV says studies are ongoing), or it is a skill, tool or qualification that a CV normally lists and this CV does not mention it. |
-| not_enough_information | The CV does not settle it, and it is something CVs often leave out (driving licence, work permit, language level, willingness to travel), or the requirement itself is too vague to judge ("relevant experience", "good communication skills"). |
+| met | The CV affirmatively shows it. A quote is required. |
+| partly_met | The CV shows something relevant but less than asked: a similar tool, or a documented amount of work experience that is at least half of the amount asked. A quote is required. |
+| not_met | The CV affirmatively shows a mismatch, and the CV words that show it are quoted: studies described as ongoing or ending later when a completed degree is required; a statement that the person does not have the skill or certificate; a stated total of relevant experience below half of the amount asked. |
+| not_enough_information | The CV does not settle it either way: a skill, tool, certification or qualification it does not mention; a licence, work permit, citizenship, language level or willingness to travel it does not state; dates too few or unclear to total an amount of experience; a requirement too vague to judge. The note says what the CV would need to show. |
 
-Amended on 2026-11-14 (prompt version 5, see `DESIGN_LOG.md`): when a requirement states
-an amount of work experience, the work periods in the CV are added up, an internship
-counting for its length. The total reaching the amount is met, at least half of it is
-partly met, and less than half, or no relevant work, is not met.
+**Absence is not a mismatch.** A CV that does not mention Kubernetes does not show that
+the person lacks Kubernetes, so the status is `not_enough_information`, never `not_met`.
+The motivation is the concern, in work on attribution and grounding (Yue et al., 2023;
+Tang et al., 2024), that a model's claim should be supported by its source, and the
+observation that language models and human screeners can differ in what they infer
+from a CV (Vaishampayan et al., 2025). These works motivate the rule; they did not test
+it.
 
-The alternative considered was to call every unmentioned requirement "not enough
-information". It was rejected: a CV with none of the required technologies could then
-never be Low Priority, which contradicts the "clear mismatch" scenario in the
-research report.
+**Stated amounts of experience** (version 5, revised in version 6): the work periods the
+CV documents are added up, an internship counting for its length and a running job up to
+the reference date. At least the amount asked is met; at least half of it is partly met.
+Below half is `not_met` **only when the CV itself states the total** (for example "6
+months of professional experience in total") or states that there is no other relevant
+work. A dated history of jobs and internships does not establish the person's complete
+experience: the jobs a CV lists are not necessarily all the work a person has done. So a
+documented period below half, without such a statement, is `not_enough_information`. The
+half-way boundary is unchanged from version 5; it is a formative design convention, not
+a finding.
 
-### Quote check
+Q1 as decided on 2026-11-13 made an unmentioned skill, tool or qualification "that a CV
+normally lists" `not_met`, and rejected the alternative above because "a CV with none of
+the required technologies could then never be Low Priority". The revision accepts that
+consequence knowingly. Low Priority now needs a verified mandatory requirement that the
+CV affirmatively shows is not met; a CV that is merely silent about the required
+technologies gives Consider, with the missing evidence named. See section 8 (validity) and
+`DESIGN_LOG.md` for what this does to the clear-mismatch scenario.
+
+### Quote checks
 
 Code compares every `ad_quote` with the ad and every `cv_quote` with the CV, ignoring
-case and differences in spacing.
+case, spacing and typographic variants (`evidence.py`).
 
-- A `met` or `partly_met` whose CV quote is not found in the CV is changed to
-  `not_enough_information` and flagged.
-- An `ad_quote` not found in the ad flags the requirement as unverified; it stays in
-  the list but is marked.
+- A `met`, `partly_met` **or `not_met`** whose CV quote is missing or not found in the CV
+  is changed to `not_enough_information`. The model's own status is kept as
+  `model_status`, with `downgraded: true` and `downgrade_reason` (`cv_quote_missing` or
+  `cv_quote_not_found`). Before rules version 2 only `met` and `partly_met` were checked.
+- An `ad_quote` not found in the ad marks the requirement **unverified**. It stays in the
+  output, marked, and the rules treat it as below.
+- **What the checks do not do.** They are literal: a quote that is found shows that the
+  words exist in the source, not that they mean what the judgement says. A found CV quote
+  does not prove a mismatch (or a match), and a found ad quote does not prove that the
+  requirement was read correctly, for example as mandatory rather than preferred. These
+  remain for the reader of the panel and for the manual review sheet of the evaluation.
 - The share of quotes that pass is a transparency measure in the evaluation.
 
-### Decision rules, version 1 (decisions Q2 to Q4)
+### Decision rules, version 2 (decisions Q2 to Q4, Q9)
 
-Applied in this order, to the mandatory requirements, after the quote check:
+A mandatory requirement is **verified** when its ad quote was found in the ad. A
+requirement without that check counts as unverified (fail closed). Applied in this order,
+after both quote checks:
 
 | # | Condition | Recommendation |
 |---|---|---|
-| 1 | At least one mandatory requirement is `not_met` | Low Priority |
-| 2 | There is at least one mandatory requirement and every one is `met` | High Priority |
-| 3 | Anything else | Consider |
+| R1 | At least one verified mandatory requirement is `not_met` | Low Priority |
+| R4 | Otherwise, at least one mandatory requirement is unverified, whatever its status | Consider, limited information |
+| R2 | Otherwise, there is at least one mandatory requirement and every one is `met` | High Priority |
+| R3 | Anything else | Consider |
 
-"Anything else" covers: a mandatory requirement that is `partly_met` or
-`not_enough_information`, and an ad with no requirement marked mandatory.
+- A verified failure (R1) is enough on its own, even beside unverified requirements.
+- An unverified requirement can neither make the result Low (it may be invented) nor
+  support High (a requirement judged met but not found in the ad proves nothing), so it
+  gives Consider (R4) unless R1 applies.
+- "Anything else" (R3) covers a mandatory requirement that is `partly_met` or
+  `not_enough_information`, and an ad with no requirement marked mandatory.
+- The counts in the output (`mandatory_total`, `_met`, `_not_met`, `_unknown`) are of the
+  verified mandatory requirements, the ones the rules use; `mandatory_unverified` counts
+  the others.
 
-The **limited information** flag is set when a third or more of the mandatory
-requirements are `not_enough_information`, or when the ad has no mandatory
-requirement. It is shown next to the recommendation and does not change it.
+The **limited information** flag is always set by R4. Otherwise it is set when a third or
+more of the mandatory requirements are `not_enough_information` or unverified, or when the
+ad has no mandatory requirement. It is shown next to the recommendation.
 
-Preferred and unclear requirements do not change the recommendation in version 1.
+Version 1 (2026-11-13 to 2026-11-24) had R1 to R3 without the verification condition: an
+unverified requirement counted like any other.
+
+Preferred and unclear requirements do not change the recommendation (versions 1 and 2),
+verified or not; an unverified one is only marked.
 They are shown and counted in the summary ("3 of 5 preferred requirements met").
 
 Alternatives considered and not chosen for version 1:
@@ -197,15 +240,20 @@ Alternatives considered and not chosen for version 1:
 - Treating an unclear requirement as mandatory. Rejected because it would turn vague
   ads into Low Priority results, when the honest answer is that the ad does not say.
 
-### Worked examples
+### Worked examples (rules version 2)
 
-| Case | Mandatory requirements after the quote check | Result |
+| Case | Mandatory requirements after the quote checks | Result |
 |---|---|---|
-| Ad requires Python, SQL and a bachelor's degree; the CV states all three | met, met, met | High Priority |
-| Same ad; the CV has Python and SQL, and says the degree is unfinished | met, met, not_met | Low Priority |
-| Same ad; the CV has Python, mentions "databases" but not SQL, has the degree | met, partly_met, met | Consider |
-| Ad requires Java and a driving licence; the CV has Java, says nothing about a licence | met, not_enough_information | Consider, limited information |
-| Ad lists skills without saying which are required | (none) | Consider, limited information |
+| Ad requires Python, SQL and a bachelor's degree; the CV states all three | met, met, met | High Priority (R2) |
+| Same ad; the CV has Python and SQL, and says the degree is expected in 2027 | met, met, not_met | Low Priority (R1) |
+| Same ad; the CV has Python and the degree but never mentions SQL | met, not_enough_information, met | Consider (R3) |
+| Same ad; the CV has Python, mentions "databases" but not SQL, has the degree | met, partly_met, met | Consider (R3) |
+| Ad requires Java and a driving licence; the CV has Java, says nothing about a licence | met, not_enough_information | Consider, limited information (R3) |
+| Ad requires 3 years of experience; the CV shows one dated 5-month internship and states no total | not_enough_information (and the rest met) | Consider (R3) |
+| Ad requires 3 years; the CV states "6 months of professional experience in total" | not_met | Low Priority (R1) |
+| The model lists a mandatory requirement whose quote is not in the ad; everything else met | met, met, (unverified) | Consider, limited information (R4) |
+| Same, but a verified mandatory requirement is also not met | not_met, met, (unverified) | Low Priority (R1) |
+| Ad lists skills without saying which are required | (none) | Consider, limited information (R3) |
 
 ## 6. Interaction design
 
@@ -215,7 +263,7 @@ which is not changed. The design follows Amershi et al. (2019):
 | Guideline | How the panel meets it |
 |---|---|
 | G1 Make clear what the system can do | One line above the button: it reads this ad and your default CV, and nothing else |
-| G2 Make clear how well it can do it | "It can be wrong. Check the quoted evidence." The limited-information notice |
+| G2 Make clear how well it can do it | "It can be wrong. Check the quoted evidence." The limited-information notice; a note on every judgement that was set aside and every mandatory requirement not found in the ad |
 | G6 Mitigate social biases | The prompt tells the model to ignore name, age, gender, nationality and photo; name-swap cases test it |
 | G7 Support efficient invocation | One button, on the job the user is already looking at |
 | G8 Support efficient dismissal | The panel collapses; nothing else on the page depends on it |
@@ -227,7 +275,21 @@ Left for later: G9 (letting the user correct a requirement's status, after which
 rules would recompute the recommendation with no new model call) and G15 (feedback
 buttons).
 
-The panel always shows: "This is a recommendation. The decision is yours."
+**Qualification fit, not job attractiveness (decision Q10, 2026-11-24).** Recommender
+systems in recruitment pursue different objectives, for the job seeker and for the
+employer (Mashayekhi et al., 2024); this one pursues only one of them. The
+recommendation answers one question: does the documented background meet the job's
+requirements? It does not answer whether the job is worth having for this person
+(salary, location, the work itself, career plans), and it does not predict hiring. The
+panel's heading says "AI assessment: qualification fit", and with every result it shows:
+
+> This compares the qualifications shown in your CV with the job's requirements. It does
+> not judge whether the job suits you (salary, location, the work itself or your plans),
+> and it does not predict whether you would be hired. Whether to apply is your decision.
+
+It replaces the earlier line "This is a recommendation. The decision is yours." The
+labels High Priority, Consider and Low Priority are unchanged. The app is in English
+only, so there is no Swedish wording to keep in step.
 
 ## 7. Reproducibility
 
@@ -328,6 +390,12 @@ output of both systems, for the failure-case analysis.
   hold for these scenarios and are an initial evaluation, not proof of general
   performance.
 - The sample is small: results are counts and percentages, without significance tests.
+- Since rules version 2, the AI component gives Low Priority only when a verified mandatory
+  requirement is affirmatively not met. A case whose reference is Low because required
+  skills are absent from the CV will, by design, come out Consider: a one-step miss that
+  reflects the evidence-conservative definition, to be reported as such, not tuned away.
+  The reference criteria are written for a human reader and must not be adjusted to
+  either system's rules.
 - The model is a hosted service. The model snapshot, temperature, seed, prompt and
   rules versions are stored with every run, but the provider can change behaviour
   behind a snapshot name; repeated runs measure this, they do not prevent it.
@@ -347,7 +415,7 @@ Made by the thesis author on 2026-11-13.
 
 | # | Question | Decision |
 |---|---|---|
-| Q1 | A required skill is not mentioned in the CV | `not_met` for skills, tools and qualifications; `not_enough_information` for things CVs often omit |
+| Q1 | A required skill is not mentioned in the CV | `not_met` for skills, tools and qualifications; `not_enough_information` for things CVs often omit. *Superseded on 2026-11-24, see the revised Q1 below* |
 | Q2 | Is one unmet mandatory requirement enough for Low Priority? | Yes |
 | Q3 | Do preferred requirements affect the recommendation? | No, they are shown only |
 | Q4 | Does an unclear requirement count as mandatory or preferred? | Preferred |
@@ -355,6 +423,9 @@ Made by the thesis author on 2026-11-13.
 | Q6 | Thresholds for the rule-based score | By skill coverage: High at 86 or more, Low below 70 (section 8) |
 | Q7 | Who checks the reference decisions? | A second person, labelling blind |
 | Q8 | How many evaluation cases? | 18: one per combination of scenario type, language and reference decision (decided 2026-11-24) |
+| Q1 (revised 2026-11-24) | A required skill is not mentioned in the CV | `not_enough_information`, always. `not_met` needs CV words that show the mismatch, and a quantified shortfall needs a stated total (section 5) |
+| Q9 (2026-11-24) | A requirement's quote is not found in the ad | It stays in the output, marked unverified; if mandatory, it gives Consider with limited information unless a verified mandatory requirement is not met (rules version 2) |
+| Q10 (2026-11-24) | What does the recommendation claim? | Qualification fit only: not job attractiveness, not a hiring prediction; the panel says so with every result |
 
 Still open: who the second labeller is.
 
@@ -363,11 +434,19 @@ Still open: who the second labeller is.
 - Amershi, S., Weld, D., Vorvoreanu, M., et al. (2019). Guidelines for human-AI
   interaction. *Proceedings of the 2019 CHI Conference on Human Factors in Computing
   Systems*. https://doi.org/10.1145/3290605.3300233
+- Mashayekhi et al. (2024). A challenge-based survey of e-recruitment
+  recommendation systems. *ACM Computing Surveys*. https://doi.org/10.1145/3659942
 - Hevner, A. R., March, S. T., Park, J., & Ram, S. (2004). Design science in
   information systems research. *MIS Quarterly, 28*(1), 75–105.
 - Peffers, K., Tuunanen, T., Rothenberger, M. A., & Chatterjee, S. (2007). A design
   science research methodology for information systems research. *Journal of
   Management Information Systems, 24*(3), 45–77.
+- Tang et al. (2024). MiniCheck: Efficient fact-checking of LLMs on grounding
+  documents. *Proceedings of EMNLP 2024*. https://doi.org/10.18653/v1/2024.emnlp-main.499
+- Vaishampayan et al. (2025). Human and LLM-based resume matching: An observational
+  study. *Findings of NAACL 2025*. https://doi.org/10.18653/v1/2025.findings-naacl.270
 - Venable, J., Pries-Heje, J., & Baskerville, R. (2016). FEDS: A framework for
   evaluation in design science research. *European Journal of Information Systems,
   25*(1), 77–89. https://doi.org/10.1057/ejis.2014.36
+- Yue et al. (2023). Automatic evaluation of attribution by large language models.
+  *Findings of EMNLP 2023*. https://doi.org/10.18653/v1/2023.findings-emnlp.307

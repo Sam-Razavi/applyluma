@@ -1,9 +1,12 @@
 """assess(): ad and CV in, recommendation with reasons out.
 
-Step 1 (model)  requirements from the ad
+Step 1 (model)  requirements from the ad, each with a quote from the ad
 Step 2 (model)  a judgement per requirement, with a quote from the CV
-Quote check     a judgement resting on a quote that is not in the CV does not count
-Rules           decision.decide() turns the judgements into the recommendation
+Quote checks    a judgement (met, partly met or not met) resting on a quote that is
+                not in the CV does not count; a requirement whose quote is not in
+                the ad is marked unverified
+Rules           decision.decide() turns the judgements into the recommendation;
+                an unverified mandatory requirement cannot make it Low or High
 """
 
 from __future__ import annotations
@@ -71,11 +74,20 @@ def _apply_judgements(
 
         cv_quote_found = quote_in_source(cv_quote, cv_text) if cv_quote else None
         model_status = status
-        downgraded = False
-        if status in ("met", "partly_met") and not cv_quote_found:
-            # "Met" must rest on words that are really in the CV.
+        downgrade_reason = ""
+        if status in ("met", "partly_met", "not_met") and not cv_quote_found:
+            # A judgement either way must rest on words that are really in the
+            # CV. For met/partly_met that was so from version 1. Since rules
+            # version 2 it also holds for not_met: absence of a skill from the
+            # CV is not evidence that the candidate lacks it, so a not_met with
+            # nothing quoted, or a quote the CV does not contain, is not
+            # counted as a mismatch. Note the limit of this check: a quote that
+            # IS found shows only that the words are in the CV, not that they
+            # establish the mismatch (or the match); that stays a matter for
+            # the reader and for manual review of the evaluation.
+            downgrade_reason = "cv_quote_missing" if not cv_quote else "cv_quote_not_found"
             status = "not_enough_information"
-            downgraded = True
+        downgraded = bool(downgrade_reason)
 
         requirement.update(
             {
@@ -85,6 +97,7 @@ def _apply_judgements(
                 "cv_quote_found": cv_quote_found,
                 "ad_quote_found": quote_in_source(requirement["ad_quote"], ad_text),
                 "downgraded": downgraded,
+                "downgrade_reason": downgrade_reason,
                 "note": note,
             }
         )

@@ -48,8 +48,19 @@ const GROUPS: { importance: FitImportance; title: string; hint: string }[] = [
   },
 ]
 
+/** Why a judgement was not counted. Rows from before rules 2 only set aside "met". */
+function downgradeNote(item: FitRequirement): string {
+  if (item.model_status === 'not_met') {
+    return item.downgrade_reason === 'cv_quote_missing'
+      ? 'No text from your CV was given for this, so it is not counted as unmet. A requirement your CV does not mention is not proof that you lack it.'
+      : 'The CV text given for this could not be found in your CV, so it is not counted as unmet.'
+  }
+  return 'The evidence given for this could not be found in your CV, so it is not counted as met.'
+}
+
 function Requirement({ item }: { item: FitRequirement }) {
   const status = STATUS[item.status]
+  const unverifiedMandatory = item.importance === 'mandatory' && !item.ad_quote_found
   return (
     <li className="rounded-lg border border-line bg-surface p-3">
       {/* A short chip stays on the right; a long one drops under the title on a
@@ -68,14 +79,17 @@ function Requirement({ item }: { item: FitRequirement }) {
           From your CV: “{item.cv_quote}”
         </p>
       )}
-      {item.downgraded && (
-        <p className="mt-2 text-xs text-warning-600">
-          The evidence given for this could not be found in your CV, so it is not counted as met.
-        </p>
-      )}
+      {item.downgraded && <p className="mt-2 text-xs text-warning-600">{downgradeNote(item)}</p>}
       {item.ad_quote && (
         <p className="mt-1 text-xs text-fg-subtle">
-          From the ad: “{item.ad_quote}”{!item.ad_quote_found && ' (wording not found in the ad)'}
+          From the ad: “{item.ad_quote}”
+          {!item.ad_quote_found && !unverifiedMandatory && ' (wording not found in the ad)'}
+        </p>
+      )}
+      {unverifiedMandatory && (
+        <p className="mt-2 text-xs text-warning-600">
+          The wording of this requirement could not be found in the ad, so it cannot be verified. It
+          cannot support a firm assessment, and it can make the result Consider.
         </p>
       )}
     </li>
@@ -155,7 +169,7 @@ export default function FitAssessmentPanel({ jobId }: Props) {
       >
         <span className="flex items-center gap-2 text-sm font-semibold text-fg">
           <SparklesIcon className="h-4 w-4 text-accent-text" aria-hidden="true" />
-          AI assessment
+          AI assessment: qualification fit
           {result && (
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${RECOMMENDATION[result.recommendation].className}`}
@@ -230,6 +244,14 @@ export default function FitAssessmentPanel({ jobId }: Props) {
                 {result.summary && <p className="mt-1 text-sm text-fg-muted">{result.summary}</p>}
               </div>
 
+              {/* Qualification fit is not the same as whether the job is worth having:
+                  the assessment only does the first, and the choice stays with the user. */}
+              <p className="rounded-lg border border-line bg-surface p-3 text-xs text-fg-muted">
+                This compares the qualifications shown in your CV with the job&apos;s requirements. It does
+                not judge whether the job suits you (salary, location, the work itself or your plans), and
+                it does not predict whether you would be hired. Whether to apply is your decision.
+              </p>
+
               {result.limited_information && (
                 <p className="flex items-start gap-2 rounded-lg bg-warning-500/10 p-3 text-xs text-warning-600">
                   <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -268,8 +290,6 @@ export default function FitAssessmentPanel({ jobId }: Props) {
                   </ul>
                 </div>
               )}
-
-              <p className="text-xs text-fg-muted">This is a recommendation. The decision is yours.</p>
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
                 <span className="text-xs text-fg-subtle">
