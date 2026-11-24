@@ -266,9 +266,12 @@ artificial data, functional black-box testing, and scenarios.
 - Fictional CV and job ad pairs for junior IT roles, in English and Swedish, across
   three scenario types: clear match or mismatch; unclear or missing information;
   consistency and robustness.
-- The number of cases (12 to 18 in the research report) is to be justified by the
-  comparisons intended: scenario type by language by expected priority. The runner
-  reports per cell, so thin cells are visible.
+- **18 cases**, one for each combination of the comparisons intended: scenario type
+  (3) by language (2) by reference decision (3). Each system's result can then be
+  read for every combination, and no case counts for more than one cell. The runner
+  reports every combination, empty ones included, so a missing case is visible.
+  (The research report allowed 12 to 18; with 12, at least six combinations would
+  have had no case.)
 
 ### Reference decisions, independent of both systems
 
@@ -278,8 +281,11 @@ artificial data, functional black-box testing, and scenarios.
   copy of the rule-based matcher's formula, and not a copy of the rule table in
   section 5.
 - A second person labels the same cases without seeing the first labels or either
-  system's output. Agreement is reported; disagreements are recorded and resolved by
-  discussion, and the resolution is logged.
+  system's output, from a sheet that shows only each CV and ad, numbered in a shuffled
+  order (`python -m thesis.eval.labelling sheet`). Agreement is reported (same label,
+  one step apart, opposite, Cohen's kappa); disagreements are recorded and resolved by
+  discussion before either system runs, and the resolution is kept in the case's
+  `case.yaml`.
 - The evaluation cases are kept outside the repository, and away from the developer
   of the prompts, until the prompts and rules are frozen and tagged.
 
@@ -348,9 +354,9 @@ Made by the thesis author on 2026-11-13.
 | Q5 | Repeated runs | 5 per case, 3 per variant |
 | Q6 | Thresholds for the rule-based score | By skill coverage: High at 86 or more, Low below 70 (section 8) |
 | Q7 | Who checks the reference decisions? | A second person, labelling blind |
+| Q8 | How many evaluation cases? | 18: one per combination of scenario type, language and reference decision (decided 2026-11-24) |
 
-Still open, for the supervisor meeting: the final number of cases and how it is
-justified; who the second labeller is.
+Still open: who the second labeller is.
 
 ## References
 

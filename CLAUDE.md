@@ -861,6 +861,16 @@ Thesis baseline (November 2026):
     check 2026-11-20: frozen files unchanged since `thesis-prototype-v2`, matcher
     unchanged since `pre-thesis-baseline`, practice cases 7/7 with identical
     judgements in every run, 154/154 CV quotes found, 0.0102 USD per assessment.
+  - 18 evaluation cases (decision Q8, 2026-11-24): one per combination of scenario
+    type x language x reference decision; the summary's per-cell table lists all 18,
+    empty ones included. Second labeller: `python -m thesis.eval.labelling sheet`
+    makes a blind sheet (CV and ad only, shuffled numbers, key kept apart) and
+    `compare` reads the filled-in form; `case.yaml` takes `second_label`, plus
+    `first_label` / `resolution` when the labels differed (the loader refuses a
+    difference without a resolution). The summary opens with the agreement (same,
+    one step, opposite, Cohen's kappa). Rerun of the practice cases 2026-11-21:
+    59/59 runs gave the same priority as on 11-20; one run judged a preferred
+    requirement differently (temperature 0 and a seed are not fully repeatable).
   - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
     (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
     `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.

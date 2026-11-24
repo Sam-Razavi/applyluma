@@ -34,6 +34,9 @@ key in `OPENAI_API_KEY`:
 python -m thesis.eval.run --cases thesis/cases --out thesis/results/run-1
 ```
 
+Before the run, the second labeller labels the cases blind from a sheet made by
+`python -m thesis.eval.labelling sheet` (steps in [`cases/README.md`](cases/README.md)).
+
 Each case is a folder with `cv.md`, `ad.md` and `case.yaml` (format and an example:
 [`eval/cases.py`](eval/cases.py), [`practice_cases/`](practice_cases/)). The runner
 refuses to start if a case is incomplete and lists every problem.
