@@ -1,0 +1,6 @@
+scenario: clear
+language: en
+reference: high_priority
+rationale: >
+  The three requirements (Python, SQL databases, degree) are all shown. Kubernetes,
+  Kafka and Scala are named only in the company description and are not requirements.

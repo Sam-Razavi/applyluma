@@ -1,0 +1,7 @@
+scenario: clear
+language: en
+reference: low_priority
+rationale: >
+  Go is mandatory and the CV states that the candidate has not used it. The word "Go"
+  appears in the CV, but only about the team's services. PostgreSQL and the degree are
+  shown.

@@ -1,0 +1,6 @@
+scenario: clear
+language: en
+reference: low_priority
+rationale: >
+  The CV itself states a total of six months of professional experience, far below the
+  three years required. C++ and the degree are shown.

@@ -1,0 +1,10 @@
+scenario: unclear_or_missing
+language: sv
+reference: consider
+rationale: >
+  "Vi tror att du" does not say which items are required. React and the education are
+  shown; TypeScript is not mentioned. Whether TypeScript is a requirement or a wish is
+  unclear, so the job is worth a look but not a firm match.
+expected_missing:
+  - label: TypeScript
+    keywords: [typescript]

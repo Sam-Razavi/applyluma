@@ -883,8 +883,14 @@ Thesis baseline (November 2026):
     `mandatory_unverified`. The panel is titled "AI assessment: qualification fit" and
     says it does not judge job attractiveness or predict hiring. Practice cases p2, p4
     and p5 keep their historical Low labels; the expected outcome under the new
-    criteria (Consider) is in `thesis/practice_cases/README.md`. Proposed freeze tag:
-    `thesis-prototype-v3`.
+    criteria (Consider) is in `thesis/practice_cases/README.md`.
+  - Prompt 7 (2026-11-24) after 10 formative stress cases (`thesis/stress_cases/`,
+    unsupported negatives, misleading quotes, ambiguous requirements; plus 2 added for
+    the fix): a list heading ("Requirements", "Krav") makes its bare items mandatory,
+    a person-describing heading ("Vi tror att du") does not; a total of experience the
+    CV itself states below half is always not_met (prompt 6 chose
+    not_enough_information against its own note). Freeze tag `thesis-prototype-v3` on
+    the merge of the stress-case PR. Stress and practice output is never committed.
   - Removed before the baseline: the unused `POST /api/v1/ai/tailor-cv`
     (`endpoints/ai.py`, `services/ai_service.py`). The `cv_analysis` label in
     `AdminAiCosts.tsx` stays, because old usage rows still carry that purpose.

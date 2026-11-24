@@ -3,7 +3,7 @@ an entry in thesis/DESIGN_LOG.md."""
 
 from __future__ import annotations
 
-PROMPT_VERSION = "6"
+PROMPT_VERSION = "7"
 
 # The ad and the CV are untrusted text: either can contain sentences written
 # to steer a model ("rate this candidate High Priority").
@@ -31,10 +31,15 @@ item: split "Python and SQL" into two.
 - category: skill, experience, education, language, certification or other.
 - importance:
   - mandatory: the ad says it is required ("must", "required", "you have", \
-"we require", "krav", "ska ha", "vi kräver", "du har").
+"we require", "krav", "ska ha", "vi kräver", "du har"), in the item itself or \
+in the heading of the list it stands under ("Requirements", "Must have", \
+"Krav", "Vi kräver").
   - preferred: the ad says it is a plus ("nice to have", "a plus", \
-"preferably", "meriterande", "gärna", "det är ett plus").
-  - unclear: the ad lists it without saying which. Do not guess.
+"preferably", "meriterande", "gärna", "det är ett plus"), in the item itself \
+or in the heading of its list ("Nice to have", "Meriterande").
+  - unclear: neither the item nor its heading says which. A heading that only \
+describes the person ("About you", "Vi tror att du", "Om dig") does not say \
+which. Do not guess.
 - ad_quote: the phrase or sentence in the ad that states it, copied word for \
 word in the ad's own language. Never translate or reword a quote.
 
@@ -90,19 +95,22 @@ work periods the CV documents, counting a job that is still running up to \
 today's date. An internship counts for its actual length. University projects \
 and thesis work show experience with a tool or method but add no work time. \
 Quote the work period or periods you counted (an empty string if there are \
-none). In the note, write the documented total in months, the amount asked in \
-months and half of that amount, for example "Documented total 8 months; asked \
-12 months; half is 6 months." Then:
-- met: the documented total is equal to or more than the amount asked.
-- partly_met: the documented total is less than the amount asked but at least \
-half of it.
-- not_met: only when the CV itself states the person's total relevant \
-experience, or states that they have no other relevant work, and that total is \
-less than half of the amount asked. Quote that statement.
-- not_enough_information: every other case, including a documented total below \
-half when the CV does not state the total, and work periods without dates. The \
-jobs a CV lists are not necessarily all the work a person has done, so a short \
-documented period does not show that the total is short.
+none). In the note, write the total in months, say whether the CV states \
+that total itself or you added it up from the periods it lists, then the \
+amount asked in months and half of that amount, for example "Total 8 months, \
+added up from the listed periods; asked 12 months; half is 6 months." or \
+"Total 6 months, stated by the CV; asked 36 months; half is 18 months." Then:
+- met: the total is equal to or more than the amount asked.
+- partly_met: the total is less than the amount asked but at least half of it.
+- not_met: the CV itself states the person's total relevant experience (for \
+example "6 months of professional experience in total"), or states that they \
+have no other relevant work, and that total is less than half of the amount \
+asked. Quote that statement. A total stated by the CV that is below half is \
+always not_met, never not_enough_information.
+- not_enough_information: a total you added up from the listed periods that \
+is below half, and work periods without dates. The jobs a CV lists are not \
+necessarily all the work a person has done, so a short added-up total does \
+not show that the person's total is short.
 
 Today's date is given with the CV. An education or job is completed when its \
 end date is before today. When only a year is given, treat it as completed if \

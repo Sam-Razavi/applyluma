@@ -12,6 +12,7 @@ the search for a working design (Hevner et al., 2004, guideline 6) stays visible
 | 2026-11-13 | 4 | 1 | The user message states the year in plain words before and after the CV: "Any study or job period in the CV that ends in 2026 or earlier has ended." (the year is filled in by code). | All four practice cases give the expected recommendation, with identical requirement statuses in three runs each. Recommendations never changed across runs in any version; what changed was single requirement judgements. |
 | 2026-11-14 | 5 | 1 | Made after the freeze tag `thesis-prototype-v1` and before any evaluation case was written. (a) A rule for a stated amount of work experience: add up the work periods in the CV; met when the total reaches the amount, partly met from half of it, not met below half or with no relevant work. (b) The judgement's fields are written in the order quote, note, status, and the note must state the numbers. (c) Silence about a driving licence, work permit, citizenship, language or travel is always "not enough information". (d) Experience of a kind of work asked without a number is never "not met" when a job, internship or project in the CV involved it. (e) A quote is one unbroken piece of the CV. Three practice cases added (p5 to p7). | The first assessment in the live app (a real ad asking for "at least 4 years in a similar role", a CV with internships) judged that requirement "not enough information" and gave Consider, against a rule-based score of 94; the quote the model offered was not in the CV. Version 4 had no rule for how far short is too short. See the iterations below. |
 | 2026-11-24 | 6 | 2 | (a) Missing CV evidence is no longer a mismatch: an unmentioned skill, tool, certification or qualification is `not_enough_information`; `not_met` needs CV words that show the mismatch; a shortfall in a stated amount of experience needs a total the CV states. (b) Code sets aside a `not_met` with no CV quote or one not in the CV, as it already did for `met`, and records `downgrade_reason`. (c) A mandatory requirement whose ad quote is not in the ad is unverified (fail closed when the check is missing) and cannot give Low or High: rule order R1, R4 (new), R2, R3. (d) The panel separates qualification fit from job attractiveness. Made after `thesis-prototype-v2`, before any evaluation case existed. | A methodology review found that Q1 let silence count as non-qualification, and that one unmet mandatory requirement gives Low, so the most consequential result could rest on no evidence; and that an invented or misquoted requirement still reached the rules. See "Prompt 6 / rules 2" below. |
+| 2026-11-24 | 7 | 2 | (a) Step 1: an item's importance can come from the heading of its list ("Requirements", "Krav" make bare items mandatory; "Nice to have", "Meriterande" preferred); a heading that only describes the person ("Vi tror att du", "About you") decides nothing. (b) Step 2: the note says whether a total of experience is stated by the CV or added up; a stated total below half is always `not_met`. Ten stress cases added (`thesis/stress_cases/`). | The first stress run on prompt 6 found that a CV stating "6 months of professional experience in total" against 3 years was judged "not enough information" in 5 of 5 runs, though the note itself said the total was below half (Low was unreachable for the one shortfall the design allows), and that bare items under "Requirements" were read as unclear. See "Prompt 7" below. |
 
 ### Prompt version 5: the iterations
 
@@ -200,3 +201,79 @@ For this change, as recorded in this session on 2026-11-24:
 - **Verifiable from the repository:** the diff and this entry. **Recorded here only:**
   the decisions above and the practice-run figures (the run's output is kept outside
   the repository, as practice output always is).
+
+## Prompt 7 (2026-11-24): stress cases
+
+### Why
+
+Ten formative stress cases (`thesis/stress_cases/`) were written to probe the three weak
+points that prompt 6 / rules 2 address. They cover unsupported negative judgements,
+misleading quotations in the CV and in the ad, and ambiguous requirements. Two of them are
+controls that must stay Low. The expected outcomes were written before any run. Like the
+practice cases, they are written by the developer and are not evaluation cases.
+
+### First run: prompt 6 / rules 2
+
+60 assessments, 0 failures. 9 of 10 cases gave the expected priority in 5 of 5 runs:
+
+- **Unsupported negatives held:** an absent certificate beside a listed one (`s01`), a
+  six-month dated history against two years (`s02`), and no work permit or Swedish stated
+  (`s03`) were all `not_enough_information`. Nothing rested on the name or country.
+- **Misleading CV quotations held:** "The course required no prior experience with
+  Kubernetes" was not used as a mismatch (`s04`, High). "Go" mentioned only about the
+  team was not counted as met, and "I have not used Go myself" gave Low (`s05`).
+- **Misleading ad context held:** Kubernetes, Kafka and Scala, named only under "About
+  us", were not extracted (`s06`, High).
+- **Ambiguity:** "Vi tror att du" items were `unclear` (`s07`, Consider). The unfinished
+  degree gave Low (`s10`).
+- **Failure 1 (`s09`, control):** the CV states "6 months of professional experience in
+  total" against 3 years. Every run wrote "the CV states 6 months ... less than half" in
+  the note and then chose `not_enough_information`: Consider instead of Low. This is the
+  failure seen before version 5, a status that contradicts its own note. Here it made the
+  one experience shortfall the design accepts unreachable.
+- **Failure 2 (`s08`):** the three items under "Requirements" had no "must" or
+  "required" and were read as `unclear`. The priority was right (Consider) for the wrong
+  reason: an unclear requirement decides nothing, so a real failure listed this way would
+  never give Low, and a full match never High.
+
+### Change
+
+- **Step 1:** headings count as importance markers, and person-describing headings do
+  not.
+- **Step 2:** the note states whether a total is stated or added up, and "a total stated
+  by the CV that is below half is always not_met".
+- **Not changed:** the rules (version 2), the schemas, the model, temperature and seed.
+- **New cases:** `s11` (bare items under "Requirements", unfinished degree: Low) and
+  `s12` (bare items under "Krav", all shown: High), written before the prompt-7 run.
+
+### Second run: prompt 7
+
+| Cases | AI assessments | Expected priority in every run | Ad quotes found | CV quotes found |
+|---|---|---|---|---|
+| 12 stress cases | 60 | 12 of 12 | 240 of 240 | 175 of 175 |
+| 7 practice cases (and p1's two variants) | 41 | 7 of 7 against the v6 expectations | 231 of 231 | 153 of 154 |
+
+- `s09` is now Low, with "Total 6 months, stated by the CV" in the note.
+- `s08`, `s11` and `s12` read their headed items as mandatory; `s07` stays `unclear`.
+- **Practice cases:** p2, p4 and p5 stay Consider; p1, p3, p6 and p7 are unchanged.
+- **The quote check fired on real output for the first time.** In one p5 run the model
+  quoted "Skills\nSQL", a heading joined to its item, for "Strong knowledge of SQL". The
+  check set it aside; the priority did not change.
+- **Run-to-run variation** remained only on preferred requirements: Azure in p7 and
+  Power BI in `s10`, met or partly met.
+- **Cost:** 0.0108 USD per assessment.
+
+### What the stress cases do not show
+
+- **Untested rules:** no case made the model invent an ad quote, so R4 has still only
+  been tested with a faked model. No case produced a `not_met` with a quote absent from the
+  CV either.
+- **Not caught by code:** `s04` and `s06` passed because the model read them right. If it
+  had used the misleading sentence, the found quote would have passed the literal check.
+- **Scale:** twelve cases, written by the developer, cannot show how often these errors
+  occur on real ads and CVs.
+
+### Versions
+
+Prompt 7, rules 2, protocol 1, model `gpt-4o-2024-08-06`. Tag `thesis-prototype-v3` marks
+this version, the evaluation candidate.

@@ -11,6 +11,7 @@ after the `pre-thesis-baseline` tag; what existed before is described in
 | [`DESIGN_LOG.md`](DESIGN_LOG.md) | Every change to the prompts or rules after design v1, and why |
 | [`protocol.yaml`](protocol.yaml) | The evaluation protocol: number of runs, the date given to the model, the thresholds that turn the rule-based score into a priority |
 | [`practice_cases/`](practice_cases/) | Fictional cases used while building. Not evaluation cases; nothing measured on them is a result |
+| [`stress_cases/`](stress_cases/) | Formative cases probing unsupported negative judgements, misleading quotations and ambiguous requirements. Not evaluation cases |
 | [`eval/`](eval/) | The evaluation runner: both systems on the same cases, then the tables |
 | `cases/` | The evaluation cases. Added after the evaluation candidate is frozen and tagged (proposed `thesis-prototype-v3`) |
 | `results/` | One folder per evaluation run, committed as produced |
