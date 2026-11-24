@@ -15,6 +15,14 @@ reference: high_priority
 rationale: >
   Write the reason here.
 
+# Filled in after the second labeller has labelled the case blind (see README.md).
+# second_label: consider
+# Only when your label and the second labeller's differed: your own label before the
+# discussion, and what was decided. "reference" above is then the settled decision.
+# first_label: high_priority
+# resolution: >
+#   What was discussed and why the reference is what it is.
+
 # true if the job can be done remotely (the rule-based score adds 0.5 for remote jobs).
 remote: false
 

@@ -163,7 +163,7 @@ def _agreement_counts(rows: list[dict[str, Any]]) -> list[str]:
     return [_share(counts["exact"], len(rows))] + [str(counts[a]) for a in AGREEMENTS[1:]]
 
 
-def _correctness(rows: list[dict[str, Any]]) -> list[str]:
+def _correctness(rows: list[dict[str, Any]], protocol: dict[str, Any]) -> list[str]:
     out = ["## 1. Correctness: agreement with the reference decision", ""]
     header = ["", "Cases", *[AGREEMENT_LABEL[a] for a in AGREEMENTS]]
     for title, key in (("Overall", None), ("By scenario type", "scenario"), ("By language", "language")):
@@ -177,29 +177,112 @@ def _correctness(rows: list[dict[str, Any]]) -> list[str]:
                 body.append([label, len(part), *_agreement_counts(part)])
         out += [f"**{title}**", "", _table(header, body), ""]
 
-    out += [
-        "**Per cell** (scenario type, language, reference decision). Thin cells show here.",
-        "",
-    ]
+    out += _cells(rows, protocol)
+    return out
+
+
+def _cells(rows: list[dict[str, Any]], protocol: dict[str, Any]) -> list[str]:
+    """Every combination of scenario type, language and reference decision, the
+    empty ones included, so a combination without a case is visible."""
     cells: dict[tuple[str, str, str], dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     for row in rows:
         case = row["case"]
         cells[(case.scenario, case.language, case.reference)][row["system"]].append(row)
+    grid = [
+        (scenario, language, reference)
+        for scenario in protocol["scenario_types"]
+        for language in protocol["languages"]
+        for reference in reversed(PRIORITIES)
+    ]
+    grid += sorted(key for key in cells if key not in grid)
     body = []
-    for (scenario, language, reference), by_system in sorted(cells.items()):
-        cases_in_cell = max(len(v) for v in by_system.values())
+    for key in grid:
+        scenario, language, reference = key
+        by_system = cells.get(key, {})
+        cases_in_cell = max((len(v) for v in by_system.values()), default=0)
         exact = [
-            f"{sum(1 for r in by_system.get(system, []) if r['agreement'] == 'exact')} of {len(by_system.get(system, []))}"
+            f"{sum(1 for r in by_system[system] if r['agreement'] == 'exact')} of {len(by_system[system])}"
+            if by_system.get(system)
+            else "-"
             for system in SYSTEMS
         ]
         body.append([scenario, language, PRIORITY_LABEL[reference], cases_in_cell, *exact])
-    out += [
+    filled = sum(1 for key in grid if cells.get(key))
+    return [
+        f"**Per cell** (scenario type, language, reference decision): {filled} of {len(grid)} "
+        "combinations have a case.",
+        "",
         _table(
             ["Scenario", "Language", "Reference", "Cases", "AI same as reference", "Rule-based same as reference"],
             body,
         ),
         "",
     ]
+
+
+def cohen_kappa(pairs: list[tuple[str, str]]) -> float | None:
+    """Agreement between two labellers beyond what chance would give. None when
+    it is undefined: no pairs, or both labellers used one and the same label."""
+    if not pairs:
+        return None
+    n = len(pairs)
+    observed = sum(1 for a, b in pairs if a == b) / n
+    first, second = Counter(a for a, _ in pairs), Counter(b for _, b in pairs)
+    expected = sum(first[p] * second[p] for p in PRIORITIES) / (n * n)
+    if expected == 1:
+        return None
+    return (observed - expected) / (1 - expected)
+
+
+def _labellers(cases: list[Case]) -> list[str]:
+    out = ["## Reference decisions: agreement between the two labellers", ""]
+    labelled = [c for c in cases if c.second_label is not None]
+    if not labelled:
+        return [*out, "No case has a second label.", ""]
+    out += [
+        "The thesis author and a second labeller each labelled the cases, the second one",
+        "blind (from the labelling sheet, without the author's labels or any system output).",
+        "Disagreements were discussed and settled before either system ran; the settled",
+        "decision is the reference used in every table below.",
+        "",
+    ]
+    pairs = [(c.first_label, str(c.second_label)) for c in labelled]
+    steps = Counter(abs(PRIORITIES.index(a) - PRIORITIES.index(b)) for a, b in pairs)
+    kappa = cohen_kappa(pairs)
+    out += [
+        _table(
+            ["Measure", "Result"],
+            [
+                ["Cases with a second label", _share(len(labelled), len(cases))],
+                ["Same label", _share(steps[0], len(pairs))],
+                ["One step apart", steps[1]],
+                ["Opposite", steps[2]],
+                ["Cohen's kappa", "-" if kappa is None else f"{kappa:.2f}"],
+            ],
+        ),
+        "",
+        "Rows: the author's label. Columns: the second labeller's.",
+        "",
+    ]
+    order = list(reversed(PRIORITIES))
+    matrix = Counter(pairs)
+    out += [
+        _table(
+            ["", *[PRIORITY_LABEL[p] for p in order]],
+            [[PRIORITY_LABEL[a], *[matrix[(a, b)] for b in order]] for a in order],
+        ),
+        "",
+    ]
+    settled = [c for c in cases if c.resolution]
+    if settled:
+        out += ["Settled by discussion:", ""]
+        out += [
+            f"- `{c.id}`: author {PRIORITY_LABEL[c.first_label]}, second labeller "
+            f"{PRIORITY_LABEL[c.second_label] if c.second_label else '-'}; reference "
+            f"{PRIORITY_LABEL[c.reference]}. {_oneline(c.resolution)}"
+            for c in settled
+        ]
+        out.append("")
     return out
 
 
@@ -523,7 +606,8 @@ def summary_markdown(
         "not as rates that would hold for other cases.",
         "",
     ]
-    lines += _correctness(rows)
+    lines += _labellers(cases)
+    lines += _correctness(rows, protocol)
     lines += _consistency(rows)
     lines += _robustness(rows, protocol["variant_types"])
     lines += _transparency(_ai_outputs(rows, analysis["grouped"]))
