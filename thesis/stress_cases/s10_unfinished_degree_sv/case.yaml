@@ -1,0 +1,7 @@
+scenario: clear
+language: sv
+reference: low_priority
+rationale: >
+  A completed bachelor's degree is required and the CV says the studies are ongoing,
+  with the degree expected in June 2027, after the reference date. SQL and Python are
+  shown.

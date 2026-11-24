@@ -1,0 +1,7 @@
+scenario: clear
+language: en
+reference: high_priority
+rationale: >
+  Every mandatory requirement is shown: the CV describes a Kubernetes deployment and
+  lists Linux and Git. The sentence "The course required no prior experience with
+  Kubernetes" is about the course, not a lack in the candidate.

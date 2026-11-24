@@ -1,0 +1,10 @@
+scenario: unclear_or_missing
+language: en
+reference: consider
+rationale: >
+  Degree and Python are shown. The CV has a certifications section that lists only an
+  Azure certificate and says nothing about the required AWS certificate. Not listing it
+  is not evidence of not having it, so the requirement is open, not unmet.
+expected_missing:
+  - label: AWS Certified Cloud Practitioner
+    keywords: [aws, cloud practitioner]

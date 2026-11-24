@@ -1,0 +1,10 @@
+scenario: unclear_or_missing
+language: en
+reference: consider
+rationale: >
+  Java is shown and the CV documents a running developer job. "Some years" states no
+  number, and "good communication skills" cannot be judged from a CV, so the fit is
+  plausible but not firm.
+expected_missing:
+  - label: Communication skills
+    keywords: [communication]

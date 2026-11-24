@@ -36,7 +36,8 @@ existed. A run that disagrees with an obsolete label is not, by itself, a regres
 | `p7_experience_enough_en` | High Priority | High Priority | 28 documented months (August 2024 to the reference date) of 24 asked: met |
 
 The runner still scores against the historical `reference`; the comparison with the
-column above is in `DESIGN_LOG.md`.
+column above is in `DESIGN_LOG.md`. The expectations held under prompt 6 and again under
+prompt 7 (7 of 7, every run).
 
 Each folder has a `case.yaml` in the format the evaluation cases use (see
 `thesis/eval/cases.py`), and `p1` has two variants, so the runner can be tried end to end:

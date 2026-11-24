@@ -1,8 +1,8 @@
 # Design: AI-assisted job-fit assessment
 
 Status: **design v1, decisions made on 2026-11-13** (section 10), built and tagged as
-`thesis-prototype-v1` and `-v2`. **Revised on 2026-11-24: prompt version 6, rules
-version 2** (decisions Q1 revised, Q9 and Q10). Changes after design v1 are recorded
+`thesis-prototype-v1` and `-v2`. **Revised on 2026-11-24: prompt version 7, rules
+version 2** (decisions Q1 revised, Q9 and Q10; prompt 7 after the stress cases). Changes after design v1 are recorded
 in `DESIGN_LOG.md`.
 
 This is activity 2 ("define the objectives for a solution") and the design half of
@@ -121,9 +121,13 @@ For each requirement the model returns:
 How importance is decided:
 
 - **mandatory:** the ad says so ("must", "required", "you have", "krav", "ska ha",
-  "vi kräver").
-- **preferred:** the ad says so ("nice to have", "a plus", "meriterande", "gärna").
-- **unclear:** the ad lists it without saying either.
+  "vi kräver"), in the item or in the heading of its list ("Requirements", "Must have",
+  "Krav", "Vi kräver"). The heading counts since prompt version 7: bare items under
+  "Requirements" were read as unclear (stress case `s08`).
+- **preferred:** the ad says so ("nice to have", "a plus", "meriterande", "gärna"), in
+  the item or in its heading ("Nice to have", "Meriterande").
+- **unclear:** neither the item nor its heading says either. A heading that only
+  describes the person ("About you", "Vi tror att du", "Om dig") does not say.
 
 ### Step 2: evidence from the CV
 
@@ -159,12 +163,14 @@ observation that language models and human screeners can differ in what they inf
 from a CV (Vaishampayan et al., 2025). These works motivate the rule; they did not test
 it.
 
-**Stated amounts of experience** (version 5, revised in version 6): the work periods the
-CV documents are added up, an internship counting for its length and a running job up to
-the reference date. At least the amount asked is met; at least half of it is partly met.
+**Stated amounts of experience** (version 5, revised in versions 6 and 7): the work periods
+the CV documents are added up, an internship counting for its length and a running job up
+to the reference date. At least the amount asked is met; at least half of it is partly met.
 Below half is `not_met` **only when the CV itself states the total** (for example "6
 months of professional experience in total") or states that there is no other relevant
-work. A dated history of jobs and internships does not establish the person's complete
+work; such a stated total below half is always `not_met` (version 7: in version 6 the model
+wrote that the stated total was below half and still chose "not enough information",
+stress case `s09`). The note says whether the total is stated or added up. A dated history of jobs and internships does not establish the person's complete
 experience: the jobs a CV lists are not necessarily all the work a person has done. So a
 documented period below half, without such a statement, is `not_enough_information`. The
 half-way boundary is unchanged from version 5; it is a formative design convention, not

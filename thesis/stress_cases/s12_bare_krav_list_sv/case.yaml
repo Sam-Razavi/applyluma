@@ -1,0 +1,6 @@
+scenario: clear
+language: sv
+reference: high_priority
+rationale: >
+  The bare items under "Krav" are required by their heading, and the CV shows Java,
+  Spring Boot and SQL in a running job.
