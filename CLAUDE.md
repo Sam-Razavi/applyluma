@@ -218,6 +218,21 @@ Browser Extension delivered in June 2026 (`applyluma-extension/`):
     that job's detail (works for extension-saved jobs too). It only calls the
     frozen assessment; no prompt or rule changed. Score hints use the app's
     bands (`utils/matchScore.ts`: Strong >= 80, Partial >= 60, else gap).
+  - 1.3.1 (November 2026): with 1.3.0 installed, LinkedIn and Indeed opened the
+    popup with every field empty: signed-in pages use markup the selectors no
+    longer match (could not be inspected from a cloud session). When the open
+    page gives no title, company or description, `common.js`
+    `fillFromJobPage` fetches the job's own page from the same site and reads
+    it there: LinkedIn's public `/jobs-guest/jobs/api/jobPosting/<id>`
+    (stable `top-card-layout__title` / `topcard__org-name-link` /
+    `show-more-less-html__markup`, no sign-in), Indeed's `/viewjob?jk=` with the
+    browser's session (JSON-LD, else the `jobTitle` / `companyName` /
+    `sanitizedJobDescription` JSON Indeed embeds). Verified on a real LinkedIn
+    job with its layout blanked out, and on a local Indeed-shaped page (real
+    Indeed answers automated browsers with 403). `EXTRACT_JOB` now answers
+    asynchronously; the popup waits up to 8 s and shows "Reading the job…".
+    LinkedIn ids are also read from `/jobs/view/<title>-at-<company>-<id>`
+    (Google, job-alert emails, shared links), which used to give "no job".
   - Server-side compatibility for the released 1.0.0: the bookmark response
     also carries `raw_job_posting_id` (1.0.0 read that name and got
     undefined, so match score, "Track application" and AI Tailor silently did
